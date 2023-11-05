@@ -1,0 +1,7 @@
+name: Development CI
+on:
+    push:
+        branches:
+            - dev
+jobs:
+    build-and-test:
