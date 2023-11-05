@@ -1,7 +1,0 @@
-name: Production Deployment
-on:
-    workflow_dispatch:
-        branches:
-            - main
-jobs:
-    deploy-to-prod:
