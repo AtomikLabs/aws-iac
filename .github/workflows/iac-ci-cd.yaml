@@ -49,6 +49,7 @@ jobs:
               env:
                   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
     test-deploy:
         needs: lint-and-validate
@@ -71,9 +72,10 @@ jobs:
                   aws cloudformation deploy \
                     --template-file $TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
+                    --region ${{ secrets.AWS_REGION }} \
                     --no-fail-on-empty-changeset \
                     --capabilities CAPABILITY_NAMED_IAM \
-                    --parameter-overrides file://$PARAM_FILE
+                    --wait \
               env:
                   PARAM_FILE: ${{ needs.setup-environment.outputs.env-file }}
 
@@ -111,5 +113,8 @@ jobs:
               run: |
                   aws cloudformation deploy \
                     --template-file templates/template.yaml \
+                    --region ${{ secrets.AWS_REGION }} \
                     --stack-name atomiklabs-${{ github.run_number }} \
-                    --parameter-overrides file://$PARAM_FILE \
+                    --capabilities CAPABILITY_NAMED_IAM \
+                    --no-fail-on-empty-changeset \
+                    --wait \
