@@ -75,8 +75,9 @@ jobs:
             - name: Deploy to Test Stack
               id: deploy
               run: |
-                  TEMPLATE_FILE=templates/template.yaml
+                  TEMPLATE_FILE=./templates/template.yaml
                   STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
+                  echo $TEMPLATE_FILE
                   aws cloudformation deploy \
                     --template-file $TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
