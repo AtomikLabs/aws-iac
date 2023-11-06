@@ -73,7 +73,6 @@ jobs:
                     --stack-name $STACK_NAME \
                     --no-fail-on-empty-changeset \
                     --capabilities CAPABILITY_NAMED_IAM \
-                    --parameter-overrides file://$PARAM_FILE
               env:
                   PARAM_FILE: ${{ needs.setup-environment.outputs.env-file }}
 
@@ -112,4 +111,3 @@ jobs:
                   aws cloudformation deploy \
                     --template-file templates/template.yaml \
                     --stack-name atomiklabs-${{ github.run_number }} \
-                    --parameter-overrides file://$PARAM_FILE \
