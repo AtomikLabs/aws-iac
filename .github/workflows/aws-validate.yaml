@@ -1,7 +1,7 @@
 name: AWS Validate CloudFormation
 
 on:
-    push:
+    pull_request:
         branches:
             - main
             - dev
@@ -20,7 +20,7 @@ jobs:
               uses: actions/checkout@v3
 
             - name: Set up AWS CLI
-              uses: aws-actions/configure-aws-credentials@v1
+              uses: aws-actions/configure-aws-credentials@v4
               with:
                   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -28,11 +28,8 @@ jobs:
 
             - name: Validate CloudFormation YAML templates
               run: |
-                  find . -name '*.yaml' -or -name '*.yml' | while read -r template; do
-                    echo "Validating $template"
-                    aws cloudformation validate-template --template-body file://"$template"
-                    if [ $? -ne 0 ]; then
-                      echo "::error::Validation failed for $template"
-                      exit 1
-                    fi
-                  done
+                  run: |
+                    find . -name '*.yaml' -not -path "./.github/*" -or -name '*.yml' -not -path "./.github/*" | while read -r template; do
+                      echo "Validating $template"
+                      aws cloudformation validate-template --template-body file://"$template" || exit 1
+                    done
