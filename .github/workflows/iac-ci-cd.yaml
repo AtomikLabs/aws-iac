@@ -9,6 +9,14 @@ on:
         paths:
             - "**/*.yaml"
             - "**/*.yml"
+    push:
+        branches:
+            - dev
+            - stage
+            - main
+        paths:
+            - "**/*.yaml"
+            - "**/*.yml"
 
 env:
     AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -87,7 +95,7 @@ jobs:
 
     deploy:
         needs: test-deploy
-        if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'stage')
+        if: github.event_name == 'push' && (github.base_ref == 'main' || github.base_ref == 'stage' || github.base_ref == 'dev')
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
