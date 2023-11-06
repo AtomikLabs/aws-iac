@@ -71,6 +71,7 @@ jobs:
                   aws cloudformation deploy \
                     --template-file $TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
+                    --region ${{ secrets.AWS_REGION }} \
                     --no-fail-on-empty-changeset \
                     --capabilities CAPABILITY_NAMED_IAM \
               env:
@@ -110,4 +111,7 @@ jobs:
               run: |
                   aws cloudformation deploy \
                     --template-file templates/template.yaml \
+                    --region ${{ secrets.AWS_REGION }} \
                     --stack-name atomiklabs-${{ github.run_number }} \
+                    --capabilities CAPABILITY_NAMED_IAM \
+                    --no-fail-on-empty-changeset \
