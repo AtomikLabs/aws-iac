@@ -1,0 +1,115 @@
+name: AtomikLabs IAC CI/CD Workflow
+
+on:
+    pull_request:
+        branches:
+            - dev
+            - stage
+            - main
+        paths:
+            - "**/*.yaml"
+            - "**/*.yml"
+
+env:
+    AWS_REGION: ${{ secrets.AWS_REGION }}
+
+jobs:
+    setup-environment:
+        runs-on: ubuntu-latest
+        outputs:
+            env-file: ${{ steps.set-env.outputs.env-file }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Determine environment
+              id: set-env
+              run: |
+                  if [[ $GITHUB_BASE_REF == 'dev' ]]; then
+                    echo "Setting environment file for development"
+                    echo "::set-output name=env-file::environments/env.dev.json"
+                  elif [[ $GITHUB_BASE_REF == 'stage' ]]; then
+                    echo "Setting environment file for staging"
+                    echo "::set-output name=env-file::environments/env.stage.json"
+                  elif [[ $GITHUB_BASE_REF == 'main' ]]; then
+                    echo "Setting environment file for production"
+                    echo "::set-output name=env-file::environments/env.prod.json"
+                  fi
+
+    lint-and-validate:
+        needs: setup-environment
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Validate CloudFormation templates
+              run: |
+                  # Insert your CloudFormation validation command(s) here
+              env:
+                  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    test-deploy:
+        needs: lint-and-validate
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Set AWS Credentials for Test Environment
+              run: |
+                  echo "AWS_ACCESS_KEY_ID=${{ secrets.TEST_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+                  echo "AWS_SECRET_ACCESS_KEY=${{ secrets.TEST_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+
+            - name: Deploy to Test Stack
+              id: deploy
+              run: |
+                  TEMPLATE_FILE=templates/template.yaml
+                  STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
+                  aws cloudformation deploy \
+                    --template-file $TEMPLATE_FILE \
+                    --stack-name $STACK_NAME \
+                    --no-fail-on-empty-changeset \
+                    --capabilities CAPABILITY_NAMED_IAM \
+                    --parameter-overrides file://$PARAM_FILE
+              env:
+                  PARAM_FILE: ${{ needs.setup-environment.outputs.env-file }}
+
+            - name: Delete Test Stack
+              if: always()
+              run: |
+                  STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
+                  aws cloudformation delete-stack --stack-name $STACK_NAME
+
+    deploy:
+        needs: test-deploy
+        if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'stage')
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Set AWS Credentials and Parameter File
+              run: |
+                  if [[ $GITHUB_BASE_REF == 'dev' ]]; then
+                    echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+                    echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+                    echo "PARAM_FILE=parameters-dev.json" >> $GITHUB_ENV
+                  elif [[ $GITHUB_BASE_REF == 'stage' ]]; then
+                    echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+                    echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+                    echo "PARAM_FILE=parameters-stage.json" >> $GITHUB_ENV
+                  elif [[ $GITHUB_BASE_REF == 'main' ]]; then
+                    echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+                    echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+                    echo "PARAM_FILE=parameters-prod.json" >> $GITHUB_ENV
+                  fi
+
+            - name: Deploy CloudFormation stack
+              run: |
+                  aws cloudformation deploy \
+                    --template-file templates/template.yaml \
+                    --stack-name atomiklabs-${{ github.run_number }} \
+                    --parameter-overrides file://$PARAM_FILE \
