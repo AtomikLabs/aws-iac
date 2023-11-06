@@ -112,15 +112,12 @@ jobs:
                   if [[ $GITHUB_BASE_REF == 'dev' ]]; then
                     echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
                     echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-                    echo "PARAM_FILE=parameters-dev.json" >> $GITHUB_ENV
                   elif [[ $GITHUB_BASE_REF == 'stage' ]]; then
                     echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
                     echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-                    echo "PARAM_FILE=parameters-stage.json" >> $GITHUB_ENV
                   elif [[ $GITHUB_BASE_REF == 'main' ]]; then
                     echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
                     echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-                    echo "PARAM_FILE=parameters-prod.json" >> $GITHUB_ENV
                   fi
 
             - name: Deploy CloudFormation stack
