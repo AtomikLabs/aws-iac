@@ -1,7 +1,7 @@
 name: AWS Validate CloudFormation
 
 on:
-    push:
+    pull_request:
         branches:
             - main
             - dev
