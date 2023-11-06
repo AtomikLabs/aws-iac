@@ -75,6 +75,7 @@ jobs:
                     --region ${{ secrets.AWS_REGION }} \
                     --no-fail-on-empty-changeset \
                     --capabilities CAPABILITY_NAMED_IAM \
+                    --wait \
               env:
                   PARAM_FILE: ${{ needs.setup-environment.outputs.env-file }}
 
@@ -116,3 +117,4 @@ jobs:
                     --stack-name atomiklabs-${{ github.run_number }} \
                     --capabilities CAPABILITY_NAMED_IAM \
                     --no-fail-on-empty-changeset \
+                    --wait \
