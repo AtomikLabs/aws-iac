@@ -101,8 +101,7 @@ jobs:
                   aws cloudformation delete-stack --stack-name $STACK_NAME
 
     deploy:
-        needs: test-deploy
-        if: github.event_name == 'push' && (github.base_ref == 'main' || github.base_ref == 'stage' || github.base_ref == 'dev')
+        if: github.event_name == 'push' && (contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/stage') || contains(github.ref, 'refs/heads/main'))
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
