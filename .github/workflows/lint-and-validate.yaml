@@ -1,4 +1,4 @@
-name: Lint and Validate
+name: Lint and Validate.
 
 on:
     push:

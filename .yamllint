@@ -7,6 +7,6 @@ rules:
     indentation:
         spaces: 2
         indent-sequences: consistent
-    trailing-spaces: enabled
-    new-line-at-end-of-file: enabled
-    document-start: disabled
+    trailing-spaces: enable
+    new-line-at-end-of-file: enable
+    document-start: disable
