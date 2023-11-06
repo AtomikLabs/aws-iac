@@ -75,9 +75,9 @@ jobs:
             - name: Deploy to Test Stack
               id: deploy
               run: |
-                  TEMPLATE_FILE=./templates/template.yaml
+                  TEMPLATE_FILE="templates/template.yaml"
                   STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
-                  echo $TEMPLATE_FILE
+                  echo "Deploying template: $TEMPLATE_FILE"
                   aws cloudformation deploy \
                     --template-file $TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
@@ -87,10 +87,17 @@ jobs:
               env:
                   PARAM_FILE: ${{ needs.setup-environment.outputs.env-file }}
 
+            - name: Confirm Stack Creation
+              run: |
+                  STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
+                  aws cloudformation describe-stacks --stack-name $STACK_NAME
+                  echo "Stack $STACK_NAME has been confirmed to exist."
+
             - name: Delete Test Stack
               if: always()
               run: |
                   STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
+                  echo "Deleting stack: $STACK_NAME"
                   aws cloudformation delete-stack --stack-name $STACK_NAME
 
     deploy:
