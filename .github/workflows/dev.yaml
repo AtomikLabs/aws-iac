@@ -1,4 +1,4 @@
-name: Development workflow.
+name: Development Workflow
 
 on:
     pull_request:
@@ -28,43 +28,18 @@ jobs:
 
             - name: Validate CloudFormation templates
               run: |
-                  for template in $(find . -name '*.yaml' -or -name '*.yml'); do
-                    aws cloudformation validate-template --template-body file://$template
+                  for template in $(find . -name '*.yaml' -or -name '*.yml' -not -path "./.github/*"); do
+                    echo "Validating $template"
+                    aws cloudformation validate-template --template-body file://"$template" || exit 1
                   done
               env:
                   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   AWS_REGION: ${{ secrets.AWS_REGION }}
-    aws-validate:
-        name: Validate CloudFormation Templates
-        runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v3
-
-            - name: Set up AWS CLI
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                  aws-region: ${{ secrets.AWS_REGION }}
-
-            - name: Validate CloudFormation YAML templates
-              run: |
-                  run: |
-                    find . -name '*.yaml' -not -path "./.github/*" -or -name '*.yml' -not -path "./.github/*" | while read -r template; do
-                      echo "Validating $template"
-                      aws cloudformation validate-template --template-body file://"$template" || exit 1
-                    done
-    approval:
-        needs: [aws-validate, lint-and-validate]
-        runs-on: ubuntu-latest
-        if: ${{ success() }}
     deploy:
-        needs: approval
+        needs: [lint-and-validate]
         runs-on: ubuntu-latest
-        if: ${{ success() }}
         steps:
             - name: Checkout code
               uses: actions/checkout@v3
