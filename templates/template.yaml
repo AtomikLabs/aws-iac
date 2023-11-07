@@ -52,7 +52,7 @@ Resources:
     DataLayerSubstack:
         Type: AWS::CloudFormation::Stack
         Properties:
-            TemplateURL: !Sub DataLayerSubstackTemplateURL
+            TemplateURL: !Ref DataLayerSubstackTemplateURL
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
 
