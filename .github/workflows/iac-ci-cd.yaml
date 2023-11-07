@@ -87,7 +87,9 @@ jobs:
                   STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.yaml"
-                  echo "Deploying main template: $MAIN_TEMPLATE_FILE with substack URL: $NETWORKING_SUBSTACK_URL"
+                  echo "Deploying main template: $MAIN_TEMPLATE_FILE"
+                  echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
+                  echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
                   aws cloudformation deploy \
                     --template-file $MAIN_TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
