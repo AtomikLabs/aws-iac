@@ -89,8 +89,8 @@ Outputs:
         Value: !GetAtt NetworkingSubstack.Outputs.VPCNetworkACL
     S3BucketName:
         Description: "Name of the S3 Bucket for Data Layer"
-        Value: !Ref DataLayerSubstack.Outputs.AtomikLabsDataBucket
+        Value: !Ref DataLayerSubstack.Outputs.S3BucketName
     RDSInstanceEndpoint:
         Description: "Endpoint of the RDS Instance"
-        Value: !GetAtt DataLayerSubstack.Outputs.AtomikLabsDataRDSInstance.Endpoint.Address
+        Value: !GetAtt DataLayerSubstack.Outputs.RDSInstanceEndpoint
 
