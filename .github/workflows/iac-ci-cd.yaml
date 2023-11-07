@@ -148,19 +148,15 @@ jobs:
                     echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
                   fi
 
-            - name: Package Substacks
+            - name: Upload Template to S3
               run: |
-                  aws cloudformation package \
-                   --template-file templates/networking-stack.yaml \
-                   --s3-bucket atomiklabs-iac \
-                   --s3-prefix "cloudformation/${{ github.run_number }}" \
-                   --output-template-file packaged-networking-stack.yaml
+                  aws s3 cp templates/networking-stack.yaml s3://atomiklabs-iac/cloudformation/${{ github.run_number }}/networking-stack.yaml
 
             - name: Deploy CloudFormation stack
               run: |
                   TEMPLATE_FILE="templates/template.yaml"
                   STACK_NAME="atomiklabs-${{ github.run_number }}"
-                  SUBSTACK_URL="https://atomiklabs-iac.s3.us-east-1.amazonaws.com/cloudformation/${{ github.run_number }}/packaged-networking-stack.yaml"
+                  SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${{ github.run_number }}/networking-stack.yaml"
                   echo "Deploying template: $TEMPLATE_FILE with substack URL: $SUBSTACK_URL"
                   aws cloudformation deploy \
                    --template-file $TEMPLATE_FILE \
