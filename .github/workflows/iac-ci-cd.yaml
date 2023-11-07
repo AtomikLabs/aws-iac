@@ -109,13 +109,13 @@ jobs:
 
             - name: Set AWS Credentials and Parameter File
               run: |
-                  if [[ $GITHUB_BASE_REF == 'dev' ]]; then
+                  if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
                     echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
                     echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-                  elif [[ $GITHUB_BASE_REF == 'stage' ]]; then
+                  elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
                     echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
                     echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-                  elif [[ $GITHUB_BASE_REF == 'main' ]]; then
+                  elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
                     echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
                     echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
                   fi
