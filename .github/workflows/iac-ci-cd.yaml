@@ -72,26 +72,42 @@ jobs:
                   echo "AWS_ACCESS_KEY_ID=${{ secrets.TEST_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
                   echo "AWS_SECRET_ACCESS_KEY=${{ secrets.TEST_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
 
-            - name: Deploy to Test Stack
-              id: deploy
+            - name: Upload Substack Template to S3
               run: |
-                  TEMPLATE_FILE="templates/template.yaml"
+                  TEMPLATE_FILE="templates/networking-stack.yaml"
+                  aws s3 cp $TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/networking-stack.yaml
+
+            - name: Deploy to Test Stack
+              run: |
+                  MAIN_TEMPLATE_FILE="templates/template.yaml"
                   STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
-                  echo "Deploying template: $TEMPLATE_FILE"
+                  SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/networking-stack.yaml"
+                  echo "Deploying main template: $MAIN_TEMPLATE_FILE with substack URL: $SUBSTACK_URL"
                   aws cloudformation deploy \
-                    --template-file $TEMPLATE_FILE \
+                    --template-file $MAIN_TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
                     --region ${{ secrets.AWS_REGION }} \
                     --no-fail-on-empty-changeset \
-                    --capabilities CAPABILITY_NAMED_IAM
+                    --capabilities CAPABILITY_NAMED_IAM \
+                    --parameter-overrides NetworkingStackTemplateURL=$SUBSTACK_URL
+
               env:
                   PARAM_FILE: ${{ needs.setup-environment.outputs.env-file }}
+
+            - name: Capture Events on Failure
+              if: failure()
+              run: |
+                  STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
+                  echo "Fetching stack events for $STACK_NAME"
+                  aws cloudformation describe-stack-events --stack-name $STACK_NAME
+                  echo "Stack events fetched."
 
             - name: Confirm Stack Creation
               run: |
                   STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
                   aws cloudformation describe-stacks --stack-name $STACK_NAME
                   echo "Stack $STACK_NAME has been confirmed to exist."
+                  
 
             - name: Delete Test Stack
               if: always()
@@ -99,6 +115,13 @@ jobs:
                   STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
                   echo "Deleting stack: $STACK_NAME"
                   aws cloudformation delete-stack --stack-name $STACK_NAME
+                  echo "Waiting for the stack to be deleted..."
+                  aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+                  if ! aws cloudformation describe-stacks --stack-name $STACK_NAME; then
+                    echo "Stack $STACK_NAME has been deleted successfully."
+                  else
+                    echo "Stack $STACK_NAME deletion failed."
+                  fi
 
     deploy:
         if: github.event_name == 'push' && (contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/stage') || contains(github.ref, 'refs/heads/main'))
@@ -120,11 +143,34 @@ jobs:
                     echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
                   fi
 
+            - name: Upload Template to S3
+              run: |
+                  aws s3 cp templates/networking-stack.yaml s3://atomiklabs-iac/cloudformation/${{ github.run_number }}/networking-stack.yaml
+
             - name: Deploy CloudFormation stack
               run: |
+                  TEMPLATE_FILE="templates/template.yaml"
+                  STACK_NAME="atomiklabs-${{ github.run_number }}"
+                  SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${{ github.run_number }}/networking-stack.yaml"
+                  echo "Deploying template: $TEMPLATE_FILE with substack URL: $SUBSTACK_URL"
                   aws cloudformation deploy \
-                    --template-file templates/template.yaml \
-                    --region ${{ secrets.AWS_REGION }} \
-                    --stack-name atomiklabs-${{ github.run_number }} \
-                    --capabilities CAPABILITY_NAMED_IAM \
-                    --no-fail-on-empty-changeset
+                   --template-file $TEMPLATE_FILE \
+                   --region ${{ secrets.AWS_REGION }} \
+                   --stack-name $STACK_NAME \
+                   --capabilities CAPABILITY_NAMED_IAM \
+                   --no-fail-on-empty-changeset \
+                   --parameter-overrides NetworkingStackTemplateURL=$SUBSTACK_URL
+
+            - name: Capture Events on Failure
+              if: failure()
+              run: |
+                  STACK_NAME="atomiklabs-${{ github.run_number }}"
+                  echo "Fetching stack events for $STACK_NAME"
+                  aws cloudformation describe-stack-events --stack-name $STACK_NAME
+                  echo "Stack events fetched."
+
+            - name: Confirm Stack Creation
+              run: |
+                  STACK_NAME="atomiklabs-${{ github.run_number }}"
+                  aws cloudformation describe-stacks --stack-name $STACK_NAME
+                  echo "Stack $STACK_NAME has been confirmed to exist."
