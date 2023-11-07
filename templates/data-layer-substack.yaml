@@ -21,7 +21,7 @@ Resources:
           - Id: "MoveToIAAfterOneWeek"
             Status: "Enabled"
             Transitions:
-              - TransitionInDays: 7
+              - TransitionInDays: 31
                 StorageClass: "STANDARD_IA"
       LoggingConfiguration:
         DestinationBucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
