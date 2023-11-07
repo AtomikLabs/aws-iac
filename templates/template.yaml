@@ -33,6 +33,9 @@ Parameters:
         Type: String
         Description: "The CIDR block for the private subnet 2"
         Default: "10.0.102.0/24"
+    DataLayerSubstackTemplateURL:
+        Type: String
+        Description: "S3 URL of the networking stack template"
 
 Resources:
     NetworkingSubstack:
