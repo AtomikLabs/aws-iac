@@ -45,38 +45,38 @@ Resources:
                 PrivateSubnet2Cidr: !Ref PrivateSubnet2Cidr
 
 Outputs:
-    Outputs:
-        VPC:
-            Description: "The ID of the VPC"
-            Value: !GetAtt NetworkingStack.Outputs.ALVPC
-        PublicSubnet1:
-            Description: "The ID of the public subnet 1"
-            Value: !GetAtt NetworkingStack.Outputs.ALPublicSubnet1
-        PublicSubnet2:
-            Description: "The ID of the public subnet 2"
-            Value: !GetAtt NetworkingStack.Outputs.ALPublicSubnet2
-        PrivateSubnet1:
-            Description: "The ID of the private subnet 1"
-            Value: !GetAtt NetworkingStack.Outputs.ALPrivateSubnet1
-        PrivateSubnet2:
-            Description: "The ID of the private subnet 2"
-            Value: !GetAtt NetworkingStack.Outputs.ALPrivateSubnet2
-        PublicRouteTable:
-            Description: "The ID of the public route table"
-            Value: !GetAtt NetworkingStack.Outputs.ALPublicRouteTable
-        PrivateRouteTable1:
-            Description: "The ID of the private route table 1"
-            Value: !GetAtt NetworkingStack.Outputs.ALPrivateRouteTable1
-        PrivateRouteTable2:
-            Description: "The ID of the private route table 2"
-            Value: !GetAtt NetworkingStack.Outputs.ALPrivateRouteTable2
-        LambdaSecurityGroup:
-            Description: "The ID of the Lambda security group"
-            Value: !GetAtt NetworkingStack.Outputs.ALLambdaSecurityGroup
-        RDSSecurityGroup:
-            Description: "The ID of the RDS security group"
-            Value: !GetAtt NetworkingStack.Outputs.ALRDSSecurityGroup
-        VPCNetworkACL:
-            Description: "The ID of the VPC network ACL"
-            Value: !GetAtt NetworkingStack.Outputs.ALVPCNetworkACL
+    VPC:
+        Description: "The ID of the VPC"
+        Value: !GetAtt NetworkingStack.Outputs.ALVPC
+    PublicSubnet1:
+        Description: "The ID of the public subnet 1"
+        Value: !GetAtt NetworkingStack.Outputs.ALPublicSubnet1
+    PublicSubnet2:
+        Description: "The ID of the public subnet 2"
+        Value: !GetAtt NetworkingStack.Outputs.ALPublicSubnet2
+    PrivateSubnet1:
+        Description: "The ID of the private subnet 1"
+        Value: !GetAtt NetworkingStack.Outputs.ALPrivateSubnet1
+    PrivateSubnet2:
+        Description: "The ID of the private subnet 2"
+        Value: !GetAtt NetworkingStack.Outputs.ALPrivateSubnet2
+    PublicRouteTable:
+        Description: "The ID of the public route table"
+        Value: !GetAtt NetworkingStack.Outputs.ALPublicRouteTable
+    PrivateRouteTable1:
+        Description: "The ID of the private route table 1"
+        Value: !GetAtt NetworkingStack.Outputs.ALPrivateRouteTable1
+    PrivateRouteTable2:
+        Description: "The ID of the private route table 2"
+        Value: !GetAtt NetworkingStack.Outputs.ALPrivateRouteTable2
+    LambdaSecurityGroup:
+        Description: "The ID of the Lambda security group"
+        Value: !GetAtt NetworkingStack.Outputs.ALLambdaSecurityGroup
+    RDSSecurityGroup:
+        Description: "The ID of the RDS security group"
+        Value: !GetAtt NetworkingStack.Outputs.ALRDSSecurityGroup
+    VPCNetworkACL:
+        Description: "The ID of the VPC network ACL"
+        Value: !GetAtt NetworkingStack.Outputs.ALVPCNetworkACL
+
 
