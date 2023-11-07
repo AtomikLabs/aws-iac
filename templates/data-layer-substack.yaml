@@ -16,6 +16,7 @@ Resources:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: !Sub "atomiklabs-logs"
+
   AtomikLabsDataBucket:
     Type: "AWS::S3::Bucket"
     Properties:
