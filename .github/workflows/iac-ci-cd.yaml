@@ -72,24 +72,19 @@ jobs:
                   echo "AWS_ACCESS_KEY_ID=${{ secrets.TEST_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
                   echo "AWS_SECRET_ACCESS_KEY=${{ secrets.TEST_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
 
-            - name: Package Substacks
+            - name: Upload Substack Template to S3
               run: |
                   TEMPLATE_FILE="templates/networking-stack.yaml"
-                  aws cloudformation package \
-                   --template-file $TEMPLATE_FILE \
-                   --s3-bucket atomiklabs-iac \
-                   --s3-prefix "cloudformation/${{ github.run_number }}" \
-                   --region ${{ secrets.AWS_REGION }} \
-                   --output-template-file packaged-networking-stack.yaml
+                  aws s3 cp $TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/networking-stack.yaml
 
             - name: Deploy to Test Stack
               run: |
-                  TEMPLATE_FILE="templates/template.yaml"
+                  MAIN_TEMPLATE_FILE="templates/template.yaml"
                   STACK_NAME="atomiklabs-test-stack-${{ github.sha }}"
-                  SUBSTACK_URL="https://atomiklabs-iac.s3.us-east-1.amazonaws.com/cloudformation/${{ github.run_number }}/packaged-networking-stack.yaml"
-                  echo "Deploying template: $TEMPLATE_FILE"
+                  SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/networking-stack.yaml"
+                  echo "Deploying main template: $MAIN_TEMPLATE_FILE with substack URL: $SUBSTACK_URL"
                   aws cloudformation deploy \
-                    --template-file $TEMPLATE_FILE \
+                    --template-file $MAIN_TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
                     --region ${{ secrets.AWS_REGION }} \
                     --no-fail-on-empty-changeset \
