@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "AtomikLabs Data Layer Substack Definitions"
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: "The name of the environment"
+    Default: "dev"
+    AllowedValues:
+      - "dev"
+      - "stage"
+      - "prod"
+
+Resources:
+  AtomikLabsDataBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "atomiklabs-data-bucket-${EnvironmentName}"
+      LifecycleConfiguration:
+        Rules:
+          - Id: "MoveToIAAfterOneWeek"
+            Status: "Enabled"
+            Transitions:
+              - TransitionInDays: 7
+                StorageClass: "STANDARD_IA"
+      LoggingConfiguration:
+        DestinationBucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
+        LogFilePrefix: "s3-data-bucket-logs/"
+
+  AtomikLabsDataRDSInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceIdentifier: !Sub "atomiklabs-data-rds-${EnvironmentName}"
+      AllocatedStorage: "20"
+      DBInstanceClass: "db.t2.micro"
+      Engine: "postgres"
+      MasterUsername: '{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}'
+      MasterUserPassword: '{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}'
+      DBName: !Sub "atomiklabsdb${EnvironmentName}"
+      MultiAZ: false
+      StorageType: "gp2"
+      BackupRetentionPeriod: 7
+      PubliclyAccessible: false
+
+  AtomikLabsLambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "atomiklabs-lambda-execution-role-${EnvironmentName}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: !Sub "atomiklabs-s3-rds-access-policy-${EnvironmentName}"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:ListBucket"
+                Resource:
+                  - !GetAtt AtomikLabsDataBucket.Arn
+                  - !Sub "${AtomikLabsDataBucket.Arn}/*"
+              - Effect: "Allow"
+                Action:
+                  - "rds-db:connect"
+                Resource:
+                  - !GetAtt AtomikLabsDataRDSInstance.Arn
+
+Outputs:
+  S3BucketName:
+    Description: "Name of the S3 Bucket for Data Layer"
+    Value: !Ref AtomikLabsDataBucket
+  RDSInstanceEndpoint:
+    Description: "Endpoint of the RDS Instance"
+    Value: !GetAtt AtomikLabsDataRDSInstance.Endpoint.Address
