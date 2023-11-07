@@ -52,7 +52,7 @@ Resources:
     DataLayerSubstack:
         Type: AWS::CloudFormation::Stack
         Properties:
-            TemplateURL: !Sub "https://atomiklabs-iac.s3.${AWS::Region}.amazonaws.com/cloudformation/data-layer-substack.yaml"
+            TemplateURL: !Sub DataLayerSubstackTemplateURL
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
 
