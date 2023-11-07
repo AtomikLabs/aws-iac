@@ -12,6 +12,10 @@ Parameters:
       - "prod"
 
 Resources:
+  AtomikLabsLogsBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+    BucketName: !Sub "atomiklabs-logs"
   AtomikLabsDataBucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -24,8 +28,8 @@ Resources:
               - TransitionInDays: 31
                 StorageClass: "STANDARD_IA"
       LoggingConfiguration:
-        DestinationBucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
-        LogFilePrefix: "s3-data-bucket-logs/"
+        DestinationBucketName: !Sub "atomiklabs-logs"
+        LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
 
   AtomikLabsDataRDSInstance:
     Type: "AWS::RDS::DBInstance"
