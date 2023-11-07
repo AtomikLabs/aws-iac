@@ -93,7 +93,9 @@ jobs:
                     --region ${{ secrets.AWS_REGION }} \
                     --no-fail-on-empty-changeset \
                     --capabilities CAPABILITY_NAMED_IAM \
-                    --parameter-overrides SubstackTemplateURL=packaged-networking-stack.yaml
+                    --parameter-overrides SubstackTemplateURL=packaged-networking-stack.yaml 
+                  echo "Waiting for the stack to be deleted"
+                  aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
 
               env:
                   PARAM_FILE: ${{ needs.setup-environment.outputs.env-file }}
