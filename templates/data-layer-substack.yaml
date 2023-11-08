@@ -32,7 +32,35 @@ Resources:
         DestinationBucketName: !Sub "atomiklabs-logs"
         LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
 
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "lambda-s3-access-role-${EnvironmentName}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: !Sub "lambda-s3-access-policy-${EnvironmentName}"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:PutObject"
+                  - "s3:GetObject"
+                  - "s3:ListBucket"
+                Resource:
+                  - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
+                  - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+
 Outputs:
-  S3BucketName:
+  S3LogsBucketName:
+    Description: "Name of the S3 Bucket for Data Layer"
+    Value: !Ref AtomikLabsDataBucket
+  S3DataBucketName:
     Description: "Name of the S3 Bucket for Data Layer"
     Value: !Ref AtomikLabsDataBucket
