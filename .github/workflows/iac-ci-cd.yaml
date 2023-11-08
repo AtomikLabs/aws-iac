@@ -131,6 +131,7 @@ jobs:
             echo "Stack $STACK_NAME has been deleted successfully."
           else
             echo "Stack $STACK_NAME deletion failed."
+          fi
 
   deploy:
     needs: [setup-environment, lint-and-validate]
