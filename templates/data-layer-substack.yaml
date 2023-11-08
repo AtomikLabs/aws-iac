@@ -62,6 +62,23 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
                   - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+  AtomikLabsRDSInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceClass: "db.t3.micro"
+      AllocatedStorage: "20"
+      MaxAllocatedStorage: "100"
+      DBName: !Sub "atomiklabs_${EnvironmentName}_database"
+      Engine: "postgres"
+      EngineVersion: "15.4"
+      MasterUsername: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}"
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      Tags:
+        - Key: "Environment"
+          Value: !Ref EnvironmentName
 
 Outputs:
   S3LogBucketName:
@@ -70,3 +87,9 @@ Outputs:
   S3DataBucketName:
     Description: "Name of the S3 Bucket for Data Layer"
     Value: !Ref AtomikLabsDataBucket
+  RDSInstanceEndpoint:
+    Description: "The connection endpoint for the RDS instance."
+    Value: !GetAtt AtomikLabsRDSInstance.Endpoint.Address
+  RDSInstanceIdentifier:
+    Description: "The database instance identifier."
+    Value: !Ref AtomikLabsRDSInstance
