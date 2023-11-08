@@ -90,7 +90,7 @@ Outputs:
     VPCNetworkACL:
         Description: "The ID of the VPC network ACL"
         Value: !GetAtt NetworkingSubstack.Outputs.VPCNetworkACL
-    S3LogsBucketName:
+    S3LogBucketName:
         Description: "Name of the S3 Bucket for Logs"
         Value: !GetAtt DataLayerSubstack.Outputs.S3LogBucketName
     S3DataBucketName:

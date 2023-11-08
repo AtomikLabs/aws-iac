@@ -58,7 +58,7 @@ Resources:
                   - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
 
 Outputs:
-  S3LogsBucketName:
+  S3LogBucketName:
     Description: "Name of the S3 Bucket for Data Layer"
     Value: !Ref AtomikLabsDataBucket
   S3DataBucketName:
