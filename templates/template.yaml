@@ -10,7 +10,7 @@ Parameters:
             - "dev"
             - "stage"
             - "prod"
-    NetworkingStackTemplateURL:
+    NetworkingSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the networking stack template"
     VpcCidr:
@@ -33,12 +33,15 @@ Parameters:
         Type: String
         Description: "The CIDR block for the private subnet 2"
         Default: "10.0.102.0/24"
+    DataLayerSubstackTemplateURL:
+        Type: String
+        Description: "S3 URL of the networking stack template"
 
 Resources:
-    NetworkingStack:
+    NetworkingSubstack:
         Type: AWS::CloudFormation::Stack
         Properties:
-            TemplateURL: !Ref NetworkingStackTemplateURL
+            TemplateURL: !Ref NetworkingSubstackTemplateURL
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
                 VpcCidr: !Ref VpcCidr
@@ -46,40 +49,53 @@ Resources:
                 PublicSubnet2Cidr: !Ref PublicSubnet2Cidr
                 PrivateSubnet1Cidr: !Ref PrivateSubnet1Cidr
                 PrivateSubnet2Cidr: !Ref PrivateSubnet2Cidr
+    DataLayerSubstack:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Ref DataLayerSubstackTemplateURL
+            Parameters:
+                EnvironmentName: !Ref EnvironmentName
+                RDSSecurityGroup: !GetAtt NetworkingSubstack.Outputs.RDSSecurityGroup
+                RDSSubnetGroup: !GetAtt NetworkingSubstack.Outputs.RDSSubnetGroup
 
 Outputs:
     VPC:
         Description: "The ID of the VPC"
-        Value: !GetAtt NetworkingStack.Outputs.VPC
+        Value: !GetAtt NetworkingSubstack.Outputs.VPC
     PublicSubnet1:
         Description: "The ID of the public subnet 1"
-        Value: !GetAtt NetworkingStack.Outputs.PublicSubnet1
+        Value: !GetAtt NetworkingSubstack.Outputs.PublicSubnet1
     PublicSubnet2:
         Description: "The ID of the public subnet 2"
-        Value: !GetAtt NetworkingStack.Outputs.PublicSubnet2
+        Value: !GetAtt NetworkingSubstack.Outputs.PublicSubnet2
     PrivateSubnet1:
         Description: "The ID of the private subnet 1"
-        Value: !GetAtt NetworkingStack.Outputs.PrivateSubnet1
+        Value: !GetAtt NetworkingSubstack.Outputs.PrivateSubnet1
     PrivateSubnet2:
         Description: "The ID of the private subnet 2"
-        Value: !GetAtt NetworkingStack.Outputs.PrivateSubnet2
+        Value: !GetAtt NetworkingSubstack.Outputs.PrivateSubnet2
     PublicRouteTable:
         Description: "The ID of the public route table"
-        Value: !GetAtt NetworkingStack.Outputs.PublicRouteTable
+        Value: !GetAtt NetworkingSubstack.Outputs.PublicRouteTable
     PrivateRouteTable1:
         Description: "The ID of the private route table 1"
-        Value: !GetAtt NetworkingStack.Outputs.PrivateRouteTable1
+        Value: !GetAtt NetworkingSubstack.Outputs.PrivateRouteTable1
     PrivateRouteTable2:
         Description: "The ID of the private route table 2"
-        Value: !GetAtt NetworkingStack.Outputs.PrivateRouteTable2
+        Value: !GetAtt NetworkingSubstack.Outputs.PrivateRouteTable2
     LambdaSecurityGroup:
         Description: "The ID of the Lambda security group"
-        Value: !GetAtt NetworkingStack.Outputs.LambdaSecurityGroup
+        Value: !GetAtt NetworkingSubstack.Outputs.LambdaSecurityGroup
     RDSSecurityGroup:
         Description: "The ID of the RDS security group"
-        Value: !GetAtt NetworkingStack.Outputs.RDSSecurityGroup
+        Value: !GetAtt NetworkingSubstack.Outputs.RDSSecurityGroup
     VPCNetworkACL:
         Description: "The ID of the VPC network ACL"
-        Value: !GetAtt NetworkingStack.Outputs.VPCNetworkACL
-
+        Value: !GetAtt NetworkingSubstack.Outputs.VPCNetworkACL
+    S3LogBucketName:
+        Description: "Name of the S3 Bucket for Logs"
+        Value: !GetAtt DataLayerSubstack.Outputs.S3LogBucketName
+    S3DataBucketName:
+        Description: "Name of the S3 Bucket for Data Storage"
+        Value: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
 
