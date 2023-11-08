@@ -96,7 +96,7 @@ jobs:
                     --region ${{ secrets.AWS_REGION }} \
                     --no-fail-on-empty-changeset \
                     --capabilities CAPABILITY_NAMED_IAM \
-                    --parameter-overrides NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL
+                    --parameter-overrides NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL EnvironmentName=test
 
               env:
                   PARAM_FILE: ${{ needs.setup-environment.outputs.env-file }}
