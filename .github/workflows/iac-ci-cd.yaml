@@ -121,8 +121,6 @@ jobs:
 
       - name: Delete Test Stack
         if: always()
-      - name: Delete Test Stack
-        if: always()
         run: |
           STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
           echo "Deleting stack: $STACK_NAME"
