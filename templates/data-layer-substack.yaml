@@ -10,6 +10,12 @@ Parameters:
       - "dev"
       - "stage"
       - "prod"
+  RDSSecurityGroup:
+    Type: String
+    Description: "The name of the RDS Security Group"
+  RDSSubnetGroup:
+    Type: String
+    Description: "The name of the RDS Subnet Group"
 
 Resources:
   AtomikLabsLogsBucket:
