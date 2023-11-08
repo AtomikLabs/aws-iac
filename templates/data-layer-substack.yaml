@@ -32,21 +32,6 @@ Resources:
         DestinationBucketName: !Sub "atomiklabs-logs"
         LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
 
-  AtomikLabsDataRDSInstance:
-    Type: "AWS::RDS::DBInstance"
-    Properties:
-      DBInstanceIdentifier: !Sub "atomiklabs-data-rds-${EnvironmentName}"
-      AllocatedStorage: "20"
-      DBInstanceClass: "db.t2.micro"
-      Engine: "postgres"
-      MasterUsername: '{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}'
-      MasterUserPassword: '{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}'
-      DBName: !Sub "atomiklabsdb${EnvironmentName}"
-      MultiAZ: false
-      StorageType: "gp2"
-      BackupRetentionPeriod: 7
-      PubliclyAccessible: false
-
   AtomikLabsLambdaExecutionRole:
     Type: "AWS::IAM::Role"
     Properties:
