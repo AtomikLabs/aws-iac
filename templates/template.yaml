@@ -55,6 +55,8 @@ Resources:
             TemplateURL: !Ref DataLayerSubstackTemplateURL
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
+                RDSSecurityGroup: !GetAtt NetworkingSubstack.Outputs.RDSSecurityGroup
+                RDSSubnetGroup: !GetAtt NetworkingSubstack.Outputs.RDSSubnetGroup
 
 Outputs:
     VPC:

@@ -108,6 +108,16 @@ Resources:
           Value: !Sub ${EnvironmentName}-private-subnet-2
         - Key: "AtomikLabs:Environment"
           Value: !Ref EnvironmentName
+  ALRDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for RDS postgres instances"
+      SubnetIds:
+        - !Ref ALPrivateSubnet1
+        - !Ref ALPrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-rds-subnet-group
   ALElasticIP1:
     Type: AWS::EC2::EIP
     Properties:
@@ -328,3 +338,6 @@ Outputs:
   VPCNetworkACL:
     Description: "The ID of the VPC network ACL"
     Value: !Ref ALVPCNetworkACL
+  RDSSubnetGroup:
+    Description: "The ID of the RDS subnet group"
+    Value: !Ref ALRDSSubnetGroup
