@@ -84,7 +84,7 @@ jobs:
             - name: Deploy to Test Stack
               run: |
                   MAIN_TEMPLATE_FILE="templates/template.yaml"
-                  STACK_NAME="atomiklabs-test-stack-${{ github.run }}"
+                  STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/data-layer-substack.yaml"
                   echo "Deploying main template: $MAIN_TEMPLATE_FILE"
@@ -104,14 +104,14 @@ jobs:
             - name: Capture Events on Failure
               if: failure()
               run: |
-                  STACK_NAME="atomiklabs-test-stack-${{ github.run }}"
+                  STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
                   echo "Fetching stack events for $STACK_NAME"
                   aws cloudformation describe-stack-events --stack-name $STACK_NAME
                   echo "Stack events fetched."
 
             - name: Confirm Stack Creation
               run: |
-                  STACK_NAME="atomiklabs-test-stack-${{ github.run }}"
+                  STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
                   aws cloudformation describe-stacks --stack-name $STACK_NAME
                   echo "Stack $STACK_NAME has been confirmed to exist."
                   
@@ -119,7 +119,7 @@ jobs:
             - name: Delete Test Stack
               if: always()
               run: |
-                  STACK_NAME="atomiklabs-test-stack-${{ github.run }}"
+                  STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
                   echo "Deleting stack: $STACK_NAME"
                   aws cloudformation delete-stack --stack-name $STACK_NAME
                   echo "Waiting for the stack to be deleted..."
