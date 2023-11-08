@@ -32,40 +32,7 @@ Resources:
         DestinationBucketName: !Sub "atomiklabs-logs"
         LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
 
-  AtomikLabsLambdaExecutionRole:
-    Type: "AWS::IAM::Role"
-    Properties:
-      RoleName: !Sub "atomiklabs-lambda-execution-role-${EnvironmentName}"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Principal:
-              Service: "lambda.amazonaws.com"
-            Action: "sts:AssumeRole"
-      Policies:
-        - PolicyName: !Sub "atomiklabs-s3-rds-access-policy-${EnvironmentName}"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - "s3:GetObject"
-                  - "s3:PutObject"
-                  - "s3:ListBucket"
-                Resource:
-                  - !GetAtt AtomikLabsDataBucket.Arn
-                  - !Sub "${AtomikLabsDataBucket.Arn}/*"
-              - Effect: "Allow"
-                Action:
-                  - "rds-db:connect"
-                Resource:
-                  - !GetAtt AtomikLabsDataRDSInstance.Arn
-
 Outputs:
   S3BucketName:
     Description: "Name of the S3 Bucket for Data Layer"
     Value: !Ref AtomikLabsDataBucket
-  RDSInstanceEndpoint:
-    Description: "Endpoint of the RDS Instance"
-    Value: !GetAtt AtomikLabsDataRDSInstance.Endpoint.Address
