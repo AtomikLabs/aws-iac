@@ -35,6 +35,19 @@ Parameters:
     Description: "The CIDR block for the private subnet 2"
     Default: "10.0.102.0/24"
 
+Mappings:
+  SubnetGroupMapping:
+    dev:
+      SubnetIds:
+        - !Ref ALPublicSubnet1
+        - !Ref ALPublicSubnet2
+        - !Ref ALPrivateSubnet1
+        - !Ref ALPrivateSubnet2
+    other:
+      SubnetIds:
+        - !Ref ALPrivateSubnet1
+        - !Ref ALPrivateSubnet2
+
 Resources:
   ALVPC:
     Type: AWS::EC2::VPC
@@ -119,14 +132,8 @@ Resources:
       SubnetIds:
         !If
         - IsDevEnvironment
-        -
-          - !Ref ALPublicSubnet1
-          - !Ref ALPublicSubnet2
-          - !Ref ALPrivateSubnet1
-          - !Ref ALPrivateSubnet2
-        -
-          - !Ref ALPrivateSubnet1
-          - !Ref ALPrivateSubnet2
+        - !FindInMap [ SubnetGroupMapping, dev, SubnetIds ]
+        - !FindInMap [ SubnetGroupMapping, other, SubnetIds ]
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-rds-subnet-group
