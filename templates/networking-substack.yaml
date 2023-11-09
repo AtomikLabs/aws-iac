@@ -309,6 +309,33 @@ Resources:
       PortRange:
         From: 0
         To: 65535
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH access via port 22
+      VpcId: !Ref ALVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: ${{ secrets.BASTION_ACCESS_CIDR }}
+  BastionHostEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref BastionHost
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      KeyName: AtomikLabsBastionKeyPair
+      ImageId: ami-05c13eab67c5d8861
+      SubnetId: !Ref ALPublicSubnet1
+      SecurityGroups:
+        - !Ref BastionSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-bastion-host
 Outputs:
   VPC:
     Description: "The ID of the VPC"
@@ -346,3 +373,9 @@ Outputs:
   RDSSubnetGroup:
     Description: "The ID of the RDS subnet group"
     Value: !Ref ALRDSSubnetGroup
+  BastionHostEIP:
+    Description: Elastic IP of the Bastion Host
+    Value: !Ref BastionHostEIP
+  BastionHostId:
+    Description: Instance ID of the Bastion Host
+    Value: !Ref BastionHost

@@ -71,6 +71,7 @@ Resources:
       MaxAllocatedStorage: "100"
       DBName: !Sub "atomiklabs_${EnvironmentName}_database"
       DBInstanceIdentifier: !Sub "atomiklabs-${EnvironmentName}-database"
+      PubliclyAccessible: true
       Engine: "postgres"
       EngineVersion: "15.4"
       MasterUsername: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
