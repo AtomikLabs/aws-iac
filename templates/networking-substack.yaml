@@ -1,9 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "AtomikLabs Networking Substack Definitions"
 
-Conditions:
-  IsDevEnvironment: !Equals [ !Ref EnvironmentName, "dev" ]
-
 Parameters:
   EnvironmentName:
     Type: String
@@ -117,16 +114,8 @@ Resources:
     Properties:
       DBSubnetGroupDescription: "Subnet group for RDS postgres instances"
       SubnetIds:
-        !If
-        - IsDevEnvironment
-        -
-          - !Ref ALPublicSubnet1
-          - !Ref ALPublicSubnet2
-          - !Ref ALPrivateSubnet1
-          - !Ref ALPrivateSubnet2
-        -
-          - !Ref ALPrivateSubnet1
-          - !Ref ALPrivateSubnet2
+        - !Ref ALPrivateSubnet1
+        - !Ref ALPrivateSubnet2
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-rds-subnet-group
