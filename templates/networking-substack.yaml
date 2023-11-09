@@ -1,6 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "AtomikLabs Networking Substack Definitions"
 
+Conditions:
+  IsDevEnvironment: !Equals [ !Ref EnvironmentName, "dev" ]
+
 Parameters:
   EnvironmentName:
     Type: String
@@ -44,9 +47,6 @@ Mappings:
       SubnetIds:
         - !Ref ALPrivateSubnet1
         - !Ref ALPrivateSubnet2
-
-Conditions:
-  IsDevEnvironment: !Equals [ !Ref EnvironmentName, "dev" ]
 
 Resources:
   ALVPC:
