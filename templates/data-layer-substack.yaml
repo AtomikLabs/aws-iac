@@ -73,7 +73,6 @@ Resources:
       DBInstanceIdentifier: !Sub "atomiklabs-${EnvironmentName}-database"
       Engine: "postgres"
       EngineVersion: "15.4"
-      PubliclyAccessible: true
       MasterUsername: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
       MasterUserPassword: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}"
       DBSubnetGroupName: !Ref RDSSubnetGroup
