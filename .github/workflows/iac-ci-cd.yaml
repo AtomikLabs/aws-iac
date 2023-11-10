@@ -30,18 +30,25 @@ jobs:
 
       - name: Determine environment
         run: |
-          echo "Base branch of the PR: ${{ github.base_ref }}"
-          if [[ ${{ github.base_ref }} == 'dev' ]]; then
-            echo "Development branch targeted by PR"
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "Base branch of the PR: ${{ github.base_ref }}"
+            BRANCH_NAME="${{ github.base_ref }}"
+          else
+            echo "Push to branch: ${GITHUB_REF#refs/heads/}"
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          fi
+
+          if [[ $BRANCH_NAME == 'dev' ]]; then
+            echo "Development environment selected"
             echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
-          elif [[ ${{ github.base_ref }} == 'stage' ]]; then
-            echo "Staging branch targeted by PR"
+          elif [[ $BRANCH_NAME == 'stage' ]]; then
+            echo "Staging environment selected"
             echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
-          elif [[ ${{ github.base_ref }} == 'main' ]]; then
-            echo "Production branch targeted by PR"
+          elif [[ $BRANCH_NAME == 'main' ]]; then
+            echo "Production environment selected"
             echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
           else
-            echo "PR is not targeting dev, stage, or main"
+            echo "No matching environment for branch $BRANCH_NAME"
           fi
 
       - name: Echo environment file path
