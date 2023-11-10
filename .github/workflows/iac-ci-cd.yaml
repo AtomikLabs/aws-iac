@@ -43,7 +43,8 @@ jobs:
             echo "Setting environment file for production"
             echo "::set-output name=env-file::environments/env.prod.json"
           fi
-          echo "${{ steps.set-env.outputs.env-file }}"
+          echo $GITHUB_REF
+          echo $GITHUB_ENV
 
   lint-and-validate:
     needs: setup-environment
@@ -54,7 +55,7 @@ jobs:
 
       - name: Validate CloudFormation templates
         run: |
-          # Insert your CloudFormation validation command(s) here
+
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
