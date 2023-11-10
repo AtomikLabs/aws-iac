@@ -83,17 +83,7 @@ jobs:
 
       - name: Determine environment and set variables
         run: |
-          echo "Base branch of the PR: ${{ github.base_ref }}"
-          if [[ ${{ github.base_ref }} == 'dev' ]]; then
-            echo "Development branch targeted by PR"
-            echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
-          elif [[ ${{ github.base_ref }} == 'stage' ]]; then
-            echo "Staging branch targeted by PR"
-            echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
-          elif [[ ${{ github.base_ref }} == 'main' ]]; then
-            echo "Production branch targeted by PR"
-            echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
-          fi
+          echo "env-file=environments/env.test.json" >> $GITHUB_ENV
 
       - name: Set environment variables from file
         run: |
