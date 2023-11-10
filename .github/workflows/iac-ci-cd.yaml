@@ -125,7 +125,7 @@ jobs:
             --parameter-overrides \
               NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
               DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
-              EnvironmentName='test' \
+              EnvironmentName=test \
               VpcCidr=$TEST_VPC_CIDR \
               PublicSubnet1Cidr=$TEST_PUBLIC_SUBNET_1_CIDR \
               PublicSubnet2Cidr=$TEST_PUBLIC_SUBNET_2_CIDR \
