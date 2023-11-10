@@ -75,11 +75,33 @@ jobs:
 
   test-deploy:
     needs: lint-and-validate
-    if: github.event_name == 'pull-request'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Determine environment and set variables
+        run: |
+          echo "Base branch of the PR: ${{ github.base_ref }}"
+          if [[ ${{ github.base_ref }} == 'dev' ]]; then
+            echo "Development branch targeted by PR"
+            echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
+          elif [[ ${{ github.base_ref }} == 'stage' ]]; then
+            echo "Staging branch targeted by PR"
+            echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
+          elif [[ ${{ github.base_ref }} == 'main' ]]; then
+            echo "Production branch targeted by PR"
+            echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
+          fi
+
+      - name: Set environment variables from file
+        run: |
+          if [ -f ${{ env.env-file }} ]; then
+            jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
+          else
+            echo "${{ env.env-file }} does not exist"
+          fi
 
       - name: Set AWS Credentials for Test Environment
         run: |
@@ -92,15 +114,15 @@ jobs:
           echo "Uploading substack template: $NETWORKING_SUBSTACK_TEMPLATE_FILE"
           DATA_LAYER_SUBSTACK_TEMPLATE_FILE="templates/data-layer-substack.yaml"
           echo "Uploading substack template: $DATA_LAYER_SUBSTACK_TEMPLATE_FILE"
-          aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/networking-substack.yaml
-          aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/data-layer-substack.yaml
+          aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/networking-substack.yaml
+          aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-layer-substack.yaml
 
       - name: Deploy to Test Stack
         run: |
           MAIN_TEMPLATE_FILE="templates/template.yaml"
           STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
-          NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/networking-substack.yaml"
-          DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/data-layer-substack.yaml"
+          NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.yaml"
+          DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.yaml"
           echo "Deploying main template: $MAIN_TEMPLATE_FILE"
           echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
           echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
@@ -149,7 +171,7 @@ jobs:
 
   deploy:
     needs: [setup-environment, lint-and-validate]
-    if: github.event_name == 'pull_request' &&  $ENVIRONMENT_NAME != 'test'
+    if: github.event_name == 'push' && (contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/stage') || contains(github.ref, 'refs/heads/main'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
