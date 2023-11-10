@@ -24,30 +24,39 @@ env:
 jobs:
   setup-environment:
     runs-on: ubuntu-latest
-    outputs:
-      env-file: ${{ steps.set-env.outputs.env-file }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Determine environment
-        id: set-env
         run: |
-          if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
-            echo "Setting environment file for development"
+          echo "Base branch of the PR: ${{ github.base_ref }}"
+          if [[ ${{ github.base_ref }} == 'dev' ]]; then
+            echo "Development branch targeted by PR"
             echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
-          elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
-            echo "Setting environment file for staging"
+          elif [[ ${{ github.base_ref }} == 'stage' ]]; then
+            echo "Staging branch targeted by PR"
             echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
-          elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-            echo "Setting environment file for production"
+          elif [[ ${{ github.base_ref }} == 'main' ]]; then
+            echo "Production branch targeted by PR"
             echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
+          else
+            echo "PR is not targeting dev, stage, or main"
           fi
 
-      - name: Check env
-        id: check-env
+      - name: Echo environment file path
         run: |
-          echo "TEST VPC CIDR: $GITHUB_ENV"
+          echo "Environment file path: ${{ env.env-file }}"
+          if [[ -z "${{ env.env-file }}" ]]; then
+            echo "Environment file path is empty"
+          else
+            echo "Environment file path is set"
+          fi
+
+      - name: Set environment variables from file
+        if: env.env-file != ''
+        run: |
+          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
 
   lint-and-validate:
     needs: setup-environment
@@ -66,7 +75,7 @@ jobs:
 
   test-deploy:
     needs: lint-and-validate
-    if: github.event_name == 'frog'
+    if: github.event_name == 'pull-request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -104,12 +113,12 @@ jobs:
             --parameter-overrides \
               NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
               DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
-              EnvironmentName=test \
-              VpcCidr="10.0.0.0/16" \
-              PublicSubnet1Cidr="10.0.1.0/24" \
-              PublicSubnet2Cidr="10.0.2.0/24" \
-              PrivateSubnet1Cidr="10.0.101.0/24" \
-              PrivateSubnet2Cidr="10.0.102.0/24"
+              EnvironmentName='test' \
+              VpcCidr=$TEST_VPC_CIDR \
+              PublicSubnet1Cidr=$TEST_PUBLIC_SUBNET_1_CIDR \
+              PublicSubnet2Cidr=$TEST_PUBLIC_SUBNET_2_CIDR \
+              PrivateSubnet1Cidr=$TEST_PRIVATE_SUBNET_1_CIDR \
+              PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR
 
       - name: Capture Events on Failure
         if: failure()
@@ -140,7 +149,7 @@ jobs:
 
   deploy:
     needs: [setup-environment, lint-and-validate]
-    if: github.event_name == 'frog' && (contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/stage') || contains(github.ref, 'refs/heads/main'))
+    if: github.event_name == 'pull_request' &&  $ENVIRONMENT_NAME != 'test'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -149,31 +158,27 @@ jobs:
       - name: Set AWS Credentials and Parameter File
         run: |
           if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
-            ENVIRONMENT_NAME="dev"
             echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
-            ENVIRONMENT_NAME="stage"
             echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-            ENVIRONMENT_NAME="prod"
             echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           fi
-          echo "ENVIRONMENT_NAME=$ENVIRONMENT_NAME" >> $GITHUB_ENV
 
       - name: Upload Template to S3
         run: |
-          aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/networking-substack.yaml
-          aws s3 cp templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/data-layer-substack.yaml
+          aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
+          aws s3 cp templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-layer-substack.yaml
 
       - name: Deploy CloudFormation stack
         run: |
           TEMPLATE_FILE="templates/template.yaml"
           STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
-          NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/networking-substack.yaml"
-          DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/data-layer-substack.yaml"
+          NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/networking-substack.yaml"
+          DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-layer-substack.yaml"
           echo "Deploying template: $TEMPLATE_FILE"
           echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
           echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
@@ -183,7 +188,15 @@ jobs:
             --region ${{ secrets.AWS_REGION }} \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset \
-            --parameter-overrides NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL
+            --parameter-overrides \
+              NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
+              DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
+              EnvironmentName=test \
+              VpcCidr=$VPC_CIDR \
+              PublicSubnet1Cidr=$PUBLIC_SUBNET_1_CIDR \
+              PublicSubnet2Cidr=$PUBLIC_SUBNET_2_CIDR \
+              PrivateSubnet1Cidr=$PRIVATE_SUBNET_1_CIDR \
+              PrivateSubnet2Cidr=$PRIVATE_SUBNET_2_CIDR
 
       - name: Capture Events on Failure
         if: failure()
