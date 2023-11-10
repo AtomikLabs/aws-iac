@@ -43,6 +43,7 @@ jobs:
             echo "Setting environment file for production"
             echo "::set-output name=env-file::environments/env.prod.json"
           fi
+          echo "${{ steps.set-env.outputs.env-file }}"
 
   lint-and-validate:
     needs: setup-environment
@@ -61,7 +62,7 @@ jobs:
 
   test-deploy:
     needs: lint-and-validate
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'frog'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -135,7 +136,7 @@ jobs:
 
   deploy:
     needs: [setup-environment, lint-and-validate]
-    if: github.event_name == 'push' && (contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/stage') || contains(github.ref, 'refs/heads/main'))
+    if: github.event_name == 'frog' && (contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/stage') || contains(github.ref, 'refs/heads/main'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
