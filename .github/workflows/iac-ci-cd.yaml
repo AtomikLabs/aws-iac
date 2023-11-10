@@ -47,7 +47,7 @@ jobs:
       - name: Check env
         id: check-env
         run: |
-          echo "TEST VPC CIDR: $${{ vars.$GITHUB_ENV_VPC_CIDR }}"
+          echo "TEST VPC CIDR: $GITHUB_ENV"
 
   lint-and-validate:
     needs: setup-environment
