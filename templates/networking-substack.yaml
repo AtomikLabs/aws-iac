@@ -31,6 +31,12 @@ Parameters:
     Type: String
     Description: "The CIDR block for the private subnet 2"
     Default: "10.0.102.0/24"
+  BastionAccessCidr:
+    Type: String
+    Description: "The CIDR block allowed to access the bastion host"
+  BastionKeyPairName:
+    Type: String
+    Description: "The name of the key pair for the bastion host"
 
 Resources:
   ALVPC:
@@ -318,7 +324,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
-          CidrIp: '${{ secrets.BASTION_ACCESS_CIDR }}'
+          CidrIp: !Ref BastionAccessCidr
   BastionHostEIP:
     Type: AWS::EC2::EIP
     Properties:
@@ -328,7 +334,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t3.micro
-      KeyName: ${{ secrets.BASTION_SSH_KEY }}
+      KeyName: !Ref BastionKeyPairName
       ImageId: ami-05c13eab67c5d8861
       SubnetId: !Ref ALPublicSubnet1
       SecurityGroups:

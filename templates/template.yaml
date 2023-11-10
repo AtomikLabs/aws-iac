@@ -37,6 +37,12 @@ Parameters:
     DataLayerSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the networking stack template"
+    BastionAccessCidr:
+        Type: String
+        Description: "The CIDR block allowed to access the bastion host"
+    BastionKeyPairName:
+        Type: String
+        Description: "The name of the key pair to use for the bastion host"
 
 Resources:
     NetworkingSubstack:
@@ -50,6 +56,8 @@ Resources:
                 PublicSubnet2Cidr: !Ref PublicSubnet2Cidr
                 PrivateSubnet1Cidr: !Ref PrivateSubnet1Cidr
                 PrivateSubnet2Cidr: !Ref PrivateSubnet2Cidr
+                BastionAccessCidr: !Ref BastionAccessCidr
+                BastionKeyPairName: !Ref BastionKeyPairName
     DataLayerSubstack:
         Type: AWS::CloudFormation::Stack
         Properties:
