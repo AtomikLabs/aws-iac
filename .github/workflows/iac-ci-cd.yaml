@@ -81,6 +81,19 @@ jobs:
           aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/networking-substack.yaml
           aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/data-layer-substack.yaml
 
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Load Environment Configurations
+        id: load-env-config
+        run: |
+          ENV_FILE="${{ needs.setup-environment.outputs.env-file }}"
+          echo "Loading environment configurations from $ENV_FILE"
+          CONFIG=$(cat $ENV_FILE | jq -r '. | to_entries | .[] | .key + "=" + .value')
+          for VAR in $CONFIG; do
+            echo "::set-env name=${VAR%%=*}::${VAR#*=}"
+          done
+
       - name: Deploy to Test Stack
         run: |
           MAIN_TEMPLATE_FILE="templates/template.yaml"
@@ -99,12 +112,12 @@ jobs:
             --parameter-overrides \
               NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
               DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
-              EnvironmentName=test \
-              VpcCidr="10.0.0.0/16" \
-              PublicSubnet1Cidr="10.0.1.0/24" \
-              PublicSubnet2Cidr="10.0.2.0/24" \
-              PrivateSubnet1Cidr="10.0.101.0/24" \
-              PrivateSubnet2Cidr="10.0.102.0/24"
+              EnvironmentName=$EnvironmentName \
+              VpcCidr=$VpcCidr \
+              PublicSubnet1Cidr=$PublicSubnet1Cidr \
+              PublicSubnet2Cidr=$PublicSubnet2Cidr \
+              PrivateSubnet1Cidr=$PrivateSubnet1Cidr \
+              PrivateSubnet2Cidr=$PrivateSubnet2Cidr
 
       - name: Capture Events on Failure
         if: failure()
@@ -163,6 +176,19 @@ jobs:
           aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/networking-substack.yaml
           aws s3 cp templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/data-layer-substack.yaml
 
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Load Environment Configurations
+        id: load-env-config
+        run: |
+          ENV_FILE="${{ needs.setup-environment.outputs.env-file }}"
+          echo "Loading environment configurations from $ENV_FILE"
+          CONFIG=$(cat $ENV_FILE | jq -r '. | to_entries | .[] | .key + "=" + .value')
+          for VAR in $CONFIG; do
+            echo "::set-env name=${VAR%%=*}::${VAR#*=}"
+          done
+
       - name: Deploy CloudFormation stack
         run: |
           TEMPLATE_FILE="templates/template.yaml"
@@ -178,7 +204,8 @@ jobs:
             --region ${{ secrets.AWS_REGION }} \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset \
-            --parameter-overrides NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL
+            --parameter-overrides \
+              NetworkingSubstackTemplateURL=$NETWORKING_SUB
 
       - name: Capture Events on Failure
         if: failure()
