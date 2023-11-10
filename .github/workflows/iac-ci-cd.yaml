@@ -213,6 +213,20 @@ jobs:
             echo "No matching environment for branch $BRANCH_NAME"
           fi
 
+      - name: Echo environment file path
+      run: |
+        echo "Environment file path: ${{ env.env-file }}"
+        if [[ -z "${{ env.env-file }}" ]]; then
+          echo "Environment file path is empty"
+        else
+          echo "Environment file path is set"
+        fi
+
+      - name: Set environment variables from file
+        if: env.env-file != ''
+        run: |
+          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
+
       - name: Upload Template to S3
         run: |
           aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
