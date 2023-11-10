@@ -35,20 +35,21 @@ jobs:
         run: |
           if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
             echo "Setting environment file for development"
-            echo "::set-output name=env-file::environments/env.dev.json"
+            echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
           elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
             echo "Setting environment file for staging"
-            echo "::set-output name=env-file::environments/env.stage.json"
+            echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
           elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
             echo "Setting environment file for production"
-            echo "::set-output name=env-file::environments/env.prod.json"
+            echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
           fi
 
       - name: Set environment variables from file
+        if: env.env-file != ''
         run: |
-          ENV_FILE="${{ steps.set-env.outputs.env-file }}"
-          echo "Reading environment variables from $ENV_FILE"
-          cat "$ENV_FILE" | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
+          echo "Reading environment variables from ${{ env.env-file }}"
+          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
+
 
   lint-and-validate:
     needs: setup-environment
