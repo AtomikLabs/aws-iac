@@ -318,7 +318,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
-          CidrIp: ${{ secrets.BASTION_ACCESS_CIDR }}
+          CidrIp: '${{ secrets.BASTION_ACCESS_CIDR }}'
   BastionHostEIP:
     Type: AWS::EC2::EIP
     Properties:
