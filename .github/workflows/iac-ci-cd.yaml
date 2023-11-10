@@ -214,13 +214,13 @@ jobs:
           fi
 
       - name: Echo environment file path
-      run: |
-        echo "Environment file path: ${{ env.env-file }}"
-        if [[ -z "${{ env.env-file }}" ]]; then
-          echo "Environment file path is empty"
-        else
-          echo "Environment file path is set"
-        fi
+        run: |
+          echo "Environment file path: ${{ env.env-file }}"
+          if [[ -z "${{ env.env-file }}" ]]; then
+            echo "Environment file path is empty"
+          else
+            echo "Environment file path is set"
+          fi
 
       - name: Set environment variables from file
         if: env.env-file != ''
