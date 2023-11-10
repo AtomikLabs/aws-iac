@@ -180,6 +180,29 @@ jobs:
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           fi
 
+      - name: Determine environment
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "Base branch of the PR: ${{ github.base_ref }}"
+            BRANCH_NAME="${{ github.base_ref }}"
+          else
+            echo "Push to branch: ${GITHUB_REF#refs/heads/}"
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          fi
+
+          if [[ $BRANCH_NAME == 'dev' ]]; then
+            echo "Development environment selected"
+            echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
+          elif [[ $BRANCH_NAME == 'stage' ]]; then
+            echo "Staging environment selected"
+            echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
+          elif [[ $BRANCH_NAME == 'main' ]]; then
+            echo "Production environment selected"
+            echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
+          else
+            echo "No matching environment for branch $BRANCH_NAME"
+          fi
+
       - name: Upload Template to S3
         run: |
           aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
