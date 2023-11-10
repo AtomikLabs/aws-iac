@@ -24,11 +24,14 @@ env:
 jobs:
   setup-environment:
     runs-on: ubuntu-latest
+    outputs:
+      env-file: ${{ steps.set-env.outputs.env-file }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Determine environment
+        id: set-env
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "Base branch of the PR: ${{ github.base_ref }}"
