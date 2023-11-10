@@ -44,6 +44,18 @@ jobs:
             echo "::set-output name=env-file::environments/env.prod.json"
           fi
 
+      # New step to load environment parameters
+      - name: Load environment parameters
+        id: load-env
+        run: |
+          env_file=${{ steps.set-env.outputs.env-file }}
+          echo "Loading environment parameters from $env_file"
+          env_params=$(cat $env_file | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]')
+          echo "::set-output name=env-params::$env_params"
+        env:
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+
+
   lint-and-validate:
     needs: setup-environment
     runs-on: ubuntu-latest
