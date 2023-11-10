@@ -46,9 +46,9 @@ jobs:
 
       - name: Set environment variables from file
         run: |
-          ENV_FILE = ${{ github.workspace }}/${{ needs.set-env.outputs.env-file }}
-          echo "Reading environment variables"
-          cat $ENV_FILE | jq -r 'to_entries | map("\(.key)=\(.value|tostring)") | .[]' >> $GITHUB_ENV
+          ENV_FILE="${{ steps.set-env.outputs.env-file }}"
+          echo "Reading environment variables from $ENV_FILE"
+          cat "$ENV_FILE" | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
 
   lint-and-validate:
     needs: setup-environment
