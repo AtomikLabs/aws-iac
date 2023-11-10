@@ -43,8 +43,12 @@ jobs:
             echo "Setting environment file for production"
             echo "::set-output name=env-file::environments/env.prod.json"
           fi
-          echo $GITHUB_REF
-          echo $GITHUB_ENV
+
+      - name: Set environment variables from file
+        run: |
+          ENV_FILE = ${{ github.workspace }}/${{ needs.set-env.outputs.env-file }}
+          echo "Reading environment variables"
+          cat $ENV_FILE | jq -r 'to_entries | map("\(.key)=\(.value|tostring)") | .[]' >> $GITHUB_ENV
 
   lint-and-validate:
     needs: setup-environment
