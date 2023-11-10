@@ -33,23 +33,15 @@ jobs:
       - name: Determine environment
         id: set-env
         run: |
-          if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
-            echo "Setting environment file for development"
-            echo "::set-output name=env-file::environments/env.dev.json"
-          elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
-            echo "Setting environment file for staging"
-            echo "::set-output name=env-file::environments/env.stage.json"
-          elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-            echo "Setting environment file for production"
-            echo "::set-output name=env-file::environments/env.prod.json"
-          fi
+          BRANCH_NAME=${GITHUB_REF##*/}
+          echo "Setting environment file for $BRANCH_NAME"
+          echo "::set-output name=env-file::environments/env.$BRANCH_NAME.json"
 
   lint-and-validate:
     needs: setup-environment
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
 
       - name: Validate CloudFormation templates
         run: |
@@ -71,68 +63,56 @@ jobs:
         run: |
           echo "AWS_ACCESS_KEY_ID=${{ secrets.TEST_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.TEST_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
 
       - name: Upload Substack Template to S3
         run: |
           NETWORKING_SUBSTACK_TEMPLATE_FILE="templates/networking-substack.yaml"
-          echo "Uploading substack template: $NETWORKING_SUBSTACK_TEMPLATE_FILE"
           DATA_LAYER_SUBSTACK_TEMPLATE_FILE="templates/data-layer-substack.yaml"
-          echo "Uploading substack template: $DATA_LAYER_SUBSTACK_TEMPLATE_FILE"
           aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/networking-substack.yaml
           aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/data-layer-substack.yaml
+
+      - name: Load environment parameters
+        id: load-env-params
+        run: |
+          PARAMETERS=$(jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' environments/env.test.json)
+          echo "::set-output name=params::$PARAMETERS"
 
       - name: Deploy to Test Stack
         run: |
           MAIN_TEMPLATE_FILE="templates/template.yaml"
           STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
-          NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/networking-substack.yaml"
-          DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/data-layer-substack.yaml"
-          echo "Deploying main template: $MAIN_TEMPLATE_FILE"
-          echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
-          echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
+          NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${AWS_DEFAULT_REGION}.amazonaws.com/cloudformation/networking-substack.yaml"
+          DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${AWS_DEFAULT_REGION}.amazonaws.com/cloudformation/data-layer-substack.yaml"
           aws cloudformation deploy \
             --template-file $MAIN_TEMPLATE_FILE \
             --stack-name $STACK_NAME \
-            --region ${{ secrets.AWS_REGION }} \
+            --region $AWS_DEFAULT_REGION \
             --no-fail-on-empty-changeset \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides \
-              NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
-              DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
-              EnvironmentName=test \
-              VpcCidr="10.0.0.0/16" \
-              PublicSubnet1Cidr="10.0.1.0/24" \
-              PublicSubnet2Cidr="10.0.2.0/24" \
-              PrivateSubnet1Cidr="10.0.101.0/24" \
-              PrivateSubnet2Cidr="10.0.102.0/24" \
-              BastionAccessCidr="${{ secrets.BASTION_ACCESS_CIDR }}" 
+            --parameter-overrides ${{ steps.load-env-params.outputs.params }}
 
       - name: Capture Events on Failure
         if: failure()
         run: |
           STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
-          echo "Fetching stack events for $STACK_NAME"
           aws cloudformation describe-stack-events --stack-name $STACK_NAME
 
       - name: Confirm Stack Creation
         run: |
           STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
           aws cloudformation describe-stacks --stack-name $STACK_NAME
-          echo "Stack $STACK_NAME has been confirmed to exist."
 
       - name: Delete Test Stack
         if: always()
         run: |
           STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
-          echo "Deleting stack: $STACK_NAME"
           aws cloudformation delete-stack --stack-name $STACK_NAME
-          echo "Waiting for the stack to be deleted..."
           aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
           if ! aws cloudformation describe-stacks --stack-name $STACK_NAME; then
             echo "Stack $STACK_NAME has been deleted successfully."
           else
             echo "Stack $STACK_NAME deletion failed."
-          fi
 
   deploy:
     needs: [setup-environment, lint-and-validate]
@@ -146,18 +126,19 @@ jobs:
         run: |
           if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
             ENVIRONMENT_NAME="dev"
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+            aws configure set aws_access_key_id ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+            aws configure set aws_secret_access_key ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
           elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
             ENVIRONMENT_NAME="stage"
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+            aws configure set aws_access_key_id ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+            aws configure set aws_secret_access_key ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
           elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
             ENVIRONMENT_NAME="prod"
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+            aws configure set aws_access_key_id ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+            aws configure set aws_secret_access_key ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
           fi
-          echo "ENVIRONMENT_NAME=$ENVIRONMENT_NAME" >> $GITHUB_ENV
+          aws configure set default.region ${{ secrets.AWS_REGION }}
+          PARAM_FILE=environments/env.$ENVIRONMENT_NAME.json
 
       - name: Upload Template to S3
         run: |
@@ -173,16 +154,14 @@ jobs:
           echo "Deploying template: $TEMPLATE_FILE"
           echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
           echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
+          PARAMETERS=$(jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' $PARAM_FILE)
           aws cloudformation deploy \
             --template-file $TEMPLATE_FILE \
             --stack-name $STACK_NAME \
             --region ${{ secrets.AWS_REGION }} \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset \
-            --parameter-overrides \
-              NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
-              DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
-              BastionAccessCidr="${{ secrets.BASTION_ACCESS_CIDR }}" 
+            --parameter-overrides $PARAMETERS
 
       - name: Capture Events on Failure
         if: failure()
