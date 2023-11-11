@@ -309,6 +309,18 @@ Resources:
       PortRange:
         From: 0
         To: 65535
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-0e8a34246278c21e4"
+      InstanceType: "t2.micro"
+      KeyName: "AtomikLabsBastionKeyPair"
+      SubnetId: !Ref ALPublicSubnet1
+      SecurityGroupIds:
+        - !Ref ALRDSSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-bastion-host
 Outputs:
   VPC:
     Description: "The ID of the VPC"
