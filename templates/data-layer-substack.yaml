@@ -22,7 +22,7 @@ Resources:
     AtomikLabsLogsBucket:
         Type: "AWS::S3::Bucket"
         Properties:
-            BucketName: !Sub "atomiklabs-logs"
+            BucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
 
     AtomikLabsDataBucket:
         Type: "AWS::S3::Bucket"
@@ -36,8 +36,8 @@ Resources:
                           - TransitionInDays: 31
                             StorageClass: "STANDARD_IA"
             LoggingConfiguration:
-                DestinationBucketName: !Sub "atomiklabs-logs"
-                LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
+                DestinationBucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
+                LogFilePrefix: !Sub "data-bucket-logs/${EnvironmentName}/"
 
     LambdaExecutionRole:
         Type: "AWS::IAM::Role"
