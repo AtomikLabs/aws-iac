@@ -30,7 +30,15 @@
             "Description": "The CIDR block for the private subnet 2",
             "Default": "10.0.102.0/24"
         },
-        "DataLayerSubstackTemplateURL": { "Type": "String", "Description": "S3 URL of the networking stack template" }
+        "DataLayerSubstackTemplateURL": {
+            "Type": "String",
+            "Description": "S3 URL of the networking stack template"
+        },
+        "BastionHostPermittedCidr": {
+            "Type": "String",
+            "Description": "The CIDR block for the bastion host",
+            "Default": ""
+        }
     },
     "Resources": {
         "NetworkingSubstack": {
@@ -43,7 +51,8 @@
                     "PublicSubnet1Cidr": { "Ref": "PublicSubnet1Cidr" },
                     "PublicSubnet2Cidr": { "Ref": "PublicSubnet2Cidr" },
                     "PrivateSubnet1Cidr": { "Ref": "PrivateSubnet1Cidr" },
-                    "PrivateSubnet2Cidr": { "Ref": "PrivateSubnet2Cidr" }
+                    "PrivateSubnet2Cidr": { "Ref": "PrivateSubnet2Cidr" },
+                    "BastionHostPermittedCidr": { "Ref": "BastionHostPermittedCidr" }
                 }
             }
         },
@@ -111,6 +120,10 @@
         "S3DataBucketName": {
             "Description": "Name of the S3 Bucket for Data Storage",
             "Value": { "Fn::GetAtt": ["DataLayerSubstack", "Outputs", "S3DataBucketName"] }
+        },
+        "BastionHost": {
+            "Description": "The ID of the bastion host",
+            "Value": { "Fn::GetAtt": ["NetworkingSubstack", "Outputs", "BastionHost"] }
         }
     }
 }
