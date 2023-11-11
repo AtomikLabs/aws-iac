@@ -14,13 +14,17 @@
     "Resources": {
         "AtomikLabsLogsBucket": {
             "Type": "AWS::S3::Bucket",
-            "Properties": { "Fn::Sub": "atmoiklabs-logs-${EnvironmentName}" }
+            "Properties": {
+                "BucketName": {
+                    "Fn::Sub": "atomiklabs-logs-${EnvironmentName}"
+                }
+            }
         },
         "AtomikLabsDataBucket": {
             "Type": "AWS::S3::Bucket",
             "Properties": {
-                "BucketName": { 
-                    "Fn::Sub": "atomiklabs-data-bucket-${EnvironmentName}" 
+                "BucketName": {
+                    "Fn::Sub": "atomiklabs-data-bucket-${EnvironmentName}"
                 },
                 "LifecycleConfiguration": {
                     "Rules": [
@@ -32,8 +36,9 @@
                     ]
                 },
                 "LoggingConfiguration": {
-                    "DestinationBucketName": 
-                    "Fn::Sub": "atmoiklabs-logs-${EnvironmentName}",
+                    "DestinationBucketName": {
+                        "Fn::Sub": "atomiklabs-logs-${EnvironmentName}"
+                    },
                     "LogFilePrefix": {
                         "Fn::Sub": "atomiklabs-data-bucket-${EnvironmentName}/"
                     }
