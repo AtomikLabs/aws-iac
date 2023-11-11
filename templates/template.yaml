@@ -99,4 +99,3 @@ Outputs:
     S3DataBucketName:
         Description: "Name of the S3 Bucket for Data Storage"
         Value: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
-
