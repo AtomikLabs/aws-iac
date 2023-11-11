@@ -14,7 +14,7 @@
     "Resources": {
         "AtomikLabsLogsBucket": {
             "Type": "AWS::S3::Bucket",
-            "Properties": { "BucketName": { "Fn::Sub": "atomiklabs-logs" } }
+            "Properties": { "BucketName": "atomiklabs-logs" }
         },
         "AtomikLabsDataBucket": {
             "Type": "AWS::S3::Bucket",
@@ -30,8 +30,10 @@
                     ]
                 },
                 "LoggingConfiguration": {
-                    "DestinationBucketName": { "Fn::Sub": "atomiklabs-logs" },
-                    "LogFilePrefix": "data-bucket-logs/${EnvironmentName}/"
+                    "DestinationBucketName": "atomiklabs-logs",
+                    "LogFilePrefix": {
+                        "Fn::Sub": "atomiklabs-data-bucket-${EnvironmentName}/"
+                    }
                 }
             }
         },
@@ -60,10 +62,10 @@
                                     "Action": ["s3:PutObject", "s3:GetObject", "s3:ListBucket"],
                                     "Resource": [
                                         {
-                                            "Fn::Sub": "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
+                                            "Fn::Sub": "arn:${AWS::Partition}:s3:::atomiklabs-data-bucket-${EnvironmentName}"
                                         },
                                         {
-                                            "Fn::Sub": "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+                                            "Fn::Sub": "arn:${AWS::Partition}:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
                                         }
                                     ]
                                 }
