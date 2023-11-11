@@ -108,19 +108,23 @@
     "Outputs": {
         "S3LogBucketName": {
             "Description": "Name of the S3 Bucket for Data Layer",
-            "Value": { "Ref": "AtomikLabsDataBucket" }
+            "Value": { "Ref": "AtomikLabsDataBucket" },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:S3LogBucketName" } }
         },
         "S3DataBucketName": {
             "Description": "Name of the S3 Bucket for Data Layer",
-            "Value": { "Ref": "AtomikLabsDataBucket" }
+            "Value": { "Ref": "AtomikLabsDataBucket" },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:S3DataBucketName" } }
         },
         "RDSInstanceEndpoint": {
             "Description": "The connection endpoint for the RDS instance.",
-            "Value": { "Fn::GetAtt": ["AtomikLabsRDSInstance", "Endpoint", "Address"] }
+            "Value": { "Fn::GetAtt": ["AtomikLabsRDSInstance", "Endpoint", "Address"] },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RDSInstanceEndpoint" } }
         },
         "RDSInstanceIdentifier": {
             "Description": "The database instance identifier.",
-            "Value": { "Ref": "AtomikLabsRDSInstance" }
+            "Value": { "Ref": "AtomikLabsRDSInstance" },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:RDSInstanceIdentifier" } }
         }
     }
 }
