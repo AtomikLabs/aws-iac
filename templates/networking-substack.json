@@ -328,6 +328,68 @@
                 "CidrBlock": "0.0.0.0/0",
                 "PortRange": { "From": 0, "To": 65535 }
             }
+        },
+        "ALBastionSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Security group for the bastion host",
+                "VpcId": { "Ref": "ALVPC" },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": 22,
+                        "ToPort": 22,
+                        "CidrIp": { "Ref": "BastionHostPermittedCidr" }
+                    }
+                ]
+            }
+        },
+        "ALBastionSubnetGroup": {
+            "Type": "AWS::RDS::DBSubnetGroup",
+            "Properties": {
+                "DBSubnetGroupDescription": "Subnet group for RDS postgres instances",
+                "SubnetIds": [{ "Ref": "ALPublicSubnet1" }, { "Ref": "ALPublicSubnet2" }],
+                "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${EnvironmentName}-bastion-subnet-group" } }]
+            }
+        },
+        "ALBastionHostEIP": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+                "Domain": "vpc",
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Sub": "${EnvironmentName}-bastion-host-eip" } },
+                    { "Key": "AtomikLabs:Environment", "Value": { "Ref": "EnvironmentName" } }
+                ]
+            }
+        },
+        "ALBastionHost": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-0b898040803850657",
+                "InstanceType": "t2.micro",
+                "KeyName": "atomiklabs",
+                "SubnetId": { "Ref": "ALPublicSubnet1" },
+                "SecurityGroupIds": [{ "Ref": "ALLambdaSecurityGroup" }],
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Sub": "${EnvironmentName}-bastion-host" } },
+                    { "Key": "AtomikLabs:Environment", "Value": { "Ref": "EnvironmentName" } }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash\n",
+                                "yum update -y\n",
+                                "yum install -y httpd\n",
+                                "systemctl start httpd\n",
+                                "systemctl enable httpd\n",
+                                "echo '<h1>Hello World from $(hostname -f)</h1>' > /var/www/html/index.html\n"
+                            ]
+                        ]
+                    }
+                }
+            }
         }
     },
     "Outputs": {
