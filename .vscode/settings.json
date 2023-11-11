@@ -1,0 +1,6 @@
+{
+    "yaml.schemas": {
+        "file:///Users/brade/.vscode/extensions/atlassian.atlascode-3.0.3/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml",
+        "https://raw.githubusercontent.com/awslabs/goformation/master/schema/cloudformation.schema.json": "file:///Users/brade/src/atomiklabs/aws-iac/templates/template.yaml"
+    }
+}

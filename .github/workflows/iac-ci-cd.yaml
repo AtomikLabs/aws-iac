@@ -17,6 +17,7 @@ on:
         paths:
             - "**/*.yaml"
             - "**/*.yml"
+            - "**/*.json"
 
 env:
     AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -110,19 +111,19 @@ jobs:
 
             - name: Upload Substack Template to S3
               run: |
-                  NETWORKING_SUBSTACK_TEMPLATE_FILE="templates/networking-substack.yaml"
+                  NETWORKING_SUBSTACK_TEMPLATE_FILE="templates/networking-substack.json"
                   echo "Uploading substack template: $NETWORKING_SUBSTACK_TEMPLATE_FILE"
-                  DATA_LAYER_SUBSTACK_TEMPLATE_FILE="templates/data-layer-substack.yaml"
+                  DATA_LAYER_SUBSTACK_TEMPLATE_FILE="templates/data-layer-substack.json"
                   echo "Uploading substack template: $DATA_LAYER_SUBSTACK_TEMPLATE_FILE"
-                  aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/networking-substack.yaml
-                  aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-layer-substack.yaml
+                  aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/networking-substack.json
+                  aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-layer-substack.json
 
             - name: Deploy to Test Stack
               run: |
-                  MAIN_TEMPLATE_FILE="templates/template.yaml"
+                  MAIN_TEMPLATE_FILE="templates/template.json"
                   STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
-                  NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.yaml"
-                  DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.yaml"
+                  NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.json"
+                  DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.json"
                   echo "Deploying main template: $MAIN_TEMPLATE_FILE"
                   echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
                   echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
@@ -140,7 +141,8 @@ jobs:
                       PublicSubnet1Cidr=$TEST_PUBLIC_SUBNET_1_CIDR \
                       PublicSubnet2Cidr=$TEST_PUBLIC_SUBNET_2_CIDR \
                       PrivateSubnet1Cidr=$TEST_PRIVATE_SUBNET_1_CIDR \
-                      PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR
+                      PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR \
+                      BastionHostPermittedCidr="${{ secrets.BASTION_ACCESS_CIDR }}"
 
             - name: Capture Events on Failure
               if: failure()
@@ -229,15 +231,15 @@ jobs:
 
             - name: Upload Template to S3
               run: |
-                  aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
-                  aws s3 cp templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-layer-substack.yaml
+                  aws s3 cp templates/networking-substack.json s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.json
+                  aws s3 cp templates/data-layer-substack.json s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-layer-substack.json
 
             - name: Deploy CloudFormation stack
               run: |
-                  TEMPLATE_FILE="templates/template.yaml"
+                  TEMPLATE_FILE="templates/template.json"
                   STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
-                  NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/networking-substack.yaml"
-                  DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-layer-substack.yaml"
+                  NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/networking-substack.json"
+                  DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-layer-substack.json"
                   echo "Deploying template: $TEMPLATE_FILE"
                   echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
                   echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
@@ -255,7 +257,8 @@ jobs:
                       PublicSubnet1Cidr=$PUBLIC_SUBNET_1_CIDR \
                       PublicSubnet2Cidr=$PUBLIC_SUBNET_2_CIDR \
                       PrivateSubnet1Cidr=$PRIVATE_SUBNET_1_CIDR \
-                      PrivateSubnet2Cidr=$PRIVATE_SUBNET_2_CIDR
+                      PrivateSubnet2Cidr=$PRIVATE_SUBNET_2_CIDR \
+                      BastionHostPermittedCidr="${{ secrets.BASTION_ACCESS_CIDR }}"
 
             - name: Capture Events on Failure
               if: failure()
