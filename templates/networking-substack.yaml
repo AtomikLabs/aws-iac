@@ -35,7 +35,6 @@ Parameters:
         Type: String
         Description: "The CIDR block for the bastion access"
         Default: ""
-
 Resources:
     ALVPC:
         Type: AWS::EC2::VPC
@@ -358,6 +357,19 @@ Resources:
             Tags:
                 - Key: Name
                   Value: !Sub ${EnvironmentName}-bastion-host-security-group
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
+    ALBastionHost:
+        Type: AWS::EC2::Instance
+        Properties:
+            ImageId: ami-05c13eab67c5d8861
+            InstanceType: t2.micro
+            SubnetId: !Ref ALPublicSubnet1
+            SecurityGroupIds:
+                - !Ref ALBastionHostSecurityGroup
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-bastion-host
                 - Key: "AtomikLabs:Environment"
                   Value: !Ref EnvironmentName
 Outputs:
