@@ -55,17 +55,6 @@
                     "BastionHostPermittedCidr": { "Ref": "BastionHostPermittedCidr" }
                 }
             }
-        },
-        "DataLayerSubstack": {
-            "Type": "AWS::CloudFormation::Stack",
-            "Properties": {
-                "TemplateURL": { "Ref": "DataLayerSubstackTemplateURL" },
-                "Parameters": {
-                    "EnvironmentName": { "Ref": "EnvironmentName" },
-                    "RDSSecurityGroup": { "Fn::ImportValue": "NetworkingSubstack:RDSSecurityGroup" },
-                    "RDSSubnetGroup": { "Fn::ImportValue": "NetworkingSubstack:RDSSubnetGroup" }
-                }
-            }
         }
     }
 }
