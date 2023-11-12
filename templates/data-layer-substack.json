@@ -1,0 +1,166 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AtomikLabs Data Layer Substack Definitions",
+    "Parameters": {
+        "EnvironmentName": {
+            "Type": "String",
+            "Description": "The name of the environment",
+            "Default": "dev",
+            "AllowedValues": ["test", "dev", "stage", "prod"]
+        },
+        "RDSSecurityGroup": {
+            "Type": "String",
+            "Description": "The name of the RDS Security Group"
+        },
+        "RDSSubnetGroup": {
+            "Type": "String",
+            "Description": "The name of the RDS Subnet Group"
+        }
+    },
+    "Resources": {
+        "AtomikLabsLogsBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {
+                    "Fn::Sub": "atomiklabs-logs"
+                }
+            }
+        },
+        "AtomikLabsDataBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {
+                    "Fn::Sub": "atomiklabs-data-bucket-${EnvironmentName}"
+                },
+                "LifecycleConfiguration": {
+                    "Rules": [
+                        {
+                            "Id": "MoveToIAAfterOneWeek",
+                            "Status": "Enabled",
+                            "Transitions": [
+                                {
+                                    "TransitionInDays": 31,
+                                    "StorageClass": "STANDARD_IA"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "LoggingConfiguration": {
+                    "DestinationBucketName": "atomiklabs-logs",
+                    "LogFilePrefix": {
+                        "Fn::Sub": "data-layer-logs/${EnvironmentName}/"
+                    }
+                }
+            }
+        },
+        "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": {
+                    "Fn::Sub": "lambda-s3-access-role-${EnvironmentName}"
+                },
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": {
+                            "Fn::Sub": "lambda-s3-access-policy-${EnvironmentName}"
+                        },
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": ["s3:PutObject", "s3:GetObject", "s3:ListBucket"],
+                                    "Resource": [
+                                        {
+                                            "Fn::Sub": "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
+                                        },
+                                        {
+                                            "Fn::Sub": "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "AtomikLabsRDSInstance": {
+            "Type": "AWS::RDS::DBInstance",
+            "Properties": {
+                "DBInstanceClass": "db.t3.micro",
+                "AllocatedStorage": "20",
+                "MaxAllocatedStorage": "100",
+                "DBName": {
+                    "Fn::Sub": "atomiklabs_${EnvironmentName}_database"
+                },
+                "DBInstanceIdentifier": {
+                    "Fn::Sub": "atomiklabs-${EnvironmentName}-database"
+                },
+                "Engine": "postgres",
+                "EngineVersion": "15.4",
+                "MasterUsername": {
+                    "Fn::Sub": "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
+                },
+                "MasterUserPassword": {
+                    "Fn::Sub": "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}"
+                },
+                "DBSubnetGroupName": {
+                    "Ref": "RDSSubnetGroup"
+                },
+                "VPCSecurityGroups": [
+                    {
+                        "Ref": "RDSSecurityGroup"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Environment",
+                        "Value": {
+                            "Ref": "EnvironmentName"
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "S3LogBucketName": {
+            "Description": "Name of the S3 Bucket for Data Layer",
+            "Value": {
+                "Ref": "AtomikLabsDataBucket"
+            }
+        },
+        "S3DataBucketName": {
+            "Description": "Name of the S3 Bucket for Data Layer",
+            "Value": {
+                "Ref": "AtomikLabsDataBucket"
+            }
+        },
+        "RDSInstanceEndpoint": {
+            "Description": "The connection endpoint for the RDS instance.",
+            "Value": {
+                "Fn::GetAtt": ["AtomikLabsRDSInstance", "Endpoint", "Address"]
+            }
+        },
+        "RDSInstanceIdentifier": {
+            "Description": "The database instance identifier.",
+            "Value": {
+                "Ref": "AtomikLabsRDSInstance"
+            }
+        }
+    }
+}
