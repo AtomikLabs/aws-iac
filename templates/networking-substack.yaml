@@ -366,14 +366,6 @@ Resources:
             ImageId: ami-05c13eab67c5d8861
             InstanceType: t2.micro
             KeyName: AtomikLabsBastionKeyPair
-            SubnetId: !Ref ALPublicSubnet1
-            SecurityGroupIds:
-                - !Ref ALBastionHostSecurityGroup
-            Tags:
-                - Key: Name
-                  Value: !Sub ${EnvironmentName}-bastion-host
-                - Key: "AtomikLabs:Environment"
-                  Value: !Ref EnvironmentName
 Outputs:
     VPC:
         Description: "The ID of the VPC"
