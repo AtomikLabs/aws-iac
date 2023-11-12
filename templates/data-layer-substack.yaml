@@ -17,15 +17,11 @@ Parameters:
     RDSSubnetGroup:
         Type: String
         Description: "The name of the RDS Subnet Group"
-
 Resources:
     AtomikLabsLogsBucket:
         Type: "AWS::S3::Bucket"
         Properties:
             BucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
-            Tags:
-                - Key: "Environment"
-                  Value: !Ref EnvironmentName
     AtomikLabsDataBucket:
         Type: "AWS::S3::Bucket"
         Properties:
@@ -40,9 +36,6 @@ Resources:
             LoggingConfiguration:
                 DestinationBucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
                 LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
-            Tags:
-                - Key: "Environment"
-                  Value: !Ref EnvironmentName
     LambdaExecutionRole:
         Type: "AWS::IAM::Role"
         Properties:
