@@ -52,6 +52,7 @@ Resources:
                 PrivateSubnet2Cidr: !Ref PrivateSubnet2Cidr
     DataLayerSubstack:
         Type: AWS::CloudFormation::Stack
+        DependsOn: NetworkingSubstack
         Properties:
             TemplateURL: !Ref DataLayerSubstackTemplateURL
             Parameters:
@@ -99,4 +100,3 @@ Outputs:
     S3DataBucketName:
         Description: "Name of the S3 Bucket for Data Storage"
         Value: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
-
