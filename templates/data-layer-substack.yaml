@@ -22,7 +22,7 @@ Resources:
   AtomikLabsLogsBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Sub "atomiklabs-logs"
+      BucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
 
   AtomikLabsDataBucket:
     Type: "AWS::S3::Bucket"
