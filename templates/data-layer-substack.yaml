@@ -76,6 +76,7 @@ Resources:
             MasterUsername: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
             MasterUserPassword: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}"
             DBSubnetGroupName: !Ref RDSSubnetGroup
+            PubliclyAccessible: "true"
             VPCSecurityGroups:
                 - !Ref RDSSecurityGroup
             Tags:
