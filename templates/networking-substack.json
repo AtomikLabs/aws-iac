@@ -398,7 +398,7 @@
             },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:VPC"
+                    "Fn::Sub": "NetworkingSubstack:VPC"
                 }
             }
         },
@@ -409,7 +409,7 @@
             },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:PublicSubnet1"
+                    "Fn::Sub": "NetworkingSubstack:PublicSubnet1"
                 }
             }
         },
@@ -420,7 +420,7 @@
             },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:PublicSubnet2"
+                    "Fn::Sub": "NetworkingSubstack:PublicSubnet2"
                 }
             }
         },
@@ -431,7 +431,7 @@
             },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:PrivateSubnet1"
+                    "Fn::Sub": "NetworkingSubstack:PrivateSubnet1"
                 }
             }
         },
@@ -440,7 +440,7 @@
             "Value": { "Ref": "ALPrivateSubnet2" },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:PrivateSubnet2"
+                    "Fn::Sub": "NetworkingSubstack:PrivateSubnet2"
                 }
             }
         },
@@ -449,7 +449,7 @@
             "Value": { "Ref": "ALPublicRouteTable" },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:PublicRouteTable"
+                    "Fn::Sub": "NetworkingSubstack:PublicRouteTable"
                 }
             }
         },
@@ -458,7 +458,7 @@
             "Value": { "Ref": "ALPrivateRouteTable1" },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:PrivateRouteTable1"
+                    "Fn::Sub": "NetworkingSubstack:PrivateRouteTable1"
                 }
             }
         },
@@ -467,7 +467,7 @@
             "Value": { "Ref": "ALPrivateRouteTable2" },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:PrivateRouteTable2"
+                    "Fn::Sub": "NetworkingSubstack:PrivateRouteTable2"
                 }
             }
         },
@@ -476,7 +476,7 @@
             "Value": { "Ref": "ALLambdaSecurityGroup" },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:LambdaSecurityGroup"
+                    "Fn::Sub": "NetworkingSubstack:LambdaSecurityGroup"
                 }
             }
         },
@@ -485,7 +485,7 @@
             "Value": { "Ref": "ALRDSSecurityGroup" },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:RDSSecurityGroup"
+                    "Fn::Sub": "NetworkingSubstack:RDSSecurityGroup"
                 }
             }
         },
@@ -496,7 +496,7 @@
             },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:VPCNetworkACL"
+                    "Fn::Sub": "NetworkingSubstack:VPCNetworkACL"
                 }
             }
         },
@@ -504,7 +504,7 @@
             "Description": "The ID of the RDS subnet group",
             "Value": { "Ref": "ALRDSSubnetGroup" },
             "Export": {
-                "Name": { "Fn::Sub": "${AWS::StackName}:RDSSubnetGroup" }
+                "Name": { "Fn::Sub": "NetworkingSubstack:RDSSubnetGroup" }
             }
         },
         "BastionHost": {
@@ -514,7 +514,7 @@
             },
             "Export": {
                 "Name": {
-                    "Fn::Sub": "${AWS::StackName}:BastionHost"
+                    "Fn::Sub": "NetworkingSubstack:BastionHost"
                 }
             }
         }
