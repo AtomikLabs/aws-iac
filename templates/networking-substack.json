@@ -502,13 +502,9 @@
         },
         "RDSSubnetGroup": {
             "Description": "The ID of the RDS subnet group",
-            "Value": {
-                "Ref": "ALRDSSubnetGroup"
-            },
+            "Value": { "Ref": "ALRDSSubnetGroup" },
             "Export": {
-                "Name": {
-                    "Fn::Sub": "${AWS::StackName}:RDSSubnetGroup"
-                }
+                "Name": { "Fn::Sub": "${AWS::StackName}:RDSSubnetGroup" }
             }
         },
         "BastionHost": {
