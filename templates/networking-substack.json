@@ -365,7 +365,7 @@
             "Properties": {
                 "ImageId": "ami-0b898040803850657",
                 "InstanceType": "t2.micro",
-                "KeyName": "atomiklabs",
+                "KeyName": "AtomikLabsBastionKeyPair",
                 "SubnetId": { "Ref": "ALPublicSubnet1" },
                 "SecurityGroupIds": [{ "Ref": "ALLambdaSecurityGroup" }],
                 "Tags": [
