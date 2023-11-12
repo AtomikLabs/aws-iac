@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AtomikLabs Bastion Substack Definition
+
+Resources:
+    VPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: 10.6.0.0/16
+            EnableDnsSupport: true
+            EnableDnsHostnames: true
+    PublicSubnet1:
+        Type: AWS::EC2::Subnet
+        Properties:
+            CidrBlock: 10.6.0.1/24
+            VpcId: !Ref VPC
+    SecurityG:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: "Allow SSH access to ec2 instances"
+            VpcId: !Ref VPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: 10.6.0.1/24
+    BastionHost:
+        Type: AWS::EC2::Instance
+        Properties:
+            ImageId: ami-05c13eab67c5d8861
+            InstanceType: t2.micro
+            SubnetId: !Ref PublicSubnet1
+            SecurityGroupIds:
+                - !Ref SecurityG
