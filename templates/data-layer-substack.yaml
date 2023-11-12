@@ -36,7 +36,7 @@ Resources:
               - TransitionInDays: 31
                 StorageClass: "STANDARD_IA"
       LoggingConfiguration:
-        DestinationBucketName: !Sub "atomiklabs-logs"
+        DestinationBucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
         LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
 
   LambdaExecutionRole:
