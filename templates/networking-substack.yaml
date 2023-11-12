@@ -360,17 +360,20 @@ Resources:
                   Value: !Sub ${EnvironmentName}-bastion-host-security-group
                 - Key: "AtomikLabs:Environment"
                   Value: !Ref EnvironmentName
-    ALBastionHostSubnetGroup:
-        Type: AWS::RDS::DBSubnetGroup
+    ALBastionHost:
+        Type: AWS::EC2::Instance
         Properties:
-            DBSubnetGroupDescription: "Subnet group for bastion host"
-            SubnetIds:
-                - !Ref ALPublicSubnet1
-                - !Ref ALPublicSubnet2
+            ImageId: ami-05c13eab67c5d8861
+            InstanceType: t2.micro
+            KeyName: AtomikLabsBastionKeyPair
+            SubnetId: !Ref ALPublicSubnet1
+            SecurityGroupIds:
+                - !Ref ALBastionHostSecurityGroup
             Tags:
                 - Key: Name
-                  Value: !Sub ${EnvironmentName}-bastion-host-subnet-group
-
+                  Value: !Sub ${EnvironmentName}-bastion-host
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
 Outputs:
     VPC:
         Description: "The ID of the VPC"
