@@ -31,6 +31,10 @@ Parameters:
         Type: String
         Description: "The CIDR block for the private subnet 2"
         Default: "10.0.102.0/24"
+    BastionAccessCidr:
+        Type: String
+        Description: "The CIDR block for the bastion access"
+        Default: ""
 
 Resources:
     ALVPC:
@@ -189,21 +193,41 @@ Resources:
         Properties:
             SubnetId: !Ref ALPublicSubnet1
             RouteTableId: !Ref ALPublicRouteTable
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-public-subnet-1-route-table-association
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALPublicSubnet2RouteTableAssociation:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
             SubnetId: !Ref ALPublicSubnet2
             RouteTableId: !Ref ALPublicRouteTable
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-public-subnet-2-route-table-association
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALPrivateSubnet1RouteTableAssociation:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
             SubnetId: !Ref ALPrivateSubnet1
             RouteTableId: !Ref ALPrivateRouteTable1
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-private-subnet-1-route-table-association
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALPrivateSubnet2RouteTableAssociation:
         Type: AWS::EC2::SubnetRouteTableAssociation
         Properties:
             SubnetId: !Ref ALPrivateSubnet2
             RouteTableId: !Ref ALPrivateRouteTable2
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-private-subnet-2-route-table-association
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALPublicRoute:
         Type: AWS::EC2::Route
         DependsOn:
@@ -212,6 +236,11 @@ Resources:
             RouteTableId: !Ref ALPublicRouteTable
             DestinationCidrBlock: 0.0.0.0/0
             GatewayId: !Ref ALInternetGateway
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-public-route
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALPrivateRoute1:
         Type: AWS::EC2::Route
         DependsOn:
@@ -220,6 +249,11 @@ Resources:
             RouteTableId: !Ref ALPrivateRouteTable1
             DestinationCidrBlock: 0.0.0.0/0
             NatGatewayId: !Ref ALNatGateway1
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-private-route-1
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALPrivateRoute2:
         Type: AWS::EC2::Route
         DependsOn:
@@ -228,6 +262,11 @@ Resources:
             RouteTableId: !Ref ALPrivateRouteTable2
             DestinationCidrBlock: 0.0.0.0/0
             NatGatewayId: !Ref ALNatGateway2
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-private-route-2
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALLambdaSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties:
@@ -246,6 +285,11 @@ Resources:
                   FromPort: 5432
                   ToPort: 5432
                   CidrIp: 0.0.0.0/0
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-lambda-security-group
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALRDSSecurityGroup:
         Type: "AWS::EC2::SecurityGroup"
         Properties:
@@ -253,17 +297,26 @@ Resources:
             VpcId: !Ref ALVPC
             SecurityGroupIngress:
                 - IpProtocol: tcp
-                  FromPort: 5432
-                  ToPort: 5432
-                  CidrIp: 162.156.14.156/32
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: !Ref BastionAccessCidr
                 - IpProtocol: tcp
                   FromPort: 5432
                   ToPort: 5432
-                  CidrIp: 66.51.136.236/32
+                  CidrIp: !Ref BastionAccessCidr
                 - IpProtocol: tcp
                   FromPort: 5432
                   ToPort: 5432
                   SourceSecurityGroupId: !Ref ALLambdaSecurityGroup
+                - IpProtocol: tcp
+                  FromPort: 5432
+                  ToPort: 5432
+                  SourceSecurityGroupId: !Ref ALBastionHostSecurityGroup
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-rds-security-group
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALVPCNetworkACL:
         Type: AWS::EC2::NetworkAcl
         Properties:
@@ -285,6 +338,11 @@ Resources:
             PortRange:
                 From: 80
                 To: 80
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-inbound-http-rule
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALInboundHTTPSRules:
         Type: AWS::EC2::NetworkAclEntry
         Properties:
@@ -297,6 +355,45 @@ Resources:
             PortRange:
                 From: 443
                 To: 443
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-inbound-https-rule
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
+    ALInboundSSHRule:
+        Type: AWS::EC2::NetworkAclEntry
+        Properties:
+            NetworkAclId: !Ref ALVPCNetworkACL
+            RuleNumber: 102
+            Protocol: 6
+            RuleAction: allow
+            Egress: false
+            CidrBlock: 0.0.0.0/0
+            PortRange:
+                From: 22
+                To: 22
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-inbound-ssh-rule
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
+    ALInboundPostgresRule:
+        Type: AWS::EC2::NetworkAclEntry
+        Properties:
+            NetworkAclId: !Ref ALVPCNetworkACL
+            RuleNumber: 103
+            Protocol: 6
+            RuleAction: allow
+            Egress: false
+            CidrBlock: 0.0.0.0/0
+            PortRange:
+                From: 5432
+                To: 5432
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-inbound-postgres-rule
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     OutboundRule:
         Type: AWS::EC2::NetworkAclEntry
         Properties:
@@ -309,6 +406,36 @@ Resources:
             PortRange:
                 From: 0
                 To: 65535
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-outbound-rule
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
+    ALBastionHostSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: "Security group for bastion host"
+            VpcId: !Ref ALVPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: !Ref BastionAccessCidr
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-bastion-host-security-group
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
+    ALBastionHostSubnetGroup:
+        Type: AWS::RDS::DBSubnetGroup
+        Properties:
+            DBSubnetGroupDescription: "Subnet group for bastion host"
+            SubnetIds:
+                - !Ref ALPublicSubnet1
+                - !Ref ALPublicSubnet2
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-bastion-host-subnet-group
 Outputs:
     VPC:
         Description: "The ID of the VPC"

@@ -1,271 +1,275 @@
 name: AtomikLabs IAC CI/CD Workflow
 
 on:
-  pull_request:
-    branches:
-      - dev
-      - stage
-      - main
-    paths:
-      - "**/*.yaml"
-      - "**/*.yml"
-  push:
-    branches:
-      - dev
-      - stage
-      - main
-    paths:
-      - "**/*.yaml"
-      - "**/*.yml"
+    pull_request:
+        branches:
+            - dev
+            - stage
+            - main
+        paths:
+            - "**/*.yaml"
+            - "**/*.yml"
+    push:
+        branches:
+            - dev
+            - stage
+            - main
+        paths:
+            - "**/*.yaml"
+            - "**/*.yml"
 
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
+    AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
-  setup-environment:
-    runs-on: ubuntu-latest
-    outputs:
-      env-file: ${{ steps.set-env.outputs.env-file }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    setup-environment:
+        runs-on: ubuntu-latest
+        outputs:
+            env-file: ${{ steps.set-env.outputs.env-file }}
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
 
-      - name: Determine environment
-        id: set-env
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "Base branch of the PR: ${{ github.base_ref }}"
-            BRANCH_NAME="${{ github.base_ref }}"
-          else
-            echo "Push to branch: ${GITHUB_REF#refs/heads/}"
-            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          fi
+            - name: Determine environment
+              id: set-env
+              run: |
+                  if [ "${{ github.event_name }}" == "pull_request" ]; then
+                    echo "Base branch of the PR: ${{ github.base_ref }}"
+                    BRANCH_NAME="${{ github.base_ref }}"
+                  else
+                    echo "Push to branch: ${GITHUB_REF#refs/heads/}"
+                    BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+                  fi
 
-          if [[ $BRANCH_NAME == 'dev' ]]; then
-            echo "Development environment selected"
-            echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'stage' ]]; then
-            echo "Staging environment selected"
-            echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'main' ]]; then
-            echo "Production environment selected"
-            echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
-          else
-            echo "No matching environment for branch $BRANCH_NAME"
-          fi
+                  if [[ $BRANCH_NAME == 'dev' ]]; then
+                    echo "Development environment selected"
+                    echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
+                  elif [[ $BRANCH_NAME == 'stage' ]]; then
+                    echo "Staging environment selected"
+                    echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
+                  elif [[ $BRANCH_NAME == 'main' ]]; then
+                    echo "Production environment selected"
+                    echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
+                  else
+                    echo "No matching environment for branch $BRANCH_NAME"
+                  fi
 
-      - name: Echo environment file path
-        run: |
-          echo "Environment file path: ${{ env.env-file }}"
-          if [[ -z "${{ env.env-file }}" ]]; then
-            echo "Environment file path is empty"
-          else
-            echo "Environment file path is set"
-          fi
+            - name: Echo environment file path
+              run: |
+                  echo "Environment file path: ${{ env.env-file }}"
+                  if [[ -z "${{ env.env-file }}" ]]; then
+                    echo "Environment file path is empty"
+                  else
+                    echo "Environment file path is set"
+                  fi
 
-      - name: Set environment variables from file
-        if: env.env-file != ''
-        run: |
-          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
+            - name: Set environment variables from file
+              if: env.env-file != ''
+              run: |
+                  jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
 
-  lint-and-validate:
-    needs: setup-environment
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    lint-and-validate:
+        needs: setup-environment
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
 
-      - name: Validate CloudFormation templates
-        run: |
+            - name: Validate CloudFormation templates
+              run: |
 
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+              env:
+                  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
-  test-deploy:
-    needs: lint-and-validate
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    test-deploy:
+        needs: lint-and-validate
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
 
-      - name: Determine environment and set variables
-        run: |
-          echo "env-file=environments/env.test.json" >> $GITHUB_ENV
+            - name: Determine environment and set variables
+              run: |
+                  echo "env-file=environments/env.test.json" >> $GITHUB_ENV
 
-      - name: Set environment variables from file
-        run: |
-          if [ -f ${{ env.env-file }} ]; then
-            jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
-          else
-            echo "${{ env.env-file }} does not exist"
-          fi
+            - name: Set environment variables from file
+              run: |
+                  if [ -f ${{ env.env-file }} ]; then
+                    jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
+                  else
+                    echo "${{ env.env-file }} does not exist"
+                  fi
 
-      - name: Set AWS Credentials for Test Environment
-        run: |
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.TEST_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.TEST_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+            - name: Set AWS Credentials for Test Environment
+              run: |
+                  echo "AWS_ACCESS_KEY_ID=${{ secrets.TEST_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+                  echo "AWS_SECRET_ACCESS_KEY=${{ secrets.TEST_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
 
-      - name: Upload Substack Template to S3
-        run: |
-          NETWORKING_SUBSTACK_TEMPLATE_FILE="templates/networking-substack.yaml"
-          echo "Uploading substack template: $NETWORKING_SUBSTACK_TEMPLATE_FILE"
-          DATA_LAYER_SUBSTACK_TEMPLATE_FILE="templates/data-layer-substack.yaml"
-          echo "Uploading substack template: $DATA_LAYER_SUBSTACK_TEMPLATE_FILE"
-          aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/networking-substack.yaml
-          aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-layer-substack.yaml
+            - name: Upload Substack Template to S3
+              run: |
+                  NETWORKING_SUBSTACK_TEMPLATE_FILE="templates/networking-substack.yaml"
+                  echo "Uploading substack template: $NETWORKING_SUBSTACK_TEMPLATE_FILE"
+                  DATA_LAYER_SUBSTACK_TEMPLATE_FILE="templates/data-layer-substack.yaml"
+                  echo "Uploading substack template: $DATA_LAYER_SUBSTACK_TEMPLATE_FILE"
+                  aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/networking-substack.yaml
+                  aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-layer-substack.yaml
 
-      - name: Deploy to Test Stack
-        run: |
-          MAIN_TEMPLATE_FILE="templates/template.yaml"
-          STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
-          NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.yaml"
-          DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.yaml"
-          echo "Deploying main template: $MAIN_TEMPLATE_FILE"
-          echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
-          echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
-          aws cloudformation deploy \
-            --template-file $MAIN_TEMPLATE_FILE \
-            --stack-name $STACK_NAME \
-            --region ${{ secrets.AWS_REGION }} \
-            --no-fail-on-empty-changeset \
-            --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides \
-              NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
-              DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
-              EnvironmentName=test \
-              VpcCidr=$TEST_VPC_CIDR \
-              PublicSubnet1Cidr=$TEST_PUBLIC_SUBNET_1_CIDR \
-              PublicSubnet2Cidr=$TEST_PUBLIC_SUBNET_2_CIDR \
-              PrivateSubnet1Cidr=$TEST_PRIVATE_SUBNET_1_CIDR \
-              PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR
+            - name: Deploy to Test Stack
+              run: |
+                  MAIN_TEMPLATE_FILE="templates/template.yaml"
+                  STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
+                  NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.yaml"
+                  DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.yaml"
+                  BASTION_ACCESS_CIDR=${{ secrets.BASTION_ACCESS_CIDR }}
+                  echo "Deploying main template: $MAIN_TEMPLATE_FILE"
+                  echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
+                  echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
+                  aws cloudformation deploy \
+                    --template-file $MAIN_TEMPLATE_FILE \
+                    --stack-name $STACK_NAME \
+                    --region ${{ secrets.AWS_REGION }} \
+                    --no-fail-on-empty-changeset \
+                    --capabilities CAPABILITY_NAMED_IAM \
+                    --parameter-overrides \
+                      NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
+                      DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
+                      EnvironmentName=test \
+                      VpcCidr=$TEST_VPC_CIDR \
+                      PublicSubnet1Cidr=$TEST_PUBLIC_SUBNET_1_CIDR \
+                      PublicSubnet2Cidr=$TEST_PUBLIC_SUBNET_2_CIDR \
+                      PrivateSubnet1Cidr=$TEST_PRIVATE_SUBNET_1_CIDR \
+                      PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR \
+                      BastionAccessCidr=$BASTION_ACCESS_CIDR
 
-      - name: Capture Events on Failure
-        if: failure()
-        run: |
-          STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
-          echo "Fetching stack events for $STACK_NAME"
-          aws cloudformation describe-stack-events --stack-name $STACK_NAME
+            - name: Capture Events on Failure
+              if: failure()
+              run: |
+                  STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
+                  echo "Fetching stack events for $STACK_NAME"
+                  aws cloudformation describe-stack-events --stack-name $STACK_NAME
 
-      - name: Confirm Stack Creation
-        run: |
-          STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
-          aws cloudformation describe-stacks --stack-name $STACK_NAME
-          echo "Stack $STACK_NAME has been confirmed to exist."
+            - name: Confirm Stack Creation
+              run: |
+                  STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
+                  aws cloudformation describe-stacks --stack-name $STACK_NAME
+                  echo "Stack $STACK_NAME has been confirmed to exist."
 
-      - name: Delete Test Stack
-        if: always()
-        run: |
-          STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
-          echo "Deleting stack: $STACK_NAME"
-          aws cloudformation delete-stack --stack-name $STACK_NAME
-          echo "Waiting for the stack to be deleted..."
-          aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
-          if ! aws cloudformation describe-stacks --stack-name $STACK_NAME; then
-            echo "Stack $STACK_NAME has been deleted successfully."
-          else
-            echo "Stack $STACK_NAME deletion failed."
-          fi
+            - name: Delete Test Stack
+              if: always()
+              run: |
+                  STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
+                  echo "Deleting stack: $STACK_NAME"
+                  aws cloudformation delete-stack --stack-name $STACK_NAME
+                  echo "Waiting for the stack to be deleted..."
+                  aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+                  if ! aws cloudformation describe-stacks --stack-name $STACK_NAME; then
+                    echo "Stack $STACK_NAME has been deleted successfully."
+                  else
+                    echo "Stack $STACK_NAME deletion failed."
+                  fi
 
-  deploy:
-    needs: [setup-environment, lint-and-validate]
-    if: github.event_name == 'push' && (contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/stage') || contains(github.ref, 'refs/heads/main'))
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    deploy:
+        needs: [setup-environment, lint-and-validate]
+        if: github.event_name == 'push' && (contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/stage') || contains(github.ref, 'refs/heads/main'))
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
 
-      - name: Set AWS Credentials and Parameter File
-        run: |
-          if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          fi
+            - name: Set AWS Credentials and Parameter File
+              run: |
+                  if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
+                    echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+                    echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+                  elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
+                    echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+                    echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+                  elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+                    echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+                    echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+                  fi
 
-      - name: Determine environment
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "Base branch of the PR: ${{ github.base_ref }}"
-            BRANCH_NAME="${{ github.base_ref }}"
-          else
-            echo "Push to branch: ${GITHUB_REF#refs/heads/}"
-            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          fi
+            - name: Determine environment
+              run: |
+                  if [ "${{ github.event_name }}" == "pull_request" ]; then
+                    echo "Base branch of the PR: ${{ github.base_ref }}"
+                    BRANCH_NAME="${{ github.base_ref }}"
+                  else
+                    echo "Push to branch: ${GITHUB_REF#refs/heads/}"
+                    BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+                  fi
 
-          if [[ $BRANCH_NAME == 'dev' ]]; then
-            echo "Development environment selected"
-            echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'stage' ]]; then
-            echo "Staging environment selected"
-            echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'main' ]]; then
-            echo "Production environment selected"
-            echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
-          else
-            echo "No matching environment for branch $BRANCH_NAME"
-          fi
+                  if [[ $BRANCH_NAME == 'dev' ]]; then
+                    echo "Development environment selected"
+                    echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
+                  elif [[ $BRANCH_NAME == 'stage' ]]; then
+                    echo "Staging environment selected"
+                    echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
+                  elif [[ $BRANCH_NAME == 'main' ]]; then
+                    echo "Production environment selected"
+                    echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
+                  else
+                    echo "No matching environment for branch $BRANCH_NAME"
+                  fi
 
-      - name: Echo environment file path
-        run: |
-          echo "Environment file path: ${{ env.env-file }}"
-          if [[ -z "${{ env.env-file }}" ]]; then
-            echo "Environment file path is empty"
-          else
-            echo "Environment file path is set"
-          fi
+            - name: Echo environment file path
+              run: |
+                  echo "Environment file path: ${{ env.env-file }}"
+                  if [[ -z "${{ env.env-file }}" ]]; then
+                    echo "Environment file path is empty"
+                  else
+                    echo "Environment file path is set"
+                  fi
 
-      - name: Set environment variables from file
-        if: env.env-file != ''
-        run: |
-          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
+            - name: Set environment variables from file
+              if: env.env-file != ''
+              run: |
+                  jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
 
-      - name: Upload Template to S3
-        run: |
-          aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
-          aws s3 cp templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-layer-substack.yaml
+            - name: Upload Template to S3
+              run: |
+                  aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
+                  aws s3 cp templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-layer-substack.yaml
 
-      - name: Deploy CloudFormation stack
-        run: |
-          TEMPLATE_FILE="templates/template.yaml"
-          STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
-          NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/networking-substack.yaml"
-          DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-layer-substack.yaml"
-          echo "Deploying template: $TEMPLATE_FILE"
-          echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
-          echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
-          aws cloudformation deploy \
-            --template-file $TEMPLATE_FILE \
-            --stack-name $STACK_NAME \
-            --region ${{ secrets.AWS_REGION }} \
-            --capabilities CAPABILITY_NAMED_IAM \
-            --no-fail-on-empty-changeset \
-            --parameter-overrides \
-              NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
-              DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
-              EnvironmentName=$ENVIRONMENT_NAME \
-              VpcCidr=$VPC_CIDR \
-              PublicSubnet1Cidr=$PUBLIC_SUBNET_1_CIDR \
-              PublicSubnet2Cidr=$PUBLIC_SUBNET_2_CIDR \
-              PrivateSubnet1Cidr=$PRIVATE_SUBNET_1_CIDR \
-              PrivateSubnet2Cidr=$PRIVATE_SUBNET_2_CIDR
+            - name: Deploy CloudFormation stack
+              run: |
+                  TEMPLATE_FILE="templates/template.yaml"
+                  STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
+                  NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/networking-substack.yaml"
+                  DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-layer-substack.yaml"
+                  BASTION_ACCESS_CIDR=${{ secrets.BASTION_ACCESS_CIDR }}
+                  echo "Deploying template: $TEMPLATE_FILE"
+                  echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
+                  echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
+                  aws cloudformation deploy \
+                    --template-file $TEMPLATE_FILE \
+                    --stack-name $STACK_NAME \
+                    --region ${{ secrets.AWS_REGION }} \
+                    --capabilities CAPABILITY_NAMED_IAM \
+                    --no-fail-on-empty-changeset \
+                    --parameter-overrides \
+                      NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
+                      DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
+                      EnvironmentName=$ENVIRONMENT_NAME \
+                      VpcCidr=$VPC_CIDR \
+                      PublicSubnet1Cidr=$PUBLIC_SUBNET_1_CIDR \
+                      PublicSubnet2Cidr=$PUBLIC_SUBNET_2_CIDR \
+                      PrivateSubnet1Cidr=$PRIVATE_SUBNET_1_CIDR \
+                      PrivateSubnet2Cidr=$PRIVATE_SUBNET_2_CIDR \
+                      BastionAccessCidr=$BASTION_ACCESS_CIDR
 
-      - name: Capture Events on Failure
-        if: failure()
-        run: |
-          STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
-          echo "Fetching stack events for $STACK_NAME"
-          aws cloudformation describe-stack-events --stack-name $STACK_NAME
+            - name: Capture Events on Failure
+              if: failure()
+              run: |
+                  STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
+                  echo "Fetching stack events for $STACK_NAME"
+                  aws cloudformation describe-stack-events --stack-name $STACK_NAME
 
-      - name: Confirm Stack Creation
-        run: |
-          STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
-          aws cloudformation describe-stacks --stack-name $STACK_NAME
-          echo "Stack $STACK_NAME has been confirmed to exist."
+            - name: Confirm Stack Creation
+              run: |
+                  STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
+                  aws cloudformation describe-stacks --stack-name $STACK_NAME
+                  echo "Stack $STACK_NAME has been confirmed to exist."

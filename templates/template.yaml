@@ -37,6 +37,10 @@ Parameters:
     DataLayerSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the networking stack template"
+    BastionAccessCidr:
+        Type: String
+        Description: "The CIDR block for the bastion access"
+        Default: ""
 
 Resources:
     NetworkingSubstack:
@@ -50,6 +54,7 @@ Resources:
                 PublicSubnet2Cidr: !Ref PublicSubnet2Cidr
                 PrivateSubnet1Cidr: !Ref PrivateSubnet1Cidr
                 PrivateSubnet2Cidr: !Ref PrivateSubnet2Cidr
+                BastionAccessCir: !Ref BastionAccessCir
     DataLayerSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
@@ -59,7 +64,6 @@ Resources:
                 EnvironmentName: !Ref EnvironmentName
                 RDSSecurityGroup: !GetAtt NetworkingSubstack.Outputs.RDSSecurityGroup
                 RDSSubnetGroup: !GetAtt NetworkingSubstack.Outputs.RDSSubnetGroup
-
 Outputs:
     VPC:
         Description: "The ID of the VPC"

@@ -23,7 +23,9 @@ Resources:
         Type: "AWS::S3::Bucket"
         Properties:
             BucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
-
+            Tags:
+                - Key: "Environment"
+                  Value: !Ref EnvironmentName
     AtomikLabsDataBucket:
         Type: "AWS::S3::Bucket"
         Properties:
@@ -38,7 +40,9 @@ Resources:
             LoggingConfiguration:
                 DestinationBucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
                 LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
-
+            Tags:
+                - Key: "Environment"
+                  Value: !Ref EnvironmentName
     LambdaExecutionRole:
         Type: "AWS::IAM::Role"
         Properties:
@@ -63,6 +67,9 @@ Resources:
                             Resource:
                                 - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
                                 - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+            Tags:
+                - Key: "Environment"
+                  Value: !Ref EnvironmentName
     AtomikLabsRDSInstance:
         Type: "AWS::RDS::DBInstance"
         Properties:
@@ -81,7 +88,6 @@ Resources:
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
-
 Outputs:
     S3LogBucketName:
         Description: "Name of the S3 Bucket for Data Layer"
