@@ -95,3 +95,6 @@ Outputs:
     RDSInstanceIdentifier:
         Description: "The database instance identifier."
         Value: !Ref AtomikLabsRDSInstance
+    LambdaExecutionRole:
+        Description: "The name of the lambda execution role"
+        Value: !Ref LambdaExecutionRole
