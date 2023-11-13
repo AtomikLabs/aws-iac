@@ -51,7 +51,7 @@ Resources:
             Action: "lambda:InvokeFunction"
             FunctionName: !Ref DataIngestionArxivDailyFetch
             Principal: "events.amazonaws.com"
-            SourceArn: !Ref DataIngestionArxivDailyFetchEventRule
+            SourceArn: !GetAtt DataIngestionArxivDailyFetchEventRule.Arn
     DataIngestionArxivSummaryParser:
         Type: AWS::Lambda::Function
         Properties:
