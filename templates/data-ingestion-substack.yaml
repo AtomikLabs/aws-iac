@@ -28,7 +28,7 @@ Resources:
             Code:
                 S3Bucket: atomiklabs-iac
                 S3Key: code/placeholders/arxiv_daily_fetch.zip
-            Role: !Ref LambdaExecutionRole
+            Role: !Ref LambdaExecutionRoleArn
             Timeout: 900
             Environment:
                 Variables:
@@ -61,7 +61,7 @@ Resources:
             Code:
                 S3Bucket: atomiklabs-iac
                 S3Key: code/placeholders/arxiv_summary_parser.zip
-            Role: !Ref LambdaExecutionRole
+            Role: !Ref LambdaExecutionRoleArn
             Timeout: 900
             Environment:
                 Variables:

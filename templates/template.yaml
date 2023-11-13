@@ -75,7 +75,7 @@ Resources:
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
                 DataBucket: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
-                LambdaExecutionRole: !GetAtt DataLayerSubstack.Outputs.LambdaExecutionRoleArn
+                LambdaExecutionRoleArn: !GetAtt DataLayerSubstack.Outputs.LambdaExecutionRoleArn
 Outputs:
     VPC:
         Description: "The ID of the VPC"
