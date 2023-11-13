@@ -14,7 +14,7 @@ Parameters:
             - "dev"
             - "stage"
             - "prod"
-    LambdaExecutionRole:
+    LambdaExecutionRoleArn:
         Type: String
         Description: "The name of the lambda execution role"
 
@@ -28,7 +28,7 @@ Resources:
             Code:
                 S3Bucket: atomiklabs-iac
                 S3Key: code/placeholders/arxiv_daily_fetch.zip
-            Role: !GetAtt LambdaExecutionRole.Arn
+            Role: !Ref LambdaExecutionRole
             Timeout: 900
             Environment:
                 Variables:
@@ -61,7 +61,7 @@ Resources:
             Code:
                 S3Bucket: atomiklabs-iac
                 S3Key: code/placeholders/arxiv_summary_parser.zip
-            Role: !Ref LambdaExecutionRole.Arn
+            Role: !Ref LambdaExecutionRole
             Timeout: 900
             Environment:
                 Variables:
