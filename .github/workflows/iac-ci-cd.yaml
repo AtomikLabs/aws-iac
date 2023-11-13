@@ -114,6 +114,8 @@ jobs:
                   echo "Uploading substack template: $NETWORKING_SUBSTACK_TEMPLATE_FILE"
                   DATA_LAYER_SUBSTACK_TEMPLATE_FILE="templates/data-layer-substack.yaml"
                   echo "Uploading substack template: $DATA_LAYER_SUBSTACK_TEMPLATE_FILE"
+                  DATA_INGESTION_SUBSTACK_TEMPLATE_FILE="templates/data-ingestion-substack.yaml"
+                  echo "Uploading substack template: $DATA_INGESTION_SUBSTACK_TEMPLATE_FILE"
                   aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/networking-substack.yaml
                   aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-layer-substack.yaml
                   aws s3 cp $DATA_INGESTION_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-ingestion-substack.yaml
