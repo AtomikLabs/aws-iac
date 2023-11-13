@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "AtomikLabs Data Ingestion Substack Definition"
+
+Parameters:
+    DataBucket:
+        Type: String
+        Description: "The name of the s3 data bucket"
+    EnvironmentName:
+        Type: String
+        Description: "The name of the environment"
+        Default: "dev"
+        AllowedValues:
+            - "test"
+            - "dev"
+            - "stage"
+            - "prod"
+    LambdaExecutionRoleArn:
+        Type: String
+        Description: "The name of the lambda execution role"
+
+Resources:
+    DataIngestionArxivDailyFetch:
+        Type: AWS::Lambda::Function
+        Properties:
+            FunctionName: !Sub "data-ingestion-arxiv-daily-fetch-${EnvironmentName}"
+            Runtime: python3.9
+            Handler: arxiv_daily_fetch.lambda_handler
+            Code:
+                S3Bucket: atomiklabs-iac
+                S3Key: code/placeholders/arxiv_daily_fetch.zip
+            Role: !Ref LambdaExecutionRoleArn
+            Timeout: 900
+            Environment:
+                Variables:
+                    DATA_BUCKET: !Ref DataBucket
+                    ENVIRONMENT_NAME: !Ref EnvironmentName
+                    LOG_LEVEL: INFO
+    DataIngestionArxivDailyFetchEventRule:
+        Type: AWS::Events::Rule
+        Properties:
+            Name: !Sub "data-ingestion-arxiv-daily-fetch-event-rule-${EnvironmentName}"
+            Description: "Event rule for triggering the arxiv daily fetch lambda"
+            ScheduleExpression: "cron(0 3 * * ? *)"
+            State: "ENABLED"
+            Targets:
+                - Arn: !GetAtt DataIngestionArxivDailyFetch.Arn
+                  Id: !Sub "data-ingestion-arxiv-daily-fetch-event-rule-target-${EnvironmentName}"
+    DataIngestionArxivDailyFetchEventRulePermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            Action: "lambda:InvokeFunction"
+            FunctionName: !Ref DataIngestionArxivDailyFetch
+            Principal: "events.amazonaws.com"
+            SourceArn: !GetAtt DataIngestionArxivDailyFetchEventRule.Arn
+    DataIngestionArxivSummaryParser:
+        Type: AWS::Lambda::Function
+        Properties:
+            FunctionName: !Sub "data-ingestion-arxiv-summary-parser-${EnvironmentName}"
+            Runtime: python3.9
+            Handler: arxiv_summary_parser.lambda_handler
+            Code:
+                S3Bucket: atomiklabs-iac
+                S3Key: code/placeholders/arxiv_summary_parser.zip
+            Role: !Ref LambdaExecutionRoleArn
+            Timeout: 900
+            Environment:
+                Variables:
+                    DATA_BUCKET: !Ref DataBucket
+                    ENVIRONMENT_NAME: !Ref EnvironmentName
+                    LOG_LEVEL: INFO
