@@ -116,9 +116,12 @@ jobs:
                   echo "Uploading substack template: $DATA_LAYER_SUBSTACK_TEMPLATE_FILE"
                   DATA_INGESTION_SUBSTACK_TEMPLATE_FILE="templates/data-ingestion-substack.yaml"
                   echo "Uploading substack template: $DATA_INGESTION_SUBSTACK_TEMPLATE_FILE"
+                  DATA_PERSISTENCE_SUBSTACK_TEMPLATE_FILE="templates/data-persistence-substack.yaml"
+                  echo "Uploading substack template: $DATA_PERSISTENCE_SUBSTACK_TEMPLATE_FILE"
                   aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/networking-substack.yaml
                   aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-layer-substack.yaml
                   aws s3 cp $DATA_INGESTION_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-ingestion-substack.yaml
+                  aws s3 cp $DATA_PERSISTENCE_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-persistence-substack.yaml
 
             - name: Deploy to Test Stack
               run: |
@@ -127,11 +130,13 @@ jobs:
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.yaml"
                   DATA_INGESTION_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-ingestion-substack.yaml"
+                  DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-persistence-substack.yaml"
                   BASTION_ACCESS_CIDR=${{ secrets.BASTION_ACCESS_CIDR }}
                   echo "Deploying main template: $MAIN_TEMPLATE_FILE"
                   echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
                   echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
                   echo "Data Ingestion Substack URL: $DATA_INGESTION_SUBSTACK_URL"
+                  echo "Data Persistence Substack URL: $DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL"
                   aws cloudformation deploy \
                     --template-file $MAIN_TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
@@ -142,6 +147,7 @@ jobs:
                       NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
                       DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
                       DataIngestionSubstackTemplateURL=$DATA_INGESTION_SUBSTACK_URL \
+                      DataPersistenceSubstackTemplateURL=$DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL \
                       EnvironmentName=test \
                       VpcCidr=$TEST_VPC_CIDR \
                       PublicSubnet1Cidr=$TEST_PUBLIC_SUBNET_1_CIDR \
@@ -240,6 +246,7 @@ jobs:
                   aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
                   aws s3 cp templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-layer-substack.yaml
                   aws s3 cp templates/data-ingestion-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-ingestion-substack.yaml
+                  aws s3 cp templates/data-persistence-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-persistence-substack.yaml
 
             - name: Deploy CloudFormation stack
               run: |
@@ -248,10 +255,13 @@ jobs:
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-layer-substack.yaml"
                   DATA_INGESTION_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-ingestion-substack.yaml"
+                  DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-persistence-substack.yaml"
                   BASTION_ACCESS_CIDR=${{ secrets.BASTION_ACCESS_CIDR }}
                   echo "Deploying template: $TEMPLATE_FILE"
                   echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
                   echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
+                  echo "Data Ingestion Substack URL: $DATA_INGESTION_SUBSTACK_URL"
+                  echo "Data Persistence Substack URL: $DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL"
                   aws cloudformation deploy \
                     --template-file $TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
@@ -262,6 +272,7 @@ jobs:
                       NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
                       DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
                       DataIngestionSubstackTemplateURL=$DATA_INGESTION_SUBSTACK_URL \
+                      DataPersistenceSubstackTemplateURL=$DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL \
                       EnvironmentName=$ENVIRONMENT_NAME \
                       VpcCidr=$VPC_CIDR \
                       PublicSubnet1Cidr=$PUBLIC_SUBNET_1_CIDR \

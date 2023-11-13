@@ -44,6 +44,9 @@ Parameters:
     DataIngestionSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the data ingestion stack template"
+    DataPersistenceSubstackTemplateURL:
+        Type: String
+        Description: "S3 URL of the data persistence stack template"
 
 Resources:
     NetworkingSubstack:
@@ -72,6 +75,15 @@ Resources:
         DependsOn: NetworkingSubstack
         Properties:
             TemplateURL: !Ref DataIngestionSubstackTemplateURL
+            Parameters:
+                EnvironmentName: !Ref EnvironmentName
+                DataBucket: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
+                LambdaExecutionRoleArn: !GetAtt DataLayerSubstack.Outputs.LambdaExecutionRoleArn
+    DataPersistenceSubstack:
+        Type: AWS::CloudFormation::Stack
+        DependsOn: NetworkingSubstack
+        Properties:
+            TemplateURL: !Ref DataPersistenceSubstackTemplateURL
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
                 DataBucket: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
