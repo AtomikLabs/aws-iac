@@ -28,7 +28,7 @@ Resources:
             Code:
                 S3Bucket: atomiklabs-iac
                 S3Key: code/placeholders/arxiv_daily_fetch.zip
-            Role: !Ref LambdaExecutionRole.Arn
+            Role: !GetAtt LambdaExecutionRole.Arn
             Timeout: 900
             Environment:
                 Variables:

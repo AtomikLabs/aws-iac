@@ -98,3 +98,6 @@ Outputs:
     LambdaExecutionRole:
         Description: "The name of the lambda execution role"
         Value: !Ref LambdaExecutionRole
+    LambdaExecutionRoleArn:
+        Description: "The name of the lambda execution role"
+        Value: !GetAtt LambdaExecutionRole.Arn
