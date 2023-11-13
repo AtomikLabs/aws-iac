@@ -41,6 +41,9 @@ Parameters:
         Type: String
         Description: "The CIDR block for the bastion access"
         Default: ""
+    DataIngestionTemplateUrl:
+        Type: String
+        Description: "S3 URL of the data ingestion stack template"
 
 Resources:
     NetworkingSubstack:
@@ -66,9 +69,9 @@ Resources:
                 RDSSubnetGroup: !GetAtt NetworkingSubstack.Outputs.RDSSubnetGroup
     DataIngestionSubstack:
         Type: AWS::CloudFormation::Stack
-        DependsOn: DataLayerSubstack
+        DependsOn: NetworkingSubstack
         Properties:
-            TemplateURL: !Ref DataIngestionSubstackTemplateURL
+            TemplateURL: !Ref DataIngestionTemplateUrl
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
                 DataBucket: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
