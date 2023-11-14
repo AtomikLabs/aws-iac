@@ -95,6 +95,80 @@ Resources:
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
+    PollyRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            RoleName: !Sub "polly-role-${EnvironmentName}"
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                      Principal:
+                          Service: "polly.amazonaws.com"
+                      Action: "sts:AssumeRole"
+            Policies:
+                - PolicyName: !Sub "polly-s3-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "s3:PutObject"
+                                - "s3:GetObject"
+                                - "s3:ListBucket"
+                            Resource:
+                                - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
+                                - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+    EventBridgeRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            RoleName: !Sub "eventbridge-role-${EnvironmentName}"
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                      Principal:
+                          Service: "events.amazonaws.com"
+                      Action: "sts:AssumeRole"
+            Policies:
+                - PolicyName: !Sub "eventbridge-s3-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "s3:PutObject"
+                                - "s3:GetObject"
+                                - "s3:ListBucket"
+                            Resource:
+                                - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
+                                - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+                - PolicyName: !Sub "eventbridge-sns-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "sns:Publish"
+                                - "sns:ListTopics"
+                                - "sns:ListSubscriptionsByTopic"
+                                - "sns:GetTopicAttributes"
+                            Resource: "*"
+                - PolicyName: !Sub "eventbridge-lambda-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "lambda:InvokeFunction"
+                                - "lambda:ListFunctions"
+                                - "lambda:ListTags"
+                                - "lambda:GetFunctionConfiguration"
+                                - "lambda:GetFunction"
+                            Resource: "*"
+            Tags:
+                - Key: "Environment"
+                  Value: !Ref EnvironmentName
 Outputs:
     S3LogBucketName:
         Description: "Name of the S3 Bucket for Data Layer"
