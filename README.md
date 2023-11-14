@@ -1,2 +1,3 @@
-# aws-iac
-Infrastructure as code for AtomikLabs
+# AtomikLabs Infrastructure
+
+This repository contains the infrastructure code for the AtomikLabs project.

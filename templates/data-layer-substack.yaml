@@ -95,6 +95,84 @@ Resources:
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
+    PollyRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            RoleName: !Sub "polly-s3-access-role-${EnvironmentName}"
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                        Principal:
+                            Service: "polly.amazonaws.com"
+                        Action: "sts:AssumeRole"
+    PollyS3AccessPolicy:
+        Type: "AWS::IAM::Policy"
+        Properties:
+            PolicyName: "polly-s3-access-policy-${EnvironmentName}"
+            Roles:
+                - !Ref PollyRole
+            PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                        Action:
+                            - "s3:GetObject"
+                            - "s3:PutObject"
+                        Resource:
+                            - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+    EventBridgeRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            RoleName: !Sub "eventbridge-s3-access-role-${EnvironmentName}"
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                        Principal:
+                            Service: "events.amazonaws.com"
+                        Action: "sts:AssumeRole"
+    EventBridgeS3AccessPolicy:
+        Type: "AWS::IAM::Policy"
+        Properties:
+            PolicyName: "eventbridge-s3-access-policy-${EnvironmentName}"
+            Roles:
+                - !Ref EventBridgeRole
+            PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                        Action:
+                            - "s3:GetObject"
+                            - "s3:PutObject"
+                        Resource:
+                            - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+    CloudFormationRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            RoleName: !Sub "cloudformation-s3-access-role-${EnvironmentName}"
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                        Principal:
+                            Service: "cloudformation.amazonaws.com"
+                        Action: "sts:AssumeRole"
+    CloudFormationS3AccessPolicy:
+        Type: "AWS::IAM::Policy"
+        Properties:
+            PolicyName: "cloudformation-s3-access-policy-${EnvironmentName}"
+            Roles:
+                - !Ref CloudFormationRole
+            PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                        Action:
+                            - "s3:GetObject"
+                            - "s3:PutObject"
+                        Resource:
+                            - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
 Outputs:
     S3LogBucketName:
         Description: "Name of the S3 Bucket for Data Layer"
