@@ -36,46 +36,6 @@ Resources:
             LoggingConfiguration:
                 DestinationBucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
                 LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
-    LambdaExecutionRole:
-        Type: "AWS::IAM::Role"
-        Properties:
-            RoleName: !Sub "lambda-s3-access-role-${EnvironmentName}"
-            AssumeRolePolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                    - Effect: "Allow"
-                      Principal:
-                          Service: "lambda.amazonaws.com"
-                      Action: "sts:AssumeRole"
-            Policies:
-                - PolicyName: !Sub "lambda-s3-access-policy-${EnvironmentName}"
-                  PolicyDocument:
-                      Version: "2012-10-17"
-                      Statement:
-                          - Effect: "Allow"
-                            Action:
-                                - "s3:PutObject"
-                                - "s3:GetObject"
-                                - "s3:ListBucket"
-                            Resource:
-                                - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
-                                - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
-                - PolicyName: !Sub "lambda-polly-access-policy-${EnvironmentName}"
-                  PolicyDocument:
-                      Version: "2012-10-17"
-                      Statement:
-                          - Effect: "Allow"
-                            Action:
-                                - "polly:SynthesizeSpeech"
-                                - "polly:DescribeVoices"
-                                - "polly:GetLexicon"
-                                - "polly:ListLexicons"
-                                - "polly:PutLexicon"
-                                - "polly:DeleteLexicon"
-                            Resource: "*"
-            Tags:
-                - Key: "Environment"
-                  Value: !Ref EnvironmentName
     AtomikLabsRDSInstance:
         Type: "AWS::RDS::DBInstance"
         Properties:
@@ -95,84 +55,46 @@ Resources:
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
-    PollyRole:
+    LambdaRole:
         Type: "AWS::IAM::Role"
         Properties:
-            RoleName: !Sub "polly-s3-access-role-${EnvironmentName}"
+            RoleName: !Sub "lambda-role-${EnvironmentName}"
             AssumeRolePolicyDocument:
                 Version: "2012-10-17"
                 Statement:
                     - Effect: "Allow"
-                        Principal:
-                            Service: "polly.amazonaws.com"
-                        Action: "sts:AssumeRole"
-    PollyS3AccessPolicy:
-        Type: "AWS::IAM::Policy"
-        Properties:
-            PolicyName: "polly-s3-access-policy-${EnvironmentName}"
-            Roles:
-                - !Ref PollyRole
-            PolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                    - Effect: "Allow"
-                        Action:
-                            - "s3:GetObject"
-                            - "s3:PutObject"
-                        Resource:
-                            - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
-    EventBridgeRole:
-        Type: "AWS::IAM::Role"
-        Properties:
-            RoleName: !Sub "eventbridge-s3-access-role-${EnvironmentName}"
-            AssumeRolePolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                    - Effect: "Allow"
-                        Principal:
-                            Service: "events.amazonaws.com"
-                        Action: "sts:AssumeRole"
-    EventBridgeS3AccessPolicy:
-        Type: "AWS::IAM::Policy"
-        Properties:
-            PolicyName: "eventbridge-s3-access-policy-${EnvironmentName}"
-            Roles:
-                - !Ref EventBridgeRole
-            PolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                    - Effect: "Allow"
-                        Action:
-                            - "s3:GetObject"
-                            - "s3:PutObject"
-                        Resource:
-                            - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
-    CloudFormationRole:
-        Type: "AWS::IAM::Role"
-        Properties:
-            RoleName: !Sub "cloudformation-s3-access-role-${EnvironmentName}"
-            AssumeRolePolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                    - Effect: "Allow"
-                        Principal:
-                            Service: "cloudformation.amazonaws.com"
-                        Action: "sts:AssumeRole"
-    CloudFormationS3AccessPolicy:
-        Type: "AWS::IAM::Policy"
-        Properties:
-            PolicyName: "cloudformation-s3-access-policy-${EnvironmentName}"
-            Roles:
-                - !Ref CloudFormationRole
-            PolicyDocument:
-                Version: "2012-10-17"
-                Statement:
-                    - Effect: "Allow"
-                        Action:
-                            - "s3:GetObject"
-                            - "s3:PutObject"
-                        Resource:
-                            - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+                      Principal:
+                          Service: "lambda.amazonaws.com"
+                      Action: "sts:AssumeRole"
+            Policies:
+                - PolicyName: !Sub "lambda-s3-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "s3:PutObject"
+                                - "s3:GetObject"
+                                - "s3:ListBucket"
+                            Resource:
+                                - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
+                                - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+                - PolicyName: !Sub "lambda-polly-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "polly:SynthesizeSpeech"
+                                - "polly:DescribeVoices"
+                                - "polly:GetLexicon"
+                                - "polly:ListLexicons"
+                                - "polly:PutLexicon"
+                                - "polly:DeleteLexicon"
+                            Resource: "*"
+            Tags:
+                - Key: "Environment"
+                  Value: !Ref EnvironmentName
 Outputs:
     S3LogBucketName:
         Description: "Name of the S3 Bucket for Data Layer"
@@ -188,7 +110,7 @@ Outputs:
         Value: !Ref AtomikLabsRDSInstance
     LambdaExecutionRole:
         Description: "The name of the lambda execution role"
-        Value: !Ref LambdaExecutionRole
+        Value: !Ref LambdaRole
     LambdaExecutionRoleArn:
         Description: "The name of the lambda execution role"
-        Value: !GetAtt LambdaExecutionRole.Arn
+        Value: !GetAtt LambdaRole.Arn
