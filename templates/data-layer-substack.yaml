@@ -60,6 +60,19 @@ Resources:
                             Resource:
                                 - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}"
                                 - !Sub "arn:aws:s3:::atomiklabs-data-bucket-${EnvironmentName}/*"
+                - PolicyName: !Sub "lambda-polly-access-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "polly:SynthesizeSpeech"
+                                - "polly:DescribeVoices"
+                                - "polly:GetLexicon"
+                                - "polly:ListLexicons"
+                                - "polly:PutLexicon"
+                                - "polly:DeleteLexicon"
+                            Resource: "*"
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
