@@ -371,6 +371,7 @@ Resources:
     ALBastionHost:
         Type: AWS::EC2::Instance
         Properties:
+            KeyName: ${secrets.BASTION_SSH_KEY}
             ImageId: ami-05c13eab67c5d8861
             InstanceType: t2.micro
             SubnetId: !Ref ALPublicSubnet1
