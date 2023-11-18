@@ -65,6 +65,7 @@ Resources:
                 PrivateSubnet1Cidr: !Ref PrivateSubnet1Cidr
                 PrivateSubnet2Cidr: !Ref PrivateSubnet2Cidr
                 BastionAccessCidr: !Ref BastionAccessCidr
+                BastionKeyPairName: !Ref BastionKeyPairName
     DataLayerSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
