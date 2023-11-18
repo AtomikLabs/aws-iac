@@ -35,10 +35,6 @@ Parameters:
         Type: String
         Description: "The CIDR block for the bastion access"
         Default: ""
-    BastionKeyPairName:
-        Type: String
-        Description: "The name of the bastion key pair"
-        Default: ""
 Resources:
     ALVPC:
         Type: AWS::EC2::VPC
@@ -375,7 +371,7 @@ Resources:
     ALBastionHost:
         Type: AWS::EC2::Instance
         Properties:
-            KeyName: !Ref BastionKeyPairName
+            KeyName: AtomikLabsBastionKeyPair
             ImageId: ami-05c13eab67c5d8861
             InstanceType: t2.micro
             SubnetId: !Ref ALPublicSubnet1

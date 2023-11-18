@@ -47,10 +47,6 @@ Parameters:
     DataPersistenceSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the data persistence stack template"
-    BastionKeyPairName:
-        Type: String
-        Description: "The name of the key pair for the bastion host"
-        Default: "bastion-key-pair"
 
 Resources:
     NetworkingSubstack:
@@ -65,7 +61,6 @@ Resources:
                 PrivateSubnet1Cidr: !Ref PrivateSubnet1Cidr
                 PrivateSubnet2Cidr: !Ref PrivateSubnet2Cidr
                 BastionAccessCidr: !Ref BastionAccessCidr
-                BastionKeyPairName: !Ref BastionKeyPairName
     DataLayerSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
