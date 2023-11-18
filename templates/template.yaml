@@ -47,6 +47,10 @@ Parameters:
     DataPersistenceSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the data persistence stack template"
+    BastionKeyPairName:
+        Type: String
+        Description: "The name of the key pair for the bastion host"
+        Default: "bastion-key-pair"
 
 Resources:
     NetworkingSubstack:

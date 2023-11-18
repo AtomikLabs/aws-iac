@@ -132,6 +132,7 @@ jobs:
                   DATA_INGESTION_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-ingestion-substack.yaml"
                   DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-persistence-substack.yaml"
                   BASTION_ACCESS_CIDR=${{ secrets.BASTION_ACCESS_CIDR }}
+                  BASTION_SSH_KEY=${{ secrets.BASTION_SSH_KEY }}
                   echo "Deploying main template: $MAIN_TEMPLATE_FILE"
                   echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
                   echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
@@ -154,7 +155,8 @@ jobs:
                       PublicSubnet2Cidr=$TEST_PUBLIC_SUBNET_2_CIDR \
                       PrivateSubnet1Cidr=$TEST_PRIVATE_SUBNET_1_CIDR \
                       PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR \
-                      BastionAccessCidr=$BASTION_ACCESS_CIDR
+                      BastionAccessCidr=$BASTION_ACCESS_CIDR \
+                      BastionKeyPairName=$BASTION_SSH_KEY
 
             - name: Capture Events on Failure
               if: failure()

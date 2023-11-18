@@ -35,6 +35,10 @@ Parameters:
         Type: String
         Description: "The CIDR block for the bastion access"
         Default: ""
+    BastionKeyPairName:
+        Type: String
+        Description: "The name of the bastion key pair"
+        Default: ""
 Resources:
     ALVPC:
         Type: AWS::EC2::VPC
