@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Master Stack for AtomikLabs Infrastructure Definitions"
+Description: "Master Stack for AtomikLabs Infrastructure Definitions."
 
 Parameters:
     EnvironmentName:
