@@ -140,6 +140,15 @@ Resources:
                   Value: !Sub ${EnvironmentName}-eip-2
                 - Key: "AtomikLabs:Environment"
                   Value: !Ref EnvironmentName
+    ALElasticIP3:
+        Type: AWS::EC2::EIP
+        Properties:
+            Domain: vpc
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}-eip-3
+                - Key: "AtomikLabs:Environment"
+                  Value: !Ref EnvironmentName
     ALNatGateway1:
         Type: AWS::EC2::NatGateway
         Properties:
@@ -372,6 +381,11 @@ Resources:
                   Value: !Sub ${EnvironmentName}-bastion-host
                 - Key: "AtomikLabs:Environment"
                   Value: !Ref EnvironmentName
+    ALBastionEIP3Association:
+        Type: AWS::EC2::EIPAssociation
+        Properties:
+            AllocationId: !GetAtt ALElasticIP3.AllocationId
+            InstanceId: !Ref ALBastionHost
 Outputs:
     VPC:
         Description: "The ID of the VPC"
