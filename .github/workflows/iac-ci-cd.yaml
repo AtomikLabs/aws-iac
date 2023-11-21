@@ -43,13 +43,13 @@ jobs:
 
                   if [[ $BRANCH_NAME == 'dev' ]]; then
                     echo "Development environment selected"
-                    echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
+                    echo "env-file=infra/aws/environments/env.dev.json" >> $GITHUB_ENV
                   elif [[ $BRANCH_NAME == 'stage' ]]; then
                     echo "Staging environment selected"
-                    echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
+                    echo "env-file=infra/aws/environments/env.stage.json" >> $GITHUB_ENV
                   elif [[ $BRANCH_NAME == 'main' ]]; then
                     echo "Production environment selected"
-                    echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
+                    echo "env-file=infra/aws/environments/env.prod.json" >> $GITHUB_ENV
                   else
                     echo "No matching environment for branch $BRANCH_NAME"
                   fi
@@ -93,7 +93,7 @@ jobs:
 
             - name: Determine environment and set variables
               run: |
-                  echo "env-file=environments/env.test.json" >> $GITHUB_ENV
+                  echo "env-file=infra/aws/environments/env.test.json" >> $GITHUB_ENV
 
             - name: Set environment variables from file
               run: |
@@ -110,13 +110,13 @@ jobs:
 
             - name: Upload Substack Template to S3
               run: |
-                  NETWORKING_SUBSTACK_TEMPLATE_FILE="templates/networking-substack.yaml"
+                  NETWORKING_SUBSTACK_TEMPLATE_FILE="infra/aws/templates/networking-substack.yaml"
                   echo "Uploading substack template: $NETWORKING_SUBSTACK_TEMPLATE_FILE"
-                  DATA_LAYER_SUBSTACK_TEMPLATE_FILE="templates/data-layer-substack.yaml"
+                  DATA_LAYER_SUBSTACK_TEMPLATE_FILE="infra/aws/templates/data-layer-substack.yaml"
                   echo "Uploading substack template: $DATA_LAYER_SUBSTACK_TEMPLATE_FILE"
-                  DATA_INGESTION_SUBSTACK_TEMPLATE_FILE="templates/data-ingestion-substack.yaml"
+                  DATA_INGESTION_SUBSTACK_TEMPLATE_FILE="infra/aws/templates/data-ingestion-substack.yaml"
                   echo "Uploading substack template: $DATA_INGESTION_SUBSTACK_TEMPLATE_FILE"
-                  DATA_PERSISTENCE_SUBSTACK_TEMPLATE_FILE="templates/data-persistence-substack.yaml"
+                  DATA_PERSISTENCE_SUBSTACK_TEMPLATE_FILE="infra/aws/templates/data-persistence-substack.yaml"
                   echo "Uploading substack template: $DATA_PERSISTENCE_SUBSTACK_TEMPLATE_FILE"
                   aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/networking-substack.yaml
                   aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-layer-substack.yaml
@@ -125,7 +125,7 @@ jobs:
 
             - name: Deploy to Test Stack
               run: |
-                  MAIN_TEMPLATE_FILE="templates/template.yaml"
+                  MAIN_TEMPLATE_FILE="infra/aws/templates/template.yaml"
                   STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.yaml"
@@ -215,13 +215,13 @@ jobs:
 
                   if [[ $BRANCH_NAME == 'dev' ]]; then
                     echo "Development environment selected"
-                    echo "env-file=environments/env.dev.json" >> $GITHUB_ENV
+                    echo "env-file=infra/aws/environments/env.dev.json" >> $GITHUB_ENV
                   elif [[ $BRANCH_NAME == 'stage' ]]; then
                     echo "Staging environment selected"
-                    echo "env-file=environments/env.stage.json" >> $GITHUB_ENV
+                    echo "env-file=infra/aws/environments/env.stage.json" >> $GITHUB_ENV
                   elif [[ $BRANCH_NAME == 'main' ]]; then
                     echo "Production environment selected"
-                    echo "env-file=environments/env.prod.json" >> $GITHUB_ENV
+                    echo "env-file=infra/aws/environments/env.prod.json" >> $GITHUB_ENV
                   else
                     echo "No matching environment for branch $BRANCH_NAME"
                   fi
@@ -242,14 +242,14 @@ jobs:
 
             - name: Upload Template to S3
               run: |
-                  aws s3 cp templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
-                  aws s3 cp templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-layer-substack.yaml
-                  aws s3 cp templates/data-ingestion-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-ingestion-substack.yaml
-                  aws s3 cp templates/data-persistence-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-persistence-substack.yaml
+                  aws s3 cp infra/aws/templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
+                  aws s3 cp infra/aws/templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-layer-substack.yaml
+                  aws s3 cp infra/aws/templates/data-ingestion-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-ingestion-substack.yaml
+                  aws s3 cp infra/aws/templates/data-persistence-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-persistence-substack.yaml
 
             - name: Deploy CloudFormation stack
               run: |
-                  TEMPLATE_FILE="templates/template.yaml"
+                  TEMPLATE_FILE="infra/aws/templates/template.yaml"
                   STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-layer-substack.yaml"
