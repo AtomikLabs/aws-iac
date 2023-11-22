@@ -1,3 +1,7 @@
+![Workflow name](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format/badge.svg)
+![Workflow name](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra/badge.svg)
+![Workflow name](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests/badge.svg)
+
 # aws-iac
 
 Infrastructure as code for AtomikLabs
