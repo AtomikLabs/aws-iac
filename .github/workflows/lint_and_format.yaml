@@ -30,13 +30,3 @@ jobs:
 
       - name: Run flake8 Linting
         run: flake8 . --count --show-source --statistics
-
-      - name: Auto-format Code
-        if: github.event_name == 'pull_request'
-        run: |
-          black .
-          isort .
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git commit -am "Apply auto-formatting" --author="GitHub Actions <actions@github.com>" || echo "No changes to commit"
-          git push
