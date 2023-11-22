@@ -7,16 +7,14 @@ on:
             - stage
             - main
         paths:
-            - "**/*.yaml"
-            - "**/*.yml"
+            - "infra/**"
     push:
         branches:
             - dev
             - stage
             - main
         paths:
-            - "**/*.yaml"
-            - "**/*.yml"
+            - "infra/**"
 
 env:
     AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -28,7 +26,7 @@ jobs:
             env-file: ${{ steps.set-env.outputs.env-file }}
         steps:
             - name: Checkout code
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: Determine environment
               id: set-env
@@ -73,7 +71,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: Validate CloudFormation templates
               run: |
@@ -188,7 +186,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: Set AWS Credentials and Parameter File
               run: |
