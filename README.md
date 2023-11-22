@@ -1,6 +1,6 @@
-![Lint and Format](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format/badge.svg)
-![IaC Deployment](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra/badge.svg)
-![Unit Tests](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests/badge.svg)
+![Lint and Format](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml/badge.svg)
+![IaC Deployment](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml/badge.svg)
+![Unit Tests](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml/badge.svg)
 
 # aws-iac
 
