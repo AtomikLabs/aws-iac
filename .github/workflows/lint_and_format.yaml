@@ -1,0 +1,42 @@
+name: Python Lint and Format
+
+on:
+  pull_request:
+    paths:
+      - '**.py'
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Linting and Formatting Tools
+        run: |
+          pip install flake8 black isort
+
+      - name: Check Formatting with black
+        run: black . --check
+
+      - name: Check Imports with isort
+        run: isort . --check-only
+
+      - name: Run flake8 Linting
+        run: flake8 . --count --show-source --statistics
+
+      - name: Auto-format Code
+        if: github.event_name == 'pull_request'
+        run: |
+          black .
+          isort .
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git commit -am "Apply auto-formatting" --author="GitHub Actions <actions@github.com>" || echo "No changes to commit"
+          git push
