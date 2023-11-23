@@ -1,6 +1,6 @@
-![Workflow name](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml/badge.svg)
-![Workflow name](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml/badge.svg)
-![Workflow name](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml/badge.svg)
+![Lint and Format](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml/badge.svg)
+![Infrastructure as Code](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml/badge.svg)
+![Unit Tests](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/atomiklabs/badge/?version=latest)](https://atomiklabs.readthedocs.io/en/latest/?badge=latest)
 
 # aws-iac
