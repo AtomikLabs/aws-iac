@@ -27,8 +27,6 @@ per-file-ignores = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-ra"
-testpaths = [
-    "tests",
-    "services/*/tests"
+pythonpath = [
+    "."
 ]

@@ -29,3 +29,8 @@ jobs:
             pytest $service/tests
           fi
         done
+
+    - name: Check test coverage
+      run: |
+        coverage run -m pytest services/fetch_daily_summaries/tests/
+        coverage report -m --fail-under=80
