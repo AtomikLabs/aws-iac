@@ -24,7 +24,7 @@ Platform Features
 Target Audience
 ---------------
 
-AtomikLabs is built for a diverse audience, ranging from AI researchers and data scientists to students and tech enthusiasts.
+AtomikLabs is built for anyone who wants to understand and research AI.
 
 Platform Architecture
 ---------------------
