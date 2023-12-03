@@ -81,8 +81,10 @@ class TestGetEventParams(unittest.TestCase):
 
     def test_with_none_event(self):
         event = None
-        with self.assertRaises(TypeError):
-            get_event_params(event)
+        base_url, bucket_name, summary_set = get_event_params(event)
+        self.assertIsNone(base_url)
+        self.assertIsNone(bucket_name)
+        self.assertIsNone(summary_set)
 
     def test_with_unusual_event_structure(self):
         event = {'unexpected_param': 'unexpected'}
@@ -121,8 +123,43 @@ class TestCalculateFromDate(unittest.TestCase):
 
 class TestGenerateDateList(unittest.TestCase):
 
-    def test_generate_date_list(self):
-        self.assertEqual(True, False)
+    def test_generate_normal_date_range(self):
+        start_date = "2023-01-01"
+        end_date = "2023-01-05"
+        expected_result = ["2023-01-01", "2023-01-02", "2023-01-03",
+                           "2023-01-04", "2023-01-05"]
+        self.assertEqual(generate_date_list(start_date, end_date),
+                         expected_result)
+
+    def test_generate_single_date_range(self):
+        start_date = "2023-01-01"
+        end_date = "2023-01-01"
+        expected_result = ["2023-01-01"]
+        self.assertEqual(generate_date_list(start_date, end_date),
+                         expected_result)
+
+    def test_generate_date_range_in_future(self):
+        start_date = "2023-01-01"
+        end_date = "2023-01-10"
+        expected_result = [
+            "2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04",
+            "2023-01-05", "2023-01-06", "2023-01-07", "2023-01-08",
+            "2023-01-09", "2023-01-10"
+        ]
+        self.assertEqual(generate_date_list(start_date, end_date),
+                         expected_result)
+
+    def test_generate_date_range_with_end_date_before_start_date(self):
+        start_date = "2023-01-05"
+        end_date = "2023-01-01"
+        with self.assertRaises(ValueError):
+            generate_date_list(start_date, end_date)
+
+    def test_generate_date_range_with_invalid_date_format(self):
+        start_date = "2023/01/01"
+        end_date = "2023/01/05"
+        with self.assertRaises(ValueError):
+            generate_date_list(start_date, end_date)
 
 
 class TestScheduleForLater(unittest.TestCase):
