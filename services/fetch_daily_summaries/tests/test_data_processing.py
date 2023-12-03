@@ -28,39 +28,66 @@ class TestLogInitialInfo(unittest.TestCase):
         self.patcher.stop()
 
     def test_log_initial_info_with_valid_event(self):
-        # Test with a valid event dictionary
         event = {'key': 'value'}
         log_initial_info(event)
         self.mock_logger.info.assert_any_call(f"Received event: {event}")
         self.mock_logger.info.assert_any_call(TestLogInitialInfo.START_MESSAGE)
 
     def test_log_initial_info_with_empty_event(self):
-        # Test with an empty event dictionary
         event = {}
         log_initial_info(event)
         self.mock_logger.info.assert_any_call(f"Received event: {event}")
         self.mock_logger.info.assert_any_call(TestLogInitialInfo.START_MESSAGE)
 
     def test_log_initial_info_with_none_event(self):
-        # Test with a None event
         event = None
         log_initial_info(event)
         self.mock_logger.info.assert_any_call(f"Received event: {event}")
         self.mock_logger.info.assert_any_call(TestLogInitialInfo.START_MESSAGE)
 
     def test_log_initial_info_with_unusual_event(self):
-        # Test with an unusual event type, like a string
         event = "Some event"
         log_initial_info(event)
         self.mock_logger.info.assert_any_call(f"Received event: {event}")
         self.mock_logger.info.assert_any_call(TestLogInitialInfo.START_MESSAGE)
 
 
-
 class TestGetEventParams(unittest.TestCase):
+    def test_with_all_params_present(self):
+        event = {
+            'base_url': 'http://example.com',
+            'bucket_name': 'mybucket',
+            'summary_set': 'summary1'}
+        base_url, bucket_name, summary_set = get_event_params(event)
+        self.assertEqual(base_url, 'http://example.com')
+        self.assertEqual(bucket_name, 'mybucket')
+        self.assertEqual(summary_set, 'summary1')
 
-    def test_get_event_params(self):
-        self.assertEqual(True, False)
+    def test_with_some_params_missing(self):
+        event = {'base_url': 'http://example.com', 'summary_set': 'summary1'}
+        base_url, bucket_name, summary_set = get_event_params(event)
+        self.assertEqual(base_url, 'http://example.com')
+        self.assertIsNone(bucket_name)
+        self.assertEqual(summary_set, 'summary1')
+
+    def test_with_empty_event(self):
+        event = {}
+        base_url, bucket_name, summary_set = get_event_params(event)
+        self.assertIsNone(base_url)
+        self.assertIsNone(bucket_name)
+        self.assertIsNone(summary_set)
+
+    def test_with_none_event(self):
+        event = None
+        with self.assertRaises(TypeError):
+            get_event_params(event)
+
+    def test_with_unusual_event_structure(self):
+        event = {'unexpected_param': 'unexpected'}
+        base_url, bucket_name, summary_set = get_event_params(event)
+        self.assertIsNone(base_url)
+        self.assertIsNone(bucket_name)
+        self.assertIsNone(summary_set)
 
 
 class TestCalculateFromDate(unittest.TestCase):
