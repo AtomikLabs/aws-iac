@@ -163,9 +163,44 @@ class TestGenerateDateList(unittest.TestCase):
 
 
 class TestScheduleForLater(unittest.TestCase):
+    BOTO3_CLIENT_PATH = BASE_PATH + 'boto3.client'
+    OS_ENVIRON_PATH = BASE_PATH + 'os.environ'
 
-    def test_schedule_for_later(self):
-        self.assertEqual(True, False)
+    @patch(BOTO3_CLIENT_PATH)
+    @patch.dict(OS_ENVIRON_PATH, {
+        "AWS_REGION": "us-east-1",
+        "AWS_ACCOUNT_ID": "123456789012",
+        "AWS_LAMBDA_FUNCTION_NAME": "testFunction"
+    })
+    def test_successful_scheduling(self, mock_boto3):
+        mock_client = MagicMock()
+        mock_boto3.return_value = mock_client
+
+        schedule_for_later()
+
+        mock_client.put_rule.assert_called_once()
+        mock_client.put_targets.assert_called_once()
+
+    @patch(BOTO3_CLIENT_PATH)
+    @patch.dict(OS_ENVIRON_PATH, {
+        "AWS_REGION": "us-east-1",
+        "AWS_ACCOUNT_ID": "123456789012",
+        "AWS_LAMBDA_FUNCTION_NAME": "testFunction"
+    })
+    def test_scheduling_failure_due_to_client_error(self, mock_boto3):
+        mock_client = MagicMock()
+        mock_client.put_rule.side_effect = Exception("AWS client error")
+        mock_boto3.return_value = mock_client
+
+        with self.assertRaises(Exception):
+            schedule_for_later()
+
+    @patch(BOTO3_CLIENT_PATH)
+    def test_scheduling_failure_due_to_missing_environment_variables(
+            self,
+            mock_boto3):
+        with self.assertRaises(KeyError):
+            schedule_for_later()
 
 
 class TestProcessFetch(unittest.TestCase):
