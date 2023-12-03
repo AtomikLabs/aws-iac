@@ -152,6 +152,9 @@ def get_event_params(event: dict) -> (str, str, str):
         str: S3 bucket name.
         str: Summary set.
     """
+    if not event:
+        return None, None, None
+
     return (
         event.get("base_url"),
         event.get("bucket_name"),
@@ -347,6 +350,8 @@ def generate_date_list(start_date_str: str, end_date_str: str) -> List[str]:
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
     end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
     delta = end_date - start_date
+    if (delta.days < 0):
+        raise ValueError("End date must be after start date")
     return [
         (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
         for i in range((delta.days) + 1)
