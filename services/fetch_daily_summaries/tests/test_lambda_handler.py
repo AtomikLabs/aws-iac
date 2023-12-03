@@ -1,3 +1,4 @@
+# Test file for fetch_daily_summaries lambda handler
 import os
 import unittest
 from unittest.mock import patch, MagicMock
@@ -6,10 +7,7 @@ from services.fetch_daily_summaries.src.fetch_daily_summaries \
 
 
 class TestLambdaHandler(unittest.TestCase):
-    # Define the common base path as a constant
     BASE_PATH = 'services.fetch_daily_summaries.src.fetch_daily_summaries.'
-
-    # Define specific paths by concatenating with the base path
     PROCESS_FETCH_PATH = BASE_PATH + 'process_fetch'
     EARLIEST_UNFETCHED_DATE_PATH = BASE_PATH + 'get_earliest_unfetched_date'
     BOTO3_CLIENT_PATH = BASE_PATH + 'boto3.client'
@@ -59,7 +57,6 @@ class TestLambdaHandler(unittest.TestCase):
     def test_no_data_to_fetch(self,
                               mock_boto3,
                               mock_get_earliest_unfetched_date):
-        # Arrange
         mock_boto3.return_value = MagicMock()
         event = {
             'base_url': 'http://example.com',
@@ -67,10 +64,8 @@ class TestLambdaHandler(unittest.TestCase):
             'summary_set': 'summary1'}
         context = MagicMock()
 
-        # Act
         response = lambda_handler(event, context)
 
-        # Assert
         self.assertEqual(response['statusCode'], 200)
         self.assertIn('No unfetched dates found', response['body'])
 
@@ -87,31 +82,27 @@ class TestLambdaHandler(unittest.TestCase):
     def test_error_handling_db_interaction(self,
                                            mock_boto3,
                                            mock_get_earliest_unfetched_date):
-        # Mock the 'execute_statement' method of the RDS data client
+
         mock_client = MagicMock()
         mock_boto3.return_value = mock_client
         mock_client.execute_statement.return_value = {'some_key': 'some_value'}
 
-        # Arrange
         event = {
             'base_url': 'http://example.com',
             'bucket_name': 'mybucket',
             'summary_set': 'summary1'}
         context = MagicMock()
 
-        # Act
         response = lambda_handler(event, context)
-        # Arrange
+
         event = {
             'base_url': 'http://example.com',
             'bucket_name': 'mybucket',
             'summary_set': 'summary1'}
         context = MagicMock()
 
-        # Act
         response = lambda_handler(event, context)
 
-        # Assert
         self.assertEqual(response['statusCode'], 500)
         self.assertIn('Internal server error', response['body'])
 
@@ -121,16 +112,13 @@ class TestLambdaHandler(unittest.TestCase):
         'SECRET_ARN': '',
         'DATABASE_NAME': ''})
     def test_missing_environment_variables(self):
-        # Arrange
         event = {
             'base_url': 'http://example.com',
             'bucket_name': 'mybucket',
             'summary_set': 'summary1'}
         context = MagicMock()
 
-        # Act
         response = lambda_handler(event, context)
 
-        # Assert
         self.assertEqual(response['statusCode'], 400)
         self.assertIn('Configuration error', response['body'])
