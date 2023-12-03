@@ -1,0 +1,47 @@
+name: Microservice CI/CD
+
+on:
+  pull_request:
+    paths:
+      - 'services/fetch_daily_summaries/**'
+    branches:
+      - dev
+  push:
+    paths:
+      - 'services/fetch_daily_summaries/**'
+    branches:
+      - dev
+      - stage
+      - main
+
+jobs:
+  build-and-deploy-microservice:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: Install dependencies
+        run: pip install -r services/fetch_daily_summaries/src/requirements.txt
+
+      - name: Create deployment package
+        run: |
+          cd services/fetch_daily_summaries/src/
+          pip install -r requirements.txt -t .
+          zip -r deployment-package.zip *
+
+      - name: Deploy to AWS Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name arn:aws:lambda:us-east-1:758145997264:function:data-ingestion-arxiv-daily-fetch-dev \
+            --zip-file fileb://services/fetch_daily_summaries/src/deployment-package.zip
+
+          # Wait for the deployment to finish (optional)
+          aws lambda wait function-updated \
+            --function-name arn:aws:lambda:us-east-1:758145997264:function:data-ingestion-arxiv-daily-fetch-dev

@@ -1,26 +1,37 @@
-![Lint and Format](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml/badge.svg)
-![Infrastructure as Code](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml/badge.svg)
-![Unit Tests](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml/badge.svg)
-[![Documentation Status](https://readthedocs.org/projects/atomiklabs/badge/?version=latest)](https://atomiklabs.readthedocs.io/en/latest/?badge=latest)
+Overview of AtomikLabs
+=======================
 
-# aws-iac
+Introduction
+------------
 
-Infrastructure as code for AtomikLabs
+AtomikLabs is an open science platform aimed at using AI speed up and improve AI research itself. The goal is provide services and tools that help researchers access, understand, and synthesize the latest advances in the field.
 
-AtomikLabs is an open science platform. Currently it supports sharing the latest research in AI to promote collaboration and accelerate the pace of research through automated podcast and newsletter generation. In future it will support a range of tools to help researchers accelerate their research.
+Mission and Vision
+------------------
 
-# Overview
+The mission of AtomikLabs is to accelerate the pace of discovery and collaboration within the AI research community. Our vision is to create a space where researchers, students, and AI enthusiasts can easily interact with cutting-edge findings, fostering an environment of open science and shared learning.
 
-AtomikLabs uses a serverless event-driven microservices architecture. All of the infrastructure is deployed on AWS using nested CloudFormation templates and GitHub Actions. There are four environments; test, dev, stage, and prod. Test is stood up and torn down when PRs for infrastructure as code are made to dev. The other environments are deployed or updated when code is merged into them.
+Planned Platform Features
+-----------------
 
-The infrastructure is written as a series of nested CloudFormation templates. The templates are written in YAML and are stored in the `templates` directory. The GitHub Actions workflow is defined in `.github/workflows/iac-ci-cd.yml`.
+- **Automated Podcast Generation**: AtomikLabs features a unique tool that converts the latest AI research papers into engaging, easily digestible podcasts, making complex information more accessible.
+- **Automated Newsletters**: Stay informed with our automated newsletters, which provide personalized summaries of significant developments in AI research.
+- **Research Repository**: Our platform will offer a comprehensive repository of AI research papers, allowing users to easily search and access the latest studies.
+- **Citation Tracker**: AtomikLabs will provide a citation tracker that allows users to track the impact of their research and monitor the latest citations.
+- **Research Synthesis Tools**: Our platform offers a suite of tools designed to help users synthesize and analyze AI research, empowering them with the ability to draw insights and make connections across various studies.
+- **News Services**: AtomikLabs will provide a news service that aggregates the latest AI news from across the web, allowing users to stay up-to-date on the latest developments in the field.
 
-# Phase 1 Infrastructure Diagram
+Target Audience
+---------------
 
-Phase 1 supports the initial podcasts and newsletters. It is a simple architecture that uses a single AWS account.
+AtomikLabs is built for anyone who wants to understand and research AI.
 
-![Phase 1 Infrastructure Diagram](./docs/phase-1-infrastructure-diagram.gif)
+Platform Architecture
+---------------------
 
-# Additional Phases
+AtomikLabs was built with a serverless, event-driven microservices architecture, ensuring scalability and efficiency. Hosted on AWS, our infrastructure employs nested CloudFormation templates, allowing for robust, modular deployment across multiple environments.
 
-Phase 2 will add infrastructure to support automated podcast and newsletter publishing. Latter phases will add NLP and ML tools to support researchers.
+Future Roadmap
+--------------
+
+Looking ahead, AtomikLabs plans to integrate advanced NLP and ML tools to further enhance the research experience. The roadmap includes features that will allow more in-depth analysis and interpretation of AI studies, supporting researchers in uncovering new insights.

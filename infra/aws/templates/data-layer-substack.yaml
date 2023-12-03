@@ -17,6 +17,7 @@ Parameters:
     RDSSubnetGroup:
         Type: String
         Description: "The name of the RDS Subnet Group"
+  
 Resources:
     AtomikLabsLogsBucket:
         Type: "AWS::S3::Bucket"
@@ -73,6 +74,14 @@ Resources:
                                 - "polly:PutLexicon"
                                 - "polly:DeleteLexicon"
                             Resource: "*"
+                - PolicyName: !Sub "lambda-rds-iam-auth-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "rds-db:connect"
+                            Resource: !Sub "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/*"
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
@@ -84,6 +93,7 @@ Resources:
             MaxAllocatedStorage: "100"
             DBName: !Sub "atomiklabs_${EnvironmentName}_database"
             DBInstanceIdentifier: !Sub "atomiklabs-${EnvironmentName}-database"
+            EnableIAMDatabaseAuthentication: "true"
             Engine: "postgres"
             EngineVersion: "15.4"
             MasterUsername: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
