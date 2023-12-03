@@ -204,9 +204,114 @@ class TestScheduleForLater(unittest.TestCase):
 
 
 class TestProcessFetch(unittest.TestCase):
+    UPLOAD_TO_S3_PATH = BASE_PATH + 'upload_to_s3'
+    SET_FETCH_STATUS_PATH = BASE_PATH + 'set_fetch_status'
 
-    def test_process_fetch(self):
-        self.assertEqual(True, False)
+    def create_test_xml(self, date):
+        return f"""
+        </dc:description>
+        <dc:description>Comment: Example Comment</dc:description>
+        <dc:date>{date}</dc:date>
+        <dc:type>text</dc:type>
+        <dc:identifier>http://example.com/{date}</dc:identifier>
+        </oai_dc:dc>
+        </metadata>
+        </record>
+        <record>
+        """
+
+    @patch(UPLOAD_TO_S3_PATH)
+    @patch(SET_FETCH_STATUS_PATH)
+    def test_successful_fetch(self, mock_set_fetch_status, mock_upload_to_s3):
+        test_xml = self.create_test_xml("2023-01-01")
+        success = process_fetch(
+            "2023-01-01",
+            "summary_set",
+            "bucket_name",
+            "aurora_cluster_arn",
+            "db_credentials_secret_arn",
+            "database",
+            [test_xml]
+        )
+        self.assertTrue(success)
+        mock_upload_to_s3.assert_called_once()
+        mock_set_fetch_status.assert_called_with(
+            "2023-01-01",
+            'success',
+            "aurora_cluster_arn",
+            "db_credentials_secret_arn",
+            "database"
+        )
+
+    @patch(SET_FETCH_STATUS_PATH)
+    def test_unsuccessful_fetch(self, mock_set_fetch_status):
+        test_xml = self.create_test_xml("2023-01-02")
+        success = process_fetch(
+            "2023-01-01",
+            "summary_set",
+            "bucket_name",
+            "aurora_cluster_arn",
+            "db_credentials_secret_arn",
+            "database",
+            [test_xml]
+        )
+        self.assertFalse(success)
+        mock_set_fetch_status.assert_called_with(
+            "2023-01-01",
+            'failure',
+            "aurora_cluster_arn",
+            "db_credentials_secret_arn",
+            "database"
+        )
+
+    @patch(SET_FETCH_STATUS_PATH)
+    def test_fetch_with_missing_parameters(self, mock_set_fetch_status):
+        with self.assertRaises(TypeError):
+            process_fetch(
+                None,
+                "summary_set",
+                "bucket_name",
+                "aurora_cluster_arn",
+                "db_credentials_secret_arn",
+                "database",
+                ["<xml>...</xml>"]
+            )
+
+    @patch(SET_FETCH_STATUS_PATH)
+    def test_fetch_with_invalid_data_format(self, mock_set_fetch_status):
+        success = process_fetch(
+            "2023-01-01",
+            "summary_set",
+            "bucket_name",
+            "aurora_cluster_arn",
+            "db_credentials_secret_arn",
+            "database",
+            ["invalid data format"]
+        )
+        self.assertFalse(success)
+        mock_set_fetch_status.assert_called_with(
+            "2023-01-01",
+            'failure',
+            "aurora_cluster_arn",
+            "db_credentials_secret_arn",
+            "database"
+        )
+
+    @patch(SET_FETCH_STATUS_PATH)
+    def test_fetch_handling_database_interaction_error(self,
+                                                       mock_set_fetch_status):
+        mock_set_fetch_status.side_effect = Exception("Database error")
+        with self.assertRaises(Exception) as context:
+            process_fetch(
+                "2023-01-01",
+                "summary_set",
+                "bucket_name",
+                "aurora_cluster_arn",
+                "db_credentials_secret_arn",
+                "database",
+                ["<xml><dc:date>2023-01-01</dc:date></xml>"]
+            )
+        self.assertTrue('Database error' in str(context.exception))
 
 
 class TestUploadToS3(unittest.TestCase):
