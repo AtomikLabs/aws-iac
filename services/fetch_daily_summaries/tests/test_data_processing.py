@@ -120,6 +120,21 @@ class TestCalculateFromDate(unittest.TestCase):
         result = calculate_from_date()
         self.assertEqual(result, expected_date)
 
+    @patch('services.fetch_daily_summaries.src.fetch_daily_summaries.datetime')
+    def test_calculate_from_date_leap_year(self, mock_datetime):
+        mock_today = datetime(2024, 2, 29)
+        mock_datetime.today.return_value = mock_today
+        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
+        result = calculate_from_date()
+        self.assertEqual(result, expected_date)
+
+    @patch('services.fetch_daily_summaries.src.fetch_daily_summaries.datetime')
+    def test_calculate_from_date_year_change(self, mock_datetime):
+        mock_today = datetime(2023, 1, 1)
+        mock_datetime.today.return_value = mock_today
+        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
+        result = calculate_from_date()
+        self.assertEqual(result, expected_date)
 
 class TestGenerateDateList(unittest.TestCase):
 
