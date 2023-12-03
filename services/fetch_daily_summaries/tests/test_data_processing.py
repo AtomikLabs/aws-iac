@@ -120,7 +120,6 @@ class TestCalculateFromDate(unittest.TestCase):
         result = calculate_from_date()
         self.assertEqual(result, expected_date)
 
-
 class TestGenerateDateList(unittest.TestCase):
 
     def test_generate_normal_date_range(self):
@@ -318,3 +317,4 @@ class TestUploadToS3(unittest.TestCase):
 
     def test_upload_to_s3(self):
         self.assertEqual(True, False)
+
