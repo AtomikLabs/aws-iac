@@ -1,6 +1,7 @@
 # Test file for fetch_daily_summaries data processing functions
 import logging
 import unittest
+from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
 from services.fetch_daily_summaries.src.fetch_daily_summaries import (
     log_initial_info,
@@ -12,10 +13,11 @@ from services.fetch_daily_summaries.src.fetch_daily_summaries import (
     upload_to_s3
 )
 
+BASE_PATH = 'services.fetch_daily_summaries.src.fetch_daily_summaries.'
+
 
 class TestLogInitialInfo(unittest.TestCase):
 
-    BASE_PATH = 'services.fetch_daily_summaries.src.fetch_daily_summaries.'
     LOGGING_PATH = BASE_PATH + 'logging'
     START_MESSAGE = "Starting to fetch arXiv daily summaries"
 
@@ -92,8 +94,29 @@ class TestGetEventParams(unittest.TestCase):
 
 class TestCalculateFromDate(unittest.TestCase):
 
-    def test_calculate_from_date(self):
-        self.assertEqual(True, False)
+    @patch('services.fetch_daily_summaries.src.fetch_daily_summaries.datetime')
+    def test_calculate_from_date(self, mock_datetime):
+        mock_today = datetime(2023, 1, 2)
+        mock_datetime.today.return_value = mock_today
+        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
+        result = calculate_from_date()
+        self.assertEqual(result, expected_date)
+
+    @patch('services.fetch_daily_summaries.src.fetch_daily_summaries.datetime')
+    def test_calculate_from_date_leap_year(self, mock_datetime):
+        mock_today = datetime(2024, 2, 29)
+        mock_datetime.today.return_value = mock_today
+        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
+        result = calculate_from_date()
+        self.assertEqual(result, expected_date)
+
+    @patch('services.fetch_daily_summaries.src.fetch_daily_summaries.datetime')
+    def test_calculate_from_date_year_change(self, mock_datetime):
+        mock_today = datetime(2023, 1, 1)
+        mock_datetime.today.return_value = mock_today
+        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
+        result = calculate_from_date()
+        self.assertEqual(result, expected_date)
 
 
 class TestGenerateDateList(unittest.TestCase):
