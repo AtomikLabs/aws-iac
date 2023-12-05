@@ -1,3 +1,4 @@
+# Description: Lambda function to fetch daily summaries from arXiv
 import logging
 import os
 import re
