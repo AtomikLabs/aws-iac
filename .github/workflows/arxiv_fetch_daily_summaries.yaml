@@ -3,16 +3,20 @@ name: Microservice CI/CD
 on:
   pull_request:
     paths:
-      - 'services/fetch_daily_summaries/**'
+      - 'services/data_ingestion_arxiv_daily_fetch/**' # Specify the path to your microservice
     branches:
       - dev
   push:
     paths:
-      - 'services/fetch_daily_summaries/**'
+      - 'services/data_ingestion_arxiv_daily_fetch/**' # Specify the path to your microservice
     branches:
       - dev
       - stage
       - main
+  workflow_run:
+    workflows: ["Python Lint and Format"]
+    types:
+      - completed
 
 jobs:
   build-and-deploy-microservice:
@@ -20,19 +24,31 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.x
+          python-version: 3.9
+
+      - name: Install AWS CLI
+        run: |
+          # Install AWS CLI
+          curl "https://d1vvhvl2y92vvt.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+          # Configure AWS CLI
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set region ${{ secrets.AWS_REGION }}
 
       - name: Install dependencies
-        run: pip install -r services/fetch_daily_summaries/src/requirements.txt
+        run: pip install -r services/data_ingestion_arxiv_daily_fetch/src/requirements.txt
 
       - name: Create deployment package
         run: |
-          cd services/fetch_daily_summaries/src/
+          cd services/data_ingestion_arxiv_daily_fetch/src/
           pip install -r requirements.txt -t .
           zip -r deployment-package.zip *
 
@@ -40,7 +56,7 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name arn:aws:lambda:us-east-1:758145997264:function:data-ingestion-arxiv-daily-fetch-dev \
-            --zip-file fileb://services/fetch_daily_summaries/src/deployment-package.zip
+            --zip-file fileb://services/data_ingestion_arxiv_daily_fetch/src/deployment-package.zip
 
           # Wait for the deployment to finish (optional)
           aws lambda wait function-updated \
