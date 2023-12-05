@@ -13,24 +13,25 @@ jobs:
         python-version: [3.9]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies and run tests
-      run: |
-        for service in services/*; do
-          if [ -d "$service" ]; then
-            echo "Running tests in $service"
-            pip install -r $service/requirements.txt
-            pytest $service/tests
-          fi
-        done
+      - name: Install dependencies and run tests
+        run: |
+          find ./services/ -name 'requirements.txt' | while read requirements; do
+            if [[ $requirements == *"/services/"* ]]; then
+              dir=$(dirname "$requirements")
+              echo "Installing dependencies in $dir"
+              pip install -r "$requirements"
+            fi
+          done
+          pytest services/
 
-    - name: Check test coverage
-      run: |
-        coverage run -m pytest services/fetch_daily_summaries/tests/
-        coverage report -m --fail-under=80
+      - name: Check test coverage
+        run: |
+          coverage run -m pytest services/
+          coverage report -m --fail-under=80
