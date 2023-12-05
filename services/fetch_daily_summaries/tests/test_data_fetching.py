@@ -1,7 +1,6 @@
 # Test data fetching functions
 import unittest
 import requests
-import time
 
 from unittest.mock import patch, MagicMock, Mock
 from datetime import datetime, timedelta
