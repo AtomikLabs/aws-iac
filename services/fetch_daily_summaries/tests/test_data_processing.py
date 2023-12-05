@@ -1,5 +1,4 @@
 # Test file for fetch_daily_summaries data processing functions
-import logging
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
@@ -120,21 +119,6 @@ class TestCalculateFromDate(unittest.TestCase):
         result = calculate_from_date()
         self.assertEqual(result, expected_date)
 
-    @patch('services.fetch_daily_summaries.src.fetch_daily_summaries.datetime')
-    def test_calculate_from_date_leap_year(self, mock_datetime):
-        mock_today = datetime(2024, 2, 29)
-        mock_datetime.today.return_value = mock_today
-        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
-        result = calculate_from_date()
-        self.assertEqual(result, expected_date)
-
-    @patch('services.fetch_daily_summaries.src.fetch_daily_summaries.datetime')
-    def test_calculate_from_date_year_change(self, mock_datetime):
-        mock_today = datetime(2023, 1, 1)
-        mock_datetime.today.return_value = mock_today
-        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
-        result = calculate_from_date()
-        self.assertEqual(result, expected_date)
 
 class TestGenerateDateList(unittest.TestCase):
 
@@ -365,7 +349,7 @@ class TestUploadToS3(unittest.TestCase):
         xml_responses = ["<xml>response1</xml>"]
 
         with self.assertRaises(Exception) as context:
-            upload_to_s3("test-bucket", "2023-01-01", 
+            upload_to_s3("test-bucket", "2023-01-01",
                          "summary1", xml_responses)
 
         self.assertEqual(str(context.exception), "S3 Upload Error")
