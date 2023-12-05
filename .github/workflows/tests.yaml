@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies and run tests for Changed Services
         run: |
-          pip install coverage
+          pip install coverage pytest
           for service in $(cat changed_services.txt | uniq); do
             if [ -d "$service/src" ]; then
               requirements_path="$service/src/requirements.txt"
