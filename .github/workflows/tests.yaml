@@ -23,39 +23,10 @@ jobs:
       - name: Install Pytest and Coverage
         run: pip install pytest coverage
 
-      - name: Get Changed Services
-        id: get-changed-services
-        run: |
-          git diff --name-only origin/main ${{ github.head_ref }} | grep 'services/' | cut -d '/' -f 1-2 | uniq > changed_services.txt
-
-      - name: Install dependencies for Changed Services
-        run: |
-          while read service; do
-            if [ -d "$service/src" ]; then
-              requirements_path="$service/src/requirements.txt"
-              if [ -f "$requirements_path" ]; then
-                echo "Installing dependencies for $service"
-                pip install -r $requirements_path
-              else
-                echo "No requirements.txt found in $service/src"
-              fi
-            fi
-          done < changed_services.txt
-
-      - name: Run tests for Changed Services
-        run: |
-          while read service; do
-            if [ -d "$service/tests" ]; then
-              echo "Running tests in $service"
-              pytest $service/tests
-            fi
-          done < changed_services.txt
+      - name: Run Pytest for all Services
+        run: pytest services/
 
       - name: Check test coverage
         run: |
-          while read service; do
-            if [ -d "$service/tests" ]; then
-              coverage run -m pytest $service/tests
-            fi
-          done < changed_services.txt
+          coverage run -m pytest services/
           coverage report -m --fail-under=80
