@@ -288,8 +288,7 @@ def generate_date_list(start_date_str: str, end_date_str: str) -> List[str]:
     delta = end_date - start_date
     if delta.days < 0:
         raise ValueError("End date must be after start date")
-    return [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") 
-            for i in range((delta.days) + 1)]
+    return [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((delta.days) + 1)]
 
 
 def fetch_data(base_url: str, from_date: str, summary_set: str) -> List[str]:
@@ -313,13 +312,11 @@ def fetch_data(base_url: str, from_date: str, summary_set: str) -> List[str]:
     }
     retry_count = 0
     while True:
-        if retry_count > 5:  # Limit the number of retries to avoid infinite loop
+        if retry_count > 5:
             break
         status_code, xml_content = fetch_http_response(base_url, params)
         if status_code != 200:
-            logging.error(
-                f"HTTP error, probably told to back off: {status_code}"
-            )
+            logging.error(f"HTTP error, probably told to back off: {status_code}")
             backoff_time = handle_http_error(status_code, xml_content, retry_count)
             if backoff_time:
                 time.sleep(backoff_time)
@@ -392,10 +389,13 @@ def extract_resumption_token(xml_content: str) -> str:
     """
     try:
         root = ET.fromstring(xml_content)
-        token_element = root.find(".//{http://www.openarchives.org/OAI/2.0/}resumptionToken")
+        token_element = root.find(
+            ".//{http://www.openarchives.org/OAI/2.0/}\
+                                 resumptionToken"
+        )
         return token_element.text if token_element is not None else None
     except ET.ParseError:
-        return ''
+        return ""
 
 
 def schedule_for_later() -> None:
@@ -439,7 +439,8 @@ def process_fetch(
     Returns:
         bool: True if fetch was successful, False otherwise.
     """
-    pattern = r"</dc:description>\s+<dc:date>" + re.escape(from_date) + r"</dc:date>\s+<dc:type>text</dc:type>"
+    pattern = r"</dc:description>\s+<dc:date>" + re.escape(from_date)
+    pattern += r"</dc:date>\s+<dc:type>text</dc:type>"
     success = any(re.search(pattern, xml) for xml in fetched_data)
 
     if success:
@@ -466,7 +467,6 @@ def set_fetch_status(date, status, aurora_cluster_arn, db_credentials_secret_arn
     client = boto3.client("rds-data")
 
     try:
-
         sql_statement = "UPDATE research_fetch_status SET status = :status \
             WHERE fetch_date = :date"
 
