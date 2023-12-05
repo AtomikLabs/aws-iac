@@ -20,32 +20,42 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Pytest and Coverage
+        run: pip install pytest coverage
+
       - name: Get Changed Services
         id: get-changed-services
         run: |
-          echo "Changed services:" > changed_services.txt
-          for file in $(git diff --name-only origin/main ${{ github.head_ref }} | grep 'services/'); do
-            dirname $file | cut -d '/' -f 1-2 | uniq >> changed_services.txt
-          done
-          echo "CHANGED_SERVICES=$(cat changed_services.txt | uniq)" >> $GITHUB_ENV
+          git diff --name-only origin/main ${{ github.head_ref }} | grep 'services/' | cut -d '/' -f 1-2 | uniq > changed_services.txt
 
-      - name: Install dependencies and run tests for Changed Services
+      - name: Install dependencies for Changed Services
         run: |
-          pip install coverage pytest
-          for service in $(cat changed_services.txt | uniq); do
+          while read service; do
             if [ -d "$service/src" ]; then
               requirements_path="$service/src/requirements.txt"
               if [ -f "$requirements_path" ]; then
-                echo "Running tests in $service"
+                echo "Installing dependencies for $service"
                 pip install -r $requirements_path
-                pytest $service/tests
               else
                 echo "No requirements.txt found in $service/src"
               fi
             fi
-          done
+          done < changed_services.txt
+
+      - name: Run tests for Changed Services
+        run: |
+          while read service; do
+            if [ -d "$service/tests" ]; then
+              echo "Running tests in $service"
+              pytest $service/tests
+            fi
+          done < changed_services.txt
 
       - name: Check test coverage
         run: |
-          coverage run -m pytest $(cat changed_services.txt | sed 's|$|/tests|')
+          while read service; do
+            if [ -d "$service/tests" ]; then
+              coverage run -m pytest $service/tests
+            fi
+          done < changed_services.txt
           coverage report -m --fail-under=80
