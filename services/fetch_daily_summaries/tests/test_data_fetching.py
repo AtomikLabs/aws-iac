@@ -3,7 +3,6 @@ import unittest
 import requests
 
 from unittest.mock import patch, MagicMock, Mock
-from datetime import datetime, timedelta
 from services.fetch_daily_summaries.src.fetch_daily_summaries import (
     attempt_fetch_for_dates,
     handle_http_error,
