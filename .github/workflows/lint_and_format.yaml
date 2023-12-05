@@ -8,6 +8,9 @@ on:
 jobs:
   lint-and-format:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
 
     steps:
       - name: Checkout Repository

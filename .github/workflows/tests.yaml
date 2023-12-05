@@ -23,10 +23,15 @@ jobs:
     - name: Install dependencies and run tests
       run: |
         for service in services/*; do
-          if [ -d "$service" ]; then
-            echo "Running tests in $service"
-            pip install -r $service/requirements.txt
-            pytest $service/tests
+          if [ -d "$service/src" ]; then
+            requirements_path="$service/src/requirements.txt"
+            if [ -f "$requirements_path" ]; then
+              echo "Running tests in $service"
+              pip install -r $requirements_path
+              pytest $service/tests
+            else
+              echo "No requirements.txt found in $service/src"
+            fi
           fi
         done
 
