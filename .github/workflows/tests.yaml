@@ -22,10 +22,12 @@ jobs:
 
       - name: Install dependencies and run tests
         run: |
-          find services/ -name 'requirements.txt' | while read requirements; do
-            dir=$(dirname "$requirements")
-            echo "Installing dependencies in $dir"
-            pip install -r "$requirements"
+          find ./services/ -name 'requirements.txt' | while read requirements; do
+            if [[ $requirements == *"/services/"* ]]; then
+              dir=$(dirname "$requirements")
+              echo "Installing dependencies in $dir"
+              pip install -r "$requirements"
+            fi
           done
           pytest services/
 
