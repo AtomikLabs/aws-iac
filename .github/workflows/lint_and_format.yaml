@@ -3,30 +3,33 @@ name: Python Lint and Format
 on:
   pull_request:
     paths:
-      - '**.py'
+      - '**/*.py'
 
 jobs:
-  lint-and-format:
+  lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9]
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: 3.9
 
-      - name: Install Linting and Formatting Tools
+      - name: Install Flake8
+        run: pip install flake8
+
+      - name: Get Changed Files
+        id: files
+        uses: lots0logs/gh-action-get-changed-files@2.1.4
+
+      - name: Lint Changed Python Projects
         run: |
-          pip install flake8 black isort
-
-      - name: Check Formatting with black
-        run: black . --check
-
-      - name: Run flake8 Linting
-        run: flake8 . --count --show-source --statistics
+          CHANGED_FILES="${{ steps.files.outputs.all }}"
+          CHANGED_DIRS=$(echo "$CHANGED_FILES" | xargs -n 1 dirname | sort -u)
+          for dir in $CHANGED_DIRS; do
+            if [[ -f "$dir/requirements.txt" ]]; then
+              echo "Linting $dir"
+              flake8 $dir
+            fi
+          done
