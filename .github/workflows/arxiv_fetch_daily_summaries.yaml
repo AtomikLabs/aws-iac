@@ -54,6 +54,6 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name arn:aws:lambda:us-east-1:758145997264:function:data-ingestion-arxiv-daily-fetch-dev \
-            --zip-file file://services/fetch_daily_summaries/src/deployment-package.zip
+            --zip-file fileb://services/fetch_daily_summaries/src/deployment-package.zip
           aws lambda wait function-updated \
             --function-name arn:aws:lambda:us-east-1:758145997264:function:data-ingestion-arxiv-daily-fetch-dev
