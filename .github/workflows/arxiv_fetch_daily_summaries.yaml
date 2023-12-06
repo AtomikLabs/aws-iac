@@ -3,12 +3,12 @@ name: Microservice CI/CD
 on:
   pull_request:
     paths:
-      - 'services/data_ingestion_arxiv_daily_fetch/**' # Specify the path to your microservice
+      - 'services/fetch_daily_summaries/**' # Specify the path to your microservice
     branches:
       - dev
   push:
     paths:
-      - 'services/data_ingestion_arxiv_daily_fetch/**' # Specify the path to your microservice
+      - 'services/fetch_daily_summaries/**' # Specify the path to your microservice
     branches:
       - dev
       - stage
