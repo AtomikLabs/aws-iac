@@ -90,7 +90,7 @@ Resources:
             EnableIAMDatabaseAuthentication: true
             Engine: "aurora-postgresql"
             EngineMode: "serverless"
-            EngineVersion: "15.2"
+            EngineVersion: "14.6"
             MasterUsername: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
             MasterUserPassword: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}"
             VpcSecurityGroupIds: [!Ref AuroraSecurityGroup]
