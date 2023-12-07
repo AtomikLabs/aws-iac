@@ -72,7 +72,7 @@ Resources:
             TemplateURL: !Ref DataLayerSubstackTemplateURL
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
-                RDSSecurityGroup: !GetAtt NetworkingSubstack.Outputs.AuroraSecurityGroup
+                RDSSecurityGroup: !GetAtt NetworkingSubstack.Outputs.AuroraSecurityGroupId
     DataIngestionSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
