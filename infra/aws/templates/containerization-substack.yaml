@@ -50,8 +50,7 @@ Resources:
               - ecr:GetDownloadUrlForLayer
               - ecr:BatchGetImage
               - ecr:GetAuthorizationToken
-            Resource: !GetAtt ALECRRepository.Arn
-      Roles: []
+            Resource: "*"
 
 Outputs:
   ECRRepositoryARN:
