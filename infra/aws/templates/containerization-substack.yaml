@@ -16,12 +16,12 @@ Resources:
   ALECRRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: "atomiklabs-ecr-${EnvironmentName}"
+      RepositoryName: !Sub "atomiklabs-ecr-${EnvironmentName}"
       ImageScanningConfiguration:
         ScanOnPush: true
       ImageTagMutability: MUTABLE
       LifecyclePolicy:
-           LifecyclePolicyText: !Sub |
+           LifecyclePolicyText: 
               {
                 "rules": [
                   {
