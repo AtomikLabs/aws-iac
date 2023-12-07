@@ -90,13 +90,13 @@ Resources:
             EnableIAMDatabaseAuthentication: true
             Engine: "aurora-postgresql"
             EngineMode: "serverless"
-            EngineVersion: "14.6"
+            EngineVersion: "13.3"
             MasterUsername: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
             MasterUserPassword: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}"
             VpcSecurityGroupIds: [!Ref AuroraSecurityGroup]
-            ServerlessV2ScalingConfiguration:
+            ScalingConfiguration:
                 AutoPause: true
-                MinCapacity: 0.5
+                MinCapacity: 2
                 MaxCapacity: 8
                 SecondsUntilAutoPause: 300
             Tags:
