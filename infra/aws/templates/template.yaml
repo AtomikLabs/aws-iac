@@ -11,9 +11,6 @@ Parameters:
             - "dev"
             - "stage"
             - "prod"
-    NetworkingSubstackTemplateURL:
-        Type: String
-        Description: "S3 URL of the networking stack template"
     VpcCidr:
         Type: String
         Description: "The CIDR block for the VPC"
@@ -34,13 +31,19 @@ Parameters:
         Type: String
         Description: "The CIDR block for the private subnet 2"
         Default: "10.0.102.0/24"
-    DataLayerSubstackTemplateURL:
-        Type: String
-        Description: "S3 URL of the networking stack template"
     BastionAccessCidr:
         Type: String
         Description: "The CIDR block for the bastion access"
         Default: ""
+    ContainerizationSubstackTemplateURL:
+        Type: String
+        Description: "S3 URL of the containerization stack template"
+    NetworkingSubstackTemplateURL:
+        Type: String
+        Description: "S3 URL of the networking stack template"
+    DataLayerSubstackTemplateURL:
+        Type: String
+        Description: "S3 URL of the networking stack template"
     DataIngestionSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the data ingestion stack template"
@@ -49,6 +52,12 @@ Parameters:
         Description: "S3 URL of the data persistence stack template"
 
 Resources:
+    ContainerizationSubstack:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Ref ContainerizationSubstackTemplateURL
+            Parameters:
+                EnvironmentName: !Ref EnvironmentName
     NetworkingSubstack:
         Type: AWS::CloudFormation::Stack
         Properties:
@@ -88,6 +97,7 @@ Resources:
                 EnvironmentName: !Ref EnvironmentName
                 DataBucket: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
                 LambdaExecutionRoleArn: !GetAtt DataLayerSubstack.Outputs.LambdaExecutionRoleArn
+        
 Outputs:
     VPC:
         Description: "The ID of the VPC"
