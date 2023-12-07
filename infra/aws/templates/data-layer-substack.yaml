@@ -94,7 +94,7 @@ Resources:
             MasterUsername: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
             MasterUserPassword: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}"
             VpcSecurityGroupIds: [!Ref AuroraSecurityGroup]
-            ScalingConfiguration:
+            ServerlessV2ScalingConfiguration:
                 AutoPause: true
                 MinCapacity: 0.5
                 MaxCapacity: 8
