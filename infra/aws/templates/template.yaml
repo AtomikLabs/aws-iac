@@ -31,10 +31,6 @@ Parameters:
         Type: String
         Description: "The CIDR block for the private subnet 2"
         Default: "10.0.102.0/24"
-    BastionAccessCidr:
-        Type: String
-        Description: "The CIDR block for the bastion access"
-        Default: ""
     ContainerizationSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the containerization stack template"
@@ -69,7 +65,6 @@ Resources:
                 PublicSubnet2Cidr: !Ref PublicSubnet2Cidr
                 PrivateSubnet1Cidr: !Ref PrivateSubnet1Cidr
                 PrivateSubnet2Cidr: !Ref PrivateSubnet2Cidr
-                BastionAccessCidr: !Ref BastionAccessCidr
     DataLayerSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
@@ -77,14 +72,14 @@ Resources:
             TemplateURL: !Ref DataLayerSubstackTemplateURL
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
-                RDSSecurityGroup: !GetAtt NetworkingSubstack.Outputs.RDSSecurityGroup
-                RDSSubnetGroup: !GetAtt NetworkingSubstack.Outputs.RDSSubnetGroup
+                RDSSecurityGroup: !GetAtt NetworkingSubstack.Outputs.AuroraSecurityGroup
     DataIngestionSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
         Properties:
             TemplateURL: !Ref DataIngestionSubstackTemplateURL
             Parameters:
+                AuroraEndpoint: !GetAtt DataLayerSubstack.Outputs.AuroraClusterEndpoint
                 EnvironmentName: !Ref EnvironmentName
                 DataBucket: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
                 LambdaExecutionRoleArn: !GetAtt DataLayerSubstack.Outputs.LambdaExecutionRoleArn
@@ -126,9 +121,6 @@ Outputs:
     LambdaSecurityGroup:
         Description: "The ID of the Lambda security group"
         Value: !GetAtt NetworkingSubstack.Outputs.LambdaSecurityGroup
-    RDSSecurityGroup:
-        Description: "The ID of the RDS security group"
-        Value: !GetAtt NetworkingSubstack.Outputs.RDSSecurityGroup
     VPCNetworkACL:
         Description: "The ID of the VPC network ACL"
         Value: !GetAtt NetworkingSubstack.Outputs.VPCNetworkACL
