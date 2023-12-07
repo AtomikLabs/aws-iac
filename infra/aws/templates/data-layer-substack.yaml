@@ -14,6 +14,9 @@ Parameters:
     AuroraSecurityGroup:
         Type: String
         Description: "The name of the Aurora Serverless DB security group"
+    PublicSubnetGroup:
+        Type: String
+        Description: "The name of the public subnet group"
   
 Resources:
     AtomikLabsLogsBucket:
@@ -86,6 +89,7 @@ Resources:
         Type: "AWS::RDS::DBCluster"
         Properties:
             DatabaseName: !Sub "atomiklabs_${EnvironmentName}_database"
+            DBSubnetGroupName: !Ref PublicSubnetGroup
             DBClusterIdentifier: !Sub "atomiklabs-${EnvironmentName}-aurora-cluster"
             EnableIAMDatabaseAuthentication: true
             Engine: "aurora-postgresql"

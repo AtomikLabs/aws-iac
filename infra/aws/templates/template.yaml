@@ -73,6 +73,7 @@ Resources:
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
                 AuroraSecurityGroup: !GetAtt NetworkingSubstack.Outputs.AuroraSecurityGroupId
+                PublicSubnetGroup: !GetAtt NetworkingSubstack.Outputs.PublicSubnetGroup
     DataIngestionSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack

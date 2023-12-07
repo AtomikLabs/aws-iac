@@ -196,6 +196,16 @@ Resources:
             Tags:
                 - Key: Name
                   Value: !Sub "${EnvironmentName}-aurora-sg"
+    ALDBSubnetGroup:
+        Type: "AWS::RDS::DBSubnetGroup"
+        Properties:
+        DBSubnetGroupDescription: "Subnet Group for AtomikLabs Aurora Serverless Cluster"
+        SubnetIds:
+            - !Ref ALPublicSubnet1
+            - !Ref ALPublicSubnet2
+        Tags:
+            - Key: "Environment"
+            Value: !Ref EnvironmentName
 
 Outputs:
     VPCId:
@@ -222,3 +232,6 @@ Outputs:
     AuroraSecurityGroupId:
         Description: "ID of the Aurora Serverless Security Group"
         Value: !Ref ALAuroraSecurityGroup
+    PublicSubnetGroup:
+        Description: "ID of the Aurora Serverless Public Subnet Group"
+        Value: !Ref ALDBSubnetGroup
