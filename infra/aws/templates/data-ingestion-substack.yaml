@@ -2,9 +2,6 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "AtomikLabs Data Ingestion Substack Definition"
 
 Parameters:
-    AuroraClusterEndpoint:
-        Type: String
-        Description: "The endpoint of the Aurora Serverless DB cluster"
     DataBucket:
         Type: String
         Description: "The name of the s3 data bucket"
