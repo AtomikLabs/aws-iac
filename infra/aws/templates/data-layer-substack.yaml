@@ -91,7 +91,6 @@ Resources:
             DatabaseName: !Sub "atomiklabs_${EnvironmentName}_database"
             DBSubnetGroupName: !Ref PublicSubnetGroup
             DBClusterIdentifier: !Sub "atomiklabs-${EnvironmentName}-aurora-cluster"
-            EnableIAMDatabaseAuthentication: true
             Engine: "aurora-postgresql"
             EngineMode: "serverless"
             EngineVersion: "13.3"
