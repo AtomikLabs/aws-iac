@@ -41,18 +41,4 @@ jobs:
       - name: Install dependencies
         run: pip install -r services/fetch_daily_summaries/src/requirements.txt
 
-      - name: Create deployment package
-        run: |
-          cd services/fetch_daily_summaries/src/
-          pip install -r requirements.txt -t .
-          zip -r deployment-package.zip *
-
-      - name: Deploy to AWS Lambda
-        run: |
-          ENV_SUFFIX=${{ github.ref == 'refs/heads/main' && 'prod' || github.ref == 'refs/heads/stage' && 'stage' || 'dev' }}
-          FUNCTION_NAME="fetch-daily-summaries-$ENV_SUFFIX"
-          aws lambda update-function-code \
-            --function-name arn:aws:lambda:us-east-1:758145997264:function:$FUNCTION_NAME \
-            --zip-file fileb://services/fetch_daily_summaries/src/deployment-package.zip
-          aws lambda wait function-updated \
-            --function-name arn:aws:lambda:us-east-1:758145997264:function:$FUNCTION_NAME
+ 
