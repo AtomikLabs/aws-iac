@@ -11,12 +11,12 @@ Parameters:
             - "dev"
             - "stage"
             - "prod"
-    RDSSecurityGroup:
+    AuroraSecurityGroup:
         Type: String
-        Description: "The name of the RDS Security Group"
-    RDSSubnetGroup:
+        Description: "The name of the Aurora Serverless DB security group"
+    PublicSubnetGroup:
         Type: String
-        Description: "The name of the RDS Subnet Group"
+        Description: "The name of the public subnet group"
   
 Resources:
     AtomikLabsLogsBucket:
@@ -85,23 +85,23 @@ Resources:
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
-    AtomikLabsRDSInstance:
-        Type: "AWS::RDS::DBInstance"
+    AtomikLabsAuroraCluster:
+        Type: "AWS::RDS::DBCluster"
         Properties:
-            DBInstanceClass: "db.t3.micro"
-            AllocatedStorage: "20"
-            MaxAllocatedStorage: "100"
-            DBName: !Sub "atomiklabs_${EnvironmentName}_database"
-            DBInstanceIdentifier: !Sub "atomiklabs-${EnvironmentName}-database"
-            EnableIAMDatabaseAuthentication: "true"
-            Engine: "postgres"
-            EngineVersion: "15.4"
+            DatabaseName: !Sub "atomiklabs_${EnvironmentName}_database"
+            DBSubnetGroupName: !Ref PublicSubnetGroup
+            DBClusterIdentifier: !Sub "atomiklabs-${EnvironmentName}-aurora-cluster"
+            Engine: "aurora-postgresql"
+            EngineMode: "serverless"
+            EngineVersion: "13.3"
             MasterUsername: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:username}}"
             MasterUserPassword: !Sub "{{resolve:secretsmanager:${EnvironmentName}/database-credentials:SecretString:password}}"
-            DBSubnetGroupName: !Ref RDSSubnetGroup
-            PubliclyAccessible: "false"
-            VPCSecurityGroups:
-                - !Ref RDSSecurityGroup
+            VpcSecurityGroupIds: [!Ref AuroraSecurityGroup]
+            ScalingConfiguration:
+                AutoPause: true
+                MinCapacity: 2
+                MaxCapacity: 8
+                SecondsUntilAutoPause: 300
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
@@ -112,15 +112,15 @@ Outputs:
     S3DataBucketName:
         Description: "Name of the S3 Bucket for Data Layer"
         Value: !Ref AtomikLabsDataBucket
-    RDSInstanceEndpoint:
-        Description: "The connection endpoint for the RDS instance."
-        Value: !GetAtt AtomikLabsRDSInstance.Endpoint.Address
-    RDSInstanceIdentifier:
-        Description: "The database instance identifier."
-        Value: !Ref AtomikLabsRDSInstance
     LambdaExecutionRole:
         Description: "The name of the lambda execution role"
         Value: !Ref LambdaExecutionRole
     LambdaExecutionRoleArn:
         Description: "The name of the lambda execution role"
         Value: !GetAtt LambdaExecutionRole.Arn
+    AuroraClusterEndpoint:
+        Description: "The connection endpoint for the Aurora Serverless cluster."
+        Value: !GetAtt AtomikLabsAuroraCluster.Endpoint.Address
+    AuroraClusterIdentifier:
+        Description: "The Aurora Serverless cluster identifier."
+        Value: !Ref AtomikLabsAuroraCluster

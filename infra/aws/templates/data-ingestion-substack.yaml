@@ -19,15 +19,15 @@ Parameters:
         Description: "The name of the lambda execution role"
 
 Resources:
-    DataIngestionArxivDailyFetch:
+    FetchDailySummaries:
         Type: AWS::Lambda::Function
         Properties:
-            FunctionName: !Sub "data-ingestion-arxiv-daily-fetch-${EnvironmentName}"
+            FunctionName: !Sub "fetch-daily-summaries-${EnvironmentName}"
             Runtime: python3.9
-            Handler: arxiv_daily_fetch.lambda_handler
+            Handler: fetch_daily_summaries.lambda_handler
             Code:
                 S3Bucket: atomiklabs-iac
-                S3Key: code/placeholders/arxiv_daily_fetch.zip
+                S3Key: code/placeholders/fetch-daily-summaries.zip
             Role: !Ref LambdaExecutionRoleArn
             Timeout: 900
             Environment:
@@ -35,36 +35,20 @@ Resources:
                     DATA_BUCKET: !Ref DataBucket
                     ENVIRONMENT_NAME: !Ref EnvironmentName
                     LOG_LEVEL: INFO
-    DataIngestionArxivDailyFetchEventRule:
+    FetchDailySummariesEventRule:
         Type: AWS::Events::Rule
         Properties:
-            Name: !Sub "data-ingestion-arxiv-daily-fetch-event-rule-${EnvironmentName}"
+            Name: !Sub "fetch-daily-summaries-rule-${EnvironmentName}"
             Description: "Event rule for triggering the arxiv daily fetch lambda"
             ScheduleExpression: "cron(0 3 * * ? *)"
             State: "ENABLED"
             Targets:
-                - Arn: !GetAtt DataIngestionArxivDailyFetch.Arn
-                  Id: !Sub "data-ingestion-arxiv-daily-fetch-event-rule-target-${EnvironmentName}"
-    DataIngestionArxivDailyFetchEventRulePermission:
+                - Arn: !GetAtt FetchDailySummaries.Arn
+                  Id: !Sub "fetch-daily-summaries-event-rule-target-${EnvironmentName}"
+    FetchDailySummariesEventRulePermission:
         Type: AWS::Lambda::Permission
         Properties:
             Action: "lambda:InvokeFunction"
-            FunctionName: !Ref DataIngestionArxivDailyFetch
+            FunctionName: !Ref FetchDailySummaries
             Principal: "events.amazonaws.com"
-            SourceArn: !GetAtt DataIngestionArxivDailyFetchEventRule.Arn
-    DataIngestionArxivSummaryParser:
-        Type: AWS::Lambda::Function
-        Properties:
-            FunctionName: !Sub "data-ingestion-arxiv-summary-parser-${EnvironmentName}"
-            Runtime: python3.9
-            Handler: arxiv_summary_parser.lambda_handler
-            Code:
-                S3Bucket: atomiklabs-iac
-                S3Key: code/placeholders/arxiv_summary_parser.zip
-            Role: !Ref LambdaExecutionRoleArn
-            Timeout: 900
-            Environment:
-                Variables:
-                    DATA_BUCKET: !Ref DataBucket
-                    ENVIRONMENT_NAME: !Ref EnvironmentName
-                    LOG_LEVEL: INFO
+            SourceArn: !GetAtt FetchDailySummariesEventRule.Arn

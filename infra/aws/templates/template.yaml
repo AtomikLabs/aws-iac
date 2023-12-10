@@ -11,9 +11,6 @@ Parameters:
             - "dev"
             - "stage"
             - "prod"
-    NetworkingSubstackTemplateURL:
-        Type: String
-        Description: "S3 URL of the networking stack template"
     VpcCidr:
         Type: String
         Description: "The CIDR block for the VPC"
@@ -34,13 +31,15 @@ Parameters:
         Type: String
         Description: "The CIDR block for the private subnet 2"
         Default: "10.0.102.0/24"
+    ContainerizationSubstackTemplateURL:
+        Type: String
+        Description: "S3 URL of the containerization stack template"
+    NetworkingSubstackTemplateURL:
+        Type: String
+        Description: "S3 URL of the networking stack template"
     DataLayerSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the networking stack template"
-    BastionAccessCidr:
-        Type: String
-        Description: "The CIDR block for the bastion access"
-        Default: ""
     DataIngestionSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the data ingestion stack template"
@@ -49,6 +48,12 @@ Parameters:
         Description: "S3 URL of the data persistence stack template"
 
 Resources:
+    ContainerizationSubstack:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: !Ref ContainerizationSubstackTemplateURL
+            Parameters:
+                EnvironmentName: !Ref EnvironmentName
     NetworkingSubstack:
         Type: AWS::CloudFormation::Stack
         Properties:
@@ -60,7 +65,6 @@ Resources:
                 PublicSubnet2Cidr: !Ref PublicSubnet2Cidr
                 PrivateSubnet1Cidr: !Ref PrivateSubnet1Cidr
                 PrivateSubnet2Cidr: !Ref PrivateSubnet2Cidr
-                BastionAccessCidr: !Ref BastionAccessCidr
     DataLayerSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
@@ -68,8 +72,8 @@ Resources:
             TemplateURL: !Ref DataLayerSubstackTemplateURL
             Parameters:
                 EnvironmentName: !Ref EnvironmentName
-                RDSSecurityGroup: !GetAtt NetworkingSubstack.Outputs.RDSSecurityGroup
-                RDSSubnetGroup: !GetAtt NetworkingSubstack.Outputs.RDSSubnetGroup
+                AuroraSecurityGroup: !GetAtt NetworkingSubstack.Outputs.AuroraSecurityGroupId
+                PublicSubnetGroup: !GetAtt NetworkingSubstack.Outputs.PublicSubnetGroup
     DataIngestionSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
@@ -88,40 +92,32 @@ Resources:
                 EnvironmentName: !Ref EnvironmentName
                 DataBucket: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
                 LambdaExecutionRoleArn: !GetAtt DataLayerSubstack.Outputs.LambdaExecutionRoleArn
+        
 Outputs:
     VPC:
         Description: "The ID of the VPC"
-        Value: !GetAtt NetworkingSubstack.Outputs.VPC
+        Value: !GetAtt NetworkingSubstack.Outputs.VPCId
     PublicSubnet1:
         Description: "The ID of the public subnet 1"
-        Value: !GetAtt NetworkingSubstack.Outputs.PublicSubnet1
+        Value: !GetAtt NetworkingSubstack.Outputs.PublicSubnet1Id
     PublicSubnet2:
         Description: "The ID of the public subnet 2"
-        Value: !GetAtt NetworkingSubstack.Outputs.PublicSubnet2
-    PrivateSubnet1:
-        Description: "The ID of the private subnet 1"
-        Value: !GetAtt NetworkingSubstack.Outputs.PrivateSubnet1
-    PrivateSubnet2:
-        Description: "The ID of the private subnet 2"
-        Value: !GetAtt NetworkingSubstack.Outputs.PrivateSubnet2
+        Value: !GetAtt NetworkingSubstack.Outputs.PublicSubnet2Id
     PublicRouteTable:
         Description: "The ID of the public route table"
-        Value: !GetAtt NetworkingSubstack.Outputs.PublicRouteTable
-    PrivateRouteTable1:
-        Description: "The ID of the private route table 1"
-        Value: !GetAtt NetworkingSubstack.Outputs.PrivateRouteTable1
-    PrivateRouteTable2:
-        Description: "The ID of the private route table 2"
-        Value: !GetAtt NetworkingSubstack.Outputs.PrivateRouteTable2
-    LambdaSecurityGroup:
-        Description: "The ID of the Lambda security group"
-        Value: !GetAtt NetworkingSubstack.Outputs.LambdaSecurityGroup
-    RDSSecurityGroup:
-        Description: "The ID of the RDS security group"
-        Value: !GetAtt NetworkingSubstack.Outputs.RDSSecurityGroup
-    VPCNetworkACL:
-        Description: "The ID of the VPC network ACL"
-        Value: !GetAtt NetworkingSubstack.Outputs.VPCNetworkACL
+        Value: !GetAtt NetworkingSubstack.Outputs.PublicRouteTableId
+    PublicNetworkAclId:
+        Description: "The ID of the public network ACL"
+        Value: !GetAtt NetworkingSubstack.Outputs.PublicNetworkAclId
+    Cloud9SecurityGroupId:
+        Description: "The ID of the Cloud9 Security Group"
+        Value: !GetAtt NetworkingSubstack.Outputs.Cloud9SecurityGroupId
+    AuroraSecurityGroupId:
+        Description: "The ID of the Aurora Serverless Security Group"
+        Value: !GetAtt NetworkingSubstack.Outputs.AuroraSecurityGroupId
+    PublicSubnetGroup:
+        Description: "The ID of the Aurora Serverless Public Subnet Group"
+        Value: !GetAtt NetworkingSubstack.Outputs.PublicSubnetGroup
     S3LogBucketName:
         Description: "Name of the S3 Bucket for Logs"
         Value: !GetAtt DataLayerSubstack.Outputs.S3LogBucketName
