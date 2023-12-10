@@ -74,15 +74,6 @@ Resources:
                 EnvironmentName: !Ref EnvironmentName
                 AuroraSecurityGroup: !GetAtt NetworkingSubstack.Outputs.AuroraSecurityGroupId
                 PublicSubnetGroup: !GetAtt NetworkingSubstack.Outputs.PublicSubnetGroup
-    DataIngestionSubstack:
-        Type: AWS::CloudFormation::Stack
-        DependsOn: NetworkingSubstack
-        Properties:
-            TemplateURL: !Ref DataIngestionSubstackTemplateURL
-            Parameters:
-                EnvironmentName: !Ref EnvironmentName
-                DataBucket: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
-                LambdaExecutionRoleArn: !GetAtt DataLayerSubstack.Outputs.LambdaExecutionRoleArn
     DataPersistenceSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
