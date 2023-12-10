@@ -80,7 +80,6 @@ Resources:
         Properties:
             TemplateURL: !Ref DataIngestionSubstackTemplateURL
             Parameters:
-                AuroraEndpoint: !GetAtt DataLayerSubstack.Outputs.AuroraClusterEndpoint
                 EnvironmentName: !Ref EnvironmentName
                 DataBucket: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
                 LambdaExecutionRoleArn: !GetAtt DataLayerSubstack.Outputs.LambdaExecutionRoleArn
