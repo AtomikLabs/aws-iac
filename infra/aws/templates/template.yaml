@@ -40,9 +40,6 @@ Parameters:
     DataLayerSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the networking stack template"
-    DataIngestionSubstackTemplateURL:
-        Type: String
-        Description: "S3 URL of the data ingestion stack template"
     DataPersistenceSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the data persistence stack template"
