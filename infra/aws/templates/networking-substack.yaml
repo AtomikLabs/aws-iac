@@ -205,7 +205,7 @@ Resources:
             - !Ref ALPublicSubnet2
         Tags:
             - Key: "Environment"
-            Value: !Ref EnvironmentName
+              Value: !Ref EnvironmentName
 
 Outputs:
     VPCId:
