@@ -96,7 +96,7 @@ Resources:
 Outputs:
     VPC:
         Description: "The ID of the VPC"
-        Value: !GetAtt NetworkingSubstack.Outputs.VPC
+        Value: !GetAtt NetworkingSubstack.Outputs.VPCId
     PublicSubnet1:
         Description: "The ID of the public subnet 1"
         Value: !GetAtt NetworkingSubstack.Outputs.PublicSubnet1Id
