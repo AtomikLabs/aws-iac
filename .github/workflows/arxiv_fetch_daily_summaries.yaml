@@ -33,10 +33,7 @@ jobs:
 
       - name: Install AWS CLI
         run: |
-          # Install AWS CLI
           pip install awscliv2
-
-          # Configure AWS CLI
           aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws configure set region ${{ secrets.AWS_REGION }}
@@ -52,8 +49,10 @@ jobs:
 
       - name: Deploy to AWS Lambda
         run: |
+          ENV_SUFFIX=${{ github.ref == 'refs/heads/main' && 'prod' || github.ref == 'refs/heads/stage' && 'stage' || 'dev' }}
+          FUNCTION_NAME="fetch-daily-summaries-$ENV_SUFFIX"
           aws lambda update-function-code \
-            --function-name arn:aws:lambda:us-east-1:758145997264:function:data-ingestion-arxiv-daily-fetch-dev \
+            --function-name arn:aws:lambda:us-east-1:758145997264:function:$FUNCTION_NAME \
             --zip-file fileb://services/fetch_daily_summaries/src/deployment-package.zip
           aws lambda wait function-updated \
-            --function-name arn:aws:lambda:us-east-1:758145997264:function:data-ingestion-arxiv-daily-fetch-dev
+            --function-name arn:aws:lambda:us-east-1:758145997264:function:$FUNCTION_NAME

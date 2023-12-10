@@ -108,6 +108,8 @@ jobs:
 
             - name: Upload Substack Template to S3
               run: |
+                  CONTAINERIZATION_SUBSTACK_TEMPLATE_FILE="infra/aws/templates/containerization-substack.yaml"
+                  echo "Uploading substack template: $CONTAINERIZATION_SUBSTACK_TEMPLATE_FILE"
                   NETWORKING_SUBSTACK_TEMPLATE_FILE="infra/aws/templates/networking-substack.yaml"
                   echo "Uploading substack template: $NETWORKING_SUBSTACK_TEMPLATE_FILE"
                   DATA_LAYER_SUBSTACK_TEMPLATE_FILE="infra/aws/templates/data-layer-substack.yaml"
@@ -116,6 +118,7 @@ jobs:
                   echo "Uploading substack template: $DATA_INGESTION_SUBSTACK_TEMPLATE_FILE"
                   DATA_PERSISTENCE_SUBSTACK_TEMPLATE_FILE="infra/aws/templates/data-persistence-substack.yaml"
                   echo "Uploading substack template: $DATA_PERSISTENCE_SUBSTACK_TEMPLATE_FILE"
+                  aws s3 cp $CONTAINERIZATION_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/containerization-substack.yaml
                   aws s3 cp $NETWORKING_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/networking-substack.yaml
                   aws s3 cp $DATA_LAYER_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-layer-substack.yaml
                   aws s3 cp $DATA_INGESTION_SUBSTACK_TEMPLATE_FILE s3://atomiklabs-iac/cloudformation/test/data-ingestion-substack.yaml
@@ -125,12 +128,14 @@ jobs:
               run: |
                   MAIN_TEMPLATE_FILE="infra/aws/templates/template.yaml"
                   STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
+                  CONTAINERIZATION_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/containerization-substack.yaml"
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.yaml"
                   DATA_INGESTION_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-ingestion-substack.yaml"
                   DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-persistence-substack.yaml"
                   BASTION_ACCESS_CIDR=${{ secrets.BASTION_ACCESS_CIDR }}
                   echo "Deploying main template: $MAIN_TEMPLATE_FILE"
+                  echo "Containerization Substack URL: $CONTAINERIZATION_SUBSTACK_URL"
                   echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
                   echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
                   echo "Data Ingestion Substack URL: $DATA_INGESTION_SUBSTACK_URL"
@@ -142,6 +147,7 @@ jobs:
                     --no-fail-on-empty-changeset \
                     --capabilities CAPABILITY_NAMED_IAM \
                     --parameter-overrides \
+                      ContainerizationSubstackTemplateURL=$CONTAINERIZATION_SUBSTACK_URL \
                       NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
                       DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
                       DataIngestionSubstackTemplateURL=$DATA_INGESTION_SUBSTACK_URL \
@@ -240,6 +246,7 @@ jobs:
 
             - name: Upload Template to S3
               run: |
+                  aws s3 cp infra/aws/templates/containerization-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/containerization-substack.yaml
                   aws s3 cp infra/aws/templates/networking-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/networking-substack.yaml
                   aws s3 cp infra/aws/templates/data-layer-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-layer-substack.yaml
                   aws s3 cp infra/aws/templates/data-ingestion-substack.yaml s3://atomiklabs-iac/cloudformation/$ENVIRONMENT_NAME/data-ingestion-substack.yaml
@@ -249,12 +256,14 @@ jobs:
               run: |
                   TEMPLATE_FILE="infra/aws/templates/template.yaml"
                   STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
+                  CONTAINERIZATION_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/containerization-substack.yaml"
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-layer-substack.yaml"
                   DATA_INGESTION_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-ingestion-substack.yaml"
                   DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-persistence-substack.yaml"
                   BASTION_ACCESS_CIDR=${{ secrets.BASTION_ACCESS_CIDR }}
                   echo "Deploying template: $TEMPLATE_FILE"
+                  echo "Containerization Substack URL: $CONTAINERIZATION_SUBSTACK_URL"
                   echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
                   echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
                   echo "Data Ingestion Substack URL: $DATA_INGESTION_SUBSTACK_URL"
@@ -266,6 +275,7 @@ jobs:
                     --capabilities CAPABILITY_NAMED_IAM \
                     --no-fail-on-empty-changeset \
                     --parameter-overrides \
+                      ContainerizationSubstackTemplateURL=$CONTAINERIZATION_SUBSTACK_URL \
                       NetworkingSubstackTemplateURL=$NETWORKING_SUBSTACK_URL \
                       DataLayerSubstackTemplateURL=$DATA_LAYER_SUBSTACK_URL \
                       DataIngestionSubstackTemplateURL=$DATA_INGESTION_SUBSTACK_URL \
