@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Containerization Infrastructure"
+Description: "Containerization Infrastructure Substack"
 
 Parameters:
   EnvironmentName:
