@@ -153,6 +153,17 @@ jobs:
                       PrivateSubnet1Cidr=$TEST_PRIVATE_SUBNET_1_CIDR \
                       PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR \
                       BastionAccessCidr=$BASTION_ACCESS_CIDR
+
+            - name: Retrieve Stack Outputs
+              id: get_cf_outputs
+              run: |
+                STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
+                outputs=$(aws cloudformation describe-stacks \
+                  --stack-name $STACK_NAME \
+                  --query 'Stacks[0].Outputs' \
+                  --output json)
+                echo "::set-output name=cf_outputs::$outputs"
+
             - name: Capture Events on Failure
               if: failure()
               run: |
@@ -165,6 +176,71 @@ jobs:
                   STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
                   aws cloudformation describe-stacks --stack-name $STACK_NAME
                   echo "Stack $STACK_NAME has been confirmed to exist."
+
+            - name: Authenticate to ECR
+              run: |
+                aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+            - name: Check if Placeholder Image Exists
+              id: placeholder_check
+              run: |
+                ECR_REPOSITORY_NAME=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="ECRRepositoryName") | .OutputValue')
+                if aws ecr describe-images --repository-name $ECR_REPOSITORY_NAME --image-ids imageTag=placeholder; then
+                  echo "Placeholder image already exists. Skipping push."
+                  echo "skip_push=true" >> $GITHUB_ENV
+                fi
+
+            - name: Push Placeholder Image
+              if: env.skip_push != 'true'
+              run: |
+                docker build -t placeholder-image:latest infra/aws/placeholders/placeholder_image
+                docker tag placeholder-image:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
+                docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
+            
+            - name: Deploy Lambdas Test Stack
+              run: |
+                  MAIN_TEMPLATE_FILE="infra/aws/templates/lambdas-stack.yaml"
+                  STACK_NAME="atomiklabs-lambdas-test-stack-${{ github.run_number }}"
+                  ECR_REPOSITORY_ARN=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="ECRRepositoryName") | .OutputValue')
+                  LAMBDA_EXECUTION_ROLE_ARN=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="LambdaExecutionRoleArn") | .OutputValue')
+                  echo "Deploying main template: $MAIN_TEMPLATE_FILE"
+                  aws cloudformation deploy \
+                    --template-file $MAIN_TEMPLATE_FILE \
+                    --stack-name $STACK_NAME \
+                    --region ${{ secrets.AWS_REGION }} \
+                    --no-fail-on-empty-changeset \
+                    --capabilities CAPABILITY_NAMED_IAM \
+                    --parameter-overrides \
+                      EnvironmentName=test \
+                      ECRRepositoryARN=$ECR_REPOSITORY_ARN \
+                      LambdaExecutionRoleArn=$LAMBDA_EXECUTION_ROLE_ARN
+
+            - name: Capture Events on Failure
+              if: failure()
+              run: |
+                  STACK_NAME="atomiklabs-lambdas-test-stack-${{ github.run_number }}"
+                  echo "Fetching stack events for $STACK_NAME"
+                  aws cloudformation describe-stack-events --stack-name $STACK_NAME
+
+            - name: Confirm Stack Creation
+              run: |
+                  STACK_NAME="atomiklabs-lambdas-test-stack-${{ github.run_number }}"
+                  aws cloudformation describe-stacks --stack-name $STACK_NAME
+                  echo "Stack $STACK_NAME has been confirmed to exist."
+
+            - name: Delete Test Lambdas Stack
+              if: always()
+              run: |
+                  STACK_NAME="atomiklabs-lambdas-test-stack-${{ github.run_number }}"
+                  echo "Deleting stack: $STACK_NAME"
+                  aws cloudformation delete-stack --stack-name $STACK_NAME
+                  echo "Waiting for the stack to be deleted..."
+                  aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+                  if ! aws cloudformation describe-stacks --stack-name $STACK_NAME; then
+                    echo "Stack $STACK_NAME has been deleted successfully."
+                  else
+                    echo "Stack $STACK_NAME deletion failed."
+                  fi
 
             - name: Delete Test Stack
               if: always()
@@ -278,6 +354,16 @@ jobs:
                       PrivateSubnet2Cidr=$PRIVATE_SUBNET_2_CIDR \
                       BastionAccessCidr=$BASTION_ACCESS_CIDR
 
+            - name: Retrieve Stack Outputs
+              id: get_cf_outputs
+              run: |
+                STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
+                outputs=$(aws cloudformation describe-stacks \
+                  --stack-name $STACK_NAME \
+                  --query 'Stacks[0].Outputs' \
+                  --output json)
+                echo "::set-output name=cf_outputs::$outputs"
+
             - name: Capture Events on Failure
               if: failure()
               run: |
@@ -290,3 +376,55 @@ jobs:
                   STACK_NAME="atomiklabs-${ENVIRONMENT_NAME}-stack"
                   aws cloudformation describe-stacks --stack-name $STACK_NAME
                   echo "Stack $STACK_NAME has been confirmed to exist."
+
+            - name: Authenticate to ECR
+              run: |
+                aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+            - name: Check if Placeholder Image Exists
+              id: placeholder_check
+              run: |
+                ECR_REPOSITORY_NAME=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="ECRRepositoryName") | .OutputValue')
+                if aws ecr describe-images --repository-name $ECR_REPOSITORY_NAME --image-ids imageTag=placeholder; then
+                  echo "Placeholder image already exists. Skipping push."
+                  echo "skip_push=true" >> $GITHUB_ENV
+                fi
+
+            - name: Push Placeholder Image
+              if: env.skip_push != 'true'
+              run: |
+                docker build -t placeholder-image:latest infra/aws/placeholders/placeholder_image
+                docker tag placeholder-image:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
+                docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
+
+            - name: Deploy Lambdas Stack
+              run: |
+                  MAIN_TEMPLATE_FILE="infra/aws/templates/lambdas-stack.yaml"
+                  STACK_NAME="atomiklabs-lambdas-${ENVIRONMENT_NAME}-stack"
+                  ECR_REPOSITORY_ARN=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="ECRRepositoryName") | .OutputValue')
+                  LAMBDA_EXECUTION_ROLE_ARN=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="LambdaExecutionRoleArn") | .OutputValue')
+                  echo "Deploying main template: $MAIN_TEMPLATE_FILE"
+                  aws cloudformation deploy \
+                    --template-file $MAIN_TEMPLATE_FILE \
+                    --stack-name $STACK_NAME \
+                    --region ${{ secrets.AWS_REGION }} \
+                    --no-fail-on-empty-changeset \
+                    --capabilities CAPABILITY_NAMED_IAM \
+                    --parameter-overrides \
+                      EnvironmentName=$ENVIRONMENT_NAME \
+                      ECRRepositoryARN=$ECR_REPOSITORY_ARN \
+                      LambdaExecutionRoleArn=$LAMBDA_EXECUTION_ROLE_ARN
+            
+            - name: Capture Events on Failure
+              if: failure()
+              run: |
+                  STACK_NAME="atomiklabs-lambdas-${ENVIRONMENT_NAME}-stack"
+                  echo "Fetching stack events for $STACK_NAME"
+                  aws cloudformation describe-stack-events --stack-name $STACK_NAME
+
+            - name: Confirm Stack Creation
+              run: |
+                  STACK_NAME="atomiklabs-lambdas-${ENVIRONMENT_NAME}-stack"
+                  aws cloudformation describe-stacks --stack-name $STACK_NAME
+                  echo "Stack $STACK_NAME has been confirmed to exist."
+

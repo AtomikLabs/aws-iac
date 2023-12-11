@@ -112,3 +112,12 @@ Outputs:
     S3DataBucketName:
         Description: "Name of the S3 Bucket for Data Storage"
         Value: !GetAtt DataLayerSubstack.Outputs.S3DataBucketName
+    LambdaExecutionRoleArn:
+        Description: "ARN of the Lambda Execution Role"
+        Value: !GetAtt DataLayerSubstack.Outputs.LambdaExecutionRoleArn
+    ECRRepositoryARN:
+        Description: "ARN of the ECR Repository"
+        Value: !GetAtt ContainerizationSubstack.Outputs.ECRRepositoryARN
+    ECRRepositoryName:
+        Description: "Name of the ECR Repository"
+        Value: !GetAtt ContainerizationSubstack.Outputs.ECRRepositoryName

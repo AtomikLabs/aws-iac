@@ -19,7 +19,7 @@ Resources:
       RepositoryName: !Sub "atomiklabs-ecr-${EnvironmentName}"
       ImageScanningConfiguration:
         ScanOnPush: true
-      ImageTagMutability: MUTABLE
+      ImageTagMutability: IMMUTABLE
       LifecyclePolicy:
            LifecyclePolicyText: |
               {
@@ -58,6 +58,11 @@ Outputs:
     Value: !GetAtt ALECRRepository.Arn
     Export:
       Name: "ALECRRepositoryARN"
+  ECRRepositoryName:
+    Description: "Name of the ECR Repository"
+    Value: !Ref ALECRRepository
+    Export:
+      Name: !Sub "${AWS::StackName}-ECRRepositoryName"
   ECRRepositoryURI:
     Description: "URI of the ECR Repository"
     Value: !GetAtt ALECRRepository.RepositoryUri
