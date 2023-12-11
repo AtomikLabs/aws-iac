@@ -8,6 +8,12 @@ Parameters:
   EnvironmentName:
     Type: String
     Description: "The deployment environment (e.g., dev, test, stage, prod)"
+  ECRRepositoryName:
+    Type: String
+    Description: "Name of the ECR Repository"
+  AWSRegion:
+    Type: String
+    Description: "AWS Region where the ECR repository is located"
 
 Resources:
   FetchDailySummaries:
@@ -19,7 +25,7 @@ Resources:
       MemorySize: 128
       Timeout: 900
       Code:
-        ImageUri: "123456789012.dkr.ecr.region.amazonaws.com/my-repo:initial-tag"
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepositoryName}:placeholder"
 
 Outputs:
   FetchDailySummariesFunctionArn:

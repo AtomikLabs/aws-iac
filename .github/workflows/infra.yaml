@@ -198,21 +198,22 @@ jobs:
             
             - name: Deploy Lambdas Test Stack
               run: |
-                  MAIN_TEMPLATE_FILE="infra/aws/templates/lambdas-stack.yaml"
-                  STACK_NAME="atomiklabs-lambdas-test-stack-${{ github.run_number }}"
-                  ECR_REPOSITORY_ARN=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="ECRRepositoryName") | .OutputValue')
-                  LAMBDA_EXECUTION_ROLE_ARN=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="LambdaExecutionRoleArn") | .OutputValue')
-                  echo "Deploying main template: $MAIN_TEMPLATE_FILE"
-                  aws cloudformation deploy \
-                    --template-file $MAIN_TEMPLATE_FILE \
-                    --stack-name $STACK_NAME \
-                    --region ${{ secrets.AWS_REGION }} \
-                    --no-fail-on-empty-changeset \
-                    --capabilities CAPABILITY_NAMED_IAM \
-                    --parameter-overrides \
-                      EnvironmentName=test \
-                      ECRRepositoryARN=$ECR_REPOSITORY_ARN \
-                      LambdaExecutionRoleArn=$LAMBDA_EXECUTION_ROLE_ARN
+                MAIN_TEMPLATE_FILE="infra/aws/templates/lambdas-stack.yaml"
+                STACK_NAME="atomiklabs-lambdas-test-stack-${{ github.run_number }}"
+                ECR_REPOSITORY_NAME=$(echo "$CF_OUTPUTS" | jq -r '.[] | select(.OutputKey=="ECRRepositoryName") | .OutputValue')
+                LAMBDA_EXECUTION_ROLE_ARN=$(echo "$CF_OUTPUTS" | jq -r '.[] | select(.OutputKey=="LambdaExecutionRoleArn") | .OutputValue')
+                echo "Deploying main template: $MAIN_TEMPLATE_FILE"
+                aws cloudformation deploy \
+                  --template-file $MAIN_TEMPLATE_FILE \
+                  --stack-name $STACK_NAME \
+                  --region ${{ secrets.AWS_REGION }} \
+                  --no-fail-on-empty-changeset \
+                  --capabilities CAPABILITY_NAMED_IAM \
+                  --parameter-overrides \
+                    EnvironmentName=test \
+                    ECRRepositoryName=$ECR_REPOSITORY_NAME \
+                    AWSRegion=${{ secrets.AWS_REGION }} \
+                    LambdaExecutionRoleArn=$LAMBDA_EXECUTION_ROLE_ARN
 
             - name: Capture Events on Failure
               if: failure()
@@ -227,19 +228,28 @@ jobs:
                   aws cloudformation describe-stacks --stack-name $STACK_NAME
                   echo "Stack $STACK_NAME has been confirmed to exist."
 
+            - name: Delete Images from ECR Repository
+              run: |
+                ECR_REPOSITORY_NAME=$(echo "$CF_OUTPUTS" | jq -r '.[] | select(.OutputKey=="ECRRepositoryName") | .OutputValue')
+                IMAGE_DIGESTS=$(aws ecr list-images --repository-name $ECR_REPOSITORY_NAME --query 'imageIds[*].imageDigest' --output text)
+                for DIGEST in $IMAGE_DIGESTS; do
+                  aws ecr batch-delete-image --repository-name $ECR_REPOSITORY_NAME --image-ids imageDigest=$DIGEST
+                  echo "Deleted image with digest $DIGEST from repository $ECR_REPOSITORY_NAME"
+                done
+
             - name: Delete Test Lambdas Stack
               if: always()
               run: |
-                  STACK_NAME="atomiklabs-lambdas-test-stack-${{ github.run_number }}"
-                  echo "Deleting stack: $STACK_NAME"
-                  aws cloudformation delete-stack --stack-name $STACK_NAME
-                  echo "Waiting for the stack to be deleted..."
-                  aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
-                  if ! aws cloudformation describe-stacks --stack-name $STACK_NAME; then
-                    echo "Stack $STACK_NAME has been deleted successfully."
-                  else
-                    echo "Stack $STACK_NAME deletion failed."
-                  fi
+                STACK_NAME="atomiklabs-lambdas-test-stack-${{ github.run_number }}"
+                echo "Deleting stack: $STACK_NAME"
+                aws cloudformation delete-stack --stack-name $STACK_NAME
+                echo "Waiting for the stack to be deleted..."
+                aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+                if ! aws cloudformation describe-stacks --stack-name $STACK_NAME; then
+                  echo "Stack $STACK_NAME has been deleted successfully."
+                else
+                  echo "Stack $STACK_NAME deletion failed."
+                fi
 
             - name: Delete Test Stack
               if: always()
@@ -397,21 +407,21 @@ jobs:
 
             - name: Deploy Lambdas Stack
               run: |
-                  MAIN_TEMPLATE_FILE="infra/aws/templates/lambdas-stack.yaml"
-                  STACK_NAME="atomiklabs-lambdas-${ENVIRONMENT_NAME}-stack"
-                  ECR_REPOSITORY_ARN=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="ECRRepositoryName") | .OutputValue')
-                  LAMBDA_EXECUTION_ROLE_ARN=$(echo "${{ steps.get_cf_outputs.outputs.cf_outputs }}" | jq -r '.[] | select(.OutputKey=="LambdaExecutionRoleArn") | .OutputValue')
-                  echo "Deploying main template: $MAIN_TEMPLATE_FILE"
-                  aws cloudformation deploy \
-                    --template-file $MAIN_TEMPLATE_FILE \
-                    --stack-name $STACK_NAME \
-                    --region ${{ secrets.AWS_REGION }} \
-                    --no-fail-on-empty-changeset \
-                    --capabilities CAPABILITY_NAMED_IAM \
-                    --parameter-overrides \
-                      EnvironmentName=$ENVIRONMENT_NAME \
-                      ECRRepositoryARN=$ECR_REPOSITORY_ARN \
-                      LambdaExecutionRoleArn=$LAMBDA_EXECUTION_ROLE_ARN
+                MAIN_TEMPLATE_FILE="infra/aws/templates/lambdas-stack.yaml"
+                STACK_NAME="atomiklabs-lambdas-${ENVIRONMENT_NAME}-stack"
+                ECR_REPOSITORY_NAME=$(echo "$CF_OUTPUTS" | jq -r '.[] | select(.OutputKey=="ECRRepositoryName") | .OutputValue')
+                LAMBDA_EXECUTION_ROLE_ARN=$(echo "$CF_OUTPUTS" | jq -r '.[] | select(.OutputKey=="LambdaExecutionRoleArn") | .OutputValue')
+                aws cloudformation deploy \
+                  --template-file $MAIN_TEMPLATE_FILE \
+                  --stack-name $STACK_NAME \
+                  --region ${{ secrets.AWS_REGION }} \
+                  --no-fail-on-empty-changeset \
+                  --capabilities CAPABILITY_NAMED_IAM \
+                  --parameter-overrides \
+                    EnvironmentName=$ENVIRONMENT_NAME \
+                    ECRRepositoryName=$ECR_REPOSITORY_NAME \
+                    AWSRegion=${{ secrets.AWS_REGION }} \
+                    LambdaExecutionRoleArn=$LAMBDA_EXECUTION_ROLE_ARN
             
             - name: Capture Events on Failure
               if: failure()
