@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Lambdas Stack for AtomikLabs."
+
+Parameters:
+  LambdaExecutionRoleArn:
+    Type: String
+    Description: "ARN of the Lambda Execution Role"
+  EnvironmentName:
+    Type: String
+    Description: "The deployment environment (e.g., dev, test, stage, prod)"
+  ECRRepositoryName:
+    Type: String
+    Description: "Name of the ECR Repository"
+  AWSRegion:
+    Type: String
+    Description: "AWS Region where the ECR repository is located"
+
+Resources:
+  FetchDailySummaries:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "fetch-daily-summaries-${EnvironmentName}"
+      PackageType: Image
+      Role: !Ref LambdaExecutionRoleArn
+      MemorySize: 128
+      Timeout: 900
+      Code:
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepositoryName}:placeholder"
+
+Outputs:
+  FetchDailySummariesFunctionArn:
+    Description: "ARN of the Fetch Daily Summaries Lambda Function"
+    Value: !GetAtt FetchDailySummaries.Arn

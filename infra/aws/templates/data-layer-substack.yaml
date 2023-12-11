@@ -25,6 +25,8 @@ Resources:
             BucketName: !Sub "atomiklabs-logs-${EnvironmentName}"
     AtomikLabsDataBucket:
         Type: "AWS::S3::Bucket"
+        DependsOn:
+             - AtomikLabsLogsBucket
         Properties:
             BucketName: !Sub "atomiklabs-data-bucket-${EnvironmentName}"
             LifecycleConfiguration:
@@ -39,6 +41,8 @@ Resources:
                 LogFilePrefix: "data-bucket-logs/${EnvironmentName}/"
     LambdaExecutionRole:
         Type: "AWS::IAM::Role"
+        DependsOn:
+             - AtomikLabsDataBucket
         Properties:
             RoleName: !Sub "lambda-s3-access-role-${EnvironmentName}"
             AssumeRolePolicyDocument:

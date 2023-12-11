@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Containerization Infrastructure"
+Description: "Containerization Infrastructure Substack"
 
 Parameters:
   EnvironmentName:
@@ -19,7 +19,7 @@ Resources:
       RepositoryName: !Sub "atomiklabs-ecr-${EnvironmentName}"
       ImageScanningConfiguration:
         ScanOnPush: true
-      ImageTagMutability: MUTABLE
+      ImageTagMutability: IMMUTABLE
       LifecyclePolicy:
            LifecyclePolicyText: |
               {
@@ -57,14 +57,19 @@ Outputs:
     Description: "ARN of the ECR Repository"
     Value: !GetAtt ALECRRepository.Arn
     Export:
-      Name: "ALECRRepositoryARN"
+      Name: !Sub "${AWS::StackName}-ALECRRepositoryARN"
+  ECRRepositoryName:
+    Description: "Name of the ECR Repository"
+    Value: !Ref ALECRRepository
+    Export:
+      Name: !Sub "${AWS::StackName}-ECRRepositoryName"
   ECRRepositoryURI:
     Description: "URI of the ECR Repository"
     Value: !GetAtt ALECRRepository.RepositoryUri
     Export:
-      Name: "ALECRRepositoryURI"
+      Name: !Sub "${AWS::StackName}-ALECRRepositoryURI"
   ECRAccessPolicyARN:
     Description: "ARN of the IAM Policy for ECR Access"
     Value: !Ref ALECRAccessPolicy
     Export:
-      Name: "ALECRAccessPolicyARN"
+      Name: !Sub "${AWS::StackName}-ALECRAccessPolicyARN"
