@@ -161,7 +161,7 @@ jobs:
                   --stack-name $STACK_NAME \
                   --query 'Stacks[0].Outputs' \
                   --output json)
-                echo "CF_OUTPUTS=$outputs" >> $GITHUB_ENV
+                echo "CF_OUTPUTS=$(echo $outputs)" >> $GITHUB_ENV
 
             - name: Capture Events on Failure
               if: failure()
@@ -360,7 +360,7 @@ jobs:
                   --stack-name $STACK_NAME \
                   --query 'Stacks[0].Outputs' \
                   --output json)
-                echo "CF_OUTPUTS=$outputs" >> $GITHUB_ENV
+                echo "CF_OUTPUTS=$(echo $outputs)" >> $GITHUB_ENV
 
             - name: Capture Events on Failure
               if: failure()
