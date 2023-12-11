@@ -181,6 +181,13 @@ jobs:
               run: |
                 aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
+            - name: Push Placeholder Image
+              if: env.skip_push != 'true'
+              run: |
+                docker build -t placeholder-image:latest infra/aws/placeholders/placeholder_image
+                docker tag placeholder-image:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
+                docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
+
             - name: Check if Placeholder Image Exists
               id: placeholder_check
               run: |
@@ -189,13 +196,6 @@ jobs:
                   echo "Placeholder image already exists. Skipping push."
                   echo "skip_push=true" >> $GITHUB_ENV
                 fi
-
-            - name: Push Placeholder Image
-              if: env.skip_push != 'true'
-              run: |
-                docker build -t placeholder-image:latest infra/aws/placeholders/placeholder_image
-                docker tag placeholder-image:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
-                docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
             
             - name: Deploy Lambdas Test Stack
               run: |
@@ -381,6 +381,13 @@ jobs:
               run: |
                 aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
+            - name: Push Placeholder Image
+              if: env.skip_push != 'true'
+              run: |
+                docker build -t placeholder-image:latest infra/aws/placeholders/placeholder_image
+                docker tag placeholder-image:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
+                docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
+
             - name: Check if Placeholder Image Exists
               id: placeholder_check
               run: |
@@ -389,13 +396,6 @@ jobs:
                   echo "Placeholder image already exists. Skipping push."
                   echo "skip_push=true" >> $GITHUB_ENV
                 fi
-
-            - name: Push Placeholder Image
-              if: env.skip_push != 'true'
-              run: |
-                docker build -t placeholder-image:latest infra/aws/placeholders/placeholder_image
-                docker tag placeholder-image:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
-                docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${ECR_REPOSITORY_NAME}:placeholder
 
             - name: Deploy Lambdas Stack
               run: |
