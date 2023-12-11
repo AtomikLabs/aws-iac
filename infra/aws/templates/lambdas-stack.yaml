@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Lambdas Stack for AtomikLabs."
+
+Parameters:
+  LambdaExecutionRoleArn:
+    Type: String
+    Description: "ARN of the Lambda Execution Role"
+  EnvironmentName:
+    Type: String
+    Description: "The deployment environment (e.g., dev, test, stage, prod)"
+
+Resources:
+  FetchDailySummaries:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "fetch-daily-summaries-${EnvironmentName}"
+      PackageType: Image
+      Role: !Ref LambdaExecutionRoleArn
+      MemorySize: 128
+      Timeout: 900
+      Code:
+        ImageUri: "123456789012.dkr.ecr.region.amazonaws.com/my-repo:initial-tag"
+
+Outputs:
+  FetchDailySummariesFunctionArn:
+    Description: "ARN of the Fetch Daily Summaries Lambda Function"
+    Value: !GetAtt FetchDailySummaries.Arn

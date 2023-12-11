@@ -57,7 +57,7 @@ Outputs:
     Description: "ARN of the ECR Repository"
     Value: !GetAtt ALECRRepository.Arn
     Export:
-      Name: "ALECRRepositoryARN"
+      Name: "${AWS::StackName}-ALECRRepositoryARN"
   ECRRepositoryName:
     Description: "Name of the ECR Repository"
     Value: !Ref ALECRRepository
@@ -67,9 +67,9 @@ Outputs:
     Description: "URI of the ECR Repository"
     Value: !GetAtt ALECRRepository.RepositoryUri
     Export:
-      Name: "ALECRRepositoryURI"
+      Name: "${AWS::StackName}-ALECRRepositoryURI"
   ECRAccessPolicyARN:
     Description: "ARN of the IAM Policy for ECR Access"
     Value: !Ref ALECRAccessPolicy
     Export:
-      Name: "ALECRAccessPolicyARN"
+      Name: "${AWS::StackName}-ALECRAccessPolicyARN"
