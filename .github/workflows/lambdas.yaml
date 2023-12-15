@@ -27,14 +27,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set ECR repository name based on environment
+      - name: Set ECR repository and Lambda function name based on environment
         run: |
           if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
             echo "ECR_REPOSITORY=atomiklabs-ecr-dev" >> $GITHUB_ENV
+            echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-dev" >> $GITHUB_ENV
           elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
             echo "ECR_REPOSITORY=atomiklabs-ecr-stage" >> $GITHUB_ENV
+            echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-stage" >> $GITHUB_ENV
+          elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+            echo "ECR_REPOSITORY=atomiklabs-ecr-prod" >> $GITHUB_ENV
+            echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-prod" >> $GITHUB_ENV
           else
-            echo "ECR_REPOSITORY=atomiklabs-ecr-test" >> $GITHUB_ENV # Default to test
+            echo "ECR_REPOSITORY=atomiklabs-ecr-test" >> $GITHUB_ENV
+            echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-test" >> $GITHUB_ENV
           fi
 
       - name: Configure AWS credentials
@@ -70,5 +76,5 @@ jobs:
       - name: Update Lambda function
         run: |
           aws lambda update-function-code \
-            --function-name fetch-daily-summaries-$BRANCH_NAME \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
             --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
