@@ -68,7 +68,6 @@ jobs:
             docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.UNIQUE_TAG }}
 
       - name: Update Lambda function
-        if: contains(github.ref, 'refs/heads/dev') || contains(github.ref, 'refs/heads/stage') || contains(github.ref, 'refs/heads/main')
         run: |
           aws lambda update-function-code \
             --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
