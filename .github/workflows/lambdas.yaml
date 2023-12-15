@@ -44,6 +44,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: List files in fetch_daily_summaries
+        run: |
+            ls -l ./services/fetch_daily_summaries
+
       - name: Build Docker image
         run: |
           docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} ./services/fetch_daily_summaries
