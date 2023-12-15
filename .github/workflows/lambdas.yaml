@@ -18,7 +18,6 @@ on:
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   build-and-deploy:
@@ -27,20 +26,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set ECR repository and Lambda function name based on environment
+      - name: Set ECR repository name and Lambda function name based on environment
         run: |
-          if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [[ $BRANCH_NAME == 'dev' ]]; then
             echo "ECR_REPOSITORY=atomiklabs-ecr-dev" >> $GITHUB_ENV
             echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-dev" >> $GITHUB_ENV
-          elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
+          elif [[ $BRANCH_NAME == 'stage' ]]; then
             echo "ECR_REPOSITORY=atomiklabs-ecr-stage" >> $GITHUB_ENV
             echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-stage" >> $GITHUB_ENV
-          elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+          elif [[ $BRANCH_NAME == 'main' ]]; then
             echo "ECR_REPOSITORY=atomiklabs-ecr-prod" >> $GITHUB_ENV
             echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-prod" >> $GITHUB_ENV
-          else
-            echo "ECR_REPOSITORY=atomiklabs-ecr-test" >> $GITHUB_ENV
-            echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-test" >> $GITHUB_ENV
           fi
 
       - name: Configure AWS credentials
@@ -74,7 +71,8 @@ jobs:
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Update Lambda function
+        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/stage' || github.ref == 'refs/heads/main'
         run: |
           aws lambda update-function-code \
             --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
-            --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
