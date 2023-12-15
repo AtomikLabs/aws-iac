@@ -50,7 +50,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} ./services/fetch_daily_summaries
+          docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} -f ./services/fetch_daily_summaries/Dockerfile .
+
 
       - name: Authenticate to AWS ECR
         run: |
