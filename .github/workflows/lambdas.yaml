@@ -26,18 +26,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set ECR repository name and Lambda function name based on environment
+      - name: Set ECR repository name based on environment
         run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          if [[ $BRANCH_NAME == 'dev' ]]; then
+          if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
             echo "ECR_REPOSITORY=atomiklabs-ecr-dev" >> $GITHUB_ENV
-            echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-dev" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'stage' ]]; then
+          elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
             echo "ECR_REPOSITORY=atomiklabs-ecr-stage" >> $GITHUB_ENV
-            echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-stage" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'main' ]]; then
-            echo "ECR_REPOSITORY=atomiklabs-ecr-prod" >> $GITHUB_ENV
-            echo "LAMBDA_FUNCTION_NAME=fetch-daily-summaries-prod" >> $GITHUB_ENV
+          else
+            echo "ECR_REPOSITORY=atomiklabs-ecr-prod" >> $GITHUB_ENV # or your default
           fi
 
       - name: Configure AWS credentials
