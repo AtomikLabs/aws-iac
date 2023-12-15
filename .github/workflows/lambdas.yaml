@@ -1,0 +1,64 @@
+name: Build and Deploy fetch_daily_summaries Service
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - stage
+    paths:
+      - 'services/fetch_daily_summaries/**'
+  pull_request:
+    branches:
+      - main
+      - dev
+      - stage
+    paths:
+      - 'services/fetch_daily_summaries/**'
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set ECR repository name based on environment
+        run: |
+          if [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
+            echo "ECR_REPOSITORY=atomiklabs-ecr-dev" >> $GITHUB_ENV
+          elif [[ $GITHUB_REF == 'refs/heads/stage' ]]; then
+            echo "ECR_REPOSITORY=atomiklabs-ecr-stage" >> $GITHUB_ENV
+          else
+            echo "ECR_REPOSITORY=atomiklabs-ecr-test" >> $GITHUB_ENV # Default to test
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} ./services/fetch_daily_summaries
+
+      - name: Authenticate to AWS ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+      - name: Push Docker image to ECR
+        run: |
+          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+      - name: Update Lambda function
+        run: |
+          aws lambda update-function-code \
+            --function-name fetch-daily-summaries-${{ github.ref_name }} \
+            --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
