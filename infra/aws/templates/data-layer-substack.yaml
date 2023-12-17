@@ -86,12 +86,12 @@ Resources:
                             Action:
                                 - "rds-db:connect"
                                 - "rds:DescribeDBClusters"
-                                - "rds:ExecuteStatement"
-                                - "rds:BeginTransaction"
-                                - "rds:CommitTransaction"
-                                - "rds:RollbackTransaction"
-                                - "rds:BatchExecuteStatement"
-                                - "rds:ExecuteSql"
+                                - "rds-data:ExecuteStatement"
+                                - "rds-data:BeginTransaction"
+                                - "rds-data:CommitTransaction"
+                                - "rds-data:RollbackTransaction"
+                                - "rds-data:BatchExecuteStatement"
+                                - "rds-data:ExecuteSql"
                             Resource: 
                                 - !Sub "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/*"
                                 - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:atomiklabs-${EnvironmentName}-aurora-cluster"
