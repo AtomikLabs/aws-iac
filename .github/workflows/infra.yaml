@@ -151,7 +151,7 @@ jobs:
                       PublicSubnet1Cidr=$TEST_PUBLIC_SUBNET_1_CIDR \
                       PublicSubnet2Cidr=$TEST_PUBLIC_SUBNET_2_CIDR \
                       PrivateSubnet1Cidr=$TEST_PRIVATE_SUBNET_1_CIDR \
-                      PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR
+                      PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR \
                       RdsSecretsArn=$RDS_SECRETS_ARN
             - name: Retrieve Stack Outputs
               run: |
