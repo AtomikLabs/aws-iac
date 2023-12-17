@@ -17,6 +17,9 @@ Parameters:
     PublicSubnetGroup:
         Type: String
         Description: "The name of the public subnet group"
+    RdsSecretsArn:
+        Type: String
+        Description: "ARN of the RDS Secrets Manager Secret"
   
 Resources:
     AtomikLabsLogsBucket:
@@ -96,7 +99,7 @@ Resources:
                             Resource: 
                                 - !Sub "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/*"
                                 - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:atomiklabs-${EnvironmentName}-aurora-cluster"
-                                - !Sub "RDS_SECRETS_ARN_${EnvironmentName}"
+                                - !Ref RdsSecretsArn
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName

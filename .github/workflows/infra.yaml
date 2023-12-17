@@ -129,7 +129,7 @@ jobs:
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-layer-substack.yaml"
                   DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/test/data-persistence-substack.yaml"
-                  BASTION_ACCESS_CIDR=${{ secrets.BASTION_ACCESS_CIDR }}
+                  RDS_SECRETS_ARN=${{ secrets.RDS_SECRETS_ARN_TEST }}
                   echo "Deploying main template: $MAIN_TEMPLATE_FILE"
                   echo "Containerization Substack URL: $CONTAINERIZATION_SUBSTACK_URL"
                   echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
@@ -151,8 +151,8 @@ jobs:
                       PublicSubnet1Cidr=$TEST_PUBLIC_SUBNET_1_CIDR \
                       PublicSubnet2Cidr=$TEST_PUBLIC_SUBNET_2_CIDR \
                       PrivateSubnet1Cidr=$TEST_PRIVATE_SUBNET_1_CIDR \
-                      PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR \
-                      BastionAccessCidr=$BASTION_ACCESS_CIDR
+                      PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR
+                      RdsSecretsArn=$RDS_SECRETS_ARN
 
             - name: Retrieve Stack Outputs
               run: |
@@ -338,12 +338,18 @@ jobs:
                   NETWORKING_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/networking-substack.yaml"
                   DATA_LAYER_SUBSTACK_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-layer-substack.yaml"
                   DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL="https://atomiklabs-iac.s3.${{ secrets.AWS_REGION }}.amazonaws.com/cloudformation/${ENVIRONMENT_NAME}/data-persistence-substack.yaml"
-                  BASTION_ACCESS_CIDR=${{ secrets.BASTION_ACCESS_CIDR }}
                   echo "Deploying template: $TEMPLATE_FILE"
                   echo "Containerization Substack URL: $CONTAINERIZATION_SUBSTACK_URL"
                   echo "Networking Substack URL: $NETWORKING_SUBSTACK_URL"
                   echo "Data Layer Substack URL: $DATA_LAYER_SUBSTACK_URL"
                   echo "Data Persistence Substack URL: $DATA_PERSISTENCE_SUBSTACK_TEMPLATE_URL"
+                  if [[ $ENVIRONMENT_NAME == 'dev' ]]; then
+                    RDS_SECRETS_ARN=${{ secrets.RDS_SECRETS_ARN_DEV }}
+                  elif [[ $ENVIRONMENT_NAME == 'stage' ]]; then
+                    RDS_SECRETS_ARN=${{ secrets.RDS_SECRETS_ARN_STAGE }}
+                  elif [[ $ENVIRONMENT_NAME == 'prod' ]]; then
+                    RDS_SECRETS_ARN=${{ secrets.RDS_SECRETS_ARN_PROD }}
+                  fi
                   aws cloudformation deploy \
                     --template-file $TEMPLATE_FILE \
                     --stack-name $STACK_NAME \
@@ -361,7 +367,7 @@ jobs:
                       PublicSubnet2Cidr=$PUBLIC_SUBNET_2_CIDR \
                       PrivateSubnet1Cidr=$PRIVATE_SUBNET_1_CIDR \
                       PrivateSubnet2Cidr=$PRIVATE_SUBNET_2_CIDR \
-                      BastionAccessCidr=$BASTION_ACCESS_CIDR
+                      RdsSecretsArn=$RDS_SECRETS_ARN
 
             - name: Retrieve Stack Outputs
               run: |

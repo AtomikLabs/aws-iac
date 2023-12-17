@@ -43,6 +43,9 @@ Parameters:
     DataPersistenceSubstackTemplateURL:
         Type: String
         Description: "S3 URL of the data persistence stack template"
+    RdsSecretsArn:
+        Type: String
+        Description: "ARN of the RDS Secrets Manager Secret"
 
 Resources:
     ContainerizationSubstack:
@@ -71,6 +74,7 @@ Resources:
                 EnvironmentName: !Ref EnvironmentName
                 AuroraSecurityGroup: !GetAtt NetworkingSubstack.Outputs.AuroraSecurityGroupId
                 PublicSubnetGroup: !GetAtt NetworkingSubstack.Outputs.PublicSubnetGroup
+                RdsSecretsArn: !Ref RdsSecretsArn
     DataPersistenceSubstack:
         Type: AWS::CloudFormation::Stack
         DependsOn: NetworkingSubstack
