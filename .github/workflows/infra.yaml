@@ -153,7 +153,6 @@ jobs:
                       PrivateSubnet1Cidr=$TEST_PRIVATE_SUBNET_1_CIDR \
                       PrivateSubnet2Cidr=$TEST_PRIVATE_SUBNET_2_CIDR
                       RdsSecretsArn=$RDS_SECRETS_ARN
-
             - name: Retrieve Stack Outputs
               run: |
                 STACK_NAME="atomiklabs-test-stack-${{ github.run_number }}"
