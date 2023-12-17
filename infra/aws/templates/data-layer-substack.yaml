@@ -92,9 +92,11 @@ Resources:
                                 - "rds-data:RollbackTransaction"
                                 - "rds-data:BatchExecuteStatement"
                                 - "rds-data:ExecuteSql"
+                                - "secretsmanager:GetSecretValue"
                             Resource: 
                                 - !Sub "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/*"
                                 - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:atomiklabs-${EnvironmentName}-aurora-cluster"
+                                - !Sub "RDS_SECRETS_ARN_${EnvironmentName}"
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
