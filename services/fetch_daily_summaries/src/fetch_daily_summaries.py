@@ -155,7 +155,7 @@ def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, dat
 
     sql_statement = """
     INSERT INTO research_fetch_status (fetch_date, status)
-    VALUES (:date, 'pending') ON CONFLICT (fetch_date) DO NOTHING
+    VALUES (CAST(:date AS DATE), 'pending') ON CONFLICT (fetch_date) DO NOTHING
     """
 
     parameters = [{"name": "date", "value": {"stringValue": date}}]
