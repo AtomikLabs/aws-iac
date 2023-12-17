@@ -106,6 +106,7 @@ Resources:
                 MinCapacity: 2
                 MaxCapacity: 8
                 SecondsUntilAutoPause: 300
+            EnableHttpEndpoint: true
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
