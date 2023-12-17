@@ -170,31 +170,23 @@ def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, dat
     return response
 
 
-def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, database, days=5) -> str:
-    """
-    Gets the earliest unfetched date using AWS RDSDataService.
-
-    Args:
-        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
-        db_credentials_secret_arn (str): The ARN of the secret containing
-        credentials to access the DB.
-        database (str): Database name.
-        days (int): Number of days to look back.
-
-    Returns:
-        str: Earliest unfetched date.
-    """
+def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, database, days=5) -> datetime.date:
     client = boto3.client("rds-data")
-    today = datetime.today()
-    past_dates = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, days + 1)]
-    logger.info(f"Past dates: {past_dates}")
-    logger.info(f"Today's date: {today}")
+    today = datetime.today().date()
+    past_dates = [(today - timedelta(days=i)) for i in range(1, days + 1)]
+    logging.info(f"Past dates: {past_dates}")
+    logging.info(f"Today's date: {today}")
     sql_statement = """
     SELECT fetch_date FROM research_fetch_status
-    WHERE fetch_date = ANY(:past_dates::DATE[]) AND status = 'success'
-    """
+    WHERE fetch_date = ANY(ARRAY[{}]::DATE[]) AND status = 'success'
+    """.format(
+        ", ".join(["%s::DATE"] * len(past_dates))
+    )
 
-    parameters = [{"name": "past_dates", "typeHint": "array", "value": {"arrayValue": {"stringValues": past_dates}}}]
+    parameters = [
+        {"name": "param" + str(i), "value": {"stringValue": date.strftime("%Y-%m-%d")}}
+        for i, date in enumerate(past_dates)
+    ]
 
     try:
         response = client.execute_statement(
@@ -205,9 +197,11 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
             parameters=parameters,
         )
 
-        fetched_dates = [result["fetch_date"] for result in response["records"]]
+        fetched_dates = [
+            datetime.strptime(result[0]["stringValue"], "%Y-%m-%d").date() for result in response["records"]
+        ]
         unfetched_dates = list(set(past_dates) - set(fetched_dates))
-        logger.info(f"Unfetched dates: {unfetched_dates}")
+        logging.info(f"Unfetched dates: {unfetched_dates}")
 
         earliest_date = min(unfetched_dates) if unfetched_dates else None
     except Exception as e:

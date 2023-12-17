@@ -1,4 +1,5 @@
 # Test data fetching functions
+from datetime import datetime
 import unittest
 import requests
 
@@ -30,20 +31,23 @@ class TestAttemptFetchForDates(unittest.TestCase):
     def test_successful_fetch(
         self, mock_process_fetch, mock_insert_fetch_status, mock_generate_date_list, mock_fetch_data
     ):
+        # Setup test data with date objects
         base_url = "mock_base_url"
         summary_set = "mock_summary_set"
         bucket_name = "mock_bucket_name"
         aurora_cluster_arn = "mock_aurora_cluster_arn"
-        db_credentials_secret_arn = "mock_db_credentials_secret_arn"  # nosec
+        db_credentials_secret_arn = "mock_db_credentials_secret_arn"
         database = "mock_database"
-        today = "2023-01-02"
-        earliest_unfetched_date = "2023-01-01"
-        mock_date_list = ["2023-01-01", "2023-01-02"]
+        today = datetime(2023, 1, 2)
+        earliest_unfetched_date = datetime(2023, 1, 1)
+        mock_date_list = [datetime(2023, 1, 1), datetime(2023, 1, 2)]
 
+        # Setup mock returns
         mock_generate_date_list.return_value = mock_date_list
         mock_fetch_data.return_value = ["mock_xml_response_1", "mock_xml_response_2"]
         mock_process_fetch.side_effect = [True, True]
 
+        # Call the function under test
         result = attempt_fetch_for_dates(
             base_url,
             summary_set,
@@ -55,12 +59,17 @@ class TestAttemptFetchForDates(unittest.TestCase):
             earliest_unfetched_date,
         )
 
-        self.assertEqual(result, "2023-01-02")
-        mock_generate_date_list.assert_called_once_with("2023-01-01", "2023-01-02")
-        mock_insert_fetch_status.assert_any_call("2023-01-01", aurora_cluster_arn, db_credentials_secret_arn, database)
-        mock_insert_fetch_status.assert_any_call("2023-01-02", aurora_cluster_arn, db_credentials_secret_arn, database)
+        # Assert the results
+        self.assertEqual(result, datetime(2023, 1, 2))
+        mock_generate_date_list.assert_called_once_with(datetime(2023, 1, 1), datetime(2023, 1, 2))
+        mock_insert_fetch_status.assert_has_calls(
+            [
+                unittest.mock.call(datetime(2023, 1, 1), aurora_cluster_arn, db_credentials_secret_arn, database),
+                unittest.mock.call(datetime(2023, 1, 2), aurora_cluster_arn, db_credentials_secret_arn, database),
+            ]
+        )
         mock_process_fetch.assert_called_with(
-            "2023-01-02",
+            datetime(2023, 1, 2),
             summary_set,
             bucket_name,
             aurora_cluster_arn,

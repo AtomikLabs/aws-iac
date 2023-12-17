@@ -51,17 +51,22 @@ class TestGetEarliestUnfetchedDate(unittest.TestCase):
 
     @patch(BOTO3_CLIENT_PATH)
     def test_successful_retrieval(self, mock_boto3_client):
-        today = datetime.today()
-        past_dates = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, 6)]
+        today = datetime.today().date()
+        past_dates = [today - timedelta(days=i) for i in range(1, 6)]
 
         mock_client = Mock()
         mock_boto3_client.return_value = mock_client
         mock_client.execute_statement.return_value = {
-            "records": [{"fetch_date": past_dates[1]}, {"fetch_date": past_dates[2]}]
+            "records": [
+                [{"stringValue": past_dates[1].strftime("%Y-%m-%d")}],
+                [{"stringValue": past_dates[2].strftime("%Y-%m-%d")}],
+            ]
         }
 
-        expected_earliest_date = min(set(past_dates) - {past_dates[1], past_dates[2]})
+        fetched_dates = {past_dates[1], past_dates[2]}
+        expected_earliest_date = min(set(past_dates) - fetched_dates)
         result = get_earliest_unfetched_date("mock_aurora_arn", "mock_secret_arn", "mock_database")
+
         self.assertEqual(result, expected_earliest_date)
 
     @patch(BOTO3_CLIENT_PATH)
