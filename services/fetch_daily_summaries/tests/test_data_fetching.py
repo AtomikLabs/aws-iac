@@ -62,10 +62,12 @@ class TestAttemptFetchForDates(unittest.TestCase):
         # Assert the results
         self.assertEqual(result, datetime(2023, 1, 2))
         mock_generate_date_list.assert_called_once_with(datetime(2023, 1, 1), datetime(2023, 1, 2))
-        mock_insert_fetch_status.assert_has_calls([
-            unittest.mock.call(datetime(2023, 1, 1), aurora_cluster_arn, db_credentials_secret_arn, database),
-            unittest.mock.call(datetime(2023, 1, 2), aurora_cluster_arn, db_credentials_secret_arn, database)
-        ])
+        mock_insert_fetch_status.assert_has_calls(
+            [
+                unittest.mock.call(datetime(2023, 1, 1), aurora_cluster_arn, db_credentials_secret_arn, database),
+                unittest.mock.call(datetime(2023, 1, 2), aurora_cluster_arn, db_credentials_secret_arn, database),
+            ]
+        )
         mock_process_fetch.assert_called_with(
             datetime(2023, 1, 2),
             summary_set,
@@ -73,7 +75,7 @@ class TestAttemptFetchForDates(unittest.TestCase):
             aurora_cluster_arn,
             db_credentials_secret_arn,
             database,
-            ["mock_xml_response_1", "mock_xml_response_2"]
+            ["mock_xml_response_1", "mock_xml_response_2"],
         )
 
     @patch(FETCH_DATA_PATH)

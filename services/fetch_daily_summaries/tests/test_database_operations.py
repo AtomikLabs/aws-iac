@@ -57,7 +57,10 @@ class TestGetEarliestUnfetchedDate(unittest.TestCase):
         mock_client = Mock()
         mock_boto3_client.return_value = mock_client
         mock_client.execute_statement.return_value = {
-            "records": [[{"stringValue": past_dates[1].strftime("%Y-%m-%d")}], [{"stringValue": past_dates[2].strftime("%Y-%m-%d")}]]
+            "records": [
+                [{"stringValue": past_dates[1].strftime("%Y-%m-%d")}],
+                [{"stringValue": past_dates[2].strftime("%Y-%m-%d")}],
+            ]
         }
 
         fetched_dates = {past_dates[1], past_dates[2]}
