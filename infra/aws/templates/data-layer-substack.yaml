@@ -92,7 +92,9 @@ Resources:
                                 - "rds:RollbackTransaction"
                                 - "rds:BatchExecuteStatement"
                                 - "rds:ExecuteSql"
-                            Resource: !Sub "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/*"
+                            Resource: 
+                                - !Sub "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/*"
+                                - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:atomiklabs-${EnvironmentName}-aurora-cluster"
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
