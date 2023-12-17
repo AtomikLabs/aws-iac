@@ -179,9 +179,14 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     sql_statement = """
     SELECT fetch_date FROM research_fetch_status
     WHERE fetch_date = ANY(ARRAY[{}]::DATE[]) AND status = 'success'
-    """.format(', '.join(["%s::DATE"] * len(past_dates)))
+    """.format(
+        ", ".join(["%s::DATE"] * len(past_dates))
+    )
 
-    parameters = [{"name": "param" + str(i), "value": {"stringValue": date.strftime("%Y-%m-%d")}} for i, date in enumerate(past_dates)]
+    parameters = [
+        {"name": "param" + str(i), "value": {"stringValue": date.strftime("%Y-%m-%d")}}
+        for i, date in enumerate(past_dates)
+    ]
 
     try:
         response = client.execute_statement(
@@ -192,7 +197,9 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
             parameters=parameters,
         )
 
-        fetched_dates = [datetime.strptime(result[0]["stringValue"], "%Y-%m-%d").date() for result in response["records"]]
+        fetched_dates = [
+            datetime.strptime(result[0]["stringValue"], "%Y-%m-%d").date() for result in response["records"]
+        ]
         unfetched_dates = list(set(past_dates) - set(fetched_dates))
         logging.info(f"Unfetched dates: {unfetched_dates}")
 
