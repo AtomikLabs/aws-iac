@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import time
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from typing import List
 
 import boto3
@@ -125,15 +125,15 @@ def log_initial_info(event: dict) -> None:
     logging.info("Starting to fetch arXiv daily summaries")
 
 
-def calculate_from_date() -> str:
+def calculate_from_date() -> date:
     """Calculates from date for fetching summaries.
 
     Returns:
-        str: From date.
+        date: From date.
     """
     today = datetime.today()
     yesterday = today - timedelta(days=1)
-    return yesterday.strftime("%Y-%m-%d")
+    return yesterday.date()
 
 
 def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, database):
@@ -142,20 +142,21 @@ def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, dat
     AWS RDSDataService.
 
     Args:
-        date (str): Date for which to insert fetch status.
+        date (date): Date for which to insert fetch status.
         aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
         db_credentials_secret_arn (str): The ARN of the secret containing
                                          credentials to access the DB.
         database (str): Database name.
     """
     client = boto3.client("rds-data")
+    formatted_date = date.strftime("%Y-%m-%d")
 
     sql_statement = """
     INSERT INTO research_fetch_status (fetch_date, status)
     VALUES (CAST(:date AS DATE), 'pending') ON CONFLICT (fetch_date) DO NOTHING
     """
 
-    parameters = [{"name": "date", "value": {"stringValue": date}}]
+    parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
 
     response = client.execute_statement(
         resourceArn=aurora_cluster_arn,
@@ -167,7 +168,20 @@ def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, dat
     return response
 
 
-def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, database, days=5) -> datetime.date:
+def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, database, days=5) -> date:
+    """
+    Gets the earliest unfetched date using AWS RDSDataService.
+
+    Args:
+        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
+        db_credentials_secret_arn (str): The ARN of the secret containing
+                                         credentials to access the DB.
+        database (str): Database name.
+        days (int): Number of days to check for unfetched dates.
+
+    Returns:
+        date: Earliest unfetched date.
+    """
     client = boto3.client("rds-data")
     today = datetime.today().date()
     past_dates = [(today - timedelta(days=i)) for i in range(1, days + 1)]
@@ -215,9 +229,9 @@ def attempt_fetch_for_dates(
     aurora_cluster_arn: str,
     db_credentials_secret_arn: str,
     database: str,
-    today: str,
-    earliest_unfetched_date: str,
-):
+    today: date,
+    earliest_unfetched_date: date,
+) -> date:
     """
     Fetches arXiv daily summaries for the given dates using AWS RDSDataService.
 
@@ -229,11 +243,11 @@ def attempt_fetch_for_dates(
         db_credentials_secret_arn (str): The ARN of the secret containing
         credentials to access the DB.
         database (str): Database name.
-        today (str): Today's date.
-        earliest_unfetched_date (str): Earliest unfetched date.
+        today (date): Today's date.
+        earliest_unfetched_date (date): Earliest unfetched date.
 
     Returns:
-    str: The last date for which fetch was successful.
+    date: The last date for which fetch was successful.
     """
     last_success_date = None
 
@@ -265,32 +279,30 @@ def attempt_fetch_for_dates(
     return last_success_date
 
 
-def generate_date_list(start_date_str: str, end_date_str: str) -> List[str]:
+def generate_date_list(start_date: date, end_date: date) -> List[date]:
     """
     Generates a list of dates between the given start and end dates.
 
     Args:
-        start_date_str (str): Start date.
-        end_date_str (str): End date.
+        start_date (date): Start date.
+        end_date (date): End date.
 
     Returns:
-        List[str]: List of dates.
+        List[date]: List of dates.
     """
-    start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
     delta = end_date - start_date
     if delta.days < 0:
         raise ValueError("End date must be after start date")
-    return [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((delta.days) + 1)]
+    return [(start_date + timedelta(days=i)) for i in range((delta.days) + 1)]
 
 
-def fetch_data(base_url: str, from_date: str, summary_set: str) -> List[str]:
+def fetch_data(base_url: str, from_date: date, summary_set: str) -> List[str]:
     """
     Fetches data from the API.
 
     Args:
         base_url (str): Base URL for the API.
-        from_date (str): Summary date.
+        from_date (date): Summary date.
         summary_set (str): Summary set.
 
     Returns:
@@ -301,7 +313,7 @@ def fetch_data(base_url: str, from_date: str, summary_set: str) -> List[str]:
         "verb": "ListRecords",
         "set": summary_set,
         "metadataPrefix": "oai_dc",
-        "from": from_date,
+        "from": from_date.strftime("%Y-%m-%d"),
     }
     retry_count = 0
     while True:
@@ -414,13 +426,13 @@ def schedule_for_later() -> None:
 
 
 def process_fetch(
-    from_date, summary_set, bucket_name, aurora_cluster_arn, db_credentials_secret_arn, database, fetched_data
+    from_date: date, summary_set: str, bucket_name: str, aurora_cluster_arn: str, db_credentials_secret_arn: str, database:str , fetched_data: str
 ) -> bool:
     """
     Processes the fetched data and uploads to S3 using AWS RDSDataService.
 
     Args:
-        from_date (str): Summary date.
+        from_date (date): Summary date.
         summary_set (str): Summary set.
         bucket_name (str): S3 bucket name.
         aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
@@ -432,7 +444,7 @@ def process_fetch(
     Returns:
         bool: True if fetch was successful, False otherwise.
     """
-    pattern = r"</dc:description>\s+<dc:date>" + re.escape(from_date)
+    pattern = r"</dc:description>\s+<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d"))
     pattern += r"</dc:date>\s+<dc:type>text</dc:type>"
     success = any(re.search(pattern, xml) for xml in fetched_data)
 
@@ -445,12 +457,12 @@ def process_fetch(
     return success
 
 
-def set_fetch_status(date, status, aurora_cluster_arn, db_credentials_secret_arn, database):
+def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secret_arn, database):
     """
     Sets fetch status in the database using AWS RDSDataService.
 
     Args:
-        date (str): Date for which to set fetch status.
+        date (date): Date for which to set fetch status.
         status (str): Status to set ('success' or 'failure').
         aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
         db_credentials_secret_arn (str): The ARN of the secret containing
@@ -464,7 +476,7 @@ def set_fetch_status(date, status, aurora_cluster_arn, db_credentials_secret_arn
             WHERE fetch_date = :date"
 
         parameters = [
-            {"name": "date", "value": {"stringValue": date}},
+            {"name": "date", "value": {"stringValue": date.strftime("%Y-%m-%d")}},
             {"name": "status", "value": {"stringValue": status}},
         ]
 
@@ -481,12 +493,12 @@ def set_fetch_status(date, status, aurora_cluster_arn, db_credentials_secret_arn
         return False
 
 
-def upload_to_s3(bucket_name: str, from_date: str, summary_set: str, full_xml_responses: List[str]):
+def upload_to_s3(bucket_name: str, from_date: date, summary_set: str, full_xml_responses: List[str]):
     """Uploads XML responses to S3.
 
     Args:
         bucket_name (str): S3 bucket name.
-        from_date (str): Summary date.
+        from_date (date): Summary date.
         summary_set (str): Summary set.
         full_xml_responses (List[str]): XML responses.
     """
@@ -497,5 +509,5 @@ def upload_to_s3(bucket_name: str, from_date: str, summary_set: str, full_xml_re
         s3.put_object(
             Body=xml_response,
             Bucket=bucket_name,
-            Key=f"arxiv/{summary_set}-{from_date}-{idx}.xml",
+            Key=f"arxiv/{summary_set}-{from_date.strftime('%Y-%m-%d')}-{idx}.xml",
         )
