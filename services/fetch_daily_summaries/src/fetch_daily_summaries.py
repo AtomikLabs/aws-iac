@@ -34,16 +34,31 @@ def lambda_handler(event: dict, context) -> dict:
     try:
         log_initial_info(event)
 
-        base_url, bucket_name, summary_set = get_event_params(event)
-
         today = calculate_from_date()
 
         aurora_cluster_arn = os.environ.get("RESOURCE_ARN")
+        base_url = os.environ.get("BASE_URL")
+        bucket_name = os.environ.get("BUCKET_NAME")
         db_credentials_secret_arn = os.environ.get("SECRET_ARN")
         database = os.environ.get("DATABASE_NAME")
+        summary_set = os.environ.get("SUMMARY_SET")
 
-        if not all([aurora_cluster_arn, db_credentials_secret_arn, database]):
-            return {"statusCode": 400, "body": "Configuration error: Missing required parameters"}
+        if not all([aurora_cluster_arn, db_credentials_secret_arn, database, base_url, bucket_name, summary_set]):
+            message = ""
+            if not aurora_cluster_arn:
+                message += "RESOURCE_ARN "
+            if not db_credentials_secret_arn:
+                message += "SECRET_ARN "
+            if not database:
+                message += "DATABASE_NAME "
+            if not base_url:
+                message += "BASE_URL "
+            if not bucket_name:
+                message += "BUCKET_NAME "
+            if not summary_set:
+                message += "SUMMARY_SET "
+
+            return {"statusCode": 500, "body": f"Missing environment variables: {message}"}
 
         try:
             insert_fetch_status(today, aurora_cluster_arn, db_credentials_secret_arn, database)
@@ -108,24 +123,6 @@ def log_initial_info(event: dict) -> None:
     """
     logging.info(f"Received event: {event}")
     logging.info("Starting to fetch arXiv daily summaries")
-
-
-def get_event_params(event: dict) -> (str, str, str):
-    """
-    Gets event parameters.
-
-    Args:
-        event (dict): Event.
-
-    Returns:
-        str: Base URL.
-        str: S3 bucket name.
-        str: Summary set.
-    """
-    if not event:
-        return None, None, None
-
-    return (event.get("base_url"), event.get("bucket_name"), event.get("summary_set"))
 
 
 def calculate_from_date() -> str:
@@ -321,7 +318,7 @@ def fetch_data(base_url: str, from_date: str, summary_set: str) -> List[str]:
             else:
                 break
 
-        if xml_content.strip():  # Add this check
+        if xml_content.strip():
             full_xml_responses.append(xml_content)
 
         resumption_token = extract_resumption_token(xml_content)

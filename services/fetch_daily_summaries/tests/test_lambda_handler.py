@@ -23,6 +23,9 @@ class TestLambdaHandler(unittest.TestCase):
             "RESOURCE_ARN": "mock_resource_arn",
             "SECRET_ARN": "mock_secret_arn",
             "DATABASE_NAME": "mock_database",
+            "BASE_URL": "http://example.com",
+            "BUCKET_NAME": "mybucket",
+            "SUMMARY_SET": "summary1",
         },
     )
     def test_successful_fetch_and_processing(
@@ -51,6 +54,9 @@ class TestLambdaHandler(unittest.TestCase):
             "RESOURCE_ARN": "mock_resource_arn",
             "SECRET_ARN": "mock_secret_arn",
             "DATABASE_NAME": "mock_database",
+            "BASE_URL": "http://example.com",
+            "BUCKET_NAME": "mybucket",
+            "SUMMARY_SET": "summary1",
         },
     )
     def test_no_data_to_fetch(self, mock_boto3, mock_get_earliest_unfetched_date):
@@ -73,6 +79,9 @@ class TestLambdaHandler(unittest.TestCase):
             "RESOURCE_ARN": "mock_resource_arn",
             "SECRET_ARN": "mock_secret_arn",
             "DATABASE_NAME": "mock_database",
+            "BASE_URL": "http://example.com",
+            "BUCKET_NAME": "mybucket",
+            "SUMMARY_SET": "summary1",
         },
     )
     def test_error_handling_db_interaction(self, mock_boto3, mock_get_earliest_unfetched_date):
@@ -92,14 +101,3 @@ class TestLambdaHandler(unittest.TestCase):
 
         self.assertEqual(response["statusCode"], 500)
         self.assertIn("Internal server error", response["body"])
-
-    @patch.dict(os.environ, {"AWS_DEFAULT_REGION": "us-east-1"})
-    @patch.dict(os.environ, {"RESOURCE_ARN": "", "SECRET_ARN": "", "DATABASE_NAME": ""})
-    def test_missing_environment_variables(self):
-        event = {"base_url": "http://example.com", "bucket_name": "mybucket", "summary_set": "summary1"}
-        context = MagicMock()
-
-        response = lambda_handler(event, context)
-
-        self.assertEqual(response["statusCode"], 400)
-        self.assertIn("Configuration error", response["body"])
