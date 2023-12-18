@@ -176,16 +176,16 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     past_dates = [(today - timedelta(days=i)) for i in range(1, days + 1)]
     logging.info(f"Past dates: {past_dates}")
     logging.info(f"Today's date: {today}")
-    sql_statement = """
+
+    placeholders = [f":date{i}" for i in range(len(past_dates))]
+    placeholder_string = ", ".join(placeholders)
+    sql_statement = f"""
     SELECT fetch_date FROM research_fetch_status
-    WHERE fetch_date = ANY(ARRAY[{}]::DATE[]) AND status = 'success'
-    """.format(
-        ", ".join(["%s::DATE"] * len(past_dates))
-    )
+    WHERE fetch_date = ANY(ARRAY[{placeholder_string}]::DATE[]) AND status = 'success'
+    """
 
     parameters = [
-        {"name": "param" + str(i), "value": {"stringValue": date.strftime("%Y-%m-%d")}}
-        for i, date in enumerate(past_dates)
+        {"name": f"date{i}", "value": {"stringValue": date.strftime("%Y-%m-%d")}} for i, date in enumerate(past_dates)
     ]
 
     try:
