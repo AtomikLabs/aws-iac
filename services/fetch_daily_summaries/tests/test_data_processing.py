@@ -56,7 +56,7 @@ class TestCalculateFromDate(unittest.TestCase):
     def test_calculate_from_date(self, mock_datetime):
         mock_today = datetime(2023, 1, 2)
         mock_datetime.today.return_value = mock_today
-        expected_date = (mock_today - timedelta(days=1))
+        expected_date = mock_today - timedelta(days=1)
         result = calculate_from_date()
         self.assertEqual(result, expected_date.date())
 
@@ -64,7 +64,7 @@ class TestCalculateFromDate(unittest.TestCase):
     def test_calculate_from_date_leap_year(self, mock_datetime):
         mock_today = datetime(2024, 2, 29)
         mock_datetime.today.return_value = mock_today
-        expected_date = (mock_today - timedelta(days=1))
+        expected_date = mock_today - timedelta(days=1)
         result = calculate_from_date()
         self.assertEqual(result, expected_date.date())
 
@@ -72,7 +72,7 @@ class TestCalculateFromDate(unittest.TestCase):
     def test_calculate_from_date_year_change(self, mock_datetime):
         mock_today = datetime(2023, 1, 1)
         mock_datetime.today.return_value = mock_today
-        expected_date = (mock_today - timedelta(days=1))
+        expected_date = mock_today - timedelta(days=1)
         result = calculate_from_date()
         self.assertEqual(result, expected_date.date())
 

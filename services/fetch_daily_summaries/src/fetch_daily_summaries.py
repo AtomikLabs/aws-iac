@@ -426,7 +426,13 @@ def schedule_for_later() -> None:
 
 
 def process_fetch(
-    from_date: date, summary_set: str, bucket_name: str, aurora_cluster_arn: str, db_credentials_secret_arn: str, database:str , fetched_data: str
+    from_date: date,
+    summary_set: str,
+    bucket_name: str,
+    aurora_cluster_arn: str,
+    db_credentials_secret_arn: str,
+    database: str,
+    fetched_data: str,
 ) -> bool:
     """
     Processes the fetched data and uploads to S3 using AWS RDSDataService.
