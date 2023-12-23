@@ -37,11 +37,11 @@ def lambda_handler(event: dict, context) -> dict:
 
 
 def generate_date_list(start_date: date, end_date: date) -> list:
-    return [(start_date + timedelta(days=i)) for i in range((end_date - start_date).days + 3)]
+    return [(start_date + timedelta(days=i)) for i in range((end_date - start_date).days + 1)]
 
 
 def calculate_from_date() -> date:
-    return (datetime.today() - timedelta(days=1)).date()
+    return (datetime.today() - timedelta(days=3)).date()
 
 
 def fetch_data_for_date(base_url: str, summary_set: str, fetch_date: date) -> str:
