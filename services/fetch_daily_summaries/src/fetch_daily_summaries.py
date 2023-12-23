@@ -435,37 +435,35 @@ def process_fetch(
     aurora_cluster_arn: str,
     db_credentials_secret_arn: str,
     database: str,
-    fetched_data: str,
+    fetched_data: List[str],
 ) -> bool:
-    """
-    Processes the fetched data and uploads to S3 using AWS RDSDataService.
+    success = False
+    for xml_response in fetched_data:
+        # Parse XML response
+        try:
+            root = ET.fromstring(xml_response)
+            # Define namespace mapping
+            ns = {"oai": "http://www.openarchives.org/OAI/2.0/", "dc": "http://purl.org/dc/elements/1.1/"}
+            # Find relevant records
+            records = root.findall(".//oai:record", ns)
+            for record in records:
+                # Extract and process individual record data
+                date_element = record.find(".//dc:date", ns)
+                if date_element is not None and date_element.text == from_date.strftime("%Y-%m-%d"):
+                    # Process record (e.g., extract title, authors, etc.)
+                    # ...
+                    success = True
+        except ET.ParseError as e:
+            logging.error(f"XML parsing error: {e}")
+            continue
 
-    Args:
-        from_date (date): Summary date.
-        summary_set (str): Summary set.
-        bucket_name (str): S3 bucket name.
-        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
-        db_credentials_secret_arn (str): The ARN of the secret containing
-        credentials to access the DB.
-        database (str): Database name.
-        fetched_data (List[str]): List of XML responses.
-
-    Returns:
-        bool: True if fetch was successful, False otherwise.
-    """
-    pattern = (
-        r"<oai_dc:dc[^>]*>.*?<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d")) + r"</dc:date>(?!.*?<dc:date>)"
-    )
-
-    success = any(re.search(pattern, xml, re.DOTALL) for xml in fetched_data)
-
-    if success:
-        logging.info(f"Data found for date: {from_date}, proceeding with upload.")
-        upload_to_s3(bucket_name, from_date, summary_set, fetched_data)
-        set_fetch_status(from_date, "success", aurora_cluster_arn, db_credentials_secret_arn, database)
-    else:
-        logging.warning(f"No matching data found for date: {from_date}, marking as failure.")
-        set_fetch_status(from_date, "failure", aurora_cluster_arn, db_credentials_secret_arn, database)
+        if success:
+            # If successful, upload to S3
+            upload_to_s3(bucket_name, from_date, summary_set, [xml_response])
+            set_fetch_status(from_date, "success", aurora_cluster_arn, db_credentials_secret_arn, database)
+        else:
+            # If no data found, mark as failure
+            set_fetch_status(from_date, "failure", aurora_cluster_arn, db_credentials_secret_arn, database)
 
     return success
 
