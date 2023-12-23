@@ -517,3 +517,7 @@ def upload_to_s3(bucket_name: str, from_date: date, summary_set: str, full_xml_r
             Bucket=bucket_name,
             Key=f"arxiv/{summary_set}-{from_date.strftime('%Y-%m-%d')}-{idx}.xml",
         )
+
+
+if __name__ == "__main__":
+    lambda_handler({}, {})
