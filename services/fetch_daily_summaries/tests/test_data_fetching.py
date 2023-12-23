@@ -1,5 +1,5 @@
 # Test data fetching functions
-from datetime import datetime
+from datetime import date, datetime
 import unittest
 import requests
 
@@ -155,7 +155,7 @@ class TestFetchData(unittest.TestCase):
         mock_fetch_http_response.return_value = (200, self.XML_CONTENT)
         mock_extract_resumption_token.return_value = None
 
-        result = fetch_data("mock_base_url", "2023-01-01", "mock_summary_set")
+        result = fetch_data("mock_base_url", date(2023, 1, 1), "mock_summary_set")
 
         self.assertEqual(result, [self.XML_CONTENT])
 
@@ -166,7 +166,7 @@ class TestFetchData(unittest.TestCase):
         mock_fetch_http_response.side_effect = [(500, "Server Error"), (200, self.XML_CONTENT)]
         mock_handle_http_error.return_value = 1
 
-        result = fetch_data("mock_base_url", "2023-01-01", "mock_summary_set")
+        result = fetch_data("mock_base_url", date(2023, 1, 1), "mock_summary_set")
 
         self.assertEqual(result, [self.XML_CONTENT])
 
@@ -177,7 +177,7 @@ class TestFetchData(unittest.TestCase):
         mock_fetch_http_response.side_effect = [(200, "<xml>mock_content_1</xml>"), (200, "<xml>mock_content_2</xml>")]
         mock_extract_resumption_token.side_effect = ["token", None]
 
-        result = fetch_data("mock_base_url", "2023-01-01", "mock_summary_set")
+        result = fetch_data("mock_base_url", date(2023, 1, 1), "mock_summary_set")
 
         self.assertEqual(result, ["<xml>mock_content_1</xml>", "<xml>mock_content_2</xml>"])
 

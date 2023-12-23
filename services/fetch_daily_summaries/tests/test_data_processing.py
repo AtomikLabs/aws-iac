@@ -1,10 +1,9 @@
 # Test file for fetch_daily_summaries data processing functions
 import unittest
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import patch, MagicMock
 from services.fetch_daily_summaries.src.fetch_daily_summaries import (
     log_initial_info,
-    get_event_params,
     calculate_from_date,
     generate_date_list,
     schedule_for_later,
@@ -52,108 +51,65 @@ class TestLogInitialInfo(unittest.TestCase):
         self.mock_logger.info.assert_any_call(TestLogInitialInfo.START_MESSAGE)
 
 
-class TestGetEventParams(unittest.TestCase):
-    def test_with_all_params_present(self):
-        event = {"base_url": "http://example.com", "bucket_name": "mybucket", "summary_set": "summary1"}
-        base_url, bucket_name, summary_set = get_event_params(event)
-        self.assertEqual(base_url, "http://example.com")
-        self.assertEqual(bucket_name, "mybucket")
-        self.assertEqual(summary_set, "summary1")
-
-    def test_with_some_params_missing(self):
-        event = {"base_url": "http://example.com", "summary_set": "summary1"}
-        base_url, bucket_name, summary_set = get_event_params(event)
-        self.assertEqual(base_url, "http://example.com")
-        self.assertIsNone(bucket_name)
-        self.assertEqual(summary_set, "summary1")
-
-    def test_with_empty_event(self):
-        event = {}
-        base_url, bucket_name, summary_set = get_event_params(event)
-        self.assertIsNone(base_url)
-        self.assertIsNone(bucket_name)
-        self.assertIsNone(summary_set)
-
-    def test_with_none_event(self):
-        event = None
-        base_url, bucket_name, summary_set = get_event_params(event)
-        self.assertIsNone(base_url)
-        self.assertIsNone(bucket_name)
-        self.assertIsNone(summary_set)
-
-    def test_with_unusual_event_structure(self):
-        event = {"unexpected_param": "unexpected"}
-        base_url, bucket_name, summary_set = get_event_params(event)
-        self.assertIsNone(base_url)
-        self.assertIsNone(bucket_name)
-        self.assertIsNone(summary_set)
-
-
 class TestCalculateFromDate(unittest.TestCase):
     @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.datetime")
     def test_calculate_from_date(self, mock_datetime):
         mock_today = datetime(2023, 1, 2)
         mock_datetime.today.return_value = mock_today
-        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
+        expected_date = mock_today - timedelta(days=1)
         result = calculate_from_date()
-        self.assertEqual(result, expected_date)
+        self.assertEqual(result, expected_date.date())
 
     @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.datetime")
     def test_calculate_from_date_leap_year(self, mock_datetime):
         mock_today = datetime(2024, 2, 29)
         mock_datetime.today.return_value = mock_today
-        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
+        expected_date = mock_today - timedelta(days=1)
         result = calculate_from_date()
-        self.assertEqual(result, expected_date)
+        self.assertEqual(result, expected_date.date())
 
     @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.datetime")
     def test_calculate_from_date_year_change(self, mock_datetime):
         mock_today = datetime(2023, 1, 1)
         mock_datetime.today.return_value = mock_today
-        expected_date = (mock_today - timedelta(days=1)).strftime("%Y-%m-%d")
+        expected_date = mock_today - timedelta(days=1)
         result = calculate_from_date()
-        self.assertEqual(result, expected_date)
+        self.assertEqual(result, expected_date.date())
 
 
 class TestGenerateDateList(unittest.TestCase):
     def test_generate_normal_date_range(self):
-        start_date = "2023-01-01"
-        end_date = "2023-01-05"
-        expected_result = ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
+        start_date = date(2023, 1, 1)
+        end_date = date(2023, 1, 5)
+        expected_result = [date(2023, 1, 1), date(2023, 1, 2), date(2023, 1, 3), date(2023, 1, 4), date(2023, 1, 5)]
         self.assertEqual(generate_date_list(start_date, end_date), expected_result)
 
     def test_generate_single_date_range(self):
-        start_date = "2023-01-01"
-        end_date = "2023-01-01"
-        expected_result = ["2023-01-01"]
+        start_date = date(2023, 1, 1)
+        end_date = date(2023, 1, 1)
+        expected_result = [date(2023, 1, 1)]
         self.assertEqual(generate_date_list(start_date, end_date), expected_result)
 
     def test_generate_date_range_in_future(self):
-        start_date = "2023-01-01"
-        end_date = "2023-01-10"
+        start_date = date(2023, 1, 1)
+        end_date = date(2023, 1, 10)
         expected_result = [
-            "2023-01-01",
-            "2023-01-02",
-            "2023-01-03",
-            "2023-01-04",
-            "2023-01-05",
-            "2023-01-06",
-            "2023-01-07",
-            "2023-01-08",
-            "2023-01-09",
-            "2023-01-10",
+            date(2023, 1, 1),
+            date(2023, 1, 2),
+            date(2023, 1, 3),
+            date(2023, 1, 4),
+            date(2023, 1, 5),
+            date(2023, 1, 6),
+            date(2023, 1, 7),
+            date(2023, 1, 8),
+            date(2023, 1, 9),
+            date(2023, 1, 10),
         ]
         self.assertEqual(generate_date_list(start_date, end_date), expected_result)
 
     def test_generate_date_range_with_end_date_before_start_date(self):
-        start_date = "2023-01-05"
-        end_date = "2023-01-01"
-        with self.assertRaises(ValueError):
-            generate_date_list(start_date, end_date)
-
-    def test_generate_date_range_with_invalid_date_format(self):
-        start_date = "2023/01/01"
-        end_date = "2023/01/05"
+        start_date = date(2023, 1, 5)
+        end_date = date(2023, 1, 1)
         with self.assertRaises(ValueError):
             generate_date_list(start_date, end_date)
 
@@ -217,7 +173,7 @@ class TestProcessFetch(unittest.TestCase):
     def test_successful_fetch(self, mock_set_fetch_status, mock_upload_to_s3):
         test_xml = self.create_test_xml("2023-01-01")
         success = process_fetch(
-            "2023-01-01",
+            date(2023, 1, 1),
             "summary_set",
             "bucket_name",
             "aurora_cluster_arn",
@@ -228,14 +184,14 @@ class TestProcessFetch(unittest.TestCase):
         self.assertTrue(success)
         mock_upload_to_s3.assert_called_once()
         mock_set_fetch_status.assert_called_with(
-            "2023-01-01", "success", "aurora_cluster_arn", "db_credentials_secret_arn", "database"
+            date(2023, 1, 1), "success", "aurora_cluster_arn", "db_credentials_secret_arn", "database"
         )
 
     @patch(SET_FETCH_STATUS_PATH)
     def test_unsuccessful_fetch(self, mock_set_fetch_status):
         test_xml = self.create_test_xml("2023-01-02")
         success = process_fetch(
-            "2023-01-01",
+            date(2023, 1, 1),
             "summary_set",
             "bucket_name",
             "aurora_cluster_arn",
@@ -245,12 +201,12 @@ class TestProcessFetch(unittest.TestCase):
         )
         self.assertFalse(success)
         mock_set_fetch_status.assert_called_with(
-            "2023-01-01", "failure", "aurora_cluster_arn", "db_credentials_secret_arn", "database"
+            date(2023, 1, 1), "failure", "aurora_cluster_arn", "db_credentials_secret_arn", "database"
         )
 
     @patch(SET_FETCH_STATUS_PATH)
     def test_fetch_with_missing_parameters(self, mock_set_fetch_status):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(AttributeError):
             process_fetch(
                 None,
                 "summary_set",
@@ -264,7 +220,7 @@ class TestProcessFetch(unittest.TestCase):
     @patch(SET_FETCH_STATUS_PATH)
     def test_fetch_with_invalid_data_format(self, mock_set_fetch_status):
         success = process_fetch(
-            "2023-01-01",
+            date(2023, 1, 1),
             "summary_set",
             "bucket_name",
             "aurora_cluster_arn",
@@ -274,7 +230,7 @@ class TestProcessFetch(unittest.TestCase):
         )
         self.assertFalse(success)
         mock_set_fetch_status.assert_called_with(
-            "2023-01-01", "failure", "aurora_cluster_arn", "db_credentials_secret_arn", "database"
+            date(2023, 1, 1), "failure", "aurora_cluster_arn", "db_credentials_secret_arn", "database"
         )
 
     @patch(SET_FETCH_STATUS_PATH)
@@ -282,7 +238,7 @@ class TestProcessFetch(unittest.TestCase):
         mock_set_fetch_status.side_effect = Exception("Database error")
         with self.assertRaises(Exception) as context:
             process_fetch(
-                "2023-01-01",
+                date(2023, 1, 1),
                 "summary_set",
                 "bucket_name",
                 "aurora_cluster_arn",
@@ -302,7 +258,7 @@ class TestUploadToS3(unittest.TestCase):
         mock_s3_client.return_value = mock_client
         xml_responses = ["<xml>response1</xml>", "<xml>response2</xml>"]
 
-        upload_to_s3("test-bucket", "2023-01-01", "summary1", xml_responses)
+        upload_to_s3("test-bucket", date(2023, 1, 1), "summary1", xml_responses)
 
         self.assertEqual(mock_client.put_object.call_count, len(xml_responses))
         for idx, call in enumerate(mock_client.put_object.call_args_list):
@@ -316,7 +272,7 @@ class TestUploadToS3(unittest.TestCase):
         mock_client = MagicMock()
         mock_s3_client.return_value = mock_client
 
-        upload_to_s3("test-bucket", "2023-01-01", "summary1", [])
+        upload_to_s3("test-bucket", date(2023, 1, 1), "summary1", [])
 
         mock_client.put_object.assert_not_called()
 
@@ -328,6 +284,6 @@ class TestUploadToS3(unittest.TestCase):
         xml_responses = ["<xml>response1</xml>"]
 
         with self.assertRaises(Exception) as context:
-            upload_to_s3("test-bucket", "2023-01-01", "summary1", xml_responses)
+            upload_to_s3("test-bucket", date(2023, 1, 1), "summary1", xml_responses)
 
         self.assertEqual(str(context.exception), "S3 Upload Error")
