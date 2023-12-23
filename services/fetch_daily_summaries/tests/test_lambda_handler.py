@@ -8,7 +8,7 @@ from services.fetch_daily_summaries.src.fetch_daily_summaries import lambda_hand
 
 class TestLambdaHandler(unittest.TestCase):
     BASE_PATH = "services.fetch_daily_summaries.src.fetch_daily_summaries."
-    PROCESS_FETCH_PATH = BASE_PATH + "process_fetch"
+    PROCESS_FETCH_PATH = BASE_PATH + "update_research_fetch_status"
     EARLIEST_UNFETCHED_DATE_PATH = BASE_PATH + "get_earliest_unfetched_date"
     ATTEMPT_FETCH_PATH = BASE_PATH + "attempt_fetch_for_dates"
     BOTO3_CLIENT_PATH = BASE_PATH + "boto3.client"

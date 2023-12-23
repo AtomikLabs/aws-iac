@@ -259,7 +259,7 @@ def attempt_fetch_for_dates(
         for date_to_fetch in date_list:
             logging.info(f"Fetching for date: {date_to_fetch}")
             insert_fetch_status(date_to_fetch, aurora_cluster_arn, db_credentials_secret_arn, database)
-            success = process_fetch(
+            success = update_research_fetch_status(
                 date_to_fetch,
                 summary_set,
                 bucket_name,
@@ -273,6 +273,8 @@ def attempt_fetch_for_dates(
                 last_success_date = date_to_fetch
             else:
                 logging.error(f"Fetch failed for date: {date_to_fetch}")
+
+        upload_to_s3(bucket_name, earliest_unfetched_date, summary_set, full_xml_responses)
     else:
         logging.warning(NO_UNFETCHED_DATES_FOUND)
 
@@ -425,7 +427,7 @@ def schedule_for_later() -> None:
     )
 
 
-def process_fetch(
+def update_research_fetch_status(
     from_date: date,
     summary_set: str,
     bucket_name: str,
@@ -435,7 +437,8 @@ def process_fetch(
     fetched_data: List[str],
 ) -> bool:
     """
-    Processes the fetched data and uploads to S3 using AWS RDSDataService.
+    Checks if research was found for a given date and updates that
+    date's research fetch status
 
     Args:
         from_date (date): Summary date.
@@ -455,7 +458,6 @@ def process_fetch(
     success = any(re.search(pattern, xml, re.DOTALL) for xml in fetched_data)
 
     if success:
-        upload_to_s3(bucket_name, from_date, summary_set, fetched_data)
         set_fetch_status(from_date, "success", aurora_cluster_arn, db_credentials_secret_arn, database)
     else:
         set_fetch_status(from_date, "failure", aurora_cluster_arn, db_credentials_secret_arn, database)

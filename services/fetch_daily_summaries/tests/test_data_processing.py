@@ -7,7 +7,7 @@ from services.fetch_daily_summaries.src.fetch_daily_summaries import (
     calculate_from_date,
     generate_date_list,
     schedule_for_later,
-    process_fetch,
+    update_research_fetch_status,
     upload_to_s3,
 )
 
@@ -186,7 +186,7 @@ class TestProcessFetch(unittest.TestCase):
     @patch(SET_FETCH_STATUS_PATH)
     def test_successful_fetch(self, mock_set_fetch_status, mock_upload_to_s3):
         test_xml = self.create_test_xml("2023-01-01")
-        success = process_fetch(
+        success = update_research_fetch_status(
             date(2023, 1, 1),
             "summary_set",
             "bucket_name",
@@ -196,7 +196,6 @@ class TestProcessFetch(unittest.TestCase):
             [test_xml],
         )
         self.assertTrue(success)
-        mock_upload_to_s3.assert_called_once()
         mock_set_fetch_status.assert_called_with(
             date(2023, 1, 1), "success", "aurora_cluster_arn", "db_credentials_secret_arn", "database"
         )
@@ -204,7 +203,7 @@ class TestProcessFetch(unittest.TestCase):
     @patch(SET_FETCH_STATUS_PATH)
     def test_unsuccessful_fetch(self, mock_set_fetch_status):
         test_xml = self.create_test_xml("2023-01-02")
-        success = process_fetch(
+        success = update_research_fetch_status(
             date(2023, 1, 1),
             "summary_set",
             "bucket_name",
@@ -221,7 +220,7 @@ class TestProcessFetch(unittest.TestCase):
     @patch(SET_FETCH_STATUS_PATH)
     def test_fetch_with_missing_parameters(self, mock_set_fetch_status):
         with self.assertRaises(AttributeError):
-            process_fetch(
+            update_research_fetch_status(
                 None,
                 "summary_set",
                 "bucket_name",
@@ -233,7 +232,7 @@ class TestProcessFetch(unittest.TestCase):
 
     @patch(SET_FETCH_STATUS_PATH)
     def test_fetch_with_invalid_data_format(self, mock_set_fetch_status):
-        success = process_fetch(
+        success = update_research_fetch_status(
             date(2023, 1, 1),
             "summary_set",
             "bucket_name",
@@ -251,7 +250,7 @@ class TestProcessFetch(unittest.TestCase):
     def test_fetch_handling_database_interaction_error(self, mock_set_fetch_status):
         mock_set_fetch_status.side_effect = Exception("Database error")
         with self.assertRaises(Exception) as context:
-            process_fetch(
+            update_research_fetch_status(
                 date(2023, 1, 1),
                 "summary_set",
                 "bucket_name",

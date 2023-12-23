@@ -19,19 +19,20 @@ REQUESTS_PATH = "requests.get"
 
 class TestAttemptFetchForDates(unittest.TestCase):
     FETCH_HTTP_RESPONSE_PATH = BASE_PATH + "fetch_http_response"
-    PROCESS_FETCH_PATH = BASE_PATH + "process_fetch"
+    PROCESS_FETCH_PATH = BASE_PATH + "update_research_fetch_status"
     INSERT_FETCH_STATUS_PATH = BASE_PATH + "insert_fetch_status"
     GENERATE_DATE_LIST_PATH = BASE_PATH + "generate_date_list"
     FETCH_DATA_PATH = BASE_PATH + "fetch_data"
+    UPLOAD_TO_S3_PATH = BASE_PATH + "upload_to_s3"
 
     @patch(FETCH_DATA_PATH)
     @patch(GENERATE_DATE_LIST_PATH)
     @patch(INSERT_FETCH_STATUS_PATH)
     @patch(PROCESS_FETCH_PATH)
+    @patch(UPLOAD_TO_S3_PATH)
     def test_successful_fetch(
-        self, mock_process_fetch, mock_insert_fetch_status, mock_generate_date_list, mock_fetch_data
+        self, mock_upload_to_s3, mock_process_fetch, mock_insert_fetch_status, mock_generate_date_list, mock_fetch_data
     ):
-        # Setup test data with date objects
         base_url = "mock_base_url"
         summary_set = "mock_summary_set"
         bucket_name = "mock_bucket_name"
@@ -42,12 +43,10 @@ class TestAttemptFetchForDates(unittest.TestCase):
         earliest_unfetched_date = datetime(2023, 1, 1)
         mock_date_list = [datetime(2023, 1, 1), datetime(2023, 1, 2)]
 
-        # Setup mock returns
         mock_generate_date_list.return_value = mock_date_list
         mock_fetch_data.return_value = ["mock_xml_response_1", "mock_xml_response_2"]
         mock_process_fetch.side_effect = [True, True]
 
-        # Call the function under test
         result = attempt_fetch_for_dates(
             base_url,
             summary_set,
@@ -59,7 +58,6 @@ class TestAttemptFetchForDates(unittest.TestCase):
             earliest_unfetched_date,
         )
 
-        # Assert the results
         self.assertEqual(result, datetime(2023, 1, 2))
         mock_generate_date_list.assert_called_once_with(datetime(2023, 1, 1), datetime(2023, 1, 2))
         mock_insert_fetch_status.assert_has_calls(
@@ -82,8 +80,9 @@ class TestAttemptFetchForDates(unittest.TestCase):
     @patch(GENERATE_DATE_LIST_PATH)
     @patch(INSERT_FETCH_STATUS_PATH)
     @patch(PROCESS_FETCH_PATH)
+    @patch(UPLOAD_TO_S3_PATH)
     def test_fetch_failure(
-        self, mock_process_fetch, mock_insert_fetch_status, mock_generate_date_list, mock_fetch_data
+        self, mock_upload_to_s3, mock_process_fetch, mock_insert_fetch_status, mock_generate_date_list, mock_fetch_data
     ):
         base_url = "mock_base_url"
         summary_set = "mock_summary_set"
