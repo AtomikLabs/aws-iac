@@ -1,128 +1,43 @@
-# Description: Lambda function to fetch daily summaries from arXiv.
-
 import logging
 import os
-import re
-import time
-from datetime import timedelta, datetime, date
-from typing import List
-
+from datetime import datetime, timedelta, date
 import boto3
-import defusedxml.ElementTree as ET
 import requests
-from botocore.exceptions import NoRegionError
+import xml.etree.ElementTree as ET
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
 
-INTERNAL_SERVER_ERROR = "Internal server error"
-NO_REGION_SPECIFIED = "No region specified"
-NO_UNFETCHED_DATES_FOUND = "No unfetched dates found"
-
 
 def lambda_handler(event: dict, context) -> dict:
-    """
-    The main entry point for the Lambda function.
-
-    Args:
-        event (dict): The event data.
-        context: The context data.
-
-    Returns:
-        dict: A dict with the status code and body.
-    """
     try:
-        log_initial_info(event)
-
-        today = calculate_from_date()
-
-        aurora_cluster_arn = os.environ.get("RESOURCE_ARN")
         base_url = os.environ.get("BASE_URL")
         bucket_name = os.environ.get("BUCKET_NAME")
-        db_credentials_secret_arn = os.environ.get("SECRET_ARN")
-        database = os.environ.get("DATABASE_NAME")
         summary_set = os.environ.get("SUMMARY_SET")
+        required_env_vars = [base_url, bucket_name, summary_set]
 
-        if not all([aurora_cluster_arn, db_credentials_secret_arn, database, base_url, bucket_name, summary_set]):
-            message = ""
-            if not aurora_cluster_arn:
-                message += "RESOURCE_ARN "
-            if not db_credentials_secret_arn:
-                message += "SECRET_ARN "
-            if not database:
-                message += "DATABASE_NAME "
-            if not base_url:
-                message += "BASE_URL "
-            if not bucket_name:
-                message += "BUCKET_NAME "
-            if not summary_set:
-                message += "SUMMARY_SET "
+        if not all(required_env_vars):
+            missing_vars = [
+                var_name
+                for var_name, var in zip(["BASE_URL", "BUCKET_NAME", "SUMMARY_SET"], required_env_vars)
+                if not var
+            ]
+            return {"statusCode": 500, "body": f"Missing environment variables: {', '.join(missing_vars)}"}
 
-            return {"statusCode": 500, "body": f"Missing environment variables: {message}"}
+        dates_to_fetch = generate_date_list(calculate_from_date(), datetime.today().date())
+        for date in dates_to_fetch:
+            xml_data = fetch_data_for_date(base_url, summary_set, date)
+            if xml_data:
+                upload_to_s3(bucket_name, date, summary_set, xml_data)
 
-        try:
-            insert_fetch_status(today, aurora_cluster_arn, db_credentials_secret_arn, database)
-        except Exception as e:
-            logging.error(f"Error inserting fetch status: {str(e)}")
-            return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
-
-        try:
-            earliest_unfetched_date = get_earliest_unfetched_date(
-                aurora_cluster_arn, db_credentials_secret_arn, database
-            )
-        except Exception as e:
-            logging.error(f"Error fetching earliest unfetched date: {str(e)}")
-            return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
-
-        if not earliest_unfetched_date:
-            message = NO_UNFETCHED_DATES_FOUND
-            logging.info(message)
-            return {"statusCode": 200, "body": message}
-
-        if not earliest_unfetched_date:
-            logging.info(NO_UNFETCHED_DATES_FOUND)
-            return {"statusCode": 200, "body": NO_UNFETCHED_DATES_FOUND}
-
-        logging.info(f"Earliest unfetched date: {earliest_unfetched_date}")
-
-        try:
-            last_success_date = attempt_fetch_for_dates(
-                base_url,
-                summary_set,
-                bucket_name,
-                aurora_cluster_arn,
-                db_credentials_secret_arn,
-                database,
-                today,
-                earliest_unfetched_date,
-            )
-        except Exception as e:
-            logging.error(f"Error fetching summaries: {str(e)}")
-            return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
-
-        if last_success_date:
-            message = f"Last successful fetch date: {last_success_date}"
-        else:
-            message = "No new data fetched"
-
-        return {"statusCode": 200, "body": message}
-    except NoRegionError:
-        logging.error(NO_REGION_SPECIFIED)
-        return {"statusCode": 500, "body": NO_REGION_SPECIFIED}
+        return {"statusCode": 200, "body": "Process completed successfully"}
     except Exception as e:
         logging.error(f"Error: {str(e)}")
-        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
+        return {"statusCode": 500, "body": "Internal server error"}
 
 
-def log_initial_info(event: dict) -> None:
-    """
-    Logs initial info.
-
-    Args:
-        event (dict): Event.
-    """
-    logging.info(f"Received event: {event}")
-    logging.info("Starting to fetch arXiv daily summaries")
+def generate_date_list(start_date: date, end_date: date) -> list:
+    return [(start_date + timedelta(days=i)) for i in range((end_date - start_date).days + 3)]
 
 
 def calculate_from_date() -> date:
@@ -313,7 +228,7 @@ def fetch_data(base_url: str, from_date: date, summary_set: str) -> List[str]:
         "verb": "ListRecords",
         "set": summary_set,
         "metadataPrefix": "oai_dc",
-        "from": from_date.strftime("%Y-%m-%d"),
+        "from": fetch_date.strftime("%Y-%m-%d"),
     }
     retry_count = 0
     while True:
@@ -501,25 +416,8 @@ def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secr
         )
         return True
     except Exception as e:
-        logging.error(f"Database query failed: {str(e)}")
-        return False
+        logging.error(f"Error uploading to S3: {str(e)}")
 
 
-def upload_to_s3(bucket_name: str, from_date: date, summary_set: str, full_xml_responses: List[str]):
-    """Uploads XML responses to S3.
-
-    Args:
-        bucket_name (str): S3 bucket name.
-        from_date (date): Summary date.
-        summary_set (str): Summary set.
-        full_xml_responses (List[str]): XML responses.
-    """
-    logging.info(f"Uploading {len(full_xml_responses)} XML responses to S3")
-    s3 = boto3.client("s3")
-
-    for idx, xml_response in enumerate(full_xml_responses):
-        s3.put_object(
-            Body=xml_response,
-            Bucket=bucket_name,
-            Key=f"arxiv/{summary_set}-{from_date.strftime('%Y-%m-%d')}-{idx}.xml",
-        )
+if __name__ == "__main__":
+    lambda_handler({}, None)
