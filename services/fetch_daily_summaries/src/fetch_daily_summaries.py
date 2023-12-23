@@ -168,7 +168,7 @@ def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, dat
     return response
 
 
-def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, database, days=5) -> date:
+def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, database, days=2) -> date:
     """
     Gets the earliest unfetched date using AWS RDSDataService.
 
