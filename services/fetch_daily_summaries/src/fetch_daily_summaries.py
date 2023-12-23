@@ -435,7 +435,7 @@ def process_fetch(
     aurora_cluster_arn: str,
     db_credentials_secret_arn: str,
     database: str,
-    fetched_data: str,
+    fetched_data: List[str],
 ) -> bool:
     """
     Processes the fetched data and uploads to S3 using AWS RDSDataService.
@@ -453,9 +453,8 @@ def process_fetch(
     Returns:
         bool: True if fetch was successful, False otherwise.
     """
-    pattern = (
-        r"<oai_dc:dc[^>]*>.*?<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d")) + r"</dc:date>(?!.*?<dc:date>)"
-    )
+    # Changed the regular expression pattern to check for the presence of at least one <dc:date> tag
+    pattern = r"<dc:date>\s*" + re.escape(from_date.strftime("%Y-%m-%d")) + r"\s*</dc:date>"
 
     success = any(re.search(pattern, xml, re.DOTALL) for xml in fetched_data)
 
