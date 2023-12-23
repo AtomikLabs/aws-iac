@@ -333,6 +333,9 @@ def fetch_data(base_url: str, from_date: date, summary_set: str) -> List[str]:
         if xml_content.strip():
             full_xml_responses.append(xml_content)
 
+        logging.info(f"API Call Status Code: {status_code}")
+        logging.info(f"API Response Content: {xml_content[:500]}...")
+
         resumption_token = extract_resumption_token(xml_content)
         if resumption_token:
             logging.info(f"Resumption token: {resumption_token}")
@@ -455,9 +458,11 @@ def process_fetch(
     success = any(re.search(pattern, xml) for xml in fetched_data)
 
     if success:
+        logging.info(f"Data found for date: {from_date}, proceeding with upload.")
         upload_to_s3(bucket_name, from_date, summary_set, fetched_data)
         set_fetch_status(from_date, "success", aurora_cluster_arn, db_credentials_secret_arn, database)
     else:
+        logging.warning(f"No matching data found for date: {from_date}, marking as failure.")
         set_fetch_status(from_date, "failure", aurora_cluster_arn, db_credentials_secret_arn, database)
 
     return success
