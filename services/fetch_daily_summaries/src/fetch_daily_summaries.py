@@ -453,9 +453,11 @@ def process_fetch(
     Returns:
         bool: True if fetch was successful, False otherwise.
     """
-    pattern = r"</dc:description>\s+<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d"))
-    pattern += r"</dc:date>\s+<dc:type>text</dc:type>"
-    success = any(re.search(pattern, xml) for xml in fetched_data)
+    pattern = (
+        r"<oai_dc:dc[^>]*>.*?<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d")) + r"</dc:date>(?!.*?<dc:date>)"
+    )
+
+    success = any(re.search(pattern, xml, re.DOTALL) for xml in fetched_data)
 
     if success:
         logging.info(f"Data found for date: {from_date}, proceeding with upload.")
