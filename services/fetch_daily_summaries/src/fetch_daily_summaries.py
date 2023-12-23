@@ -17,7 +17,11 @@ def lambda_handler(event: dict, context) -> dict:
         required_env_vars = [base_url, bucket_name, summary_set]
 
         if not all(required_env_vars):
-            missing_vars = [var_name for var_name, var in zip(["BASE_URL", "BUCKET_NAME", "SUMMARY_SET"], required_env_vars) if not var]
+            missing_vars = [
+                var_name
+                for var_name, var in zip(["BASE_URL", "BUCKET_NAME", "SUMMARY_SET"], required_env_vars)
+                if not var
+            ]
             return {"statusCode": 500, "body": f"Missing environment variables: {', '.join(missing_vars)}"}
 
         dates_to_fetch = generate_date_list(calculate_from_date(), datetime.today().date())
