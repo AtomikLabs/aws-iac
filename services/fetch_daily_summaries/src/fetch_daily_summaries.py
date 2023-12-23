@@ -443,14 +443,13 @@ def process_fetch(
         try:
             root = ET.fromstring(xml_response)
             # Define namespace mapping
-            ns = {'oai': 'http://www.openarchives.org/OAI/2.0/',
-                  'dc': 'http://purl.org/dc/elements/1.1/'}
+            ns = {"oai": "http://www.openarchives.org/OAI/2.0/", "dc": "http://purl.org/dc/elements/1.1/"}
             # Find relevant records
-            records = root.findall('.//oai:record', ns)
+            records = root.findall(".//oai:record", ns)
             for record in records:
                 # Extract and process individual record data
-                date_element = record.find('.//dc:date', ns)
-                if date_element is not None and date_element.text == from_date.strftime('%Y-%m-%d'):
+                date_element = record.find(".//dc:date", ns)
+                if date_element is not None and date_element.text == from_date.strftime("%Y-%m-%d"):
                     # Process record (e.g., extract title, authors, etc.)
                     # ...
                     success = True
