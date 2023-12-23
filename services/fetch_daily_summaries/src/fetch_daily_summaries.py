@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
 
+
 def lambda_handler(event: dict, context) -> dict:
     try:
         aurora_cluster_arn = os.environ.get("RESOURCE_ARN")
@@ -17,9 +18,23 @@ def lambda_handler(event: dict, context) -> dict:
         database = os.environ.get("DATABASE_NAME")
         summary_set = os.environ.get("SUMMARY_SET")
 
-        required_env_vars = [aurora_cluster_arn, db_credentials_secret_arn, database, base_url, bucket_name, summary_set]
+        required_env_vars = [
+            aurora_cluster_arn,
+            db_credentials_secret_arn,
+            database,
+            base_url,
+            bucket_name,
+            summary_set,
+        ]
         if not all(required_env_vars):
-            missing_vars = [var_name for var_name, var in zip(["RESOURCE_ARN", "SECRET_ARN", "DATABASE_NAME", "BASE_URL", "BUCKET_NAME", "SUMMARY_SET"], required_env_vars) if not var]
+            missing_vars = [
+                var_name
+                for var_name, var in zip(
+                    ["RESOURCE_ARN", "SECRET_ARN", "DATABASE_NAME", "BASE_URL", "BUCKET_NAME", "SUMMARY_SET"],
+                    required_env_vars,
+                )
+                if not var
+            ]
             return {"statusCode": 500, "body": f"Missing environment variables: {', '.join(missing_vars)}"}
 
         insert_fetch_status(datetime.today().date(), aurora_cluster_arn, db_credentials_secret_arn, database)
