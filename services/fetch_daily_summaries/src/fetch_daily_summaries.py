@@ -450,8 +450,8 @@ def process_fetch(
     Returns:
         bool: True if fetch was successful, False otherwise.
     """
-    pattern = r"</dc:description>\s+<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d"))
-    pattern += r"</dc:date>\s+<dc:type>text</dc:type>"
+    pattern = r"<dc:description>.*?<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d"))
+    pattern += r"</dc:date>(?!.*?<dc:date>)"
     success = any(re.search(pattern, xml) for xml in fetched_data)
 
     if success:
