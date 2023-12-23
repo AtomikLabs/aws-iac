@@ -155,18 +155,32 @@ class TestProcessFetch(unittest.TestCase):
     UPLOAD_TO_S3_PATH = BASE_PATH + "upload_to_s3"
     SET_FETCH_STATUS_PATH = BASE_PATH + "set_fetch_status"
 
-    def create_test_xml(self, date):
-        return f"""
-        </dc:description>
-        <dc:description>Comment: Example Comment</dc:description>
-        <dc:date>{date}</dc:date>
-        <dc:type>text</dc:type>
-        <dc:identifier>http://example.com/{date}</dc:identifier>
-        </oai_dc:dc>
-        </metadata>
-        </record>
-        <record>
-        """
+    def create_test_xml(self, date_str):
+        return (
+            "<record><header><identifier>oai:arXiv.org:2312.13495</identifier>"
+            "<datestamp>2023-12-22</datestamp><setSpec>cs</setSpec></header>"
+            "<metadata>"
+            '<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" '
+            'xmlns:dc="http://purl.org/dc/elements/1.1/" '
+            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            'xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ '
+            'http://www.openarchives.org/OAI/2.0/oai_dc.xsd">'
+            "<dc:title>Decoupling Representation and Knowledge for Few-Shot Intent Classification and Slot Filling</dc:title>"
+            "<dc:creator>Han, Jie</dc:creator><dc:creator>Zou, Yixiong</dc:creator>"
+            "<dc:creator>Wang, Haozhao</dc:creator><dc:creator>Wang, Jun</dc:creator>"
+            "<dc:creator>Liu, Wei</dc:creator><dc:creator>Wu, Yao</dc:creator>"
+            "<dc:creator>Zhang, Tao</dc:creator><dc:creator>Li, Ruixuan</dc:creator>"
+            "<dc:subject>Computer Science - Computation and Language</dc:subject>"
+            "<dc:subject>Computer Science - Artificial Intelligence</dc:subject>"
+            "<dc:description> Few-shot intent classification and slot filling are important but challenging tasks due to the scarcity of finely labeled data. Therefore, current works first train a model on source domains with sufficiently labeled data, and then transfer the model to target domains where only rarely labeled data is available. However, experience transferring as a whole usually suffers from gaps that exist among source domains and target domains. For instance, transferring domain-specific-knowledge-related experience is difficult. To tackle this problem, we propose a new method that explicitly decouples the transferring of general-semantic-representation-related experience and the domain-specific-knowledge-related experience. Specifically, for domain-specific-knowledge-related experience, we design two modules to capture intent-slot relation and slot-slot relation respectively. Extensive experiments on Snips and FewJoint datasets show that our method achieves state-of-the-art performance. The method improves the joint accuracy metric from 27.72% to 42.20% in the 1-shot setting, and from 46.54% to 60.79% in the 5-shot setting. </dc:description>"
+            "<dc:description>Comment: 9 pages, 4 figures</dc:description>"
+            "<dc:date>" + date_str + "</dc:date>"
+            "<dc:type>text</dc:type>"
+            "<dc:identifier>http://arxiv.org/abs/2312.13495</dc:identifier>"
+            "</oai_dc:dc>"
+            "</metadata>"
+            "</record>"
+        )
 
     @patch(UPLOAD_TO_S3_PATH)
     @patch(SET_FETCH_STATUS_PATH)

@@ -432,7 +432,7 @@ def process_fetch(
     aurora_cluster_arn: str,
     db_credentials_secret_arn: str,
     database: str,
-    fetched_data: str,
+    fetched_data: List[str],
 ) -> bool:
     """
     Processes the fetched data and uploads to S3 using AWS RDSDataService.
@@ -450,9 +450,9 @@ def process_fetch(
     Returns:
         bool: True if fetch was successful, False otherwise.
     """
-    pattern = r"</dc:description>\s+<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d"))
-    pattern += r"</dc:date>\s+<dc:type>text</dc:type>"
-    success = any(re.search(pattern, xml) for xml in fetched_data)
+    pattern = r"<dc:description>.*?<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d")) + r"</dc:date>"
+
+    success = any(re.search(pattern, xml, re.DOTALL) for xml in fetched_data)
 
     if success:
         upload_to_s3(bucket_name, from_date, summary_set, fetched_data)
