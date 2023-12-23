@@ -41,7 +41,7 @@ def generate_date_list(start_date: date, end_date: date) -> list:
 
 
 def calculate_from_date() -> date:
-    return (datetime.today() - timedelta(days=1)).date()
+    return (datetime.today() - timedelta(days=3)).date()
 
 
 def fetch_data_for_date(base_url: str, summary_set: str, fetch_date: date) -> str:
