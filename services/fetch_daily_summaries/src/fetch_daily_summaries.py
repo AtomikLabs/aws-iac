@@ -479,7 +479,7 @@ def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secr
 
     try:
         sql_statement = "UPDATE research_fetch_status SET status = :status \
-            WHERE fetch_date = :date"
+            WHERE fetch_date = CAST(:date AS DATE)"
 
         parameters = [
             {"name": "date", "value": {"stringValue": date.strftime("%Y-%m-%d")}},
