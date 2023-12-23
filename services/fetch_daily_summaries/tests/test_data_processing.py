@@ -155,18 +155,21 @@ class TestProcessFetch(unittest.TestCase):
     UPLOAD_TO_S3_PATH = BASE_PATH + "upload_to_s3"
     SET_FETCH_STATUS_PATH = BASE_PATH + "set_fetch_status"
 
-    def create_test_xml(self, date):
+    def create_test_xml(self, publish_date, modified_date=None):
         return f"""
-        </dc:description>
-        <dc:description>Comment: Example Comment</dc:description>
-        <dc:date>{date}</dc:date>
+        <record>
+        <metadata>
+        <oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <dc:title>Test Title</dc:title>
+        <dc:creator>Test Creator</dc:creator>
+        <dc:description>Test Description</dc:description>
+        <dc:date>{publish_date}</dc:date>
         <dc:type>text</dc:type>
-        <dc:identifier>http://example.com/{date}</dc:identifier>
+        <dc:identifier>http://example.com/{publish_date}</dc:identifier>
         </oai_dc:dc>
         </metadata>
         </record>
-        <record>
-        """
+        """.strip()
 
     @patch(UPLOAD_TO_S3_PATH)
     @patch(SET_FETCH_STATUS_PATH)
