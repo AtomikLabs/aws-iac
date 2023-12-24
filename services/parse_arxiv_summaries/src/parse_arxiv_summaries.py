@@ -146,14 +146,14 @@ def parse_xml(xml_data: ET) -> dict:
     if not xml_data:
         raise ValueError("Must provide XML data")
 
-    extracted_data_chunk = defaultdict(list)
-    logger.info("Parsing XML")
     try:
-        root = ET.fromstring(xml_data)
+        extracted_data_chunk = defaultdict(list)
+        logger.info("Parsing XML")
+
         ns = {"oai": "http://www.openarchives.org/OAI/2.0/", "dc": "http://purl.org/dc/elements/1.1/"}
         records_found = 0
         records_with_valid_categories = 0
-        for record in root.findall(".//oai:record", ns):
+        for record in xml_data.findall(".//oai:record", ns):
             records_found += 1
             identifier = record.find(".//oai:identifier", ns).text
             abstract_url = record.find(".//dc:identifier", ns).text
@@ -198,7 +198,6 @@ def parse_xml(xml_data: ET) -> dict:
             )
             if records_with_valid_categories == 1:
                 logger.info(f"First record: {extracted_data_chunk['records'][0]}")
-
         logger.info(f"Found {records_found} records")
         logger.info(f"Found {records_with_valid_categories} records with valid CS categories")
 
