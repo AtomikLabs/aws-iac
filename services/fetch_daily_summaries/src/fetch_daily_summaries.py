@@ -255,6 +255,11 @@ def attempt_fetch_for_dates(
     if earliest_unfetched_date:
         full_xml_responses = fetch_data(base_url, earliest_unfetched_date, summary_set)
         date_list = generate_date_list(earliest_unfetched_date, today)
+        # remove any dates from list with a research fetch status of 'success'
+        for list_date in date_list:
+            status = get_fetch_status(list_date, aurora_cluster_arn, db_credentials_secret_arn, database)
+            if status == "success":
+                date_list.remove(list_date)
         logging.info(f"Date list: {date_list}")
 
         for date_to_fetch in date_list:
@@ -282,6 +287,44 @@ def attempt_fetch_for_dates(
         logging.warning(NO_UNFETCHED_DATES_FOUND)
 
     return last_success_date
+
+
+def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, database):
+    """
+    Gets fetch status for the given date using AWS RDSDataService.
+
+    Args:
+        date (date): Date for which to get fetch status.
+        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
+        db_credentials_secret_arn (str): The ARN of the secret containing
+        credentials to access the DB.
+        database (str): Database name.
+
+    Returns:
+        str: Fetch status.
+    """
+    client = boto3.client("rds-data")
+    formatted_date = date.strftime("%Y-%m-%d")
+
+    sql_statement = """
+    SELECT status FROM research_fetch_status
+    WHERE fetch_date = CAST(:date AS DATE)
+    """
+
+    parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
+
+    response = client.execute_statement(
+        resourceArn=aurora_cluster_arn,
+        secretArn=db_credentials_secret_arn,
+        database=database,
+        sql=sql_statement,
+        parameters=parameters,
+    )
+
+    if response["records"]:
+        return response["records"][0][0]["stringValue"]
+    else:
+        return None
 
 
 def generate_date_list(start_date: date, end_date: date) -> List[date]:
