@@ -384,7 +384,6 @@ def fetch_data(base_url: str, from_date: date, summary_set: str) -> List[str]:
             full_xml_responses.append(xml_content)
 
         resumption_token = extract_resumption_token(xml_content)
-        # log the last three lines of the response
         logger.info(f"Response: {xml_content.splitlines()[-3:]}")
         if resumption_token:
             logger.info(f"Resumption token: {resumption_token}")
@@ -445,8 +444,10 @@ def extract_resumption_token(xml_content: str) -> str:
         str: Resumption token.
     """
     try:
+        logger.info("Extracting resumption token")
         root = ET.fromstring(xml_content)
         token_element = root.find(".//resumptionToken")
+        logger.info(f"Resumption token element: {token_element}")
         return token_element.text if token_element is not None else None
     except ET.ParseError:
         return ""
