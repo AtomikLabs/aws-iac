@@ -517,7 +517,7 @@ def upload_to_s3(bucket_name: str, from_date: date, summary_set: str, full_xml_r
         s3.put_object(
             Body=xml_response,
             Bucket=bucket_name,
-            Key=f"arxiv/{summary_set}-{from_date.strftime('%Y-%m-%d')}-{idx}.xml",
+            Key=f"arxiv/raw_summaries/{summary_set}-{from_date.strftime('%Y-%m-%d')}-{idx}.xml",
         )
 
 
