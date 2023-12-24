@@ -255,9 +255,9 @@ def attempt_fetch_for_dates(
     if earliest_unfetched_date:
         full_xml_responses = fetch_data(base_url, earliest_unfetched_date, summary_set)
         date_list = generate_date_list(earliest_unfetched_date, today)
-        # remove any dates from list with a research fetch status of 'success'
         for list_date in date_list:
             status = get_fetch_status(list_date, aurora_cluster_arn, db_credentials_secret_arn, database)
+
             if status == "success":
                 date_list.remove(list_date)
         logging.info(f"Date list: {date_list}")
@@ -320,7 +320,7 @@ def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, 
         sql=sql_statement,
         parameters=parameters,
     )
-
+    logger.info(f"Fetch status response: {response} for date: {date}")
     if response["records"]:
         return response["records"][0][0]["stringValue"]
     else:
