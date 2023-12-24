@@ -218,9 +218,9 @@ def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
         bucket_name (str): Bucket name.
         xml (dict): XML.
     """
-    logger.info(f"Uploading to S3 bucket {bucket_name} as {original_filename}_parsed.xml")
-    s3 = boto3.resource("s3")
-    s3.Bucket(bucket_name).put_object(Key=f"arxiv/parsed_summaries/{original_filename}_parsed.xml", Body=json.dumps(xml))
+    logger.info("Uploading to S3 bucket " + bucket_name + " as " + original_filename + "_parsed.xml")
+    s3 = boto3.client("s3")
+    s3.put_object(Body=json.dumps(xml), Bucket=bucket_name, Key=original_filename + "_parsed.json")
 
 
 def call_persist_summaries(persist_lambda_name: str, bucket_name: str, filename: str) -> None:
