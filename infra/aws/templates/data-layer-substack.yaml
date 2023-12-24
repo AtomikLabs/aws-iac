@@ -100,6 +100,24 @@ Resources:
                                 - !Sub "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/*"
                                 - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:atomiklabs-${EnvironmentName}-aurora-cluster"
                                 - !Ref RdsSecretsArn
+                - PolicyName: !Sub "lambda-cloudwatch-access-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "logs:CreateLogGroup"
+                                - "logs:CreateLogStream"
+                                - "logs:PutLogEvents"
+                            Resource: "*"
+                - PolicyName: !Sub "lambda-lambda-access-policy-${EnvironmentName}"
+                  PolicyDocument:
+                      Version: "2012-10-17"
+                      Statement:
+                          - Effect: "Allow"
+                            Action:
+                                - "lambda:InvokeFunction"
+                            Resource: "*"
             Tags:
                 - Key: "Environment"
                   Value: !Ref EnvironmentName
