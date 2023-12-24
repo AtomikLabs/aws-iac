@@ -48,10 +48,6 @@ Resources:
       Timeout: 900
       Code:
         ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepositoryName}:placeholder"
-      Environment:
-        Variables:
-          ENVIRONMENT_NAME: !Ref EnvironmentName
-          PERSIST_LAMBDA_FUNCTION_NAME: !Ref PersistArxivSummaries
 
   PersistArxivSummaries:
     Type: AWS::Lambda::Function
@@ -63,9 +59,6 @@ Resources:
       Timeout: 900
       Code:
         ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepositoryName}:placeholder"
-      Environment:
-        Variables:
-          ENVIRONMENT_NAME: !Ref EnvironmentName
 
   EventBridgePermissionForLambda:
     Type: AWS::Lambda::Permission
