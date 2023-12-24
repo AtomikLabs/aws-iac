@@ -357,11 +357,13 @@ def fetch_data(base_url: str, from_date: date, summary_set: str) -> List[str]:
         List[str]: List of XML responses.
     """
     full_xml_responses = []
+    str_date = from_date.strftime("%Y-%m-%d")
+    logger.info(f"Fetching data for date: {str_date}")
     params = {
         "verb": "ListRecords",
         "set": summary_set,
         "metadataPrefix": "oai_dc",
-        "from": from_date.strftime("%Y-%m-%d"),
+        "from": str_date,
     }
     retry_count = 0
     while True:
@@ -442,10 +444,7 @@ def extract_resumption_token(xml_content: str) -> str:
     """
     try:
         root = ET.fromstring(xml_content)
-        token_element = root.find(
-            ".//{http://www.openarchives.org/OAI/2.0/}\
-                                 resumptionToken"
-        )
+        token_element = root.find(".//resumptionToken")
         return token_element.text if token_element is not None else None
     except ET.ParseError:
         return ""
