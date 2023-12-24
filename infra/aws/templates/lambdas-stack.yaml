@@ -83,3 +83,9 @@ Outputs:
   FetchDailySummariesFunctionArn:
     Description: "ARN of the Fetch Daily Summaries Lambda Function"
     Value: !GetAtt FetchDailySummaries.Arn
+  ParseArxivSummariesFunctionArn:
+    Description: "ARN of the Parse Arxiv Summaries Lambda Function"
+    Value: !GetAtt ParseArxivSummaries.Arn
+  PersistArxivSummariesFunctionArn:
+    Description: "ARN of the Persist Arxiv Summaries Lambda Function"
+    Value: !GetAtt PersistArxivSummaries.Arn
