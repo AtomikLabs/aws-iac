@@ -64,7 +64,7 @@ def lambda_handler(event: dict, context) -> dict:
         try:
             insert_fetch_status(today, aurora_cluster_arn, db_credentials_secret_arn, database)
         except Exception as e:
-            logging.error(f"Error inserting fetch status: {str(e)}")
+            logger.error(f"Error inserting fetch status: {str(e)}")
             return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
 
         try:
@@ -72,19 +72,19 @@ def lambda_handler(event: dict, context) -> dict:
                 aurora_cluster_arn, db_credentials_secret_arn, database
             )
         except Exception as e:
-            logging.error(f"Error fetching earliest unfetched date: {str(e)}")
+            logger.error(f"Error fetching earliest unfetched date: {str(e)}")
             return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
 
         if not earliest_unfetched_date:
             message = NO_UNFETCHED_DATES_FOUND
-            logging.info(message)
+            logger.info(message)
             return {"statusCode": 200, "body": message}
 
         if not earliest_unfetched_date:
-            logging.info(NO_UNFETCHED_DATES_FOUND)
+            logger.info(NO_UNFETCHED_DATES_FOUND)
             return {"statusCode": 200, "body": NO_UNFETCHED_DATES_FOUND}
 
-        logging.info(f"Earliest unfetched date: {earliest_unfetched_date}")
+        logger.info(f"Earliest unfetched date: {earliest_unfetched_date}")
 
         try:
             last_success_date = attempt_fetch_for_dates(
@@ -98,7 +98,7 @@ def lambda_handler(event: dict, context) -> dict:
                 earliest_unfetched_date,
             )
         except Exception as e:
-            logging.error(f"Error fetching summaries: {str(e)}")
+            logger.error(f"Error fetching summaries: {str(e)}")
             return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
 
         if last_success_date:
@@ -108,10 +108,10 @@ def lambda_handler(event: dict, context) -> dict:
 
         return {"statusCode": 200, "body": message}
     except NoRegionError:
-        logging.error(NO_REGION_SPECIFIED)
+        logger.error(NO_REGION_SPECIFIED)
         return {"statusCode": 500, "body": NO_REGION_SPECIFIED}
     except Exception as e:
-        logging.error(f"Error: {str(e)}")
+        logger.error(f"Error: {str(e)}")
         return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
 
 
@@ -122,8 +122,8 @@ def log_initial_info(event: dict) -> None:
     Args:
         event (dict): Event.
     """
-    logging.info(f"Received event: {event}")
-    logging.info("Starting to fetch arXiv daily summaries")
+    logger.info(f"Received event: {event}")
+    logger.info("Starting to fetch arXiv daily summaries")
 
 
 def calculate_from_date() -> date:
@@ -186,8 +186,8 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     client = boto3.client("rds-data")
     today = datetime.today().date()
     past_dates = [(today - timedelta(days=i)) for i in range(1, days + 1)]
-    logging.info(f"Past dates: {past_dates}")
-    logging.info(f"Today's date: {today}")
+    logger.info(f"Past dates: {past_dates}")
+    logger.info(f"Today's date: {today}")
 
     placeholders = [f":date{i}" for i in range(len(past_dates))]
     placeholder_string = ", ".join(placeholders)
@@ -213,11 +213,11 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
             datetime.strptime(result[0]["stringValue"], "%Y-%m-%d").date() for result in response["records"]
         ]
         unfetched_dates = list(set(past_dates) - set(fetched_dates))
-        logging.info(f"Unfetched dates: {unfetched_dates}")
+        logger.info(f"Unfetched dates: {unfetched_dates}")
 
         earliest_date = min(unfetched_dates) if unfetched_dates else None
     except Exception as e:
-        logging.error(f"Database query failed: {str(e)}")
+        logger.error(f"Database query failed: {str(e)}")
         earliest_date = None
 
     return earliest_date
@@ -260,10 +260,10 @@ def attempt_fetch_for_dates(
 
             if status == "success":
                 date_list.remove(list_date)
-        logging.info(f"Date list: {date_list}")
+        logger.info(f"Date list: {date_list}")
 
         for date_to_fetch in date_list:
-            logging.info(f"Fetching for date: {date_to_fetch}")
+            logger.info(f"Fetching for date: {date_to_fetch}")
             insert_fetch_status(date_to_fetch, aurora_cluster_arn, db_credentials_secret_arn, database)
             success = update_research_fetch_status(
                 date_to_fetch,
@@ -275,16 +275,16 @@ def attempt_fetch_for_dates(
                 full_xml_responses,
             )
             if success:
-                logging.info(f"Fetch successful for date: {date_to_fetch}")
+                logger.info(f"Fetch successful for date: {date_to_fetch}")
                 last_success_date = date_to_fetch
             else:
-                logging.error(f"Fetch failed for date: {date_to_fetch}")
+                logger.error(f"Fetch failed for date: {date_to_fetch}")
         filename = f"arxiv/raw_summaries/{summary_set}-{earliest_unfetched_date.strftime('%Y-%m-%d')}.xml"
         lambda_name = os.environ.get("PARSE_LAMBDA_FUNCTION_NAME")
         filenames = upload_to_s3(filename, bucket_name, full_xml_responses)
         call_parse_summaries(bucket_name, filenames, lambda_name)
     else:
-        logging.warning(NO_UNFETCHED_DATES_FOUND)
+        logger.warning(NO_UNFETCHED_DATES_FOUND)
 
     return last_success_date
 
@@ -371,7 +371,7 @@ def fetch_data(base_url: str, from_date: date, summary_set: str) -> List[str]:
             break
         status_code, xml_content = fetch_http_response(base_url, params)
         if status_code != 200:
-            logging.error(f"HTTP error, probably told to back off: {status_code}")
+            logger.error(f"HTTP error, probably told to back off: {status_code}")
             backoff_time = handle_http_error(status_code, xml_content, retry_count)
             if backoff_time:
                 time.sleep(backoff_time)
@@ -384,8 +384,10 @@ def fetch_data(base_url: str, from_date: date, summary_set: str) -> List[str]:
             full_xml_responses.append(xml_content)
 
         resumption_token = extract_resumption_token(xml_content)
+        # log the last three lines of the response
+        logger.info(f"Response: {xml_content.splitlines()[-3:]}")
         if resumption_token:
-            logging.info(f"Resumption token: {resumption_token}")
+            logger.info(f"Resumption token: {resumption_token}")
             params = {"verb": "ListRecords", "resumptionToken": resumption_token}
             time.sleep(5)
         else:
@@ -425,7 +427,7 @@ def handle_http_error(status_code: int, response_text: str, retry_count: int) ->
         return 0
     backoff_times = [30, 120]
     if status_code == 503 and retry_count < len(backoff_times):
-        logging.info(
+        logger.info(
             f"Received 503, retrying after \
                 {backoff_times[retry_count]} seconds"
         )
@@ -542,7 +544,7 @@ def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secr
         )
         return True
     except Exception as e:
-        logging.error(f"Database query failed: {str(e)}")
+        logger.error(f"Database query failed: {str(e)}")
         return False
 
 
@@ -561,7 +563,7 @@ def upload_to_s3(filename: str, bucket_name: str, full_xml_responses: List[str])
     if not filename:
         raise ValueError("No filename specified")
 
-    logging.info(f"Uploading {len(full_xml_responses)} XML responses to S3")
+    logger.info(f"Uploading {len(full_xml_responses)} XML responses to S3")
     s3 = boto3.client("s3")
     filenames = []
     for idx, xml_response in enumerate(full_xml_responses):
@@ -592,7 +594,7 @@ def call_parse_summaries(bucket_name: str, filenames: List[str], lambda_name: st
     if not lambda_name:
         raise ValueError("No lambda name specified")
 
-    logging.info("Calling parse summaries function for " + filenames + " in bucket " + bucket_name)
+    logger.info("Calling parse summaries function for " + filenames + " in bucket " + bucket_name)
     lambda_client = boto3.client("lambda")
     for filename in filenames:
         event_payload = {"bucket_name": bucket_name, "filename": filename}
