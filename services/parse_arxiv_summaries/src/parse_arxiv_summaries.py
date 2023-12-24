@@ -1,0 +1,241 @@
+# Description: Parse arXiv research summaries and send them to be persisted
+
+import logging
+import os
+from collections import defaultdict
+
+import boto3
+import defusedxml.ElementTree as ET
+
+logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.INFO)
+
+INTERNAL_SERVER_ERROR = "Internal server error"
+NO_REGION_SPECIFIED = "No region specified"
+
+cs_categories_inverted = {
+    "Computer Science - Artifical Intelligence": "AI",
+    "Computer Science - Hardware Architecture": "AR",
+    "Computer Science - Computational Complexity": "CC",
+    "Computer Science - Computational Engineering, Finance, and Science": "CE",
+    "Computer Science - Computational Geometry": "CG",
+    "Computer Science - Computation and Language": "CL",
+    "Computer Science - Cryptography and Security": "CR",
+    "Computer Science - Computer Vision and Pattern Recognition": "CV",
+    "Computer Science - Computers and Society": "CY",
+    "Computer Science - Databases": "DB",
+    "Computer Science - Distributed, Parallel, and Cluster Computing": "DC",
+    "Computer Science - Digital Libraries": "DL",
+    "Computer Science - Discrete Mathematics": "DM",
+    "Computer Science - Data Structures and Algorithms": "DS",
+    "Computer Science - Emerging Technologies": "ET",
+    "Computer Science - Formal Languages and Automata Theory": "FL",
+    "Computer Science - General Literature": "GL",
+    "Computer Science - Graphics": "GR",
+    "Computer Science - Computer Science and Game Theory": "GT",
+    "Computer Science - Human-Computer Interaction": "HC",
+    "Computer Science - Information Retrieval": "IR",
+    "Computer Science - Information Theory": "IT",
+    "Computer Science - Machine Learning": "LG",
+    "Computer Science - Logic in Computer Science": "LO",
+    "Computer Science - Multiagent Systems": "MA",
+    "Computer Science - Multimedia": "MM",
+    "Computer Science - Mathematical Software": "MS",
+    "Computer Science - Numerical Analysis": "NA",
+    "Computer Science - Neural and Evolutionary Computing": "NE",
+    "Computer Science - Networking and Internet Architecture": "NI",
+    "Computer Science - Other Computer Science": "OH",
+    "Computer Science - Operating Systems": "OS",
+    "Computer Science - Performance": "PF",
+    "Computer Science - Programming Languages": "PL",
+    "Computer Science - Robotics": "RO",
+    "Computer Science - Symbolic Computation": "SC",
+    "Computer Science - Sound": "SD",
+    "Computer Science - Software Engineering": "SE",
+    "Computer Science - Social and Information Networks": "SI",
+    "Computer Science - Systems and Control": "SY",
+}
+
+
+def lambda_handler(event, context):
+    """
+    The main entry point for the Lambda function.
+
+    Args:
+        event: The event passed to the Lambda function.
+        context: The context passed to the Lambda function.
+
+    Returns:
+        The response to be returned to the client.
+    """
+    try:
+        log_initial_info(event)
+
+        bucket_name = event.get("bucket_name")
+        key = event.get("filename")
+
+        if not bucket_name:
+            logger.error("No bucket name specified")
+            return {"statusCode": 500, "body": "No bucket name specified"}
+
+        if not key:
+            logger.error("No key specified")
+            return {"statusCode": 500, "body": "No key specified"}
+
+        persist_lambda_name = os.environ.get("PERSIST_LAMBDA_FUNCTION_NAME")
+
+        if not persist_lambda_name:
+            return {"statusCode": 500, "body": "No persist lambda function name specified"}
+
+        xml_data = load_xml_from_s3(bucket_name, key)
+        parsed_data = parse_xml(xml_data)
+        upload_to_s3(key, bucket_name, parsed_data)
+        call_persist_summaries(persist_lambda_name, bucket_name, parsed_data)
+        logger.info("Finished parsing arXiv daily summaries")
+        return {"statusCode": 200, "body": "Success"}
+
+    except Exception as e:
+        logger.error(e)
+        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
+
+
+def log_initial_info(event: dict) -> None:
+    """
+    Logs initial info.
+
+    Args:
+        event (dict): Event.
+    """
+    logger.info(f"Received event: {event}")
+    logger.info("Starting to parse arXiv summaries")
+
+
+def load_xml_from_s3(bucket_name: str, key: str):
+    """
+    Loads XML from S3.
+
+    Args:
+        bucket_name (str): Bucket name.
+        key (str): Key.
+
+    Returns:
+        XML.
+    """
+    logger.info(f"Loading XML from S3 bucket {bucket_name}")
+    if not bucket_name:
+        raise ValueError("Must provide a bucket name")
+    if not key:
+        raise ValueError("Must provide a key")
+
+    s3 = boto3.resource("s3")
+    obj = s3.Object(bucket_name, key)
+    body = obj.get()["Body"].read()
+    return ET.fromstring(body)
+
+
+def parse_xml(xml_data: ET) -> dict:
+    """
+    Parses arXiv XML into a list of dictionaries of research summaries.
+
+    Args:
+        xml_data (ET.Element): XML element.
+
+    Returns:
+        Dictionary of research summaries.
+    """
+    if not xml_data:
+        raise ValueError("Must provide XML data")
+
+    extracted_data_chunk = defaultdict(list)
+    logger.info("Parsing XML")
+    try:
+        root = ET.fromstring(xml_data)
+        ns = {"oai": "http://www.openarchives.org/OAI/2.0/", "dc": "http://purl.org/dc/elements/1.1/"}
+        records_found = 0
+        records_with_valid_categories = 0
+        for record in root.findall(".//oai:record", ns):
+            records_found += 1
+            identifier = record.find(".//oai:identifier", ns).text
+            abstract_url = record.find(".//dc:identifier", ns).text
+
+            creators_elements = record.findall(".//dc:creator", ns)
+            authors = []
+            for creator in creators_elements:
+                name_parts = creator.text.split(", ", 1)
+                last_name = name_parts[0]
+                first_name = name_parts[1] if len(name_parts) > 1 else ""
+                authors.append({"last_name": last_name, "first_name": first_name})
+
+            # Filter subjects based on cs_categories_inverted
+            subjects_elements = record.findall(".//dc:subject", ns)
+            categories = [
+                cs_categories_inverted[subject.text]
+                for subject in subjects_elements
+                if subject.text in cs_categories_inverted
+            ]
+            if not categories:
+                continue
+            records_with_valid_categories += 1
+            primary_category = categories[0]
+
+            abstract = record.find(".//dc:description", ns).text
+            title = record.find(".//dc:title", ns).text
+            date = record.find(".//dc:date", ns).text
+            group = "cs"
+
+            extracted_data_chunk["records"].append(
+                {
+                    "identifier": identifier,
+                    "abstract_url": abstract_url,
+                    "authors": authors,
+                    "primary_category": primary_category,
+                    "categories": categories,
+                    "abstract": abstract,
+                    "title": title,
+                    "date": date,
+                    "group": group,
+                }
+            )
+            if records_with_valid_categories == 1:
+                logger.info(f"First record: {extracted_data_chunk['records'][0]}")
+
+        logger.info(f"Found {records_found} records")
+        logger.info(f"Found {records_with_valid_categories} records with valid CS categories")
+
+    except ET.ParseError as e:
+        logger.error(f"Parse error: {e}")
+        raise e
+
+    return extracted_data_chunk
+
+
+def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
+    """
+    Uploads XML to S3.
+
+    Args:
+        original_filename (str): Original filename.
+        bucket_name (str): Bucket name.
+        xml (dict): XML.
+    """
+    logger.info(f"Uploading to S3 bucket {bucket_name} as {original_filename}_parsed.xml")
+    s3 = boto3.resource("s3")
+    s3.Bucket(bucket_name).put_object(Key=f"arxiv/parsed_summaries/{original_filename}_parsed.xml", Body=xml)
+
+
+def call_persist_summaries(persist_lambda_name: str, bucket_name: str, filename: str) -> None:
+    """
+    Calls persist summaries.
+
+    Args:
+        persist_lambda_name (str): Persist lambda name.
+        bucket_name (str): Bucket name.
+        filename (str): Filename of the parsed summaries saved as xml.
+    """
+    logger.info(
+        "Calling persist summaries function {persist_lambda_name} \
+                 for {filename} in {bucket_name}"
+    )
+    event_payload = {"bucket_name": bucket_name, "filename": filename}
+    lambda_client = boto3.client("lambda")
+    lambda_client.invoke(FunctionName=persist_lambda_name, InvocationType="Event", Payload=event_payload)

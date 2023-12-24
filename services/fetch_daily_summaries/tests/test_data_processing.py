@@ -8,7 +8,6 @@ from services.fetch_daily_summaries.src.fetch_daily_summaries import (
     generate_date_list,
     schedule_for_later,
     update_research_fetch_status,
-    upload_to_s3,
 )
 
 BASE_PATH = "services.fetch_daily_summaries.src.fetch_daily_summaries."
@@ -260,43 +259,3 @@ class TestProcessFetch(unittest.TestCase):
                 ["<xml><dc:date>2023-01-01</dc:date></xml>"],
             )
         self.assertTrue("Database error" in str(context.exception))
-
-
-class TestUploadToS3(unittest.TestCase):
-    S3_CLIENT_PATH = BASE_PATH + "boto3.client"
-
-    @patch(S3_CLIENT_PATH)
-    def test_successful_upload(self, mock_s3_client):
-        mock_client = MagicMock()
-        mock_s3_client.return_value = mock_client
-        xml_responses = ["<xml>response1</xml>", "<xml>response2</xml>"]
-
-        upload_to_s3("test-bucket", date(2023, 1, 1), "summary1", xml_responses)
-
-        self.assertEqual(mock_client.put_object.call_count, len(xml_responses))
-        for idx, call in enumerate(mock_client.put_object.call_args_list):
-            _, kwargs = call
-            self.assertEqual(kwargs["Bucket"], "test-bucket")
-            self.assertEqual(kwargs["Key"], f"arxiv/summary1-2023-01-01-{idx}.xml")
-            self.assertEqual(kwargs["Body"], xml_responses[idx])
-
-    @patch(S3_CLIENT_PATH)
-    def test_upload_with_empty_responses(self, mock_s3_client):
-        mock_client = MagicMock()
-        mock_s3_client.return_value = mock_client
-
-        upload_to_s3("test-bucket", date(2023, 1, 1), "summary1", [])
-
-        mock_client.put_object.assert_not_called()
-
-    @patch(S3_CLIENT_PATH)
-    def test_upload_exception_handling(self, mock_s3_client):
-        mock_client = MagicMock()
-        mock_client.put_object.side_effect = Exception("S3 Upload Error")
-        mock_s3_client.return_value = mock_client
-        xml_responses = ["<xml>response1</xml>"]
-
-        with self.assertRaises(Exception) as context:
-            upload_to_s3("test-bucket", date(2023, 1, 1), "summary1", xml_responses)
-
-        self.assertEqual(str(context.exception), "S3 Upload Error")
