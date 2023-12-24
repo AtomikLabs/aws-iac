@@ -220,7 +220,7 @@ def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
     """
     logger.info("Uploading to S3 bucket " + bucket_name + " as " + original_filename + "_parsed.xml")
     s3 = boto3.client("s3")
-    s3.put_object(Body=json.dumps(xml), Bucket=bucket_name, Key=original_filename + "_parsed.json")
+    s3.put_object(Body=json.dumps(xml), Bucket=bucket_name, Key=(original_filename + "_parsed.json").replace("raw", "parsed"))
 
 
 def call_persist_summaries(persist_lambda_name: str, bucket_name: str, filename: str) -> None:

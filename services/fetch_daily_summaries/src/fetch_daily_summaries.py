@@ -281,8 +281,8 @@ def attempt_fetch_for_dates(
                 logging.error(f"Fetch failed for date: {date_to_fetch}")
         filename = f"arxiv/raw_summaries/{summary_set}-{earliest_unfetched_date.strftime('%Y-%m-%d')}.xml"
         lambda_name = os.environ.get("PARSE_LAMBDA_FUNCTION_NAME")
-        upload_to_s3(filename, bucket_name, full_xml_responses)
-        call_parse_summaries(bucket_name, filename, lambda_name)
+        filenames = upload_to_s3(filename, bucket_name, full_xml_responses)
+        call_parse_summaries(bucket_name, filenames, lambda_name)
     else:
         logging.warning(NO_UNFETCHED_DATES_FOUND)
 
@@ -563,16 +563,20 @@ def upload_to_s3(filename: str, bucket_name: str, full_xml_responses: List[str])
 
     logging.info(f"Uploading {len(full_xml_responses)} XML responses to S3")
     s3 = boto3.client("s3")
-
+    filenames = []
     for idx, xml_response in enumerate(full_xml_responses):
+        iteration_filename = f"{filename}_{idx}.xml"
         s3.put_object(
             Body=xml_response,
             Bucket=bucket_name,
-            Key=filename,
+            Key=iteration_filename,
         )
+        filenames.append(iteration_filename)
+
+    return filenames
 
 
-def call_parse_summaries(bucket_name: str, filename: str, lambda_name: str):
+def call_parse_summaries(bucket_name: str, filenames: List[str], lambda_name: str):
     """
     Calls parse summaries.
 
@@ -583,16 +587,17 @@ def call_parse_summaries(bucket_name: str, filename: str, lambda_name: str):
     """
     if not bucket_name:
         raise ValueError("No bucket name specified")
-    if not filename:
+    if not filenames:
         raise ValueError("No filename specified")
     if not lambda_name:
         raise ValueError("No lambda name specified")
 
-    logging.info(f"Calling parse summaries function for {filename} in {bucket_name}")
-    event_payload = {"bucket_name": bucket_name, "filename": filename}
+    logging.info("Calling parse summaries function for " + filenames + " in bucket " + bucket_name)
     lambda_client = boto3.client("lambda")
-    lambda_client.invoke(
-        FunctionName=lambda_name,
-        InvocationType="Event",
-        Payload=json.dumps(event_payload),
-    )
+    for filename in filenames:
+        event_payload = {"bucket_name": bucket_name, "filename": filename}
+        lambda_client.invoke(
+            FunctionName=lambda_name,
+            InvocationType="Event",
+            Payload=json.dumps(event_payload),
+        )
