@@ -1,6 +1,6 @@
 # Test file for fetch_daily_summaries data processing functions
 import unittest
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import patch, MagicMock
 from services.fetch_daily_summaries.src.fetch_daily_summaries import (
     log_initial_info,
