@@ -518,7 +518,7 @@ def upload_to_s3(filename: str, bucket_name: str, full_xml_responses: List[str])
         raise ValueError("No bucket name specified")
     if not filename:
         raise ValueError("No filename specified")
-    
+
     logging.info(f"Uploading {len(full_xml_responses)} XML responses to S3")
     s3 = boto3.client("s3")
 
@@ -547,10 +547,7 @@ def call_parse_summaries(bucket_name: str, filename: str, lambda_name: str):
         raise ValueError("No lambda name specified")
 
     logging.info(f"Calling parse summaries function for {filename} in {bucket_name}")
-    event_payload = {
-        "bucket_name": bucket_name,
-        "filename": filename
-    }
+    event_payload = {"bucket_name": bucket_name, "filename": filename}
     lambda_client = boto3.client("lambda")
     lambda_client.invoke(
         FunctionName=lambda_name,
