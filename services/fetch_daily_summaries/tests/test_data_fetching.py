@@ -1,5 +1,4 @@
 # Test data fetching functions
-from datetime import date, datetime
 import unittest
 import requests
 
