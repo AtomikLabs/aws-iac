@@ -38,6 +38,17 @@ Resources:
           Arn: !GetAtt FetchDailySummaries.Arn
           Input: "{}"
 
+  ParseArxivSummaries:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "parse-arxiv-summaries-${EnvironmentName}"
+      PackageType: Image
+      Role: !Ref LambdaExecutionRoleArn
+      MemorySize: 128
+      Timeout: 900
+      Code:
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepositoryName}:placeholder"
+
   EventBridgePermissionForLambda:
     Type: AWS::Lambda::Permission
     Properties:
