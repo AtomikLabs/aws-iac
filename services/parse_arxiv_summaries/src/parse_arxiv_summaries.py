@@ -1,4 +1,4 @@
-# Description: Parse arXiv research summaries and send them to be persisted
+# Description: Parse arXiv research summaries and send them to be persisted.
 
 import logging
 import os
