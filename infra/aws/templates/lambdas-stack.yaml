@@ -26,10 +26,6 @@ Resources:
       Timeout: 900
       Code:
         ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepositoryName}:placeholder"
-      Environment:
-        Variables:
-          ENVIRONMENT_NAME: !Ref EnvironmentName
-          PARSE_LAMBDA_FUNCTION_NAME: !Ref ParseArxivSummaries
 
   FetchDailySummariesEventRule:
     Type: AWS::Events::Rule
