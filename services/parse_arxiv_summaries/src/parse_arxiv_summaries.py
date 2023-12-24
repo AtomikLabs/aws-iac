@@ -3,6 +3,7 @@
 import logging
 import os
 from collections import defaultdict
+import json
 
 import boto3
 import defusedxml.ElementTree as ET
@@ -219,7 +220,7 @@ def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
     """
     logger.info(f"Uploading to S3 bucket {bucket_name} as {original_filename}_parsed.xml")
     s3 = boto3.resource("s3")
-    s3.Bucket(bucket_name).put_object(Key=f"arxiv/parsed_summaries/{original_filename}_parsed.xml", Body=xml)
+    s3.Bucket(bucket_name).put_object(Key=f"arxiv/parsed_summaries/{original_filename}_parsed.xml", Body=json.dumps(xml))
 
 
 def call_persist_summaries(persist_lambda_name: str, bucket_name: str, filename: str) -> None:
