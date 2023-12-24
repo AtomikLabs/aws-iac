@@ -26,6 +26,10 @@ Resources:
       Timeout: 900
       Code:
         ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepositoryName}:placeholder"
+      Environment:
+        Variables:
+          ENVIRONMENT_NAME: !Ref EnvironmentName
+          PARSE_LAMBDA_FUNCTION_NAME: !Ref ParseArxivSummaries
 
   FetchDailySummariesEventRule:
     Type: AWS::Events::Rule
@@ -37,6 +41,35 @@ Resources:
         - Id: "FetchDailySummariesTarget"
           Arn: !GetAtt FetchDailySummaries.Arn
           Input: "{}"
+
+  ParseArxivSummaries:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "parse-arxiv-summaries-${EnvironmentName}"
+      PackageType: Image
+      Role: !Ref LambdaExecutionRoleArn
+      MemorySize: 128
+      Timeout: 900
+      Code:
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepositoryName}:placeholder"
+      Environment:
+        Variables:
+          ENVIRONMENT_NAME: !Ref EnvironmentName
+          PERSIST_LAMBDA_FUNCTION_NAME: !Ref PersistArxivSummaries
+
+  PersistArxivSummaries:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "persist-arxiv-summaries-${EnvironmentName}"
+      PackageType: Image
+      Role: !Ref LambdaExecutionRoleArn
+      MemorySize: 128
+      Timeout: 900
+      Code:
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepositoryName}:placeholder"
+      Environment:
+        Variables:
+          ENVIRONMENT_NAME: !Ref EnvironmentName
 
   EventBridgePermissionForLambda:
     Type: AWS::Lambda::Permission
@@ -50,3 +83,9 @@ Outputs:
   FetchDailySummariesFunctionArn:
     Description: "ARN of the Fetch Daily Summaries Lambda Function"
     Value: !GetAtt FetchDailySummaries.Arn
+  ParseArxivSummariesFunctionArn:
+    Description: "ARN of the Parse Arxiv Summaries Lambda Function"
+    Value: !GetAtt ParseArxivSummaries.Arn
+  PersistArxivSummariesFunctionArn:
+    Description: "ARN of the Persist Arxiv Summaries Lambda Function"
+    Value: !GetAtt PersistArxivSummaries.Arn
