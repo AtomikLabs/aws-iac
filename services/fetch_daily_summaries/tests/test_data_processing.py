@@ -1,6 +1,6 @@
 # Test file for fetch_daily_summaries data processing functions
 import unittest
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
 from services.fetch_daily_summaries.src.fetch_daily_summaries import (
     log_initial_info,
@@ -8,7 +8,6 @@ from services.fetch_daily_summaries.src.fetch_daily_summaries import (
     generate_date_list,
     schedule_for_later,
     update_research_fetch_status,
-    upload_to_s3,
 )
 
 BASE_PATH = "services.fetch_daily_summaries.src.fetch_daily_summaries."

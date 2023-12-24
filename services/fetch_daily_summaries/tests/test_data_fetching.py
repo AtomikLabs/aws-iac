@@ -1,6 +1,7 @@
 # Test data fetching functions
 import unittest
 import requests
+from datetime import date
 
 from unittest.mock import patch, MagicMock, Mock
 from services.fetch_daily_summaries.src.fetch_daily_summaries import (
