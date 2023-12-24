@@ -6,6 +6,7 @@ import re
 import time
 from datetime import timedelta, datetime, date
 from typing import List
+import json
 
 import boto3
 import defusedxml.ElementTree as ET
@@ -273,8 +274,10 @@ def attempt_fetch_for_dates(
                 last_success_date = date_to_fetch
             else:
                 logging.error(f"Fetch failed for date: {date_to_fetch}")
-
-        upload_to_s3(bucket_name, earliest_unfetched_date, summary_set, full_xml_responses)
+        filename = f"arxiv/raw_summaries/{summary_set}-{earliest_unfetched_date.strftime('%Y-%m-%d')}.xml"
+        lambda_name = os.environ.get("PARSE_LAMBDA_FUNCTION_NAME")
+        upload_to_s3(filename, bucket_name, full_xml_responses)
+        call_parse_summaries(bucket_name, filename, lambda_name)
     else:
         logging.warning(NO_UNFETCHED_DATES_FOUND)
 
@@ -501,15 +504,21 @@ def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secr
         return False
 
 
-def upload_to_s3(bucket_name: str, from_date: date, summary_set: str, full_xml_responses: List[str]):
+def upload_to_s3(filename: str, bucket_name: str, full_xml_responses: List[str]):
     """Uploads XML responses to S3.
 
     Args:
+        filename (str): Filename.
         bucket_name (str): S3 bucket name.
-        from_date (date): Summary date.
-        summary_set (str): Summary set.
         full_xml_responses (List[str]): XML responses.
     """
+    if not full_xml_responses:
+        raise ValueError("No XML responses to upload")
+    if not bucket_name:
+        raise ValueError("No bucket name specified")
+    if not filename:
+        raise ValueError("No filename specified")
+    
     logging.info(f"Uploading {len(full_xml_responses)} XML responses to S3")
     s3 = boto3.client("s3")
 
@@ -517,9 +526,34 @@ def upload_to_s3(bucket_name: str, from_date: date, summary_set: str, full_xml_r
         s3.put_object(
             Body=xml_response,
             Bucket=bucket_name,
-            Key=f"arxiv/raw_summaries/{summary_set}-{from_date.strftime('%Y-%m-%d')}-{idx}.xml",
+            Key=filename,
         )
 
 
-if __name__ == "__main__":
-    lambda_handler({}, {})
+def call_parse_summaries(bucket_name: str, filename: str, lambda_name: str):
+    """
+    Calls parse summaries.
+
+    Args:
+        bucket_name (str): S3 bucket name.
+        filename (str): Filename.
+        lambda_name (str): Lambda name.
+    """
+    if not bucket_name:
+        raise ValueError("No bucket name specified")
+    if not filename:
+        raise ValueError("No filename specified")
+    if not lambda_name:
+        raise ValueError("No lambda name specified")
+
+    logging.info(f"Calling parse summaries function for {filename} in {bucket_name}")
+    event_payload = {
+        "bucket_name": bucket_name,
+        "filename": filename
+    }
+    lambda_client = boto3.client("lambda")
+    lambda_client.invoke(
+        FunctionName=lambda_name,
+        InvocationType="Event",
+        Payload=json.dumps(event_payload),
+    )

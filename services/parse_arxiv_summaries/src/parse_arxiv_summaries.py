@@ -1,6 +1,7 @@
 # Description: Parse arXiv research summaries and send them to be persisted
 
 import logging
+import os
 from datetime import datetime
 from collections import defaultdict
 
@@ -71,14 +72,36 @@ def lambda_handler(event, context):
     try:
         log_initial_info(event)
 
-        bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
-        key = event["Records"][0]["s3"]["object"]["key"]
+        bucket_name = event.get("bucket_name")
+        key = event.get("filename")
+
+        if not bucket_name:
+            logger.error("No bucket name specified")
+            return {
+                "statusCode": 500,
+                "body": "No bucket name specified"
+            }
+
+        if not key:
+            logger.error("No key specified")
+            return {
+                "statusCode": 500,
+                "body": "No key specified"
+            }
+
+        persist_lambda_name = os.environ.get("PERSIST_LAMBDA_FUNCTION_NAME")
+
+        if not persist_lambda_name:
+            return {
+                "statusCode": 500,
+                "body": "No persist lambda function name specified"
+            }
 
         xml_data = load_xml_from_s3(bucket_name, key)
         parsed_data = parse_xml(xml_data)
         upload_to_s3(key, bucket_name, parsed_data)
-        call_persist_summaries(bucket_name, parsed_data)
-
+        call_persist_summaries(persist_lambda_name, bucket_name, parsed_data)
+        logger.info("Finished parsing arXiv daily summaries")
         return {
             "statusCode": 200,
             "body": "Success"
@@ -99,11 +122,11 @@ def log_initial_info(event: dict) -> None:
     Args:
         event (dict): Event.
     """
-    logging.info(f"Received event: {event}")
-    logging.info("Starting to fetch arXiv daily summaries")
+    logger.info(f"Received event: {event}")
+    logger.info("Starting to parse arXiv summaries")
 
 
-def load_xml_from_s3(bucket_name: str, key: str) -> ET.Element:
+def load_xml_from_s3(bucket_name: str, key: str):
     """
     Loads XML from S3.
 
@@ -112,15 +135,21 @@ def load_xml_from_s3(bucket_name: str, key: str) -> ET.Element:
         key (str): Key.
 
     Returns:
-        XML element.
+        XML.
     """
+    logger.info(f"Loading XML from S3 bucket {bucket_name}")
+    if not bucket_name:
+        raise ValueError("Must provide a bucket name")
+    if not key:
+        raise ValueError("Must provide a key")
+
     s3 = boto3.resource("s3")
     obj = s3.Object(bucket_name, key)
     body = obj.get()["Body"].read()
     return ET.fromstring(body)
 
 
-def parse_xml(xml_data: ET.Element) -> dict:
+def parse_xml(xml_data: ET) -> dict:
     """
     Parses arXiv XML into a list of dictionaries of research summaries.
 
@@ -130,16 +159,21 @@ def parse_xml(xml_data: ET.Element) -> dict:
     Returns:
         Dictionary of research summaries.
     """
-    extracted_data_chunk = defaultdict(list)
+    if not xml_data:
+        raise ValueError("Must provide XML data")
 
+    extracted_data_chunk = defaultdict(list)
+    logger.info("Parsing XML")
     try:
         root = ET.fromstring(xml_data)
         ns = {
             'oai': 'http://www.openarchives.org/OAI/2.0/',
             'dc': 'http://purl.org/dc/elements/1.1/'
         }
-
+        records_found = 0
+        records_with_valid_categories = 0
         for record in root.findall(".//oai:record", ns):
+            records_found += 1
             identifier = record.find(".//oai:identifier", ns).text
             abstract_url = record.find(".//dc:identifier", ns).text
 
@@ -157,7 +191,7 @@ def parse_xml(xml_data: ET.Element) -> dict:
                           if subject.text in cs_categories_inverted]
             if not categories:
                 continue
-
+            records_with_valid_categories += 1
             primary_category = categories[0]
 
             abstract = record.find(".//dc:description", ns).text
@@ -176,9 +210,15 @@ def parse_xml(xml_data: ET.Element) -> dict:
                 'date': date,
                 'group': group
             })
+            if records_with_valid_categories == 1:
+                logger.info(f"First record: {extracted_data_chunk['records'][0]}")
+
+        logger.info(f"Found {records_found} records")
+        logger.info(f"Found {records_with_valid_categories} records with valid CS categories") 
 
     except ET.ParseError as e:
-        print(f"Parse error: {e}")
+        logger.error(f"Parse error: {e}")
+        raise e
 
     return extracted_data_chunk
 
@@ -192,7 +232,7 @@ def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
         bucket_name (str): Bucket name.
         xml (dict): XML.
     """
-    logging.info(f"Uploading to S3 bucket {bucket_name}")
+    logger.info(f"Uploading to S3 bucket {bucket_name} as {original_filename}_parsed.xml")
     s3 = boto3.resource("s3")
     s3.Bucket(bucket_name).put_object(
         Key=f"arxiv/parsed_summaries/{original_filename}_parsed.xml",
@@ -200,18 +240,24 @@ def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
     )
 
 
-def call_persist_summaries(bucket_name: str, xml: dict) -> None:
+def call_persist_summaries(persist_lambda_name: str, bucket_name: str, filename: str) -> None:
     """
     Calls persist summaries.
 
     Args:
+        persist_lambda_name (str): Persist lambda name.
         bucket_name (str): Bucket name.
-        xml (dict): XML.
+        filename (str): Filename of the parsed summaries saved as xml.
     """
-    logging.info("Calling persist summaries")
+    logger.info("Calling persist summaries function {persist_lambda_name} \
+                 for {filename} in {bucket_name}")
+    event_payload = {
+        "bucket_name": bucket_name,
+        "filename": filename
+    }
     lambda_client = boto3.client("lambda")
     lambda_client.invoke(
-        FunctionName="persist_summaries",
+        FunctionName=persist_lambda_name,
         InvocationType="Event",
-        Payload=xml
+        Payload=event_payload
     )
