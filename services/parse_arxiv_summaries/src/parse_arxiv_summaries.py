@@ -73,7 +73,7 @@ def lambda_handler(event, context):
 
         bucket_name = event.get("bucket_name")
         key = event.get("filename")
-
+        logger.info(f"Bucket name: {bucket_name}")
         if not bucket_name:
             logger.error("No bucket name specified")
             return {"statusCode": 500, "body": "No bucket name specified"}
@@ -83,7 +83,7 @@ def lambda_handler(event, context):
             return {"statusCode": 500, "body": "No key specified"}
 
         persist_lambda_name = os.environ.get("PERSIST_LAMBDA_FUNCTION_NAME")
-
+        logger.info(f"Persist lambda function name: {persist_lambda_name}")
         if not persist_lambda_name:
             return {"statusCode": 500, "body": "No persist lambda function name specified"}
 
