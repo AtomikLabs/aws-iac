@@ -434,23 +434,24 @@ def handle_http_error(status_code: int, response_text: str, retry_count: int) ->
     return 0
 
 
-def extract_resumption_token(xml_content: str) -> str:
-    """Extracts resumption token from XML content.
+def extract_resumption_token_from_last_lines(xml_content: str) -> str or None:
+    """
+    Extracts resumption token from the last few lines of XML content.
 
     Args:
         xml_content (str): XML content.
 
     Returns:
-        str: Resumption token.
+        str: Resumption token or None if not found.
     """
-    try:
-        logger.info("Extracting resumption token")
-        root = ET.fromstring(xml_content)
-        token_element = root.find(".//resumptionToken")
-        logger.info(f"Resumption token element: {token_element}")
-        return token_element.text if token_element is not None else None
-    except ET.ParseError:
-        return ""
+    last_lines = xml_content.splitlines()[-3:]
+    last_lines_str = "\n".join(last_lines)
+    match = re.search(r'<resumptionToken[^>]*>([^<]+)</resumptionToken>', last_lines_str)
+    if match:
+        return match.group(1)
+    else:
+        logger.info("No resumption token found in the last lines.")
+        return None
 
 
 def schedule_for_later() -> None:
