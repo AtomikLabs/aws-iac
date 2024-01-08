@@ -395,6 +395,25 @@ def fetch_data(base_url: str, from_date: date, summary_set: str) -> List[str]:
     return full_xml_responses
 
 
+def extract_resumption_token(xml_content: str) -> str:
+    """Extracts resumption token from XML content.
+
+    Args:
+        xml_content (str): XML content.
+
+    Returns:
+        str: Resumption token.
+    """
+    try:
+        logger.info("Extracting resumption token")
+        root = ET.fromstring(xml_content)
+        token_element = root.find(".//resumptionToken")
+        logger.info(f"Resumption token element: {token_element}")
+        return token_element.text if token_element is not None else None
+    except ET.ParseError:
+        return ""
+
+
 def fetch_http_response(base_url: str, params: dict) -> tuple[int, str]:
     """Fetches HTTP response.
 
