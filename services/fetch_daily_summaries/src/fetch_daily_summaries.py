@@ -7,10 +7,13 @@ import time
 from datetime import timedelta, datetime, date
 from typing import List
 import json
-
-import boto3
-import defusedxml.ElementTree as ET
 import requests
+import boto3
+from collections import defaultdict
+from html import unescape
+from docx import Document
+import docx.opc.constants
+import defusedxml.ElementTree as ET
 from botocore.exceptions import NoRegionError
 
 logger = logging.getLogger(__name__)
@@ -19,6 +22,9 @@ logging.getLogger().setLevel(logging.INFO)
 INTERNAL_SERVER_ERROR = "Internal server error"
 NO_REGION_SPECIFIED = "No region specified"
 NO_UNFETCHED_DATES_FOUND = "No unfetched dates found"
+
+TEST_BASE_URL = 'http://export.arxiv.org/oai2'
+TEST = False
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -85,26 +91,8 @@ def lambda_handler(event: dict, context) -> dict:
             return {"statusCode": 200, "body": NO_UNFETCHED_DATES_FOUND}
 
         logger.info(f"Earliest unfetched date: {earliest_unfetched_date}")
-
-        try:
-            last_success_date = attempt_fetch_for_dates(
-                base_url,
-                summary_set,
-                bucket_name,
-                aurora_cluster_arn,
-                db_credentials_secret_arn,
-                database,
-                today,
-                earliest_unfetched_date,
-            )
-        except Exception as e:
-            logger.error(f"Error fetching summaries: {str(e)}")
-            return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
-
-        if last_success_date:
-            message = f"Last successful fetch date: {last_success_date}"
-        else:
-            message = "No new data fetched"
+        
+        fetch_data(base_url, earliest_unfetched_date, summary_set)
 
         return {"statusCode": 200, "body": message}
     except NoRegionError:
@@ -223,70 +211,21 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     return earliest_date
 
 
-def attempt_fetch_for_dates(
-    base_url: str,
-    summary_set: str,
-    bucket_name: str,
-    aurora_cluster_arn: str,
-    db_credentials_secret_arn: str,
-    database: str,
-    today: date,
-    earliest_unfetched_date: date,
-) -> date:
+def fetch_data(base_url: str, from_date: date, summary_set: str) -> None:
     """
-    Fetches arXiv daily summaries for the given dates using AWS RDSDataService.
+    Fetches data from arXiv.
 
     Args:
-        base_url (str): Base URL for the API.
+        base_url (str): Base URL.
+        from_date (date): Summary date.
         summary_set (str): Summary set.
-        bucket_name (str): S3 bucket name.
-        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
-        db_credentials_secret_arn (str): The ARN of the secret containing
-        credentials to access the DB.
-        database (str): Database name.
-        today (date): Today's date.
-        earliest_unfetched_date (date): Earliest unfetched date.
-
-    Returns:
-    date: The last date for which fetch was successful.
     """
-    last_success_date = None
+    logger.info(f"Fetching data from {base_url} for date {from_date}")
 
-    if earliest_unfetched_date:
-        full_xml_responses = fetch_data(base_url, earliest_unfetched_date, summary_set)
-        date_list = generate_date_list(earliest_unfetched_date, today)
-        for list_date in date_list:
-            status = get_fetch_status(list_date, aurora_cluster_arn, db_credentials_secret_arn, database)
-
-            if status == "success":
-                date_list.remove(list_date)
-        logger.info(f"Date list: {date_list}")
-
-        for date_to_fetch in date_list:
-            logger.info(f"Fetching for date: {date_to_fetch}")
-            insert_fetch_status(date_to_fetch, aurora_cluster_arn, db_credentials_secret_arn, database)
-            success = update_research_fetch_status(
-                date_to_fetch,
-                summary_set,
-                bucket_name,
-                aurora_cluster_arn,
-                db_credentials_secret_arn,
-                database,
-                full_xml_responses,
-            )
-            if success:
-                logger.info(f"Fetch successful for date: {date_to_fetch}")
-                last_success_date = date_to_fetch
-            else:
-                logger.error(f"Fetch failed for date: {date_to_fetch}")
-        filename = f"arxiv/raw_summaries/{summary_set}-{earliest_unfetched_date.strftime('%Y-%m-%d')}.xml"
-        lambda_name = os.environ.get("PARSE_LAMBDA_FUNCTION_NAME")
-        filenames = upload_to_s3(filename, bucket_name, full_xml_responses)
-        call_parse_summaries(bucket_name, filenames, lambda_name)
+    if TEST:
+        fetch_data_test(base_url, from_date, summary_set)
     else:
-        logger.warning(NO_UNFETCHED_DATES_FOUND)
-
-    return last_success_date
+        fetch_data_prod(base_url, from_date, summary_set)
 
 
 def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, database):
@@ -342,135 +281,6 @@ def generate_date_list(start_date: date, end_date: date) -> List[date]:
     if delta.days < 0:
         raise ValueError("End date must be after start date")
     return [(start_date + timedelta(days=i)) for i in range((delta.days) + 1)]
-
-
-def fetch_data(base_url: str, from_date: date, summary_set: str) -> List[str]:
-    """
-    Fetches data from the API.
-
-    Args:
-        base_url (str): Base URL for the API.
-        from_date (date): Summary date.
-        summary_set (str): Summary set.
-
-    Returns:
-        List[str]: List of XML responses.
-    """
-    full_xml_responses = []
-    str_date = from_date.strftime("%Y-%m-%d")
-    logger.info(f"Fetching data for date: {str_date}")
-    params = {
-        "verb": "ListRecords",
-        "set": summary_set,
-        "metadataPrefix": "oai_dc",
-        "from": str_date,
-    }
-    retry_count = 0
-    while True:
-        if retry_count > 5:
-            break
-        status_code, xml_content = fetch_http_response(base_url, params)
-        if status_code != 200:
-            logger.error(f"HTTP error, probably told to back off: {status_code}")
-            backoff_time = handle_http_error(status_code, xml_content, retry_count)
-            if backoff_time:
-                time.sleep(backoff_time)
-                retry_count += 1
-                continue
-            else:
-                break
-
-        if xml_content.strip():
-            full_xml_responses.append(xml_content)
-
-        resumption_token = extract_resumption_token(xml_content)
-        logger.info(f"Response: {xml_content.splitlines()[-3:]}")
-        if resumption_token:
-            logger.info(f"Resumption token: {resumption_token}")
-            params = {"verb": "ListRecords", "resumptionToken": resumption_token}
-            time.sleep(5)
-        else:
-            break
-
-    return full_xml_responses
-
-
-def extract_resumption_token(xml_content: str) -> str:
-    """Extracts resumption token from XML content.
-
-    Args:
-        xml_content (str): XML content.
-
-    Returns:
-        str: Resumption token.
-    """
-    try:
-        logger.info("Extracting resumption token")
-        root = ET.fromstring(xml_content)
-        token_element = root.find(".//resumptionToken")
-        logger.info(f"Resumption token element: {token_element}")
-        return token_element.text if token_element is not None else None
-    except ET.ParseError:
-        return ""
-
-
-def fetch_http_response(base_url: str, params: dict) -> tuple[int, str]:
-    """Fetches HTTP response.
-
-    Args:
-        base_url (str): Base URL for the API.
-        params (dict): Request parameters.
-
-    Returns:
-        requests.Response: Response object.
-    """
-    response = requests.get(base_url, params=params, timeout=60)
-    return response.status_code, response.text
-
-
-def handle_http_error(status_code: int, response_text: str, retry_count: int) -> int:
-    """
-    Handles HTTP error.
-
-    Args:
-        status_code (int): HTTP status code.~
-        response_text (str): Response text.
-        retry_count (int): Retry count.
-
-    Returns:
-        int: Backoff time.
-    """
-    if "maintenance" in response_text.lower():
-        schedule_for_later()
-        return 0
-    backoff_times = [30, 120]
-    if status_code == 503 and retry_count < len(backoff_times):
-        logger.info(
-            f"Received 503, retrying after \
-                {backoff_times[retry_count]} seconds"
-        )
-        return backoff_times[retry_count]
-    return 0
-
-
-def extract_resumption_token_from_last_lines(xml_content: str) -> str or None:
-    """
-    Extracts resumption token from the last few lines of XML content.
-
-    Args:
-        xml_content (str): XML content.
-
-    Returns:
-        str: Resumption token or None if not found.
-    """
-    last_lines = xml_content.splitlines()[-3:]
-    last_lines_str = "\n".join(last_lines)
-    match = re.search(r'<resumptionToken[^>]*>([^<]+)</resumptionToken>', last_lines_str)
-    if match:
-        return match.group(1)
-    else:
-        logger.info("No resumption token found in the last lines.")
-        return None
 
 
 def schedule_for_later() -> None:
@@ -569,58 +379,49 @@ def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secr
         return False
 
 
-def upload_to_s3(filename: str, bucket_name: str, full_xml_responses: List[str]):
-    """Uploads XML responses to S3.
+cs_categories_inverted = {
+    'Computer Science - Artifical Intelligence': 'AI',
+    'Computer Science - Hardware Architecture': 'AR',
+    'Computer Science - Computational Complexity': 'CC',
+    'Computer Science - Computational Engineering, Finance, and Science': 'CE',
+    'Computer Science - Computational Geometry': 'CG',
+    'Computer Science - Computation and Language': 'CL',
+    'Computer Science - Cryptography and Security': 'CR',
+    'Computer Science - Computer Vision and Pattern Recognition': 'CV',
+    'Computer Science - Computers and Society': 'CY',
+    'Computer Science - Databases': 'DB',
+    'Computer Science - Distributed, Parallel, and Cluster Computing': 'DC',
+    'Computer Science - Digital Libraries': 'DL',
+    'Computer Science - Discrete Mathematics': 'DM',
+    'Computer Science - Data Structures and Algorithms': 'DS',
+    'Computer Science - Emerging Technologies': 'ET',
+    'Computer Science - Formal Languages and Automata Theory': 'FL',
+    'Computer Science - General Literature': 'GL',
+    'Computer Science - Graphics': 'GR',
+    'Computer Science - Computer Science and Game Theory': 'GT',
+    'Computer Science - Human-Computer Interaction': 'HC',
+    'Computer Science - Information Retrieval': 'IR',
+    'Computer Science - Information Theory': 'IT',
+    'Computer Science - Machine Learning': 'LG',
+    'Computer Science - Logic in Computer Science': 'LO',
+    'Computer Science - Multiagent Systems': 'MA',
+    'Computer Science - Multimedia': 'MM',
+    'Computer Science - Mathematical Software': 'MS',
+    'Computer Science - Numerical Analysis': 'NA',
+    'Computer Science - Neural and Evolutionary Computing': 'NE',
+    'Computer Science - Networking and Internet Architecture': 'NI',
+    'Computer Science - Other Computer Science': 'OH',
+    'Computer Science - Operating Systems': 'OS',
+    'Computer Science - Performance': 'PF',
+    'Computer Science - Programming Languages': 'PL',
+    'Computer Science - Robotics': 'RO',
+    'Computer Science - Symbolic Computation': 'SC',
+    'Computer Science - Sound': 'SD',
+    'Computer Science - Software Engineering': 'SE',
+    'Computer Science - Social and Information Networks': 'SI',
+    'Computer Science - Systems and Control': 'SY'
+}
 
-    Args:
-        filename (str): Filename.
-        bucket_name (str): S3 bucket name.
-        full_xml_responses (List[str]): XML responses.
-    """
-    if not full_xml_responses:
-        raise ValueError("No XML responses to upload")
-    if not bucket_name:
-        raise ValueError("No bucket name specified")
-    if not filename:
-        raise ValueError("No filename specified")
 
-    logger.info(f"Uploading {len(full_xml_responses)} XML responses to S3")
-    s3 = boto3.client("s3")
-    filenames = []
-    for idx, xml_response in enumerate(full_xml_responses):
-        iteration_filename = f"{filename}_{idx}.xml"
-        s3.put_object(
-            Body=xml_response,
-            Bucket=bucket_name,
-            Key=iteration_filename,
-        )
-        filenames.append(iteration_filename)
-
-    return filenames
-
-
-def call_parse_summaries(bucket_name: str, filenames: List[str], lambda_name: str):
-    """
-    Calls parse summaries.
-
-    Args:
-        bucket_name (str): S3 bucket name.
-        filename (str): Filename.
-        lambda_name (str): Lambda name.
-    """
-    if not bucket_name:
-        raise ValueError("No bucket name specified")
-    if not filenames:
-        raise ValueError("No filename specified")
-    if not lambda_name:
-        raise ValueError("No lambda name specified")
-
-    logger.info("Calling parse summaries function for " + filenames + " in bucket " + bucket_name)
-    lambda_client = boto3.client("lambda")
-    for filename in filenames:
-        event_payload = {"bucket_name": bucket_name, "filename": filename}
-        lambda_client.invoke(
-            FunctionName=lambda_name,
-            InvocationType="Event",
-            Payload=json.dumps(event_payload),
-        )
+if __name__ == "__main__":
+    test_fetch_and_process()
