@@ -13,6 +13,7 @@ import defusedxml.ElementTree as ET
 from botocore.exceptions import NoRegionError
 from datetime import datetime, timedelta, date
 from typing import List
+from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ BUCKET_NAME = ''
 DB_CREDENTIALS_SECRET_ARN = ''
 DATABASE = ''
 SUMMARY_SET = ''
+ANTHROPIC_KEY = ''
 
 # Hardcoded dictionary for category lookup
 cs_categories_inverted = {
@@ -260,13 +262,30 @@ def latex_to_human_readable(latex_str):
     return unescape(latex_str)
 
 
-def create_full_show_notes(categories: list, records: list, date: str, group: str):
+def create_full_show_notes(categories: list, records: list, research_date: str, group: str, themes: str):
     for category in categories:
         doc = Document()
-        # add intro paragraph gen
+        intro = ''
+        theme_header = "Today's Themes (AI-Generated)"
+        thank_you = "Thank you to arXiv for use of its open access interoperability."
+        summary_header = "Summaries"
+        if category == 'CL':
+            intro = ("If you would rather listen to today's summaries, you can hear them on the TechcraftingAI NLP podcast. ",
+                     "Your virtual host will be happy to read them to you!")
+
+        intro_paragraph = doc.add_paragraph()
+        intro_paragraph.add_run(intro)
+        theme_header_heading = doc.add_heading(theme_header, level=2)
+        theme_header_heading.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.LEFT
+        theme_paragraph = doc.add_paragraph()
+        theme_paragraph.add_run(themes)
+        thank_you_paragraph = doc.add_paragraph()
+        thank_you_paragraph.add_run(thank_you)
+        summary_header_heading = doc.add_heading(summary_header, level=2)
+        summary_header_heading.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.LEFT
 
         for record in records:
-            if record['primary_category'] == category and record['date'] == date:
+            if record['primary_category'] == category and record['date'] == research_date:
                 title_pdf_paragraph = doc.add_paragraph()
 
                 cleaned_title = re.sub('\n\s*', ' ', record['title'])
@@ -285,11 +304,64 @@ def create_full_show_notes(categories: list, records: list, date: str, group: st
                     no_latex_paragraph = latex_to_human_readable(cleaned_paragraph)
                     doc.add_paragraph(no_latex_paragraph)
 
-        file_name = f"{date}_{group}_{category}_full_show_notes.docx"
+        file_name = f"{research_date}_{group}_{category}_full_show_notes.docx"
         doc.save(os.path.join('show_notes', file_name))
 
 
-def create_short_show_notes(categories: list, records: list, date: str, group: str):
+def create_research_summary(research: str, category: str) -> str:
+    anthropic = Anthropic(api_key=ANTHROPIC_KEY)
+    instruction = ''
+    if category == 'CL':
+        instruction = ("# Instructions\nYou are an expert machine learning researcher. Give me the top five ",
+                       "research themes from the arXiv NLP research summaries for my podcast below. ",
+                       "Do not be flashy, be accurate, factual, and succinct. Themes should be a single sentence. ",
+                       " The audience is technical. You must NOT respond with anything other than the themes in the ",
+                       "format below. If you do, I will not be able to use your response. Use the following format:\n\n",
+                       "• <theme 1>\n",
+                       "• <theme 2>\n",
+                       "• <theme 3>\n",
+                       "• <theme 4>\n",
+                       "• <theme 5>\n\n",
+                       "# Research\n")
+    elif category == 'CV':
+        instruction = ("# Instructions\nYou are an expert machine learning researcher. Give me the top five ",
+                       "Do not be flashy, be accurate, factual, and succinct. Themes should be a single sentence. ",
+                       " The audience is technical. You must NOT respond with anything other than the themes in the ",
+                       "format below. If you do, I will not be able to use your response. Use the following format:\n\n",
+                       "• <theme 1>\n",
+                       "• <theme 2>\n",
+                       "• <theme 3>\n",
+                       "• <theme 4>\n",
+                       "• <theme 5>\n\n",
+                       "# Research\n")
+    elif category == 'RO':
+        instruction = ("# Instructions\nYou are an expert machine learning researcher. Give me the top five ",
+                       "Do not be flashy, be accurate, factual, and succinct. Themes should be a single sentence. ",
+                       " The audience is technical. You must NOT respond with anything other than the themes in the ",
+                       "format below. If you do, I will not be able to use your response. Use the following format:\n\n",
+                       "• <theme 1>\n",
+                       "• <theme 2>\n",
+                       "• <theme 3>\n",
+                       "• <theme 4>\n",
+                       "• <theme 5>\n\n",
+                       "# Research\n")
+
+    prompt = f"{HUMAN_PROMPT} {instruction} Research: {research}{AI_PROMPT}"
+    completion = anthropic.completions.create(
+        model="claude-2.1",
+        max_tokens_to_sample=4000,
+        prompt=prompt
+    )
+    return completion.completion
+
+
+def get_long_date(date: str):
+    str_date = datetime.strptime(date, '%Y-%m-%d')
+    long_date = str_date.strftime('%B %d, %Y')
+    return long_date
+
+
+def create_short_show_notes(categories: list, records: list, research_date: str, group: str):
     for category in categories:
         doc = Document()
         count = 0
@@ -312,13 +384,12 @@ def create_short_show_notes(categories: list, records: list, date: str, group: s
         print(f"{category} {count}")
 
 
-def create_script(categories, records, date, group):
+def create_script(categories, records, research_date, group):
     for category in categories:
         doc = Document()
         # add intro notes
         intro = ''
-        str_date = datetime.strptime(date, '%Y-%m-%d')
-        long_date = str_date.strftime('%B %d, %Y')
+        long_date = get_long_date(research_date)
         if category == 'CL':
             intro = ("Hi, and welcome to Tech crafting AI NLP. I am your virtual host, Sage. "
                      "Tech crafting AI NLP brings you daily summaries of new research released on archive. "
@@ -341,7 +412,7 @@ def create_script(categories, records, date, group):
         intro_paragraph = doc.add_paragraph()
         intro_paragraph.add_run(intro)
         for record in records:
-            if record['primary_category'] == category and record['date'] == date:
+            if record['primary_category'] == category and record['date'] == research_date:
                 title_pdf_paragraph = doc.add_paragraph()
 
                 cleaned_title = re.sub('\n\s*', ' ', record['title'])
@@ -362,8 +433,54 @@ def create_script(categories, records, date, group):
         outro = "That's all for today, thank you for listening. If you found the podcast helpful, please leave a comment, like, or share it with a friend. See you tomorrow!"
         outro_paragraph = doc.add_paragraph()
         outro_paragraph.add_run(outro)
-        file_name = f"{date}_{group}_{category}_script.docx"
+        file_name = f"{research_date}_{group}_{category}_script.docx"
         doc.save(os.path.join('show_notes', file_name))
+        themes = ''
+        with open(os.path.join('show_notes', file_name), 'rb') as f:
+            document = Document(f)
+            full_text = []
+            for para in document.paragraphs:
+                full_text.append(para.text)
+            themes = create_research_summary('\n'.join(full_text), category)
+        lines = themes.split('\n')
+        themes = [line for line in lines if line.startswith('•')]
+        themes = '\n'.join(themes)
+        create_full_show_notes([category], records, research_date, 'cs', themes)
+        create_pod_notes([category], research_date, themes)
+        create_post_text([category], research_date, themes)
+
+
+def create_pod_notes(categories: list, research_date: str, themes: str):
+    for category in categories:
+        category_text = ''
+        if category == 'CL':
+            category_text = 'NLP'
+        elif category == 'CV':
+            category_text = 'Computer Vision'
+        elif category == 'RO':
+            category_text = 'Robotics'
+
+        text = f"arXiv {category_text} research summaries for {get_long_date(research_date)}.\n\nToday's Research Themes (AI-Generated):\n\n{themes}"
+        file_name = f"{research_date}_{category}_pod_notes.txt"
+        with open(os.path.join('show_notes', file_name), 'w') as f:
+            f.write(text)
+
+
+def create_post_text(categories: list, research_date: str, themes: str):
+    for category in categories:
+        hashtags = ''
+        if category == 'CL':
+            hashtags = "#naturallanguageprocessing #nlp #ai #artificialintelligence #llm"
+        elif category == 'CV':
+            continue
+        elif category == 'RO':
+            hashtags = "#robotics #ro #ai #artificialintelligence #llm"
+
+        day_of_week = datetime.strptime(research_date, '%Y-%m-%d').strftime('%A')
+        text = f"{day_of_week}'s Themes (AI-Generated):\n\n{themes}\n\nThank you to arXiv for use of its open access interoperability.\n\n{hashtags}"
+        file_name = f"{research_date}_{category}_post_text.txt"
+        with open(os.path.join('show_notes', file_name), 'w') as f:
+            f.write(text)
 
 
 def insert_into_database(data: dict, db_config: dict) -> None:
@@ -566,13 +683,14 @@ def lambda_handler(event: dict, context) -> dict:
 
 
 def config_for_test():
-    global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET
+    global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET, ANTHROPIC_KEY
     AURORA_CLUSTER_ARN = "arn:aws:rds:us-east-1:758145997264:cluster:atomiklabs-dev-aurora-cluster"
     BASE_URL = "http://export.arxiv.org/oai2"
     BUCKET_NAME = "atomiklabs-data-bucket-dev"
     DB_CREDENTIALS_SECRET_ARN = "arn:aws:secretsmanager:us-east-1:758145997264:secret:dev/database-credentials-TuF8OS"
     DATABASE = "atomiklabs_dev_database"
     SUMMARY_SET = "cs"
+    ANTHROPIC_KEY = "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"
 
 
 def run_test():
@@ -605,12 +723,12 @@ def run_test():
 def run_aws_test():
     config_for_test()
     today = calculate_from_date()
-    log_initial_info({"test": "test"})
-    insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-    earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-    date_list = generate_date_list(earliest, today)
     print(f'Today: {today}')
+    log_initial_info({"test": "test"})
+    # insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+    earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
     print(f'Earliest: {earliest}')
+    date_list = generate_date_list(earliest, today)
     print(f'Date List: {date_list}')
     xml_data_list = fetch_data(BASE_URL, earliest, SUMMARY_SET)
     extracted_data = []
@@ -618,7 +736,7 @@ def run_aws_test():
         extracted_data.append(parse_xml_data(xml_data, earliest))
 
     print(len(extracted_data))
-    print(extracted_data[1]['records'][0])
+    # print(extracted_data[1]['records'][0])
 
     FILE_PATHS = {
         'records': 'records.json'
@@ -630,8 +748,7 @@ def run_aws_test():
 
     for research_date in date_list:
         r = research_date.strftime("%Y-%m-%d")
-        create_full_show_notes(['CL', 'CV', 'RO'], records, r, 'cs')
-        create_script(['CL', 'CV', 'RO'], records, r, 'cs')
+        create_script(['CL', 'CV', 'RO'], records, r, 'cs')        
 
 
 if __name__ == '__main__':

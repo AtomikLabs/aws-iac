@@ -1,0 +1,9 @@
+arXiv Computer Vision research summaries for January 10, 2024.
+
+Today's Research Themes (AI-Generated):
+
+• Latency-aware road anomaly segmentation with new metrics using videos to prevent crashes.  
+• Eye movement recognition with mix transformer capturing temporal dependencies.
+• Polyp detection enhancement with bounding box contrastive learning and heatmap propagation. 
+• Video summarization extracting keyframes sequentially using transformer networks.
+• Efficient image generation with latent consistency models enabling control and speed.

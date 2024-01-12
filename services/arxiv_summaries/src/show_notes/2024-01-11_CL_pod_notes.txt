@@ -1,0 +1,9 @@
+arXiv NLP research summaries for January 11, 2024.
+
+Today's Research Themes (AI-Generated):
+
+• Enhancing language models with conceptual knowledge through pre-training objectives that predict concepts of entities.  
+• Developing unsupervised methods to correct automatic speech recognition errors by detecting and replacing erroneous characters.
+• Integrating physician diagnostic logic into language models via rule modeling, preference data generation, and preference alignment for multi-round medical dialogues.  
+• Adapting simultaneous translation techniques like incremental decoding to enable low latency translation while maintaining quality.
+• Leveraging cross-lingual consistency constraints during multilingual translation fine-tuning to improve zero-shot performance.

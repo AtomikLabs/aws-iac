@@ -1,0 +1,9 @@
+arXiv Robotics research summaries for January 11, 2024.
+
+Today's Research Themes (AI-Generated):
+
+• Transferability of HRI research from academia to industry
+• Equivalence of optimization and filtering for state estimation in sensor fusion 
+• Volume Transfer design improving wearability of fabric pneumatic exosuits
+• Responsive walking and kicking for humanoid soccer robots
+• Parallel trajectory optimization for navigation in dynamic environments
