@@ -1,9 +1,0 @@
-arXiv NLP research summaries for January 10, 2024.
-
-Today's Research Themes (AI-Generated):
-
-• Can AI compose classical Chinese poetry as well as humans inspired by Turing test.  
-• Assessing bias against same-gender relationships in machine translation.
-• Bootstrapping dialogue agents via self-talk of LLMs in different conversational roles.
-• Generating diverse and high-quality text by minimum Bayes risk decoding algorithms.
-• Aligning translation-specific understanding to general understanding in LLMs.

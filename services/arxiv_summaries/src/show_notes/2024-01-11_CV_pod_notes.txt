@@ -1,9 +1,0 @@
-arXiv Computer Vision research summaries for January 11, 2024.
-
-Today's Research Themes (AI-Generated):
-
-• Pareto-optimal multi-objective reinforcement learning for text-to-image generation. 
-• Exploring self- and cross-dependencies for human-object interaction detection.
-• Dynamically expanding convolutional neural networks during training for efficiency.  
-• Contrastive learning of multimodal representations for audio-visual emotion recognition.
-• Leveraging large language models for video anomaly detection and explanation.
