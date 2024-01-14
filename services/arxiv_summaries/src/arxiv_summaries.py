@@ -13,7 +13,7 @@ import defusedxml.ElementTree as ET
 from botocore.exceptions import NoRegionError
 from datetime import datetime, timedelta, date
 from typing import List
-from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
+from openai import OpenAI
 
 
 logger = logging.getLogger(__name__)
@@ -25,9 +25,8 @@ BUCKET_NAME = ''
 DB_CREDENTIALS_SECRET_ARN = ''
 DATABASE = ''
 SUMMARY_SET = ''
-ANTHROPIC_KEY = ''
+OPENAI_KEY = ''
 
-# Hardcoded dictionary for category lookup
 cs_categories_inverted = {
     'Computer Science - Artifical Intelligence': 'AI',
     'Computer Science - Hardware Architecture': 'AR',
@@ -150,13 +149,14 @@ def parse_xml_data(xml_data: str, from_date: str) -> dict:
 
             # Find all subjects
             subjects_elements = record.findall(".//dc:subject", ns)
-            categories = [cs_categories_inverted.get(subject.text, "") for subject in subjects_elements]
-
-            # Primary category is the first one in the list
+            categories = [cs_categories_inverted.get(subject.text, '') for subject in subjects_elements]
+            # Remove empty strings
+            categories = list(filter(None, categories))
             primary_category = categories[0] if categories else ""
+            print(primary_category)
 
-            abstract = record.find(".//dc:description", ns).text
-            title = record.find(".//dc:title", ns).text
+            abstract = record.find(".//dc:description", ns).text.replace('\n', '')
+            title = record.find(".//dc:title", ns).text.replace('\n', '')
             date = date_elements[0].text
             group = 'cs'
 
@@ -308,51 +308,46 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
         doc.save(os.path.join('show_notes', file_name))
 
 
-def create_research_summary(research: str, category: str) -> str:
-    anthropic = Anthropic(api_key=ANTHROPIC_KEY)
-    instruction = ''
+def create_research_themes(research: str, category: str) -> str:
+    global OPENAI_KEY
+    system = 'You are an expert machine learning researcher'
+    user = ''
+    instruction_start = 'Give me the top five themes from the arXiv '
+    category_text = ''
+    instruction_end = 'NLP research summaries below. These will be used in a social media post for a technical audience. Each theme must be a single short sentence. Be accurate, factual, do not exaggerate, and do not hallucinate. Readers will use themes to decide whether or not to read my newsletter. Your output must in json format and each theme must start with: •'
     if category == 'CL':
-        instruction = ("# Instructions\nYou are an expert machine learning researcher. Give me the top five ",
-                       "research themes from the arXiv NLP research summaries for my podcast below. ",
-                       "Do not be flashy, be accurate, factual, and succinct. Themes should be a single sentence. ",
-                       " The audience is technical. You must NOT respond with anything other than the themes in the ",
-                       "format below. If you do, I will not be able to use your response. Use the following format:\n\n",
-                       "• <theme 1>\n",
-                       "• <theme 2>\n",
-                       "• <theme 3>\n",
-                       "• <theme 4>\n",
-                       "• <theme 5>\n\n",
-                       "# Research\n")
+        category_text = 'NLP'
     elif category == 'CV':
-        instruction = ("# Instructions\nYou are an expert machine learning researcher. Give me the top five ",
-                       "Do not be flashy, be accurate, factual, and succinct. Themes should be a single sentence. ",
-                       " The audience is technical. You must NOT respond with anything other than the themes in the ",
-                       "format below. If you do, I will not be able to use your response. Use the following format:\n\n",
-                       "• <theme 1>\n",
-                       "• <theme 2>\n",
-                       "• <theme 3>\n",
-                       "• <theme 4>\n",
-                       "• <theme 5>\n\n",
-                       "# Research\n")
+        category_text = 'Computer Vision'
     elif category == 'RO':
-        instruction = ("# Instructions\nYou are an expert machine learning researcher. Give me the top five ",
-                       "Do not be flashy, be accurate, factual, and succinct. Themes should be a single sentence. ",
-                       " The audience is technical. You must NOT respond with anything other than the themes in the ",
-                       "format below. If you do, I will not be able to use your response. Use the following format:\n\n",
-                       "• <theme 1>\n",
-                       "• <theme 2>\n",
-                       "• <theme 3>\n",
-                       "• <theme 4>\n",
-                       "• <theme 5>\n\n",
-                       "# Research\n")
+        category_text = 'Robotics'
 
-    prompt = f"{HUMAN_PROMPT} {instruction} Research: {research}{AI_PROMPT}"
-    completion = anthropic.completions.create(
-        model="claude-2.1",
-        max_tokens_to_sample=4000,
-        prompt=prompt
+    user = f'{instruction_start}{category_text} {instruction_end}'
+
+    client = OpenAI(api_key=OPENAI_KEY)
+    response = client.chat.completions.create(
+        model='gpt-4-1106-preview',
+        response_format={'type': 'json_object'},
+        messages=[
+            {
+                'role': 'system',
+                'content': system
+            },
+            {
+                'role': 'user',
+                'content': user + "\n\n# Research Summaries\n\n" + research
+            }
+        ],
+        temperature=0.9,
+        max_tokens=1000,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0,
     )
-    return completion.completion
+    content = response.choices[0].message.content
+    parsed_content = json.loads(content)
+    themes = parsed_content.get("themes", [])
+    return themes
 
 
 def get_long_date(date: str):
@@ -411,6 +406,7 @@ def create_script(categories, records, research_date, group):
 
         intro_paragraph = doc.add_paragraph()
         intro_paragraph.add_run(intro)
+        num_records = 0
         for record in records:
             if record['primary_category'] == category and record['date'] == research_date:
                 title_pdf_paragraph = doc.add_paragraph()
@@ -418,7 +414,7 @@ def create_script(categories, records, research_date, group):
                 cleaned_title = re.sub('\n\s*', ' ', record['title'])
 
                 title_pdf_paragraph.add_run(cleaned_title)
-                
+
                 authors = [f"{author['first_name']} {author['last_name']}" for author in record['authors']]
                 doc.add_paragraph('by ' + ', '.join(authors))
                 doc.add_paragraph()
@@ -429,7 +425,10 @@ def create_script(categories, records, research_date, group):
                     doc.add_paragraph(no_latex_paragraph)
 
                 doc.add_paragraph()
+                num_records += 1
 
+        if num_records == 0:
+            continue
         outro = "That's all for today, thank you for listening. If you found the podcast helpful, please leave a comment, like, or share it with a friend. See you tomorrow!"
         outro_paragraph = doc.add_paragraph()
         outro_paragraph.add_run(outro)
@@ -441,13 +440,13 @@ def create_script(categories, records, research_date, group):
             full_text = []
             for para in document.paragraphs:
                 full_text.append(para.text)
-            themes = create_research_summary('\n'.join(full_text), category)
-        lines = themes.split('\n')
-        themes = [line for line in lines if line.startswith('•')]
+            themes = create_research_themes('\n'.join(full_text), category)
         themes = '\n'.join(themes)
         create_full_show_notes([category], records, research_date, 'cs', themes)
         create_pod_notes([category], research_date, themes)
         create_post_text([category], research_date, themes)
+        create_li_seo_lines(category, research_date)
+        create_polly_audio('\n'.join(full_text), file_name, research_date)
 
 
 def create_pod_notes(categories: list, research_date: str, themes: str):
@@ -481,6 +480,27 @@ def create_post_text(categories: list, research_date: str, themes: str):
         file_name = f"{research_date}_{category}_post_text.txt"
         with open(os.path.join('show_notes', file_name), 'w') as f:
             f.write(text)
+
+
+def create_li_seo_lines(category: str, research_date: str):
+    long_date = get_long_date(research_date)
+    text = ''
+    description = ''
+    if category == 'CL':
+        text = f"arXiv NLP research summaries for {long_date}."
+        description = f"Research abstracts and links for arXiv NLP research summaries for {long_date}."
+    elif category == 'CV':
+        text = f"arXiv Computer Vision research summaries for {long_date}."
+        description = f"Research abstracts and links for arXiv Computer Vision research summaries for {long_date}."
+    elif category == 'RO':
+        text = f"arXiv Robotics research summaries for {long_date}."
+        description = f"Research abstracts and links for arXiv Robotics research summaries for {long_date}."
+
+    file_name = f"{research_date}_{category}_li_seo_lines.txt"
+    with open(os.path.join('show_notes', file_name), 'w') as f:
+        f.write(text)
+        f.write('\n')
+        f.write(description)
 
 
 def insert_into_database(data: dict, db_config: dict) -> None:
@@ -531,7 +551,6 @@ def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, dat
                                          credentials to access the DB.
         database (str): Database name.
     """
-    client = boto3.client("rds-data")
     formatted_date = date.strftime("%Y-%m-%d")
 
     sql_statement = """
@@ -541,13 +560,7 @@ def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, dat
 
     parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
 
-    response = client.execute_statement(
-        resourceArn=aurora_cluster_arn,
-        secretArn=db_credentials_secret_arn,
-        database=database,
-        sql=sql_statement,
-        parameters=parameters,
-    )
+    response = execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
     return response
 
 
@@ -565,7 +578,6 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     Returns:
         date: Earliest unfetched date.
     """
-    client = boto3.client("rds-data")
     today = datetime.today().date()
     past_dates = [(today - timedelta(days=i)) for i in range(1, days + 1)]
     logger.info(f"Past dates: {past_dates}")
@@ -583,13 +595,7 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     ]
 
     try:
-        response = client.execute_statement(
-            resourceArn=aurora_cluster_arn,
-            secretArn=db_credentials_secret_arn,
-            database=database,
-            sql=sql_statement,
-            parameters=parameters,
-        )
+        response = execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
 
         fetched_dates = [
             datetime.strptime(result[0]["stringValue"], "%Y-%m-%d").date() for result in response["records"]
@@ -619,7 +625,6 @@ def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, 
     Returns:
         str: Fetch status.
     """
-    client = boto3.client("rds-data")
     formatted_date = date.strftime("%Y-%m-%d")
 
     sql_statement = """
@@ -629,13 +634,7 @@ def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, 
 
     parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
 
-    response = client.execute_statement(
-        resourceArn=aurora_cluster_arn,
-        secretArn=db_credentials_secret_arn,
-        database=database,
-        sql=sql_statement,
-        parameters=parameters,
-    )
+    response = execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
     logger.info(f"Fetch status response: {response} for date: {date}")
     if "records" in response and response["records"]:
         return response["records"][0][0].get("stringValue", "status_not_found")
@@ -657,7 +656,7 @@ def generate_date_list(start_date: date, end_date: date) -> List[date]:
     delta = end_date - start_date
     if delta.days < 0:
         raise ValueError("End date must be after start date")
-    
+
     dates = []
     for i in range(delta.days + 1):
         research_date = start_date + timedelta(days=i)
@@ -665,6 +664,298 @@ def generate_date_list(start_date: date, end_date: date) -> List[date]:
         if fetch_status != 'success':
             dates.append(research_date)
     return dates
+
+
+def create_polly_audio(text: str, file_name: str, research_date: str) -> None:
+    """
+    Creates Polly audio for the given text.
+
+    Args:
+        text (str): Text to convert to audio.
+        file_name (str): File name for the audio file.
+
+    Returns:
+        None
+    """
+    polly_client = boto3.client('polly')
+    polly_client.start_speech_synthesis_task(
+        OutputFormat='mp3',
+        OutputS3BucketName=BUCKET_NAME,
+        OutputS3KeyPrefix=f"pods/{research_date}-{file_name}",
+        Text=text,
+        TextType='text',
+        VoiceId='Matthew'
+    )
+
+
+def schedule_for_later() -> None:
+    """
+    Schedules the Lambda function for later.
+    """
+    future_time = datetime.today() + timedelta(hours=5)
+
+    cron_time = future_time.strftime("%M %H %d %m ? %Y")
+
+    client = boto3.client("events")
+
+    client.put_rule(Name="DynamicRule", ScheduleExpression=f"cron({cron_time})", State="ENABLED")
+
+    lambda_arn = f"arn:aws:lambda:{os.environ['AWS_REGION']}:\
+        {os.environ['AWS_ACCOUNT_ID']}:function:\
+            {os.environ['AWS_LAMBDA_FUNCTION_NAME']}"
+
+    client.put_targets(
+        Rule="DynamicRule",
+        Targets=[{"Id": "reschedule-{os.environ['AWS_LAMBDA_FUNCTION_NAME']}}", "Arn": lambda_arn}],
+    )
+
+
+def update_research_fetch_status(
+    from_date: date,
+    summary_set: str,
+    bucket_name: str,
+    aurora_cluster_arn: str,
+    db_credentials_secret_arn: str,
+    database: str,
+    fetched_data: List[str],
+) -> bool:
+    """
+    Checks if research was found for a given date and updates that
+    date's research fetch status
+
+    Args:
+        from_date (date): Summary date.
+        summary_set (str): Summary set.
+        bucket_name (str): S3 bucket name.
+        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
+        db_credentials_secret_arn (str): The ARN of the secret containing
+        credentials to access the DB.
+        database (str): Database name.
+        fetched_data (List[str]): List of XML responses.
+
+    Returns:
+        bool: True if fetch was successful, False otherwise.
+    """
+    pattern = r"<dc:description>.*?<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d")) + r"</dc:date>"
+
+    success = any(re.search(pattern, xml, re.DOTALL) for xml in fetched_data)
+
+    if success:
+        set_fetch_status(from_date, "success", aurora_cluster_arn, db_credentials_secret_arn, database)
+    else:
+        set_fetch_status(from_date, "failure", aurora_cluster_arn, db_credentials_secret_arn, database)
+
+    return success
+
+
+def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secret_arn, database):
+    """
+    Sets fetch status in the database using AWS RDSDataService.
+
+    Args:
+        date (date): Date for which to set fetch status.
+        status (str): Status to set ('success' or 'failure').
+        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
+        db_credentials_secret_arn (str): The ARN of the secret containing
+        credentials to access the DB.
+        database (str): Database name.
+    """
+    try:
+        sql_statement = "UPDATE research_fetch_status SET status = :status \
+            WHERE fetch_date = CAST(:date AS DATE)"
+
+        parameters = [
+            {"name": "date", "value": {"stringValue": date.strftime("%Y-%m-%d")}},
+            {"name": "status", "value": {"stringValue": status}},
+        ]
+
+        execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+        return True
+    except Exception as e:
+        logger.error(f"Database query failed: {str(e)}")
+        return False
+
+
+def persist_authors(research_summary: dict, aurora_cluster_arn, db_credentials_secret_arn, database):
+    """
+    Persists authors in the database using AWS RDSDataService.
+
+    Args:
+        research_summary (str): Research summary in json.
+        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
+        db_credentials_secret_arn (str): The ARN of the secret containing
+        credentials to access the DB.
+        database (str): Database name.
+    """
+    try:
+        author_ids = []
+        sql_statement = "INSERT INTO research_authors (first_name, last_name) VALUES "
+        values = []
+        parameters = []
+        for idx, author in enumerate(research_summary['authors']):
+            first_name_param = f"first_name_{idx}"
+            last_name_param = f"last_name_{idx}"
+            values.append(f"(:{first_name_param}, :{last_name_param})")
+            parameters.extend([
+                {"name": first_name_param, "value": {"stringValue": author['first_name']}},
+                {"name": last_name_param, "value": {"stringValue": author['last_name']}}
+            ])
+        sql_statement += ", ".join(values) + " ON CONFLICT (first_name, last_name) DO NOTHING"
+        response = execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+        for author in research_summary['authors']:
+            sql_statement = "SELECT author_id FROM research_authors WHERE first_name = :first_name AND last_name = :last_name"
+            parameters = [
+                {"name": "first_name", "value": {"stringValue": author['first_name']}},
+                {"name": "last_name", "value": {"stringValue": author['last_name']}}
+            ]
+            response = execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+            author_ids.append(response['records'][0][0]['longValue'])
+        return author_ids
+    except Exception as e:
+        logger.error(f"Database query failed: {str(e)}")
+
+
+def persist_research_summaries(research_summaries, aurora_cluster_arn, db_credentials_secret_arn, database):
+    records_added = 0
+    authors_added = 0
+    for summary in research_summaries:
+        try:
+            author_ids = persist_authors(summary, aurora_cluster_arn, db_credentials_secret_arn, database)
+            authors_added += len(author_ids)
+            primary_category_id = None
+            if summary['primary_category']:
+                sql = "SELECT category_id FROM research_category WHERE name = :category_name"
+                parameters = [{"name": "category_name", "value": {"stringValue": summary['primary_category']}}]
+                response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+                if response.get('records'):
+                    primary_category_id = response['records'][0][0]['longValue']
+
+            sql = """
+            INSERT INTO research (
+                title,
+                primary_category,
+                summary,
+                date,
+                unique_identifier,
+                abstract_url,
+                full_text_url,
+                stored_pdf_url,
+                stored_full_text_url
+            )
+                VALUES (
+                :title, :primary_category, :summary, CAST(:date AS DATE), :unique_identifier,
+                :abstract_url, :full_text_url, :stored_pdf_url, :stored_full_text_url
+            )
+            RETURNING research_id
+            """
+            parameters = []
+            if primary_category_id:
+                parameters = [
+                    {"name": "title", "value": {"stringValue": summary['title']}},
+                    {"name": "primary_category", "value": {"longValue": primary_category_id}},
+                    {"name": "summary", "value": {"stringValue": summary['abstract']}},
+                    {"name": "date", "value": {"stringValue": summary['date']}},
+                    {"name": "unique_identifier", "value": {"stringValue": summary['identifier']}},
+                    {"name": "abstract_url", "value": {"stringValue": summary['abstract_url']}},
+                    {"name": "full_text_url", "value": {"stringValue": summary['abstract_url'].replace('abs', 'pdf')}},
+                    {"name": "stored_pdf_url", "value": {"stringValue": ""}},
+                    {"name": "stored_full_text_url", "value": {"stringValue": ""}}
+                ]
+            else:
+                parameters = [
+                    {"name": "title", "value": {"stringValue": summary['title']}},
+                    {"name": "primary_category", "value": {"isNull": True}},
+                    {"name": "summary", "value": {"stringValue": summary['abstract']}},
+                    {"name": "date", "value": {"stringValue": summary['date']}},
+                    {"name": "unique_identifier", "value": {"stringValue": summary['identifier']}},
+                    {"name": "abstract_url", "value": {"stringValue": summary['abstract_url']}},
+                    {"name": "full_text_url", "value": {"stringValue": summary['abstract_url'].replace('abs', 'pdf')}},
+                    {"name": "stored_pdf_url", "value": {"stringValue": ""}},
+                    {"name": "stored_full_text_url", "value": {"stringValue": ""}}
+                ]
+            response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+            if response.get('records'):
+                research_id = response['records'][0][0]['longValue']
+                records_added += 1
+            else:
+                print("No records were returned.")
+            for author_id in author_ids:
+                sql = """
+                INSERT INTO research_author (research_id, author_id)
+                VALUES (:research_id, :author_id)
+                """
+                parameters = [
+                    {"name": "research_id", "value": {"longValue": research_id}},
+                    {"name": "author_id", "value": {"longValue": author_id}}
+                ]
+                response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+            print("authors inserted")
+            sql = """SELECT set_id FROM research_set WHERE name = :set_name"""
+            parameters = [{"name": "set_name", "value": {"stringValue": summary['group'].upper()}}]
+            response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+            if response.get('records'):
+                set_id = response['records'][0][0]['longValue']
+                print(f"Set id: {set_id}")
+                sql = """
+                INSERT INTO research_set_research (set_id, research_id)
+                VALUES (:set_id, :research_id)
+                """
+                parameters = [
+                    {"name": "research_id", "value": {"longValue": research_id}},
+                    {"name": "set_id", "value": {"longValue": set_id}}
+                ]
+                response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+            print("set inserted")
+            category_ids = []
+            for category in summary['categories']:
+                sql = """SELECT category_id FROM research_category WHERE name = :category_name"""
+                parameters = [{"name": "category_name", "value": {"stringValue": category}}]
+                response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+                if response.get('records'):
+                    category_ids.append(response['records'][0][0]['longValue'])
+                    print(f"Category id: {category_ids}")
+            sql = """
+            INSERT INTO research_category_research (category_id, research_id) VALUES (:category_id, :research_id)
+            """
+            for category_id in category_ids:
+                parameters = [
+                    {"name": "research_id", "value": {"longValue": research_id}},
+                    {"name": "category_id", "value": {"longValue": category_id}}
+                ]
+                response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database) 
+        except Exception as e:
+            logger.error(f"Database query failed: {str(e)}")
+
+
+def execute_sql(sql_statement: str, parameters: List[dict], aurora_cluster_arn: str, db_credentials_secret_arn: str, database: str) -> dict:
+    """
+    Executes the given SQL statement using AWS RDSDataService.
+
+    Args:
+        sql_statement (str): SQL statement to execute.
+        parameters (List[dict]): List of parameters.
+        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
+        db_credentials_secret_arn (str): The ARN of the secret containing
+        credentials to access the DB.
+        database (str): Database name.
+
+    Returns:
+        dict: Response from RDSDataService.
+    """
+    client = boto3.client("rds-data")
+
+    try:
+        response = client.execute_statement(
+            resourceArn=aurora_cluster_arn,
+            secretArn=db_credentials_secret_arn,
+            database=database,
+            sql=sql_statement,
+            parameters=parameters,
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Database query failed: {str(e)}")
+        return {}
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -683,14 +974,14 @@ def lambda_handler(event: dict, context) -> dict:
 
 
 def config_for_test():
-    global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET, ANTHROPIC_KEY
+    global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET, OPENAI_KEY
     AURORA_CLUSTER_ARN = "arn:aws:rds:us-east-1:758145997264:cluster:atomiklabs-dev-aurora-cluster"
     BASE_URL = "http://export.arxiv.org/oai2"
     BUCKET_NAME = "atomiklabs-data-bucket-dev"
     DB_CREDENTIALS_SECRET_ARN = "arn:aws:secretsmanager:us-east-1:758145997264:secret:dev/database-credentials-TuF8OS"
     DATABASE = "atomiklabs_dev_database"
     SUMMARY_SET = "cs"
-    ANTHROPIC_KEY = "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"
+    OPENAI_KEY = "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"
 
 
 def run_test():
@@ -706,13 +997,16 @@ def run_test():
         extracted_data.append(parse_xml_data(xml_data, FROM_DATE))
 
     print(len(extracted_data))
-    print(extracted_data[1]['records'][0])
+    if (len(extracted_data) < 1):
+        print("No data")
+        return
 
     FILE_PATHS = {
         'records': 'records.json'
     }
 
     write_to_files(extracted_data, FILE_PATHS)
+    persist_research_summaries(extracted_data[1]['records'], AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
 
     records = [record for data in extracted_data for record in data.get('records', [])]
 
@@ -734,21 +1028,23 @@ def run_aws_test():
     extracted_data = []
     for xml_data in xml_data_list:
         extracted_data.append(parse_xml_data(xml_data, earliest))
-
     print(len(extracted_data))
-    # print(extracted_data[1]['records'][0])
+    if (len(extracted_data) < 1):
+        print("No data")
+        return
 
     FILE_PATHS = {
         'records': 'records.json'
     }
 
     write_to_files(extracted_data, FILE_PATHS)
-
     records = [record for data in extracted_data for record in data.get('records', [])]
+    for data in extracted_data:
+        persist_research_summaries(data['records'], AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
 
-    for research_date in date_list:
-        r = research_date.strftime("%Y-%m-%d")
-        create_script(['CL', 'CV', 'RO'], records, r, 'cs')        
+    #for research_date in date_list:
+    #    r = research_date.strftime("%Y-%m-%d")
+    #    create_script(['CL', 'CV', 'RO'], records, r, 'cs')        
 
 
 if __name__ == '__main__':
