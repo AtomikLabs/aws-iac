@@ -27,48 +27,47 @@ DATABASE = ''
 SUMMARY_SET = ''
 OPENAI_KEY = ''
 
-# Hardcoded dictionary for category lookup
 cs_categories_inverted = {
-    'Artifical Intelligence': 'AI',
-    'Hardware Architecture': 'AR',
-    'Computational Complexity': 'CC',
-    'Computational Engineering, Finance, and Science': 'CE',
-    'Computational Geometry': 'CG',
-    'Computation and Language': 'CL',
-    'Cryptography and Security': 'CR',
-    'Computer Vision and Pattern Recognition': 'CV',
-    'Computers and Society': 'CY',
-    'Databases': 'DB',
-    'Distributed, Parallel, and Cluster Computing': 'DC',
-    'Digital Libraries': 'DL',
-    'Discrete Mathematics': 'DM',
-    'Data Structures and Algorithms': 'DS',
-    'Emerging Technologies': 'ET',
-    'Formal Languages and Automata Theory': 'FL',
-    'General Literature': 'GL',
-    'Graphics': 'GR',
-    'Computer Science and Game Theory': 'GT',
-    'Human-Computer Interaction': 'HC',
-    'Information Retrieval': 'IR',
-    'Information Theory': 'IT',
-    'Machine Learning': 'LG',
-    'Logic in Computer Science': 'LO',
-    'Multiagent Systems': 'MA',
-    'Multimedia': 'MM',
-    'Mathematical Software': 'MS',
-    'Numerical Analysis': 'NA',
-    'Neural and Evolutionary Computing': 'NE',
-    'Networking and Internet Architecture': 'NI',
-    'Other Computer Science': 'OH',
-    'Operating Systems': 'OS',
-    'Performance': 'PF',
-    'Programming Languages': 'PL',
-    'Robotics': 'RO',
-    'Symbolic Computation': 'SC',
-    'Sound': 'SD',
-    'Software Engineering': 'SE',
-    'Social and Information Networks': 'SI',
-    'Systems and Control': 'SY'
+    'Computer Science - Artifical Intelligence': 'AI',
+    'Computer Science - Hardware Architecture': 'AR',
+    'Computer Science - Computational Complexity': 'CC',
+    'Computer Science - Computational Engineering, Finance, and Science': 'CE',
+    'Computer Science - Computational Geometry': 'CG',
+    'Computer Science - Computation and Language': 'CL',
+    'Computer Science - Cryptography and Security': 'CR',
+    'Computer Science - Computer Vision and Pattern Recognition': 'CV',
+    'Computer Science - Computers and Society': 'CY',
+    'Computer Science - Databases': 'DB',
+    'Computer Science - Distributed, Parallel, and Cluster Computing': 'DC',
+    'Computer Science - Digital Libraries': 'DL',
+    'Computer Science - Discrete Mathematics': 'DM',
+    'Computer Science - Data Structures and Algorithms': 'DS',
+    'Computer Science - Emerging Technologies': 'ET',
+    'Computer Science - Formal Languages and Automata Theory': 'FL',
+    'Computer Science - General Literature': 'GL',
+    'Computer Science - Graphics': 'GR',
+    'Computer Science - Computer Science and Game Theory': 'GT',
+    'Computer Science - Human-Computer Interaction': 'HC',
+    'Computer Science - Information Retrieval': 'IR',
+    'Computer Science - Information Theory': 'IT',
+    'Computer Science - Machine Learning': 'LG',
+    'Computer Science - Logic in Computer Science': 'LO',
+    'Computer Science - Multiagent Systems': 'MA',
+    'Computer Science - Multimedia': 'MM',
+    'Computer Science - Mathematical Software': 'MS',
+    'Computer Science - Numerical Analysis': 'NA',
+    'Computer Science - Neural and Evolutionary Computing': 'NE',
+    'Computer Science - Networking and Internet Architecture': 'NI',
+    'Computer Science - Other Computer Science': 'OH',
+    'Computer Science - Operating Systems': 'OS',
+    'Computer Science - Performance': 'PF',
+    'Computer Science - Programming Languages': 'PL',
+    'Computer Science - Robotics': 'RO',
+    'Computer Science - Symbolic Computation': 'SC',
+    'Computer Science - Sound': 'SD',
+    'Computer Science - Software Engineering': 'SE',
+    'Computer Science - Social and Information Networks': 'SI',
+    'Computer Science - Systems and Control': 'SY'
 }
 
 
@@ -150,10 +149,11 @@ def parse_xml_data(xml_data: str, from_date: str) -> dict:
 
             # Find all subjects
             subjects_elements = record.findall(".//dc:subject", ns)
-            categories = [cs_categories_inverted.get(subject.text, "") for subject in subjects_elements]
-
-            # Primary category is the first one in the list
+            categories = [cs_categories_inverted.get(subject.text, '') for subject in subjects_elements]
+            # Remove empty strings
+            categories = list(filter(None, categories))
             primary_category = categories[0] if categories else ""
+            print(primary_category)
 
             abstract = record.find(".//dc:description", ns).text.replace('\n', '')
             title = record.find(".//dc:title", ns).text.replace('\n', '')
@@ -822,48 +822,60 @@ def persist_research_summaries(research_summaries, aurora_cluster_arn, db_creden
         try:
             author_ids = persist_authors(summary, aurora_cluster_arn, db_credentials_secret_arn, database)
             authors_added += len(author_ids)
-            filtered_categories = [cat for cat in summary['categories'] if cat]
-            categories_str = "{" + ",".join(filtered_categories) + "}"
+            primary_category_id = None
+            if summary['primary_category']:
+                sql = "SELECT category_id FROM research_category WHERE name = :category_name"
+                parameters = [{"name": "category_name", "value": {"stringValue": summary['primary_category']}}]
+                response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+                if response.get('records'):
+                    primary_category_id = response['records'][0][0]['longValue']
 
             sql = """
             INSERT INTO research (
-                title, 
-                primary_category, 
-                summary, 
-                date, 
-                unique_identifier, 
-                abstract_url, 
-                full_text_url, 
-                stored_pdf_url, 
-                stored_full_text_url, 
-                categories, 
-                group_name
+                title,
+                primary_category,
+                summary,
+                date,
+                unique_identifier,
+                abstract_url,
+                full_text_url,
+                stored_pdf_url,
+                stored_full_text_url
             )
                 VALUES (
-                :title, :primary_category, :summary, CAST(:date AS DATE), :unique_identifier, 
-                :abstract_url, :full_text_url, :stored_pdf_url, :stored_full_text_url, 
-                :categories::text[], :group_name
+                :title, :primary_category, :summary, CAST(:date AS DATE), :unique_identifier,
+                :abstract_url, :full_text_url, :stored_pdf_url, :stored_full_text_url
             )
             RETURNING research_id
             """
-
-            parameters = [
-                {"name": "title", "value": {"stringValue": summary['title']}},
-                {"name": "primary_category", "value": {"stringValue": summary['primary_category']}},
-                {"name": "summary", "value": {"stringValue": summary['abstract']}},
-                {"name": "date", "value": {"stringValue": summary['date']}},
-                {"name": "unique_identifier", "value": {"stringValue": summary['identifier']}},
-                {"name": "abstract_url", "value": {"stringValue": summary['abstract_url']}},
-                {"name": "full_text_url", "value": {"stringValue": summary['abstract_url'].replace('abs', 'pdf')}},
-                {"name": "stored_pdf_url", "value": {"stringValue": ""}},
-                {"name": "stored_full_text_url", "value": {"stringValue": ""}},
-                {"name": "categories", "value": {"stringValue": categories_str}},
-                {"name": "group_name", "value": {"stringValue": summary['group']}}
-            ]
+            parameters = []
+            if primary_category_id:
+                parameters = [
+                    {"name": "title", "value": {"stringValue": summary['title']}},
+                    {"name": "primary_category", "value": {"longValue": primary_category_id}},
+                    {"name": "summary", "value": {"stringValue": summary['abstract']}},
+                    {"name": "date", "value": {"stringValue": summary['date']}},
+                    {"name": "unique_identifier", "value": {"stringValue": summary['identifier']}},
+                    {"name": "abstract_url", "value": {"stringValue": summary['abstract_url']}},
+                    {"name": "full_text_url", "value": {"stringValue": summary['abstract_url'].replace('abs', 'pdf')}},
+                    {"name": "stored_pdf_url", "value": {"stringValue": ""}},
+                    {"name": "stored_full_text_url", "value": {"stringValue": ""}}
+                ]
+            else:
+                parameters = [
+                    {"name": "title", "value": {"stringValue": summary['title']}},
+                    {"name": "primary_category", "value": {"isNull": True}},
+                    {"name": "summary", "value": {"stringValue": summary['abstract']}},
+                    {"name": "date", "value": {"stringValue": summary['date']}},
+                    {"name": "unique_identifier", "value": {"stringValue": summary['identifier']}},
+                    {"name": "abstract_url", "value": {"stringValue": summary['abstract_url']}},
+                    {"name": "full_text_url", "value": {"stringValue": summary['abstract_url'].replace('abs', 'pdf')}},
+                    {"name": "stored_pdf_url", "value": {"stringValue": ""}},
+                    {"name": "stored_full_text_url", "value": {"stringValue": ""}}
+                ]
             response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
             if response.get('records'):
                 research_id = response['records'][0][0]['longValue']
-                print(f"Inserted research record with ID: {research_id}")
                 records_added += 1
             else:
                 print("No records were returned.")
@@ -877,8 +889,40 @@ def persist_research_summaries(research_summaries, aurora_cluster_arn, db_creden
                     {"name": "author_id", "value": {"longValue": author_id}}
                 ]
                 response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
-                print(f"Inserted research author record with ID: {author_id}")
-            print(f"Inserted {records_added} research records and {authors_added} author records.")
+            print("authors inserted")
+            sql = """SELECT set_id FROM research_set WHERE name = :set_name"""
+            parameters = [{"name": "set_name", "value": {"stringValue": summary['group'].upper()}}]
+            response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+            if response.get('records'):
+                set_id = response['records'][0][0]['longValue']
+                print(f"Set id: {set_id}")
+                sql = """
+                INSERT INTO research_set_research (set_id, research_id)
+                VALUES (:set_id, :research_id)
+                """
+                parameters = [
+                    {"name": "research_id", "value": {"longValue": research_id}},
+                    {"name": "set_id", "value": {"longValue": set_id}}
+                ]
+                response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+            print("set inserted")
+            category_ids = []
+            for category in summary['categories']:
+                sql = """SELECT category_id FROM research_category WHERE name = :category_name"""
+                parameters = [{"name": "category_name", "value": {"stringValue": category}}]
+                response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
+                if response.get('records'):
+                    category_ids.append(response['records'][0][0]['longValue'])
+                    print(f"Category id: {category_ids}")
+            sql = """
+            INSERT INTO research_category_research (category_id, research_id) VALUES (:category_id, :research_id)
+            """
+            for category_id in category_ids:
+                parameters = [
+                    {"name": "research_id", "value": {"longValue": research_id}},
+                    {"name": "category_id", "value": {"longValue": category_id}}
+                ]
+                response = execute_sql(sql, parameters, aurora_cluster_arn, db_credentials_secret_arn, database) 
         except Exception as e:
             logger.error(f"Database query failed: {str(e)}")
 
@@ -957,8 +1001,6 @@ def run_test():
         print("No data")
         return
 
-    print(extracted_data[1]['records'][0])
-
     FILE_PATHS = {
         'records': 'records.json'
     }
@@ -986,8 +1028,6 @@ def run_aws_test():
     extracted_data = []
     for xml_data in xml_data_list:
         extracted_data.append(parse_xml_data(xml_data, earliest))
-    for data in extracted_data:
-        persist_research_summaries(data['records'], AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
     print(len(extracted_data))
     if (len(extracted_data) < 1):
         print("No data")
@@ -998,11 +1038,12 @@ def run_aws_test():
     }
 
     write_to_files(extracted_data, FILE_PATHS)
+    records = [record for data in extracted_data for record in data.get('records', [])]
+    for data in extracted_data:
+        persist_research_summaries(data['records'], AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
 
-    # records = [record for data in extracted_data for record in data.get('records', [])]
-
-    # for research_date in date_list:
-    #     r = research_date.strftime("%Y-%m-%d")
+    #for research_date in date_list:
+    #    r = research_date.strftime("%Y-%m-%d")
     #    create_script(['CL', 'CV', 'RO'], records, r, 'cs')        
 
 
