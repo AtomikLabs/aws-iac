@@ -14,6 +14,7 @@ from botocore.exceptions import NoRegionError
 from datetime import datetime, timedelta, date
 from typing import List
 from openai import OpenAI
+from dotenv import load_dotenv
 
 
 logger = logging.getLogger(__name__)
@@ -88,7 +89,6 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
             response = requests.get(base_url, params=params)
             response.raise_for_status()
             full_xml_responses.append(response.text)
-            print(params)
             root = ET.fromstring(response.content)
             resumption_token_element = root.find(".//{http://www.openarchives.org/OAI/2.0/}resumptionToken")
 
@@ -153,9 +153,8 @@ def parse_xml_data(xml_data: str, from_date: str) -> dict:
             # Remove empty strings
             categories = list(filter(None, categories))
             primary_category = categories[0] if categories else ""
-            print(primary_category)
 
-            abstract = record.find(".//dc:description", ns).text.replace('\n', '')
+            abstract = record.find(".//dc:description", ns).text.replace('\n', ' ')
             title = record.find(".//dc:title", ns).text.replace('\n', '')
             date = date_elements[0].text
             group = 'cs'
@@ -266,11 +265,14 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
     for category in categories:
         doc = Document()
         intro = ''
-        theme_header = "Today's Themes (AI-Generated)"
+        theme_header = "Today\'s Themes (AI-Generated)"
         thank_you = "Thank you to arXiv for use of its open access interoperability."
         summary_header = "Summaries"
         if category == 'CL':
             intro = ("If you would rather listen to today's summaries, you can hear them on the TechcraftingAI NLP podcast. ",
+                     "Your virtual host will be happy to read them to you!")
+        elif category == 'RO':
+            intro = ("If you would rather listen to today's summaries, you can hear them on the TechcraftingAI Robotics podcast. ",
                      "Your virtual host will be happy to read them to you!")
 
         intro_paragraph = doc.add_paragraph()
@@ -380,6 +382,9 @@ def create_short_show_notes(categories: list, records: list, research_date: str,
 
 
 def create_script(categories, records, research_date, group):
+    print(f"Creating script for {research_date}")
+    print(f"Categories: {categories}")
+    print(f"Records count: {len(records)}")
     for category in categories:
         doc = Document()
         # add intro notes
@@ -981,7 +986,8 @@ def config_for_test():
     DB_CREDENTIALS_SECRET_ARN = "arn:aws:secretsmanager:us-east-1:758145997264:secret:dev/database-credentials-TuF8OS"
     DATABASE = "atomiklabs_dev_database"
     SUMMARY_SET = "cs"
-    OPENAI_KEY = "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"
+    load_dotenv()
+    OPENAI_KEY = os.environ.get('OPENAI_KEY')
 
 
 def run_test():
@@ -1039,12 +1045,12 @@ def run_aws_test():
 
     write_to_files(extracted_data, FILE_PATHS)
     records = [record for data in extracted_data for record in data.get('records', [])]
-    for data in extracted_data:
-        persist_research_summaries(data['records'], AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-
-    #for research_date in date_list:
-    #    r = research_date.strftime("%Y-%m-%d")
-    #    create_script(['CL', 'CV', 'RO'], records, r, 'cs')        
+    #for data in extracted_data:
+        # persist_research_summaries(data['records'], AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+    print(f'Records: {len(records)}')
+    for research_date in date_list:
+        r = research_date.strftime("%Y-%m-%d")
+        create_script(['CL', 'CV', 'RO'], records, r, 'cs')        
 
 
 if __name__ == '__main__':
