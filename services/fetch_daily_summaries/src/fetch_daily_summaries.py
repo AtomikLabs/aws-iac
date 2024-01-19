@@ -6,6 +6,7 @@ import logging
 import time
 from html import unescape
 import os
+import os
 import re
 import boto3
 import defusedxml.ElementTree as ET
