@@ -1,30 +1,28 @@
 # Description: Lambda function to fetch daily summaries from arXiv.
 
+import requests
+import json
 import logging
+import time
+from html import unescape
 import os
 import re
-import time
-from datetime import timedelta, datetime, date
-from typing import List
-import json
-import requests
 import boto3
-from collections import defaultdict
-from html import unescape
-from docx import Document
-import docx.opc.constants
 import defusedxml.ElementTree as ET
 from botocore.exceptions import NoRegionError
+from datetime import datetime, timedelta, date
+from typing import List
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
-
-INTERNAL_SERVER_ERROR = "Internal server error"
-NO_REGION_SPECIFIED = "No region specified"
-NO_UNFETCHED_DATES_FOUND = "No unfetched dates found"
-
-TEST_BASE_URL = 'http://export.arxiv.org/oai2'
 TEST = False
+AURORA_CLUSTER_ARN = ''
+BASE_URL = ''
+BUCKET_NAME = ''
+DB_CREDENTIALS_SECRET_ARN = ''
+DATABASE = ''
+SUMMARY_SET = ''
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -39,68 +37,78 @@ def lambda_handler(event: dict, context) -> dict:
         dict: A dict with the status code and body.
     """
     try:
+        global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET
         log_initial_info(event)
 
         today = calculate_from_date()
 
-        aurora_cluster_arn = os.environ.get("RESOURCE_ARN")
-        base_url = os.environ.get("BASE_URL")
-        bucket_name = os.environ.get("BUCKET_NAME")
-        db_credentials_secret_arn = os.environ.get("SECRET_ARN")
-        database = os.environ.get("DATABASE_NAME")
-        summary_set = os.environ.get("SUMMARY_SET")
+        logger.info(f"Today's date: {today}")
+        AURORA_CLUSTER_ARN = os.environ.get('RESOURCE_ARN')
+        BASE_URL = os.environ.get('BASE_URL')
+        BUCKET_NAME = os.environ.get('BUCKET_NAME')
+        DB_CREDENTIALS_SECRET_ARN = os.environ.get('SECRET_ARN')
+        DATABASE = os.environ.get('DATABASE_NAME')
+        SUMMARY_SET = os.environ.get('SUMMARY_SET')
 
-        if not all([aurora_cluster_arn, db_credentials_secret_arn, database, base_url, bucket_name, summary_set]):
-            message = ""
-            if not aurora_cluster_arn:
-                message += "RESOURCE_ARN "
-            if not db_credentials_secret_arn:
-                message += "SECRET_ARN "
-            if not database:
-                message += "DATABASE_NAME "
-            if not base_url:
-                message += "BASE_URL "
-            if not bucket_name:
-                message += "BUCKET_NAME "
-            if not summary_set:
-                message += "SUMMARY_SET "
-
-            return {"statusCode": 500, "body": f"Missing environment variables: {message}"}
-
-        try:
-            insert_fetch_status(today, aurora_cluster_arn, db_credentials_secret_arn, database)
-        except Exception as e:
-            logger.error(f"Error inserting fetch status: {str(e)}")
-            return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
-
-        try:
-            earliest_unfetched_date = get_earliest_unfetched_date(
-                aurora_cluster_arn, db_credentials_secret_arn, database
-            )
-        except Exception as e:
-            logger.error(f"Error fetching earliest unfetched date: {str(e)}")
-            return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
-
-        if not earliest_unfetched_date:
-            message = NO_UNFETCHED_DATES_FOUND
-            logger.info(message)
-            return {"statusCode": 200, "body": message}
-
-        if not earliest_unfetched_date:
-            logger.info(NO_UNFETCHED_DATES_FOUND)
-            return {"statusCode": 200, "body": NO_UNFETCHED_DATES_FOUND}
-
-        logger.info(f"Earliest unfetched date: {earliest_unfetched_date}")
-        
-        fetch_data(base_url, earliest_unfetched_date, summary_set)
-
-        return {"statusCode": 200, "body": message}
-    except NoRegionError:
-        logger.error(NO_REGION_SPECIFIED)
-        return {"statusCode": 500, "body": NO_REGION_SPECIFIED}
+        insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+        earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+        xml_data_list = fetch_data(BASE_URL, earliest, SUMMARY_SET)
+        logger.info(f"Number of XML responses: {len(xml_data_list)}")
+        key = f"arxiv_daily_summaries/{date.today()}.json"
+        persist_to_s3(BUCKET_NAME, key, json.dumps(xml_data_list))
+        notify_parser(BUCKET_NAME, key)
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
-        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
+        logger.error(e)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'message': 'Internal Server Error'
+            })
+        }
+
+
+def get_config(test: bool = False) -> dict:
+    """
+    Gets the config from the environment variables.
+
+    Returns:
+        dict: The config.
+    """
+    try:
+        if test:
+            config = {
+                "aurora_cluster_arn": "arn:aws:rds:us-east-1:758145997264:cluster:atomiklabs-dev-aurora-cluster",
+                "base_url": "http://export.arxiv.org/oai2",
+                "bucket_name": "atomiklabs-data-bucket-dev",
+                "db_credentials_secret_arn": "arn:aws:secretsmanager:us-east-1:758145997264:secret:dev/database-credentials-TuF8OS",
+                "database": "atomiklabs_dev_database",
+                "summary_set": "cs",
+            }
+        else:
+            config = {
+                "aurora_cluster_arn": os.environ["RESOURCE_ARN"],
+                "base_url": os.environ["BASE_URL"],
+                "bucket_name": os.environ["BUCKET_NAME"],
+                "db_credentials_secret_arn": os.environ["SECRET_ARN"],
+                "database": os.environ["DATABASE_NAME"],
+                "summary_set": os.environ["SUMMARY_SET"],
+            }
+    except KeyError as e:
+        logger.error(f"Missing environment variable: {str(e)}")
+        raise e
+
+    return config
+
+
+def calculate_from_date() -> date:
+    """Calculates from date for fetching summaries.
+
+    Returns:
+        date: From date.
+    """
+    today = datetime.today()
+    yesterday = today - timedelta(days=0)
+    return yesterday.date()
 
 
 def log_initial_info(event: dict) -> None:
@@ -112,17 +120,6 @@ def log_initial_info(event: dict) -> None:
     """
     logger.info(f"Received event: {event}")
     logger.info("Starting to fetch arXiv daily summaries")
-
-
-def calculate_from_date() -> date:
-    """Calculates from date for fetching summaries.
-
-    Returns:
-        date: From date.
-    """
-    today = datetime.today()
-    yesterday = today - timedelta(days=1)
-    return yesterday.date()
 
 
 def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, database):
@@ -137,7 +134,6 @@ def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, dat
                                          credentials to access the DB.
         database (str): Database name.
     """
-    client = boto3.client("rds-data")
     formatted_date = date.strftime("%Y-%m-%d")
 
     sql_statement = """
@@ -147,13 +143,7 @@ def insert_fetch_status(date, aurora_cluster_arn, db_credentials_secret_arn, dat
 
     parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
 
-    response = client.execute_statement(
-        resourceArn=aurora_cluster_arn,
-        secretArn=db_credentials_secret_arn,
-        database=database,
-        sql=sql_statement,
-        parameters=parameters,
-    )
+    response = execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
     return response
 
 
@@ -171,7 +161,6 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     Returns:
         date: Earliest unfetched date.
     """
-    client = boto3.client("rds-data")
     today = datetime.today().date()
     past_dates = [(today - timedelta(days=i)) for i in range(1, days + 1)]
     logger.info(f"Past dates: {past_dates}")
@@ -189,18 +178,15 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     ]
 
     try:
-        response = client.execute_statement(
-            resourceArn=aurora_cluster_arn,
-            secretArn=db_credentials_secret_arn,
-            database=database,
-            sql=sql_statement,
-            parameters=parameters,
-        )
+        response = execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
 
         fetched_dates = [
             datetime.strptime(result[0]["stringValue"], "%Y-%m-%d").date() for result in response["records"]
         ]
         unfetched_dates = list(set(past_dates) - set(fetched_dates))
+        # prepend one day earlier than the earliest unfetched date (first date in the list)
+        # arXiv doesn't always return the research for the date in the request (earliest date in this list)
+        unfetched_dates.insert(0, unfetched_dates[0] - timedelta(days=1))
         logger.info(f"Unfetched dates: {unfetched_dates}")
 
         earliest_date = min(unfetched_dates) if unfetched_dates else None
@@ -211,24 +197,7 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     return earliest_date
 
 
-def fetch_data(base_url: str, from_date: date, summary_set: str) -> None:
-    """
-    Fetches data from arXiv.
-
-    Args:
-        base_url (str): Base URL.
-        from_date (date): Summary date.
-        summary_set (str): Summary set.
-    """
-    logger.info(f"Fetching data from {base_url} for date {from_date}")
-
-    if TEST:
-        fetch_data_test(base_url, from_date, summary_set)
-    else:
-        fetch_data_prod(base_url, from_date, summary_set)
-
-
-def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, database):
+def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, database) -> str:
     """
     Gets fetch status for the given date using AWS RDSDataService.
 
@@ -242,7 +211,6 @@ def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, 
     Returns:
         str: Fetch status.
     """
-    client = boto3.client("rds-data")
     formatted_date = date.strftime("%Y-%m-%d")
 
     sql_statement = """
@@ -252,18 +220,103 @@ def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, 
 
     parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
 
-    response = client.execute_statement(
-        resourceArn=aurora_cluster_arn,
-        secretArn=db_credentials_secret_arn,
-        database=database,
-        sql=sql_statement,
-        parameters=parameters,
-    )
+    response = execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
     logger.info(f"Fetch status response: {response} for date: {date}")
-    if response["records"]:
-        return response["records"][0][0]["stringValue"]
+    if "records" in response and response["records"]:
+        return response["records"][0][0].get("stringValue", "status_not_found")
     else:
-        return None
+        return "status_not_found"
+
+
+def fetch_data(base_url: str, from_date: str, set: str) -> list:
+    """
+    Fetches data from arXiv.
+    
+    Args:
+        base_url (str): Base URL.
+        from_date (str): From date.
+        set (str): Set.
+        
+    Returns:
+        list: List of XML responses.
+    """
+    full_xml_responses = []
+    params = {
+        'verb': 'ListRecords',
+        'set': set,
+        'metadataPrefix': 'oai_dc',
+        'from': from_date
+    }
+
+    backoff_times = [30, 120]
+
+    while True:
+        try:
+            logging.info(f"Fetching data with parameters: {params}")
+            response = requests.get(base_url, params=params, timeout=60)
+            response.raise_for_status()
+            full_xml_responses.append(response.text)
+            root = ET.fromstring(response.content)
+            resumption_token_element = root.find(".//{http://www.openarchives.org/OAI/2.0/}resumptionToken")
+
+            if resumption_token_element is not None and resumption_token_element.text:
+                logging.info(f"Found resumptionToken: {resumption_token_element.text}")
+                print(f"Found resumptionToken: {resumption_token_element.text}")
+                time.sleep(5)
+                params = {'verb': 'ListRecords', 'resumptionToken': resumption_token_element.text}
+            else:
+                break
+
+        except requests.exceptions.HTTPError as e:
+            logging.error(f"HTTP error occurred: {e}")
+            logging.error(f"Response content: {response.text}")
+            print(e)
+
+            if response.status_code == 503:
+                backoff_time = response.headers.get('Retry-After', backoff_times.pop(0) if backoff_times else 30)
+                logging.warning(f"Received 503 error, backing off for {backoff_time} seconds.")
+                print(f"Received 503 error, backing off for {backoff_time} seconds.")
+                time.sleep(int(backoff_time))
+                continue
+
+            break
+
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {e}")
+            break
+
+    return full_xml_responses
+
+
+def execute_sql(sql_statement: str, parameters: List[dict], aurora_cluster_arn: str, db_credentials_secret_arn: str, database: str) -> dict:
+    """
+    Executes the given SQL statement using AWS RDSDataService.
+
+    Args:
+        sql_statement (str): SQL statement to execute.
+        parameters (List[dict]): List of parameters.
+        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
+        db_credentials_secret_arn (str): The ARN of the secret containing
+        credentials to access the DB.
+        database (str): Database name.
+
+    Returns:
+        dict: Response from RDSDataService.
+    """
+    client = boto3.client("rds-data")
+
+    try:
+        response = client.execute_statement(
+            resourceArn=aurora_cluster_arn,
+            secretArn=db_credentials_secret_arn,
+            database=database,
+            sql=sql_statement,
+            parameters=parameters,
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Database query failed: {str(e)}")
+        return {}
 
 
 def generate_date_list(start_date: date, end_date: date) -> List[date]:
@@ -280,67 +333,14 @@ def generate_date_list(start_date: date, end_date: date) -> List[date]:
     delta = end_date - start_date
     if delta.days < 0:
         raise ValueError("End date must be after start date")
-    return [(start_date + timedelta(days=i)) for i in range((delta.days) + 1)]
 
-
-def schedule_for_later() -> None:
-    """
-    Schedules the Lambda function for later.
-    """
-    future_time = datetime.today() + timedelta(hours=5)
-
-    cron_time = future_time.strftime("%M %H %d %m ? %Y")
-
-    client = boto3.client("events")
-
-    client.put_rule(Name="DynamicRule", ScheduleExpression=f"cron({cron_time})", State="ENABLED")
-
-    lambda_arn = f"arn:aws:lambda:{os.environ['AWS_REGION']}:\
-        {os.environ['AWS_ACCOUNT_ID']}:function:\
-            {os.environ['AWS_LAMBDA_FUNCTION_NAME']}"
-
-    client.put_targets(
-        Rule="DynamicRule",
-        Targets=[{"Id": "reschedule-{os.environ['AWS_LAMBDA_FUNCTION_NAME']}}", "Arn": lambda_arn}],
-    )
-
-
-def update_research_fetch_status(
-    from_date: date,
-    summary_set: str,
-    bucket_name: str,
-    aurora_cluster_arn: str,
-    db_credentials_secret_arn: str,
-    database: str,
-    fetched_data: List[str],
-) -> bool:
-    """
-    Checks if research was found for a given date and updates that
-    date's research fetch status
-
-    Args:
-        from_date (date): Summary date.
-        summary_set (str): Summary set.
-        bucket_name (str): S3 bucket name.
-        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
-        db_credentials_secret_arn (str): The ARN of the secret containing
-        credentials to access the DB.
-        database (str): Database name.
-        fetched_data (List[str]): List of XML responses.
-
-    Returns:
-        bool: True if fetch was successful, False otherwise.
-    """
-    pattern = r"<dc:description>.*?<dc:date>" + re.escape(from_date.strftime("%Y-%m-%d")) + r"</dc:date>"
-
-    success = any(re.search(pattern, xml, re.DOTALL) for xml in fetched_data)
-
-    if success:
-        set_fetch_status(from_date, "success", aurora_cluster_arn, db_credentials_secret_arn, database)
-    else:
-        set_fetch_status(from_date, "failure", aurora_cluster_arn, db_credentials_secret_arn, database)
-
-    return success
+    dates = []
+    for i in range(delta.days + 1):
+        research_date = start_date + timedelta(days=i)
+        fetch_status = get_fetch_status(research_date, AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+        if fetch_status != 'success':
+            dates.append(research_date)
+    return dates
 
 
 def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secret_arn, database):
@@ -355,8 +355,6 @@ def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secr
         credentials to access the DB.
         database (str): Database name.
     """
-    client = boto3.client("rds-data")
-
     try:
         sql_statement = "UPDATE research_fetch_status SET status = :status \
             WHERE fetch_date = CAST(:date AS DATE)"
@@ -366,62 +364,62 @@ def set_fetch_status(date: date, status, aurora_cluster_arn, db_credentials_secr
             {"name": "status", "value": {"stringValue": status}},
         ]
 
-        client.execute_statement(
-            resourceArn=aurora_cluster_arn,
-            secretArn=db_credentials_secret_arn,
-            database=database,
-            sql=sql_statement,
-            parameters=parameters,
-        )
+        execute_sql(sql_statement, parameters, aurora_cluster_arn, db_credentials_secret_arn, database)
         return True
     except Exception as e:
         logger.error(f"Database query failed: {str(e)}")
         return False
 
 
-cs_categories_inverted = {
-    'Artifical Intelligence': 'AI',
-    'Hardware Architecture': 'AR',
-    'Computational Complexity': 'CC',
-    'Computational Engineering, Finance, and Science': 'CE',
-    'Computational Geometry': 'CG',
-    'Computation and Language': 'CL',
-    'Cryptography and Security': 'CR',
-    'Computer Vision and Pattern Recognition': 'CV',
-    'Computers and Society': 'CY',
-    'Databases': 'DB',
-    'Distributed, Parallel, and Cluster Computing': 'DC',
-    'Digital Libraries': 'DL',
-    'Discrete Mathematics': 'DM',
-    'Data Structures and Algorithms': 'DS',
-    'Emerging Technologies': 'ET',
-    'Formal Languages and Automata Theory': 'FL',
-    'General Literature': 'GL',
-    'Graphics': 'GR',
-    'Computer Science and Game Theory': 'GT',
-    'Human-Computer Interaction': 'HC',
-    'Information Retrieval': 'IR',
-    'Information Theory': 'IT',
-    'Machine Learning': 'LG',
-    'Logic in Computer Science': 'LO',
-    'Multiagent Systems': 'MA',
-    'Multimedia': 'MM',
-    'Mathematical Software': 'MS',
-    'Numerical Analysis': 'NA',
-    'Neural and Evolutionary Computing': 'NE',
-    'Networking and Internet Architecture': 'NI',
-    'Other Computer Science': 'OH',
-    'Operating Systems': 'OS',
-    'Performance': 'PF',
-    'Programming Languages': 'PL',
-    'Robotics': 'RO',
-    'Symbolic Computation': 'SC',
-    'Sound': 'SD',
-    'Software Engineering': 'SE',
-    'Social and Information Networks': 'SI',
-    'Systems and Control': 'SY'
-}
+def persist_to_s3(bucket_name: str, key: str, content: str) -> None:
+    """
+    Persists the given content to S3.
+
+    Args:
+        bucket_name (str): Bucket name.
+        key (str): Key.
+        content (str): Content.
+    """
+    s3 = boto3.resource("s3")
+    s3.Bucket(bucket_name).put_object(Key=key, Body=content)
 
 
-if __name__ == "__main__":
-    test_fetch_and_process()
+def notify_parser(bucket_name: str, key: str) -> None:
+    """
+    Notifies the parser Lambda function that new data is available.
+
+    Args:
+        bucket_name (str): Bucket name.
+        key (str): Key.
+    """
+    client = boto3.client("lambda")
+    payload = {"bucket_name": bucket_name, "key": key}
+    client.invoke(
+        FunctionName=os.environ.get("ARXIV_SUMMARY_LAMBDA"),
+        InvocationType="Event",
+        Payload=json.dumps(payload),
+    )
+
+
+def config_for_test():
+    global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET, OPENAI_KEY
+    AURORA_CLUSTER_ARN = "arn:aws:rds:us-east-1:758145997264:cluster:atomiklabs-dev-aurora-cluster"
+    BASE_URL = "http://export.arxiv.org/oai2"
+    BUCKET_NAME = "atomiklabs-data-bucket-dev"
+    DB_CREDENTIALS_SECRET_ARN = "arn:aws:secretsmanager:us-east-1:758145997264:secret:dev/database-credentials-TuF8OS"
+    DATABASE = "atomiklabs_dev_database"
+    SUMMARY_SET = "cs"
+    load_dotenv()
+    OPENAI_KEY = os.environ.get('OPENAI_KEY')
+
+
+if __name__ == '__main__':
+    config_for_test()
+    log_initial_info({"test": "test"})
+    insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+    earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+    xml_data_list = fetch_data(BASE_URL, earliest, SUMMARY_SET)
+    logger.info(f"Number of XML responses: {len(xml_data_list)}")
+    key = f"arxiv_daily_summaries/{date.today()}.json"
+    persist_to_s3(BUCKET_NAME, key, json.dumps(xml_data_list))
+    notify_parser(BUCKET_NAME, key)

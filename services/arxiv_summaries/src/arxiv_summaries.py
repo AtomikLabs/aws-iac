@@ -15,7 +15,8 @@ from datetime import datetime, timedelta, date
 from typing import List
 from openai import OpenAI
 from dotenv import load_dotenv
-
+import nltk
+nltk.download('punkt')
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
@@ -265,7 +266,7 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
     for category in categories:
         doc = Document()
         intro = ''
-        theme_header = "Today\'s Themes (AI-Generated)"
+        theme_header = "Research Themes (AI-Generated)"
         thank_you = "Thank you to arXiv for use of its open access interoperability."
         summary_header = "Summaries"
         if category == 'CL':
@@ -279,8 +280,12 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
         intro_paragraph.add_run(intro)
         theme_header_heading = doc.add_heading(theme_header, level=2)
         theme_header_heading.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.LEFT
-        theme_paragraph = doc.add_paragraph()
-        theme_paragraph.add_run(themes)
+        theme_lines = themes.split('•')
+        for line in theme_lines:
+            if line == '':
+                continue
+            theme_paragraph = doc.add_paragraph()
+            theme_paragraph.add_run('•' + line)
         thank_you_paragraph = doc.add_paragraph()
         thank_you_paragraph.add_run(thank_you)
         summary_header_heading = doc.add_heading(summary_header, level=2)
@@ -446,6 +451,7 @@ def create_script(categories, records, research_date, group):
             for para in document.paragraphs:
                 full_text.append(para.text)
             themes = create_research_themes('\n'.join(full_text), category)
+            print(f'Date: {research_date} Category: {category} Tokens: {len(full_text)/6}')
         themes = '\n'.join(themes)
         create_full_show_notes([category], records, research_date, 'cs', themes)
         create_pod_notes([category], research_date, themes)
@@ -464,7 +470,7 @@ def create_pod_notes(categories: list, research_date: str, themes: str):
         elif category == 'RO':
             category_text = 'Robotics'
 
-        text = f"arXiv {category_text} research summaries for {get_long_date(research_date)}.\n\nToday's Research Themes (AI-Generated):\n\n{themes}"
+        text = f"arXiv {category_text} research summaries for {get_long_date(research_date)}.\n\nToday's Research Themes (AI-Generated):\n{themes}"
         file_name = f"{research_date}_{category}_pod_notes.txt"
         with open(os.path.join('show_notes', file_name), 'w') as f:
             f.write(text)
@@ -606,6 +612,9 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
             datetime.strptime(result[0]["stringValue"], "%Y-%m-%d").date() for result in response["records"]
         ]
         unfetched_dates = list(set(past_dates) - set(fetched_dates))
+        # prepend one day earlier than the earliest unfetched date (first date in the list)
+        # arXiv doesn't always return the research for the date in the request (earliest date in this list)
+        unfetched_dates.insert(0, unfetched_dates[0] - timedelta(days=1))
         logger.info(f"Unfetched dates: {unfetched_dates}")
 
         earliest_date = min(unfetched_dates) if unfetched_dates else None
@@ -682,15 +691,19 @@ def create_polly_audio(text: str, file_name: str, research_date: str) -> None:
     Returns:
         None
     """
-    polly_client = boto3.client('polly')
-    polly_client.start_speech_synthesis_task(
-        OutputFormat='mp3',
-        OutputS3BucketName=BUCKET_NAME,
-        OutputS3KeyPrefix=f"pods/{research_date}-{file_name}",
-        Text=text,
-        TextType='text',
-        VoiceId='Matthew'
-    )
+    try:
+        polly_client = boto3.client('polly')
+        polly_client.start_speech_synthesis_task(
+            OutputFormat='mp3',
+            OutputS3BucketName=BUCKET_NAME,
+            OutputS3KeyPrefix=f"pods/{research_date}-{file_name}",
+            Text=text,
+            TextType='text',
+            VoiceId='Matthew'
+        )
+    except Exception as e:
+        logger.error(f"Failed to create Polly audio for {file_name}")
+        logger.error(e)
 
 
 def schedule_for_later() -> None:
@@ -963,6 +976,19 @@ def execute_sql(sql_statement: str, parameters: List[dict], aurora_cluster_arn: 
         return {}
 
 
+def count_tokens(text: str) -> int:
+    """
+    Counts the number of tokens in the given text.
+
+    Args:
+        text (str): Text to count tokens for.
+
+    Returns:
+        int: Number of tokens.
+    """
+    return len(nltk.word_tokenize(text))
+
+
 def lambda_handler(event: dict, context) -> dict:
     global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET
     log_initial_info(event)
@@ -1025,12 +1051,13 @@ def run_aws_test():
     today = calculate_from_date()
     print(f'Today: {today}')
     log_initial_info({"test": "test"})
-    # insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+    insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
     earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
     print(f'Earliest: {earliest}')
     date_list = generate_date_list(earliest, today)
     print(f'Date List: {date_list}')
     xml_data_list = fetch_data(BASE_URL, earliest, SUMMARY_SET)
+
     extracted_data = []
     for xml_data in xml_data_list:
         extracted_data.append(parse_xml_data(xml_data, earliest))
