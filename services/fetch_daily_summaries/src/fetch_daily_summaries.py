@@ -17,12 +17,12 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
 TEST = False
-AURORA_CLUSTER_ARN = ''
-BASE_URL = ''
-BUCKET_NAME = ''
-DB_CREDENTIALS_SECRET_ARN = ''
-DATABASE = ''
-SUMMARY_SET = ''
+AURORA_CLUSTER_ARN = ""
+BASE_URL = ""
+BUCKET_NAME = ""
+DB_CREDENTIALS_SECRET_ARN = ""
+DATABASE = ""
+SUMMARY_SET = ""
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -43,12 +43,12 @@ def lambda_handler(event: dict, context) -> dict:
         today = calculate_from_date()
 
         logger.info(f"Today's date: {today}")
-        AURORA_CLUSTER_ARN = os.environ.get('RESOURCE_ARN')
-        BASE_URL = os.environ.get('BASE_URL')
-        BUCKET_NAME = os.environ.get('BUCKET_NAME')
-        DB_CREDENTIALS_SECRET_ARN = os.environ.get('SECRET_ARN')
-        DATABASE = os.environ.get('DATABASE_NAME')
-        SUMMARY_SET = os.environ.get('SUMMARY_SET')
+        AURORA_CLUSTER_ARN = os.environ.get("RESOURCE_ARN")
+        BASE_URL = os.environ.get("BASE_URL")
+        BUCKET_NAME = os.environ.get("BUCKET_NAME")
+        DB_CREDENTIALS_SECRET_ARN = os.environ.get("SECRET_ARN")
+        DATABASE = os.environ.get("DATABASE_NAME")
+        SUMMARY_SET = os.environ.get("SUMMARY_SET")
 
         insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
         earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
@@ -59,12 +59,7 @@ def lambda_handler(event: dict, context) -> dict:
         notify_parser(BUCKET_NAME, key)
     except Exception as e:
         logger.error(e)
-        return {
-            'statusCode': 500,
-            'body': json.dumps({
-                'message': 'Internal Server Error'
-            })
-        }
+        return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
 
 
 def get_config(test: bool = False) -> dict:
@@ -231,22 +226,17 @@ def get_fetch_status(date: date, aurora_cluster_arn, db_credentials_secret_arn, 
 def fetch_data(base_url: str, from_date: str, set: str) -> list:
     """
     Fetches data from arXiv.
-    
+
     Args:
         base_url (str): Base URL.
         from_date (str): From date.
         set (str): Set.
-        
+
     Returns:
         list: List of XML responses.
     """
     full_xml_responses = []
-    params = {
-        'verb': 'ListRecords',
-        'set': set,
-        'metadataPrefix': 'oai_dc',
-        'from': from_date
-    }
+    params = {"verb": "ListRecords", "set": set, "metadataPrefix": "oai_dc", "from": from_date}
 
     backoff_times = [30, 120]
 
@@ -263,7 +253,7 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
                 logging.info(f"Found resumptionToken: {resumption_token_element.text}")
                 print(f"Found resumptionToken: {resumption_token_element.text}")
                 time.sleep(5)
-                params = {'verb': 'ListRecords', 'resumptionToken': resumption_token_element.text}
+                params = {"verb": "ListRecords", "resumptionToken": resumption_token_element.text}
             else:
                 break
 
@@ -273,7 +263,7 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
             print(e)
 
             if response.status_code == 503:
-                backoff_time = response.headers.get('Retry-After', backoff_times.pop(0) if backoff_times else 30)
+                backoff_time = response.headers.get("Retry-After", backoff_times.pop(0) if backoff_times else 30)
                 logging.warning(f"Received 503 error, backing off for {backoff_time} seconds.")
                 print(f"Received 503 error, backing off for {backoff_time} seconds.")
                 time.sleep(int(backoff_time))
@@ -288,7 +278,9 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
     return full_xml_responses
 
 
-def execute_sql(sql_statement: str, parameters: List[dict], aurora_cluster_arn: str, db_credentials_secret_arn: str, database: str) -> dict:
+def execute_sql(
+    sql_statement: str, parameters: List[dict], aurora_cluster_arn: str, db_credentials_secret_arn: str, database: str
+) -> dict:
     """
     Executes the given SQL statement using AWS RDSDataService.
 
@@ -338,7 +330,7 @@ def generate_date_list(start_date: date, end_date: date) -> List[date]:
     for i in range(delta.days + 1):
         research_date = start_date + timedelta(days=i)
         fetch_status = get_fetch_status(research_date, AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-        if fetch_status != 'success':
+        if fetch_status != "success":
             dates.append(research_date)
     return dates
 
@@ -410,10 +402,10 @@ def config_for_test():
     DATABASE = "atomiklabs_dev_database"
     SUMMARY_SET = "cs"
     load_dotenv()
-    OPENAI_KEY = os.environ.get('OPENAI_KEY')
+    OPENAI_KEY = os.environ.get("OPENAI_KEY")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     config_for_test()
     log_initial_info({"test": "test"})
     insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
