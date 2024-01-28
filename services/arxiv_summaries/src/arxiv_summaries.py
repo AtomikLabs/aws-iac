@@ -1076,7 +1076,7 @@ def run_aws_test():
     print(f"Records: {len(records)}")
     for research_date in date_list:
         r = research_date.strftime("%Y-%m-%d")
-        create_script(["CL", "CV", "RO"], records, r, "cs")
+        create_script(["CL"], records, r, "cs")
 
 
 if __name__ == "__main__":
