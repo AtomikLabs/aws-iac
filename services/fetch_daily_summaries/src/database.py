@@ -34,9 +34,7 @@ class Database:
         self.db_credentials_secret_arn = db_credentials_secret_arn
         self.database_name = database_name
 
-    def execute_sql(self,
-                    sql_statement: str,
-                    parameters: List[dict]) -> dict:
+    def execute_sql(self, sql_statement: str, parameters: List[dict]) -> dict:
         """
         Executes the given SQL statement using AWS RDSDataService.
 
@@ -56,7 +54,7 @@ class Database:
 
         if not parameters:
             raise ValueError("Parameters are required")
-        
+
         if not isinstance(parameters, list):
             raise ValueError("Parameters must be a list")
 

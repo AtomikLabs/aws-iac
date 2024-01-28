@@ -1,13 +1,14 @@
 # Description: Lambda function to fetch daily summaries from arXiv.
 
-import requests
 import json
 import logging
-import time
 import os
+import time
+from datetime import date, datetime, timedelta
+
 import boto3
 import defusedxml.ElementTree as ET
-from datetime import datetime, timedelta, date
+import requests
 
 from services.fetch_daily_summaries.src.database import Database
 
@@ -36,32 +37,24 @@ def lambda_handler(event: dict, context) -> dict:
         logger.info(f"Today's date: {today}")
         config = get_config()
 
-        db = Database(
-            config.get("aurora_cluster_arn"),
-            config.get("db_credentials_secret_arn"),
-            config.get("database"))
+        db = Database(config.get("aurora_cluster_arn"), config.get("db_credentials_secret_arn"), config.get("database"))
 
         insert_fetch_status(date.today(), db)
 
         earliest = get_earliest_unfetched_date(today, db)
 
-        xml_data_list = fetch_data(config.get("base_url"),
-                                   earliest,
-                                   config.get("summary_set"))
+        xml_data_list = fetch_data(config.get("base_url"), earliest, config.get("summary_set"))
         logger.info(f"Number of XML responses: {len(xml_data_list)}")
 
         key = f"arxiv_daily_summaries/{date.today()}.json"
-        persist_to_s3(config.get("bucket_name"), key,
-                      json.dumps(xml_data_list))
+        persist_to_s3(config.get("bucket_name"), key, json.dumps(xml_data_list))
         notify_parser(config.get("bucket_name"), key)
 
-        return {"statusCode": 200,
-                "body": json.dumps({"message": "Success"})}
+        return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
 
     except Exception as e:
         logger.error(e)
-        return {"statusCode": 500,
-                "body": json.dumps({"message": "Internal Server Error"})}
+        return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
 
 
 def get_config() -> dict:
@@ -186,7 +179,7 @@ def get_earliest_unfetched_date(today: date, db: Database, days=5) -> date:
         unfetched_dates = sorted(list(set(past_dates) - set(fetched_dates)))
         # prepend one day earlier than the earliest unfetched date (first date in the list)
         # arXiv doesn't always return the research for the date in the request (earliest date in this list)
-   
+
         unfetched_dates.insert(0, unfetched_dates[0] - timedelta(days=1))
         logger.info(f"Unfetched dates: {unfetched_dates}")
 
@@ -356,13 +349,13 @@ def persist_to_s3(bucket_name: str, key: str, content: str) -> None:
     """
     if not bucket_name:
         raise ValueError("Bucket name is required")
-    
+
     if not key:
         raise ValueError("Key is required")
-    
+
     if not content:
         raise ValueError("Content is required")
-    
+
     s3 = boto3.resource("s3")
     s3.Bucket(bucket_name).put_object(Key=key, Body=content)
 

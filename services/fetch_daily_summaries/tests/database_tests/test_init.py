@@ -9,16 +9,11 @@ class TestInit(TestCase):
     database_name = "mydatabase"
 
     def test_init(self):
-        database = Database(self.aurora_cluster_arn,
-                            self.db_credentials_secret_arn,
-                            self.database_name)
+        database = Database(self.aurora_cluster_arn, self.db_credentials_secret_arn, self.database_name)
 
-        self.assertEqual(database.aurora_cluster_arn,
-                         self.aurora_cluster_arn)
-        self.assertEqual(database.db_credentials_secret_arn,
-                         self.db_credentials_secret_arn)
-        self.assertEqual(database.database_name,
-                         self.database_name)
+        self.assertEqual(database.aurora_cluster_arn, self.aurora_cluster_arn)
+        self.assertEqual(database.db_credentials_secret_arn, self.db_credentials_secret_arn)
+        self.assertEqual(database.database_name, self.database_name)
 
     def test_init_with_invalid_inputs(self):
         invalid_inputs = [

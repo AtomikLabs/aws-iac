@@ -1,11 +1,10 @@
 from unittest import TestCase
 from unittest.mock import patch
-from typing import List
+
 from services.fetch_daily_summaries.src.database import Database
 
 
 class TestExecuteSql(TestCase):
-
     aurora_cluster_arn = "arn:aws:rds:us-west-2:123456789012:cluster:my-aurora-cluster"
     db_credentials_secret_arn = "arn:aws:secretsmanager:us-west-2:123456789012:secret:my-db-credentials"
     database_name = "mydatabase"
@@ -18,7 +17,7 @@ class TestExecuteSql(TestCase):
             self.database_name,
         )
 
-    @patch('boto3.client')
+    @patch("boto3.client")
     def test_execute_sql(self, mock_client):
         mock_client.return_value.execute_statement.return_value = {"records": []}
 

@@ -5,7 +5,7 @@ target-version = ['py39']
 [tool.isort]
 profile = "black"
 line_length = 120
-skip = ["__init__.py", ".venv", "build", "dist"]
+skip = ["__init__.py", ".venv", "build", "dist", ".venv"]
 known_first_party = ["myproject", "anothermodule"]
 multi_line_output = 3
 include_trailing_comma = true
@@ -19,7 +19,8 @@ exclude = [
     '.git',
     '__pycache__',
     'build',
-    'dist'
+    'dist', 
+    '.venv',
 ]
 ignore = ['E203', 'E266', 'E501', 'W503']
 per-file-ignores = [
