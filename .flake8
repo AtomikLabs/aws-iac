@@ -4,7 +4,8 @@ exclude =
     .git,
     __pycache__,
     build,
-    dist
+    dist,
+    .venv
 ignore =
     E203,
     E266,

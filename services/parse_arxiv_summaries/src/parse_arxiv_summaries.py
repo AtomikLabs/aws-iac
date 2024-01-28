@@ -1,9 +1,9 @@
 # Description: Parse arXiv research summaries and send them to be persisted.
 
+import json
 import logging
 import os
 from collections import defaultdict
-import json
 
 import boto3
 import defusedxml.ElementTree as ET

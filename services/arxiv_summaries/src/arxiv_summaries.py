@@ -1,20 +1,20 @@
-import requests
 import json
 import logging
-import time
-from html import unescape
-from collections import defaultdict
-from docx import Document
 import os
 import re
-import docx
+import time
+from collections import defaultdict
+from datetime import date, datetime, timedelta
+from html import unescape
+from typing import List
+
 import boto3
 import defusedxml.ElementTree as ET
-from botocore.exceptions import NoRegionError
-from datetime import datetime, timedelta, date
-from typing import List
-from openai import OpenAI
+import docx
+import requests
+from docx import Document
 from dotenv import load_dotenv
+from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
@@ -200,7 +200,6 @@ def add_hyperlink(paragraph, text, url):
     hyperlink = docx.oxml.shared.OxmlElement("w:hyperlink")
     hyperlink.set(docx.oxml.shared.qn("r:id"), r_id)
     new_run = docx.oxml.shared.OxmlElement("w:r")
-    rPr = docx.oxml.shared.OxmlElement("w:rPr")
     new_run.text = text
     hyperlink.append(new_run)
     paragraph._p.append(hyperlink)
@@ -291,7 +290,7 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
             if record["primary_category"] == category and record["date"] == research_date:
                 title_pdf_paragraph = doc.add_paragraph()
 
-                cleaned_title = re.sub("\n\s*", " ", record["title"])
+                cleaned_title = re.sub(r"\n\s*", " ", record["title"])
                 add_hyperlink(title_pdf_paragraph, cleaned_title, record["abstract_url"])
 
                 title_pdf_paragraph.add_run(" [")
@@ -303,7 +302,7 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
 
                 paragraphs = record["abstract"].split("\n\n")
                 for p in paragraphs:
-                    cleaned_paragraph = re.sub("\n\s*", " ", p)
+                    cleaned_paragraph = re.sub(r"\n\s*", " ", p)
                     no_latex_paragraph = latex_to_human_readable(cleaned_paragraph)
                     doc.add_paragraph(no_latex_paragraph)
 
@@ -362,7 +361,7 @@ def create_short_show_notes(categories: list, records: list, research_date: str,
                 count += 1
                 title_pdf_paragraph = doc.add_paragraph()
 
-                cleaned_title = re.sub("\n\s*", " ", record["title"])
+                cleaned_title = re.sub(r"\n\s*", " ", record["title"])
                 add_hyperlink(title_pdf_paragraph, cleaned_title, record["abstract_url"])
 
                 title_pdf_paragraph.add_run(" [")
@@ -417,7 +416,7 @@ def create_script(categories, records, research_date, group):
             if record["primary_category"] == category and record["date"] == research_date:
                 title_pdf_paragraph = doc.add_paragraph()
 
-                cleaned_title = re.sub("\n\s*", " ", record["title"])
+                cleaned_title = re.sub(r"\n\s*", " ", record["title"])
 
                 title_pdf_paragraph.add_run(cleaned_title)
 
@@ -426,7 +425,7 @@ def create_script(categories, records, research_date, group):
                 doc.add_paragraph()
                 paragraphs = record["abstract"].split("\n\n")
                 for p in paragraphs:
-                    cleaned_paragraph = re.sub("\n\s*", " ", p)
+                    cleaned_paragraph = re.sub(r"\n\s*", " ", p)
                     no_latex_paragraph = latex_to_human_readable(cleaned_paragraph)
                     doc.add_paragraph(no_latex_paragraph)
 
@@ -1076,7 +1075,7 @@ def run_aws_test():
     print(f"Records: {len(records)}")
     for research_date in date_list:
         r = research_date.strftime("%Y-%m-%d")
-        create_script(["CL", "CV", "RO"], records, r, "cs")
+        create_script(["CL"], records, r, "cs")
 
 
 if __name__ == "__main__":
