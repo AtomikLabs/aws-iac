@@ -56,6 +56,9 @@ class Database:
 
         if not parameters:
             raise ValueError("Parameters are required")
+        
+        if not isinstance(parameters, list):
+            raise ValueError("Parameters must be a list")
 
         client = boto3.client("rds-data")
 

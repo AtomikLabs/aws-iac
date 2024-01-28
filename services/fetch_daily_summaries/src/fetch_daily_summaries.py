@@ -8,7 +8,6 @@ import os
 import boto3
 import defusedxml.ElementTree as ET
 from datetime import datetime, timedelta, date
-from typing import List
 
 from services.fetch_daily_summaries.src.database import Database
 
@@ -55,6 +54,10 @@ def lambda_handler(event: dict, context) -> dict:
         persist_to_s3(config.get("bucket_name"), key,
                       json.dumps(xml_data_list))
         notify_parser(config.get("bucket_name"), key)
+
+        return {"statusCode": 200,
+                "body": json.dumps({"message": "Success"})}
+
     except Exception as e:
         logger.error(e)
         return {"statusCode": 500,
