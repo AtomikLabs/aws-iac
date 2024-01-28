@@ -9,19 +9,11 @@ import boto3
 import defusedxml.ElementTree as ET
 from datetime import datetime, timedelta, date
 from typing import List
-from dotenv import load_dotenv
 
 from services.fetch_daily_summaries.src.database import Database
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
-TEST = False
-AURORA_CLUSTER_ARN = ""
-BASE_URL = ""
-BUCKET_NAME = ""
-DB_CREDENTIALS_SECRET_ARN = ""
-DATABASE = ""
-SUMMARY_SET = ""
 
 BACKOFF_TIMES = [30, 120]
 
@@ -38,31 +30,35 @@ def lambda_handler(event: dict, context) -> dict:
         dict: A dict with the status code and body.
     """
     try:
-        global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET
         log_initial_info(event)
 
         today = calculate_from_date()
 
         logger.info(f"Today's date: {today}")
-        AURORA_CLUSTER_ARN = os.environ.get("RESOURCE_ARN")
-        BASE_URL = os.environ.get("BASE_URL")
-        BUCKET_NAME = os.environ.get("BUCKET_NAME")
-        DB_CREDENTIALS_SECRET_ARN = os.environ.get("SECRET_ARN")
-        DATABASE = os.environ.get("DATABASE_NAME")
-        SUMMARY_SET = os.environ.get("SUMMARY_SET")
+        config = get_config()
 
-        db = Database(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+        db = Database(
+            config.get("aurora_cluster_arn"),
+            config.get("db_credentials_secret_arn"),
+            config.get("database"))
 
         insert_fetch_status(date.today(), db)
+
         earliest = get_earliest_unfetched_date(today, db)
-        xml_data_list = fetch_data(BASE_URL, earliest, SUMMARY_SET)
+
+        xml_data_list = fetch_data(config.get("base_url"),
+                                   earliest,
+                                   config.get("summary_set"))
         logger.info(f"Number of XML responses: {len(xml_data_list)}")
+
         key = f"arxiv_daily_summaries/{date.today()}.json"
-        persist_to_s3(BUCKET_NAME, key, json.dumps(xml_data_list))
-        notify_parser(BUCKET_NAME, key)
+        persist_to_s3(config.get("bucket_name"), key,
+                      json.dumps(xml_data_list))
+        notify_parser(config.get("bucket_name"), key)
     except Exception as e:
         logger.error(e)
-        return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
+        return {"statusCode": 500,
+                "body": json.dumps({"message": "Internal Server Error"})}
 
 
 def get_config() -> dict:
@@ -74,11 +70,12 @@ def get_config() -> dict:
     """
     try:
         config = {
+            "arxiv_summary_lambda": os.environ["ARXIV_SUMMARY_LAMBDA"],
             "aurora_cluster_arn": os.environ["RESOURCE_ARN"],
             "base_url": os.environ["BASE_URL"],
             "bucket_name": os.environ["BUCKET_NAME"],
-            "db_credentials_secret_arn": os.environ["SECRET_ARN"],
             "database": os.environ["DATABASE_NAME"],
+            "db_credentials_secret_arn": os.environ["SECRET_ARN"],
             "summary_set": os.environ["SUMMARY_SET"],
         }
     except KeyError as e:
@@ -298,96 +295,7 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
     return full_xml_responses
 
 
-def execute_sql(
-    sql_statement: str, parameters: List[dict], aurora_cluster_arn: str, db_credentials_secret_arn: str, database: str
-) -> dict:
-    """
-    Executes the given SQL statement using AWS RDSDataService.
-
-    Args:
-        sql_statement (str): SQL statement to execute.
-        parameters (List[dict]): List of parameters.
-        aurora_cluster_arn (str): The ARN of the Aurora Serverless DB cluster.
-        db_credentials_secret_arn (str): The ARN of the secret containing
-        credentials to access the DB.
-        database (str): Database name.
-
-    Returns:
-        dict: Response from RDSDataService.
-
-    Raises:
-        ValueError: If SQL statement is not provided.
-        ValueError: If parameters are not provided.
-        ValueError: If Aurora cluster ARN is not provided.
-        ValueError: If DB credentials secret ARN is not provided.
-        ValueError: If database name is not provided.
-    """
-    if not sql_statement:
-        raise ValueError("SQL statement is required")
-    
-    if not parameters:
-        raise ValueError("Parameters are required")
-    
-    if not aurora_cluster_arn:
-        raise ValueError("Aurora cluster ARN is required")
-    
-    if not db_credentials_secret_arn:
-        raise ValueError("DB credentials secret ARN is required")
-    
-    if not database:
-        raise ValueError("Database name is required")
-
-    client = boto3.client("rds-data")
-
-    try:
-        response = client.execute_statement(
-            resourceArn=aurora_cluster_arn,
-            secretArn=db_credentials_secret_arn,
-            database=database,
-            sql=sql_statement,
-            parameters=parameters,
-        )
-        return response
-    except Exception as e:
-        logger.error(f"Database query failed: {str(e)}")
-        return {}
-
-
-def generate_date_list(start_date: date, end_date: date) -> List[date]:
-    """
-    Generates a list of dates between the given start and end dates.
-
-    Args:
-        start_date (date): Start date.
-        end_date (date): End date.
-
-    Returns:
-        List[date]: List of dates.
-
-    Raises:
-        ValueError: If start date is not provided.
-        ValueError: If end date is not provided.
-    """
-    if not start_date:
-        raise ValueError("Start date is required")
-    
-    if not end_date:
-        raise ValueError("End date is required")
-    
-    delta = end_date - start_date
-    if delta.days < 0:
-        raise ValueError("End date must be after start date")
-
-    dates = []
-    for i in range(delta.days + 1):
-        research_date = start_date + timedelta(days=i)
-        fetch_status = get_fetch_status(research_date, AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-        if fetch_status != "success":
-            dates.append(research_date)
-    return dates
-
-
-def set_fetch_status(date: date, status, db: Database) -> bool:
+def set_fetch_status(date: date, status: str, db: Database) -> bool:
     """
     Sets fetch status in the database using AWS RDSDataService.
 
@@ -398,7 +306,21 @@ def set_fetch_status(date: date, status, db: Database) -> bool:
 
     Returns:
         bool: True if successful, False otherwise.
+
+    Raises:
+        ValueError: If date is not provided.
+        ValueError: If status is not provided.
+        ValueError: If database is not provided.
+        Exception: If database query fails.
     """
+    if not date:
+        raise ValueError("Date is required")
+
+    if not status:
+        raise ValueError("Status is required")
+
+    if not db:
+        raise ValueError("Database is required")
     try:
         sql_statement = "UPDATE research_fetch_status SET status = :status \
             WHERE fetch_date = CAST(:date AS DATE)"
@@ -423,48 +345,51 @@ def persist_to_s3(bucket_name: str, key: str, content: str) -> None:
         bucket_name (str): Bucket name.
         key (str): Key.
         content (str): Content.
+
+    Raises:
+        ValueError: If bucket name is not provided.
+        ValueError: If key is not provided.
+        ValueError: If content is not provided.
     """
+    if not bucket_name:
+        raise ValueError("Bucket name is required")
+    
+    if not key:
+        raise ValueError("Key is required")
+    
+    if not content:
+        raise ValueError("Content is required")
+    
     s3 = boto3.resource("s3")
     s3.Bucket(bucket_name).put_object(Key=key, Body=content)
 
 
-def notify_parser(bucket_name: str, key: str) -> None:
+def notify_parser(lambda_arn: str, bucket_name: str, key: str) -> None:
     """
     Notifies the parser Lambda function that new data is available.
 
     Args:
+        lambda_arn (str): Lambda ARN.
         bucket_name (str): Bucket name.
         key (str): Key.
+
+    Raises:
+        ValueError: If lambda ARN is not provided.
+        ValueError: If bucket name is not provided.
+        ValueError: If key is not provided.
     """
+    if not lambda_arn:
+        raise ValueError("Lambda ARN is required")
+    if not bucket_name:
+        raise ValueError("Bucket name is required")
+
+    if not key:
+        raise ValueError("Key is required")
+
     client = boto3.client("lambda")
     payload = {"bucket_name": bucket_name, "key": key}
     client.invoke(
-        FunctionName=os.environ.get("ARXIV_SUMMARY_LAMBDA"),
+        FunctionName=lambda_arn,
         InvocationType="Event",
         Payload=json.dumps(payload),
     )
-
-
-def config_for_test():
-    global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET, OPENAI_KEY
-    AURORA_CLUSTER_ARN = "arn:aws:rds:us-east-1:758145997264:cluster:atomiklabs-dev-aurora-cluster"
-    BASE_URL = "http://export.arxiv.org/oai2"
-    BUCKET_NAME = "atomiklabs-data-bucket-dev"
-    DB_CREDENTIALS_SECRET_ARN = "arn:aws:secretsmanager:us-east-1:758145997264:secret:dev/database-credentials-TuF8OS"
-    DATABASE = "atomiklabs_dev_database"
-    SUMMARY_SET = "cs"
-    load_dotenv()
-    OPENAI_KEY = os.environ.get("OPENAI_KEY")
-
-
-if __name__ == "__main__":
-    config_for_test()
-    log_initial_info({"test": "test"})
-    today = calculate_from_date()
-    insert_fetch_status(today, AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-    earliest = get_earliest_unfetched_date(today, AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-    xml_data_list = fetch_data(BASE_URL, earliest, SUMMARY_SET)
-    logger.info(f"Number of XML responses: {len(xml_data_list)}")
-    key = f"arxiv_daily_summaries/{date.today()}.json"
-    persist_to_s3(BUCKET_NAME, key, json.dumps(xml_data_list))
-    notify_parser(BUCKET_NAME, key)
