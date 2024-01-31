@@ -135,11 +135,14 @@ def load_xml_from_s3(bucket_name: str, key: str):
         raise ValueError("Must provide a bucket name")
     if not key:
         raise ValueError("Must provide a key")
-
-    s3 = boto3.resource("s3")
-    obj = s3.Object(bucket_name, key)
-    body = obj.get()["Body"].read()
-    return ET.fromstring(body)
+    try:
+        s3 = boto3.resource("s3")
+        obj = s3.Object(bucket_name, key)
+        body = obj.get()["Body"].read()
+        return ET.fromstring(body)
+    except Exception:
+        logger.error(f"Failed to load XML from S3 bucket {bucket_name} with key {key}")
+        raise
 
 
 def parse_xml(xml_data: ET) -> dict:
@@ -227,10 +230,15 @@ def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
         xml (dict): XML.
     """
     logger.info("Uploading to S3 bucket " + bucket_name + " as " + original_filename + "_parsed.xml")
-    s3 = boto3.client("s3")
-    s3.put_object(
-        Body=json.dumps(xml), Bucket=bucket_name, Key=(original_filename + "_parsed.json").replace("raw", "parsed")
-    )
+    try:
+        key = (original_filename + "_parsed.xml").replace("raw", "parsed")
+        s3 = boto3.client("s3")
+        s3.put_object(
+            Body=json.dumps(xml), Bucket=bucket_name, Key=key
+        )
+    except Exception as e:
+        logger.error(f"Failed to upload to S3 at {bucket_name} with key {key}: {e}")
+        raise
 
 
 def call_persist_summaries(persist_lambda_name: str, bucket_name: str, filename: str) -> None:
@@ -247,5 +255,9 @@ def call_persist_summaries(persist_lambda_name: str, bucket_name: str, filename:
                  for {filename} in {bucket_name}"
     )
     event_payload = {"bucket_name": bucket_name, "filename": filename}
-    lambda_client = boto3.client("lambda")
-    lambda_client.invoke(FunctionName=persist_lambda_name, InvocationType="Event", Payload=event_payload)
+    try:
+        lambda_client = boto3.client("lambda")
+        lambda_client.invoke(FunctionName=persist_lambda_name, InvocationType="Event", Payload=event_payload)
+    except Exception as e:
+        logger.error(f"Failed to call persist summaries function {persist_lambda_name}: {e}")
+        raise
