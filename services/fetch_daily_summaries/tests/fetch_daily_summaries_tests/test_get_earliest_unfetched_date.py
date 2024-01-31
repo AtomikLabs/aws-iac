@@ -30,9 +30,15 @@ class TestGetEarliestUnfetchedDate:
         with pytest.raises(ValueError):
             get_earliest_unfetched_date(None, self.MOCK_DB)
 
-    def test_get_earliest_unfetched_date_returns_none_when_sql_query_returns_no_rows(self):
+    @patch.object(Database, "execute_sql")
+    @patch("datetime.date")
+    def test_get_earliest_unfetched_date_returns_none_when_sql_query_returns_no_rows(self, mock_date, mock_execute_sql):
+        mocked_today = self.MOCKED_TODAY
+        mock_date.today.return_value = mocked_today
+        mock_execute_sql.return_value = {"records": []}
+        expected_earliest_date = mocked_today - timedelta(days=6)
         result = get_earliest_unfetched_date(self.MOCKED_TODAY, self.MOCK_DB)
-        assert result is None
+        assert result == expected_earliest_date
 
     def test_get_earliest_unfetched_date_raises_error_when_days_is_negative(self):
         with pytest.raises(ValueError):
