@@ -9,7 +9,7 @@ import boto3
 import defusedxml.ElementTree as ET
 
 logger = logging.getLogger(__name__)
-logging.getLogger().setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
 
 INTERNAL_SERVER_ERROR = "Internal server error"
 NO_REGION_SPECIFIED = "No region specified"
@@ -107,8 +107,16 @@ def log_initial_info(event: dict) -> None:
     Args:
         event (dict): Event.
     """
-    logger.info(f"Received event: {event}")
-    logger.info("Starting to parse arXiv summaries")
+    try:
+        logger.info("## ENVIRONMENT VARIABLE")
+        logger.info(os.environ["AWS_LAMBDA_LOG_GROUP_NAME"])
+        logger.info(os.environ["AWS_LAMBDA_LOG_STREAM_NAME"])
+    except KeyError:
+        # If the environment variables are not set, the function is being run in CI/CD or locally
+        pass
+    logger.info("## EVENT")
+    logger.info(event)
+    logger.info(f"## {__name__} STARTED")
 
 
 def load_xml_from_s3(bucket_name: str, key: str):
