@@ -9,7 +9,6 @@ from datetime import date, datetime, timedelta
 import boto3
 import defusedxml.ElementTree as ET
 import requests
-
 from database import Database
 
 logger = logging.getLogger(__name__)
@@ -44,7 +43,9 @@ def lambda_handler(event: dict, context) -> dict:
 
         config = get_config()
 
-        db = Database(config.get("aurora_cluster_arn"), config.get(DB_CREDENTIALS_SECRET_ARN_STR), config.get(DATABASE_STR))
+        db = Database(
+            config.get("aurora_cluster_arn"), config.get(DB_CREDENTIALS_SECRET_ARN_STR), config.get(DATABASE_STR)
+        )
 
         insert_fetch_status(date.today(), db)
 
@@ -52,7 +53,8 @@ def lambda_handler(event: dict, context) -> dict:
 
         xml_data_list = fetch_data(config.get(BASE_URL_STR), earliest, config.get(SUMMARY_SET_STR))
 
-        key = f"arxiv_daily_summaries/{time.strftime("%Y%m%d-%H%M%S")}.json"
+        key_date = time.strftime("%Y%m%d-%H%M%S")
+        key = f"arxiv_daily_summaries/{key_date}.json"
         persist_to_s3(config.get(BUCKET_NAME_STR), key, json.dumps(xml_data_list))
         notify_parser(config.get(ARXIV_SUMMARY_LAMBDA_STR), config.get(BUCKET_NAME_STR), key)
 
@@ -71,10 +73,10 @@ def log_initial_info(event: dict) -> None:
     Args:
         event (dict): Event.
     """
-    logger.info('## ENVIRONMENT VARIABLE')
-    logger.info(os.environ['AWS_LAMBDA_LOG_GROUP_NAME'])
-    logger.info(os.environ['AWS_LAMBDA_LOG_STREAM_NAME'])
-    logger.info('## EVENT')
+    logger.info("## ENVIRONMENT VARIABLE")
+    logger.info(os.environ["AWS_LAMBDA_LOG_GROUP_NAME"])
+    logger.info(os.environ["AWS_LAMBDA_LOG_STREAM_NAME"])
+    logger.info("## EVENT")
     logger.info(event)
     logger.info("## {__name__} STARTED")
 
