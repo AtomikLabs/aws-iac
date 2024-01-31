@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta
 import boto3
 import defusedxml.ElementTree as ET
 import requests
+
 from .database import Database
 
 logger = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ def log_initial_info(event: dict) -> None:
         pass
     logger.info("## EVENT")
     logger.info(event)
-    logger.info("## {__name__} STARTED")
+    logger.info(f"## {__name__} STARTED")
 
 
 def get_config() -> dict:
@@ -144,11 +145,11 @@ def insert_fetch_status(date: date, db: Database) -> None:
 
     try:
         formatted_date = date.strftime("%Y-%m-%d")
-
+        # Update spaces in tests if changed here
         sql_statement = """
-        INSERT INTO research_fetch_status (fetch_date, status)
-        VALUES (CAST(:date AS DATE), 'pending') ON CONFLICT (fetch_date) DO NOTHING
-        """
+    INSERT INTO research_fetch_status (fetch_date, status)
+    VALUES (CAST(:date AS DATE), 'pending') ON CONFLICT (fetch_date) DO NOTHING
+    """
 
         parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
 
@@ -211,7 +212,7 @@ def get_earliest_unfetched_date(today: date, db: Database, days=5) -> date:
         unfetched_dates.insert(0, unfetched_dates[0] - timedelta(days=1))
         logger.info(f"Unfetched dates: {unfetched_dates}")
 
-        earliest_date = min(unfetched_dates) if unfetched_dates else None
+        earliest_date = min(unfetched_dates) if len(unfetched_dates) > 1 else None
         logger.info(f"Earliest unfetched date: {earliest_date}")
         return earliest_date
     except Exception as e:
