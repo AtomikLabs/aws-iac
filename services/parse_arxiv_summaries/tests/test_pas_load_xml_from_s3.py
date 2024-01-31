@@ -1,9 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch
-
-from botocore.exceptions import ClientError
-
-from services.parse_arxiv_summaries.src.parse_arxiv_summaries import load_xml_from_s3
+from unittest.mock import patch
 
 
 class TestLoadXMLFromS3(unittest.TestCase):

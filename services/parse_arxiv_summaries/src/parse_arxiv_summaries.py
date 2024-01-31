@@ -1,5 +1,4 @@
 # Description: Parse arXiv research summaries and send them to be persisted.
-import io
 import json
 import logging
 import os
@@ -83,15 +82,15 @@ def lambda_handler(event, context):
             logger.error("No key specified")
             return {"statusCode": 500, "body": "No key specified"}
 
-        # persist_lambda_name = os.environ.get("PERSIST_LAMBDA_FUNCTION_NAME")
-        # logger.info(f"Persist lambda function name: {persist_lambda_name}")
-        # if not persist_lambda_name:
+            # persist_lambda_name = os.environ.get("PERSIST_LAMBDA_FUNCTION_NAME")
+            # logger.info(f"Persist lambda function name: {persist_lambda_name}")
+            # if not persist_lambda_name:
             return {"statusCode": 500, "body": "No persist lambda function name specified"}
 
         xml_data = load_xml_from_s3(bucket_name, key)
         parsed_data = parse_xml(xml_data)
         upload_to_s3(key, bucket_name, parsed_data)
-        #call_persist_summaries(persist_lambda_name, bucket_name, parsed_data)
+        # call_persist_summaries(persist_lambda_name, bucket_name, parsed_data)
         logger.info("Finished parsing arXiv daily summaries")
         return {"statusCode": 200, "body": "Success"}
 
@@ -266,8 +265,6 @@ def config_for_test():
 
 
 if __name__ == "__main__":
-    lambda_handler({
-        "bucket_name": "atomiklabs-data-bucket-dev",
-        "key": "arxiv_daily_summaries/20240131-072844.json"
-    }, None)
-    
+    lambda_handler(
+        {"bucket_name": "atomiklabs-data-bucket-dev", "key": "arxiv_daily_summaries/20240131-072844.json"}, None
+    )
