@@ -28,7 +28,7 @@ SUMMARY_SET = ""
 OPENAI_KEY = ""
 
 cs_categories_inverted = {
-    "Computer Science - Artifical Intelligence": "AI",
+    "Computer Science - Artificial Intelligence": "AI",
     "Computer Science - Hardware Architecture": "AR",
     "Computer Science - Computational Complexity": "CC",
     "Computer Science - Computational Engineering, Finance, and Science": "CE",
