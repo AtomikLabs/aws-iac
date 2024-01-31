@@ -73,9 +73,13 @@ def log_initial_info(event: dict) -> None:
     Args:
         event (dict): Event.
     """
-    logger.info("## ENVIRONMENT VARIABLE")
-    logger.info(os.environ["AWS_LAMBDA_LOG_GROUP_NAME"])
-    logger.info(os.environ["AWS_LAMBDA_LOG_STREAM_NAME"])
+    try:
+        logger.info("## ENVIRONMENT VARIABLE")
+        logger.info(os.environ["AWS_LAMBDA_LOG_GROUP_NAME"])
+        logger.info(os.environ["AWS_LAMBDA_LOG_STREAM_NAME"])
+    except KeyError:
+        # If the environment variables are not set, the function is being run in CI/CD or locally
+        pass
     logger.info("## EVENT")
     logger.info(event)
     logger.info("## {__name__} STARTED")
