@@ -73,7 +73,7 @@ def lambda_handler(event, context):
         log_initial_info(event)
 
         bucket_name = event.get("bucket_name")
-        key = event.get("filename")
+        key = event.get("key")
         logger.info(f"Bucket name: {bucket_name}")
         if not bucket_name:
             logger.error("No bucket name specified")
@@ -233,9 +233,7 @@ def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
     try:
         key = (original_filename + "_parsed.xml").replace("raw", "parsed")
         s3 = boto3.client("s3")
-        s3.put_object(
-            Body=json.dumps(xml), Bucket=bucket_name, Key=key
-        )
+        s3.put_object(Body=json.dumps(xml), Bucket=bucket_name, Key=key)
     except Exception as e:
         logger.error(f"Failed to upload to S3 at {bucket_name} with key {key}: {e}")
         raise
