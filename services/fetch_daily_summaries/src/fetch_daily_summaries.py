@@ -10,7 +10,7 @@ import boto3
 import defusedxml.ElementTree as ET
 import requests
 
-from services.fetch_daily_summaries.src.database import Database
+from database import Database
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
