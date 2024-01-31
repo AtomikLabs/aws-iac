@@ -10,7 +10,7 @@ import boto3
 import defusedxml.ElementTree as ET
 import requests
 
-from .database import Database
+import database
 
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
@@ -44,7 +44,7 @@ def lambda_handler(event: dict, context) -> dict:
 
         config = get_config()
 
-        db = Database(
+        db = database.Database(
             config.get("aurora_cluster_arn"), config.get(DB_CREDENTIALS_SECRET_ARN_STR), config.get(DATABASE_STR)
         )
 
@@ -124,7 +124,7 @@ def calculate_from_date() -> date:
     return today
 
 
-def insert_fetch_status(date: date, db: Database) -> None:
+def insert_fetch_status(date: date, db: database.Database) -> None:
     """
     Inserts fetch status as 'pending' for the given date using
     AWS RDSDataService.
@@ -161,7 +161,7 @@ def insert_fetch_status(date: date, db: Database) -> None:
         raise e
 
 
-def get_earliest_unfetched_date(today: date, db: Database, days=5) -> date:
+def get_earliest_unfetched_date(today: date, db: database.Database, days=5) -> date:
     """
     Gets the earliest unfetched date using AWS RDSDataService.
 
@@ -220,7 +220,7 @@ def get_earliest_unfetched_date(today: date, db: Database, days=5) -> date:
         raise e
 
 
-def get_fetch_status(date: date, db: Database) -> str:
+def get_fetch_status(date: date, db: database.Database) -> str:
     """
     Gets fetch status for the given date using AWS RDSDataService.
 
@@ -323,7 +323,7 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
     return full_xml_responses
 
 
-def set_fetch_status(date: date, status: str, db: Database) -> bool:
+def set_fetch_status(date: date, status: str, db: database.Database) -> bool:
     """
     Sets fetch status in the database using AWS RDSDataService.
 
