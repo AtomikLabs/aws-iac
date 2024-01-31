@@ -3,10 +3,7 @@
 import json
 import logging
 import os
-import os
 import time
-from datetime import date, datetime, timedelta
-
 from datetime import date, datetime, timedelta
 
 import boto3
