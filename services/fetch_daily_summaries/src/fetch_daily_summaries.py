@@ -5,12 +5,11 @@ import logging
 import os
 import time
 from datetime import date, datetime, timedelta
+from typing import List
 
 import boto3
 import defusedxml.ElementTree as ET
 import requests
-
-import database
 
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
@@ -24,6 +23,74 @@ DATABASE_STR = "database"
 DB_CREDENTIALS_SECRET_ARN_STR = "db_credentials_secret_arn"  # nosec
 RESOURCE_ARN_STR = "resource_arn"
 SUMMARY_SET_STR = "summary_set"
+
+
+class Database:
+    def __init__(self, aurora_cluster_arn, db_credentials_secret_arn, database_name):
+        """
+        Initialize a Database object.
+
+        Args:
+            aurora_cluster_arn (str): The ARN of the Aurora cluster.
+            db_credentials_secret_arn (str): The ARN of the secret containing the database credentials.
+            database_name (str): The name of the database.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: If aurora_cluster_arn is None or an empty string.
+            ValueError: If db_credentials_secret_arn is None or an empty string.
+            ValueError: If database_name is None or an empty string.
+        """
+        if not aurora_cluster_arn:
+            raise ValueError("aurora_cluster_arn must be a non-empty string")
+        if not db_credentials_secret_arn:
+            raise ValueError("db_credentials_secret_arn must be a non-empty string")
+        if not database_name:
+            raise ValueError("database_name must be a non-empty string")
+        self.aurora_cluster_arn = aurora_cluster_arn
+        self.db_credentials_secret_arn = db_credentials_secret_arn
+        self.database_name = database_name
+
+    def execute_sql(self, sql_statement: str, parameters: List[dict]) -> dict:
+        """
+        Executes the given SQL statement using AWS RDSDataService.
+
+        Args:
+            sql_statement (str): SQL statement to execute.
+            parameters (List[dict]): List of parameters.
+
+        Returns:
+            dict: Response from RDSDataService.
+
+        Raises:
+            ValueError: If SQL statement is not provided.
+            ValueError: If parameters are not provided.
+        """
+        if not sql_statement:
+            raise ValueError("SQL statement is required")
+
+        if not parameters:
+            raise ValueError("Parameters are required")
+
+        if not isinstance(parameters, list):
+            raise ValueError("Parameters must be a list")
+
+        client = boto3.client("rds-data")
+
+        try:
+            response = client.execute_statement(
+                resourceArn=self.aurora_cluster_arn,
+                secretArn=self.db_credentials_secret_arn,
+                database=self.database_name,
+                sql=sql_statement,
+                parameters=parameters,
+            )
+            return response
+        except Exception as e:
+            logger.error(f"Database query failed: {str(e)}")
+            return {}
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -44,7 +111,7 @@ def lambda_handler(event: dict, context) -> dict:
 
         config = get_config()
 
-        db = database.Database(
+        db = Database(
             config.get("aurora_cluster_arn"), config.get(DB_CREDENTIALS_SECRET_ARN_STR), config.get(DATABASE_STR)
         )
 
@@ -124,7 +191,7 @@ def calculate_from_date() -> date:
     return today
 
 
-def insert_fetch_status(date: date, db: database.Database) -> None:
+def insert_fetch_status(date: date, db: Database) -> None:
     """
     Inserts fetch status as 'pending' for the given date using
     AWS RDSDataService.
@@ -161,7 +228,7 @@ def insert_fetch_status(date: date, db: database.Database) -> None:
         raise e
 
 
-def get_earliest_unfetched_date(today: date, db: database.Database, days=5) -> date:
+def get_earliest_unfetched_date(today: date, db: Database, days=5) -> date:
     """
     Gets the earliest unfetched date using AWS RDSDataService.
 
@@ -220,7 +287,7 @@ def get_earliest_unfetched_date(today: date, db: database.Database, days=5) -> d
         raise e
 
 
-def get_fetch_status(date: date, db: database.Database) -> str:
+def get_fetch_status(date: date, db: Database) -> str:
     """
     Gets fetch status for the given date using AWS RDSDataService.
 
@@ -323,7 +390,7 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
     return full_xml_responses
 
 
-def set_fetch_status(date: date, status: str, db: database.Database) -> bool:
+def set_fetch_status(date: date, status: str, db: Database) -> bool:
     """
     Sets fetch status in the database using AWS RDSDataService.
 
