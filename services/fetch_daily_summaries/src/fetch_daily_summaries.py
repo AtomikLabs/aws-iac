@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta
 import boto3
 import defusedxml.ElementTree as ET
 import requests
-from database import Database
+from .database import Database
 
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
