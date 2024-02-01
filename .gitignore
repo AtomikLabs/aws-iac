@@ -168,3 +168,5 @@ scratch/
 .DS_Store
 
 show_notes/
+
+records.json

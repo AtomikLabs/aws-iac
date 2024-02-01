@@ -80,7 +80,7 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
     while True:
         try:
             logging.info(f"Fetching data with parameters: {params}")
-            response = requests.get(base_url, params=params)
+            response = requests.get(base_url, params=params, timeout=60)
             response.raise_for_status()
             full_xml_responses.append(response.text)
             root = ET.fromstring(response.content)
@@ -446,7 +446,7 @@ def create_script(categories, records, research_date, group):
             for para in document.paragraphs:
                 full_text.append(para.text)
             themes = create_research_themes("\n".join(full_text), category)
-            print(f"Date: {research_date} Category: {category} Tokens: {len(full_text)/6}")
+            print(f"Date: {research_date} Category: {category} Tokens: {len(full_text) / 6}")
         themes = "\n".join(themes)
         create_full_show_notes([category], records, research_date, "cs", themes)
         create_pod_notes([category], research_date, themes)
@@ -595,7 +595,7 @@ def get_earliest_unfetched_date(aurora_cluster_arn, db_credentials_secret_arn, d
     sql_statement = f"""
     SELECT fetch_date FROM research_fetch_status
     WHERE fetch_date = ANY(ARRAY[{placeholder_string}]::DATE[]) AND status = 'success'
-    """
+    """  # nosec
 
     parameters = [
         {"name": f"date{i}", "value": {"stringValue": date.strftime("%Y-%m-%d")}} for i, date in enumerate(past_dates)
@@ -1075,7 +1075,7 @@ def run_aws_test():
     print(f"Records: {len(records)}")
     for research_date in date_list:
         r = research_date.strftime("%Y-%m-%d")
-        create_script(["CL"], records, r, "cs")
+        create_script(["CL", "CV", "RO"], records, r, "cs")
 
 
 if __name__ == "__main__":
