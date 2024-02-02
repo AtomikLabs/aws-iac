@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# Local specific dependencies
+-e ../../shared/logging/structured_logger
