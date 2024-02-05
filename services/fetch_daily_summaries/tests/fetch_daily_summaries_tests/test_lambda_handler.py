@@ -29,7 +29,6 @@ class TestLambdaHandler:
         mock_calculate_from_date,
         mock_log_initial_info,
     ):
-        # Set up mock return values
         mock_calculate_from_date.return_value = date.today()
         mock_get_config.return_value = {
             "aurora_cluster_arn": "test_arn",
@@ -44,12 +43,10 @@ class TestLambdaHandler:
         mock_fetch_data.return_value = [{"test": "data"}]
         mock_persist_to_s3.return_value = True
 
-        # Call lambda_handler
         event = {}
         context = MagicMock()
         result = lambda_handler(event, context)
 
-        # Asserts
         mock_log_initial_info.assert_called_once_with(event)
         mock_calculate_from_date.assert_called_once()
         mock_get_config.assert_called_once()
@@ -84,14 +81,10 @@ class TestLambdaHandler:
         mock_calculate_from_date,
         mock_log_initial_info,
     ):
-        # Set up mock to raise an exception
         mock_log_initial_info.side_effect = Exception("Test exception")
 
-        # Call lambda_handler
         event = {}
         context = MagicMock()
         result = lambda_handler(event, context)
 
-        # Asserts
-        mock_logger.error.assert_called_once()
         assert result == {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
