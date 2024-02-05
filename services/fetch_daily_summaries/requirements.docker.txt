@@ -1,4 +1,1 @@
 -r requirements.txt
-
-# Docker specific dependencies
--e ./shared/logging/structured_logger

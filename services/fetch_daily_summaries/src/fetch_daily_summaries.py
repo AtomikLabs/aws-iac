@@ -10,11 +10,34 @@ from typing import List
 import boto3
 import defusedxml.ElementTree as ET
 import requests
+import structlog
 
-logger = logging.getLogger(__name__)
-logger.setLevel("INFO")
+structlog.configure(
+    [
+        structlog.stdlib.filter_by_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.dict_tracebacks,
+        structlog.processors.JSONRenderer(),
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+)
+
+logger = structlog.get_logger()
 
 BACKOFF_TIMES = [30, 120]
+LAMBDA_NAME = "fetch_daily_summaries"
+LAMBDA_HANDLER = "fetch_daily_summaries.lambda_handler"
+LOG_INITIAL_INFO = "fetch_daily_summaries.log_initial_info"
+GET_CONFIG = "fetch_daily_summaries.get_config"
+CALCULATE_FROM_DATE = "fetch_daily_summaries.calculate_from_date"
+INSERT_FETCH_STATUS = "fetch_daily_summaries.insert_fetch_status"
+GET_EARLIEST_UNFETCHED_DATE = "fetch_daily_summaries.get_earliest_unfetched_date"
+GET_FETCH_STATUS = "fetch_daily_summaries.get_fetch_status"
+FETCH_DATA = "fetch_daily_summaries.fetch_data"
+SET_FETCH_STATUS = "fetch_daily_summaries.set_fetch_status"
+PERSIST_TO_S3 = "fetch_daily_summaries.persist_to_s3"
+NOTIFY_PARSER = "fetch_daily_summaries.notify_parser"
 
 ARXIV_SUMMARY_LAMBDA_STR = "arxiv_summary_lambda"
 BASE_URL_STR = "base_url"
@@ -126,11 +149,17 @@ def lambda_handler(event: dict, context) -> dict:
         persist_to_s3(config.get(BUCKET_NAME_STR), key, json.dumps(xml_data_list))
         notify_parser(config.get(ARXIV_SUMMARY_LAMBDA_STR), config.get(BUCKET_NAME_STR), key)
 
-        logger.info("## {__name__} COMPLETED")
+        logger.info("Fetching arXiv summaries succeeded", method=LAMBDA_HANDLER, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
 
     except Exception as e:
-        logger.error(e)
+        logger.exception(
+            "Fetching arXiv daily summaries failed",
+            method=LAMBDA_HANDLER,
+            status=500,
+            body="Internal Server Error",
+            error=str(e),
+        )
         return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
 
 
@@ -142,15 +171,16 @@ def log_initial_info(event: dict) -> None:
         event (dict): Event.
     """
     try:
-        logger.info("## ENVIRONMENT VARIABLE")
-        logger.info(os.environ["AWS_LAMBDA_LOG_GROUP_NAME"])
-        logger.info(os.environ["AWS_LAMBDA_LOG_STREAM_NAME"])
+        logger.debug(
+            "Log variables",
+            method=LOG_INITIAL_INFO,
+            log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
+            log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
+        )
+        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="AWS")
     except KeyError:
-        # If the environment variables are not set, the function is being run in CI/CD or locally
-        pass
-    logger.info("## EVENT")
-    logger.info(event)
-    logger.info(f"## {__name__} STARTED")
+        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="CI/CD or local")
+    logger.debug("Event received", method=LOG_INITIAL_INFO, trigger_event=event)
 
 
 def get_config() -> dict:
@@ -161,7 +191,6 @@ def get_config() -> dict:
         dict: The config.
     """
     try:
-        logger.info("## CONFIG")
         config = {
             ARXIV_SUMMARY_LAMBDA_STR: os.environ["ARXIV_SUMMARY_LAMBDA"],
             "aurora_cluster_arn": os.environ["RESOURCE_ARN"],
@@ -172,9 +201,9 @@ def get_config() -> dict:
             SUMMARY_SET_STR: os.environ["SUMMARY_SET"],
         }
         safe_config = {k: config[k] for k in set(list(config.keys())) - set([DB_CREDENTIALS_SECRET_ARN_STR])}
-        logger.info(f"{safe_config}")
+        logger.debug("Config", method=GET_CONFIG, config=safe_config)
     except KeyError as e:
-        logger.error(f"get_config - missing environment variable: {str(e)}")
+        logger.error("Missing environment variable", method=GET_CONFIG, error=str(e))
         raise e
 
     return config
@@ -187,7 +216,7 @@ def calculate_from_date() -> date:
         date: From date.
     """
     today = datetime.today().date()
-    logger.info(f"Today's date: {today}")
+    logger.info("Today's date", method=CALCULATE_FROM_DATE, date=today)
     return today
 
 
@@ -205,9 +234,11 @@ def insert_fetch_status(date: date, db: Database) -> None:
         ValueError: If database is not provided.
     """
     if not date:
+        logger.error("Date is required", method=INSERT_FETCH_STATUS)
         raise ValueError("Date is required")
 
     if not db:
+        logger.error("Database is required", method=INSERT_FETCH_STATUS)
         raise ValueError("Database is required")
 
     try:
@@ -221,10 +252,9 @@ def insert_fetch_status(date: date, db: Database) -> None:
         parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
 
         response = db.execute_sql(sql_statement, parameters)
-        logger.info(f"Insert fetch status response: {response} for date: {date}")
         return response
     except Exception as e:
-        logger.error(f"insert_fetch_status - database query failed: {str(e)}")
+        logger.exception("Database query failed", method=INSERT_FETCH_STATUS, error=str(e))
         raise e
 
 
@@ -245,14 +275,15 @@ def get_earliest_unfetched_date(today: date, db: Database, days=5) -> date:
         ValueError: If days is not an int between 1 and 10.
     """
     if not today:
+        logger.error("Today's date is required", method=GET_EARLIEST_UNFETCHED_DATE)
         raise ValueError("Today's date is required")
 
     if type(days) is not int or days < 1 or days > 10:
+        logger.error("Days must be an int between 1 and 10", method=GET_EARLIEST_UNFETCHED_DATE)
         raise ValueError("Days must be an int between 1 and 10")
 
     past_dates = [(today - timedelta(days=i)) for i in range(1, days + 1)]
-    logger.info(f"Past dates: {past_dates}")
-    logger.info(f"Today's date: {today}")
+    logger.debug("Dates", method=GET_EARLIEST_UNFETCHED_DATE, dates=past_dates, days=days, today=today)
 
     placeholders = [f":date{i}" for i in range(len(past_dates))]
     placeholder_string = ", ".join(placeholders)
@@ -277,13 +308,13 @@ def get_earliest_unfetched_date(today: date, db: Database, days=5) -> date:
         # arXiv doesn't always return the research for the date in the request (earliest date in this list)
 
         unfetched_dates.insert(0, unfetched_dates[0] - timedelta(days=1))
-        logger.info(f"Unfetched dates: {unfetched_dates}")
+        logger.info("Unfetched dates", method=GET_EARLIEST_UNFETCHED_DATE, unfetched_dates=unfetched_dates)
 
         earliest_date = min(unfetched_dates) if len(unfetched_dates) > 1 else None
-        logger.info(f"Earliest unfetched date: {earliest_date}")
+        logger.info("Earliest unfetched date", method=GET_EARLIEST_UNFETCHED_DATE, earliest_date=earliest_date)
         return earliest_date
     except Exception as e:
-        logger.error(f"get_earliest_unfetched_date - database query failed: {str(e)}")
+        logger.exception("Database query failed", method=GET_EARLIEST_UNFETCHED_DATE, error=str(e))
         raise e
 
 
@@ -303,9 +334,11 @@ def get_fetch_status(date: date, db: Database) -> str:
         ValueError: If date is after today.
     """
     if isinstance(date, datetime.date.__class__) or not date:
+        logger.error("Date must be a date object", method=GET_FETCH_STATUS)
         raise TypeError("Date must be a date object")
 
     if date > datetime.today().date():
+        logger.error("Date must be today or earlier", method=GET_FETCH_STATUS)
         raise ValueError("Date must be today or earlier")
 
     formatted_date = date.strftime("%Y-%m-%d")
@@ -319,7 +352,7 @@ def get_fetch_status(date: date, db: Database) -> str:
 
     try:
         response = db.execute_sql(sql_statement, parameters)
-        logger.info(f"Fetch status response: {response} for date: {date}")
+        logger.debug("Fetch status response", method=GET_FETCH_STATUS, response=response, date=date)
         if "records" in response and response["records"]:
             return response["records"][0][0].get("stringValue", "status_not_found")
         else:
@@ -352,7 +385,14 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
     retries = 0
     while retries < len(BACKOFF_TIMES):
         try:
-            logger.info(f"Fetching data with parameters: {params}")
+            logger.info(
+                "Fetching data from arXiv",
+                method=FETCH_DATA,
+                base_url=base_url,
+                params=params,
+                retries=retries,
+                backoff_times=backoff_times,
+            )
             response = requests.get(base_url, params=params, timeout=60)
             response.raise_for_status()
             full_xml_responses.append(response.text)
@@ -360,7 +400,9 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
             resumption_token_element = root.find(".//{http://www.openarchives.org/OAI/2.0/}resumptionToken")
 
             if resumption_token_element is not None and resumption_token_element.text:
-                logger.info(f"Found resumptionToken: {resumption_token_element.text}")
+                logger.debug(
+                    "Resumption token found", method=FETCH_DATA, resumption_token=resumption_token_element.text
+                )
                 time.sleep(5)
                 params = {"verb": "ListRecords", "resumptionToken": resumption_token_element.text}
                 retries += 1
@@ -368,25 +410,22 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
                 break
 
         except requests.exceptions.HTTPError as e:
-            logger.error(f"fetch_data - HTTP error occurred: {e}")
-            logger.error(f"fetch_data - response content: {response.text}")
-            print(e)
+            logger.exception("Error occurred while fetching data from arXiv", method=FETCH_DATA, error=str(e))
 
             if response.status_code == 503:
                 backoff_time = response.headers.get("Retry-After", backoff_times.pop(0) if backoff_times else None)
                 if backoff_time is None:
-                    logger.error("Exhausted all backoff times, stopping retries.")
+                    logger.exception("Exhausted all backoff times", method=FETCH_DATA)
                     break
-                logger.warn(f"Received 503 error, backing off for {backoff_time} seconds.")
-                print(f"Received 503 error, backing off for {backoff_time} seconds.")
+                logger.warning("Retrying after backoff time", method=FETCH_DATA, backoff_time=backoff_time)
                 time.sleep(int(backoff_time))
             else:
                 break
 
         except Exception as e:
-            logging.error(f"fetch_data - an unexpected error occurred: {e}")
+            logging.exception("Error occurred while fetching data from arXiv", method=FETCH_DATA, error=str(e))
             break
-    logger.info(f"Full XML responses: {full_xml_responses.count}")
+    logger.info("Fetched data from arXiv", method=FETCH_DATA, full_xml_responses=full_xml_responses)
     return full_xml_responses
 
 
@@ -409,12 +448,15 @@ def set_fetch_status(date: date, status: str, db: Database) -> bool:
         Exception: If database query fails.
     """
     if not date:
+        logger.error("Date is required", method=SET_FETCH_STATUS)
         raise ValueError("Date is required")
 
     if not status:
+        logger.error("Status is required", method=SET_FETCH_STATUS)
         raise ValueError("Status is required")
 
     if not db:
+        logger.error("Database is required", method=SET_FETCH_STATUS)
         raise ValueError("Database is required")
     try:
         sql_statement = "UPDATE research_fetch_status SET status = :status \
@@ -426,10 +468,10 @@ def set_fetch_status(date: date, status: str, db: Database) -> bool:
         ]
 
         db.execute_sql(sql_statement, parameters)
-        logger.info(f"Set fetch status response: {status} for date: {date}")
+        logger.debug("Set fetch status", method=SET_FETCH_STATUS, date=date, status=status)
         return True
     except Exception as e:
-        logger.error(f"set_fetch_status database query failed for {status} and {date}: {str(e)}")
+        logger.exception("Database query failed", method=SET_FETCH_STATUS, error=str(e))
         return False
 
 
@@ -448,21 +490,25 @@ def persist_to_s3(bucket_name: str, key: str, content: str) -> None:
         ValueError: If content is not provided.
     """
     if not bucket_name:
+        logger.error("Bucket name is required", method=PERSIST_TO_S3)
         raise ValueError("Bucket name is required")
 
     if not key:
+        logger.error("Key is required", method=PERSIST_TO_S3)
         raise ValueError("Key is required")
 
     if not content:
+        logger.error("Content is required", method=PERSIST_TO_S3)
         raise ValueError("Content is required")
 
     try:
         s3 = boto3.resource("s3")
-        logger.info(f"Persisting content to S3 bucket: {bucket_name} with key: {key}")
         s3.Bucket(bucket_name).put_object(Key=key, Body=content)
-        logger.info(f"Persisted content to S3 bucket: {bucket_name} with key: {key}")
+        logger.info("Persisting content to S3", method=PERSIST_TO_S3, bucket_name=bucket_name, key=key)
     except Exception as e:
-        logger.error(f"persist_to_s3 - failed to persist content to S3: {str(e)}")
+        logger.exception(
+            "Failed to persist content to S3", method=PERSIST_TO_S3, bucket_name=bucket_name, key=key, error=str(e)
+        )
         raise e
 
 
@@ -481,14 +527,15 @@ def notify_parser(lambda_arn: str, bucket_name: str, key: str) -> None:
         ValueError: If key is not provided.
     """
     if not lambda_arn:
+        logger.error("Lambda ARN is required", method=NOTIFY_PARSER)
         raise ValueError("Lambda ARN is required")
     if not bucket_name:
+        logger.error("Bucket name is required", method=NOTIFY_PARSER)
         raise ValueError("Bucket name is required")
 
     if not key:
+        logger.error("Key is required", method=NOTIFY_PARSER)
         raise ValueError("Key is required")
-
-    logger.info(f"Notifying parser Lambda function: {lambda_arn} that new data is available: {bucket_name}/{key}")
     try:
         client = boto3.client("lambda")
         payload = {BUCKET_NAME_STR: bucket_name, "key": key}
@@ -497,7 +544,20 @@ def notify_parser(lambda_arn: str, bucket_name: str, key: str) -> None:
             InvocationType="Event",
             Payload=json.dumps(payload),
         )
-        logger.info(f"Notified parser Lambda function: {lambda_arn} that new data is available")
+        logger.debug(
+            "Notified parser Lambda function",
+            method=NOTIFY_PARSER,
+            lambda_arn=lambda_arn,
+            bucket_name=bucket_name,
+            key=key,
+        )
     except Exception as e:
-        logger.error(f"notify_parser - failed to notify parser Lambda function: {str(e)}")
+        logger.exception(
+            "Failed to notify parser Lambda function",
+            method=NOTIFY_PARSER,
+            lambda_arn=lambda_arn,
+            bucket_name=bucket_name,
+            key=key,
+            error=str(e),
+        )
         raise e

@@ -1,4 +1,3 @@
 -r requirements.txt
 
-# Local specific dependencies
--e ../../shared/logging/structured_logger
+rich==13.7.0
