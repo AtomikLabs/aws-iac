@@ -14,12 +14,12 @@ The mission of AtomikLabs is to accelerate the pace of discovery and collaborati
 Planned Features
 -----------------
 
-- **Automated Podcast Generation**: AtomikLabs features a unique tool that converts the latest AI research papers into engaging, easily digestible podcasts, making complex information more accessible.
-- **Automated Newsletters**: Stay informed with our automated newsletters, which provide personalized summaries of significant developments in AI research.
-- **Research Repository**: Our platform will offer a comprehensive repository of AI research papers, allowing users to easily search and access the latest studies.
-- **Citation Tracker**: AtomikLabs will provide a citation tracker that allows users to track the impact of their research and monitor the latest citations.
-- **Research Synthesis Tools**: Our platform offers a suite of tools designed to help users synthesize and analyze AI research, empowering them with the ability to draw insights and make connections across various studies.
-- **News Services**: AtomikLabs will provide a news service that aggregates the latest AI news from across the web, allowing users to stay up-to-date on the latest developments in the field.
+- **Automated Podcast Generation**: A unique tool that converts the latest AI research papers into engaging, easily digestible podcasts, making complex information more accessible.
+- **Automated Newsletters**: Automated research newsletters by specific topic of interest.
+- **Research Repository**: A comprehensive repository of AI research papers, allowing users to easily search and access the latest studies.
+- **Citation Tracker**: A citation tracker that allows users to track the impact of their research and monitor the latest citations.
+- **Research Synthesis Tools**: A suite of tools designed to help users synthesize and analyze AI research, empowering them with the ability to draw insights and make connections across various studies.
+- **News Services**: A news service that aggregates the latest AI news from across the web, allowing users to stay up-to-date on the latest developments in the field.
 
 Target Audience
 ---------------
