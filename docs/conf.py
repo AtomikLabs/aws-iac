@@ -35,7 +35,7 @@ html_theme_options = {
     "sticky_navigation": False,
     "navigation_depth": 3,
     "includehidden": True,
-    "titles_only": False
+    "titles_only": False,
 }
 html_title = "My amazing documentation"
 html_logo = "path/to/logo.png"
