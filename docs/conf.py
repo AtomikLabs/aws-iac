@@ -14,7 +14,7 @@ release = "0.1.0"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["recommonmark", "sphinx_markdown_tables"]
+extensions = ["myst_parser", "sphinx_markdown_tables"]
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -41,4 +41,8 @@ html_title = "My amazing documentation"
 html_logo = "path/to/logo.png"
 html_favicon = "path/to/favicon.ico"
 
-source_suffix = [".rst", ".md"]
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+    ".txt": "markdown",
+}

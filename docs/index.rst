@@ -14,9 +14,6 @@ AtomikLabs is an open science platform designed to help researchers understand a
 
    overview
    architecture
-   getting_started
-   api_reference
-   contributing
 
 Indices and tables
 ==================
