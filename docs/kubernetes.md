@@ -10,5 +10,5 @@ Reference: https://docs.aws.amazon.com/eks/latest/userguide/setting-up.html
 
 [EKSCTL](https://eksctl.io/installation/)
 [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html?ref=devops-nirvana.com)
-- Kubectl
+[Kubectl](https://kubernetes.io/docs/tasks/tools/)
 
