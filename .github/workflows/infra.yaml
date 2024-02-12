@@ -47,6 +47,8 @@ jobs:
             echo "No matching environment for branch $BRANCH_NAME"
           fi
 
+          echo "::set-output name=env_file::${ENV_FILE_PATH}"
+
       - name: Echo environment file path
         run: |
           echo "Environment file path: ${{ env.env_file }}"
@@ -118,7 +120,7 @@ jobs:
         working-directory: infra/backend
 
   deploy-infra:
-    needs: terraform
+    needs: [setup-environment, terraform]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -141,5 +143,5 @@ jobs:
       - name: Terraform Plan
         run: |
           terraform plan \
-            -var-file="${{ env.env_file}}"
+            -var-file="${{ needs.setup-environment.outputs.env_file }}"
         working-directory: ./infra
