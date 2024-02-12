@@ -6,10 +6,14 @@ on:
       - main
       - stage
       - dev
+    paths:
+      - "infra/**"
   pull_request:
     branches:
       - dev
       - test-branch
+    paths:
+      - "infra/**"
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -132,11 +136,22 @@ jobs:
         run: terraform init
         working-directory: ./infra
 
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ./infra
+
       - name: Terraform Plan
         run: |
           ENV_FILE_PATH="${{ env.env_file }}"
-          # Remove the 'infra/' prefix from ENV_FILE_PATH since the working directory is already './infra'
           ADJUSTED_ENV_FILE_PATH="${ENV_FILE_PATH#infra/}"
           terraform plan \
+            -var-file="$ADJUSTED_ENV_FILE_PATH"
+        working-directory: ./infra
+
+      - name: Terraform Apply
+        run: |
+          ENV_FILE_PATH="${{ env.env_file }}"
+          ADJUSTED_ENV_FILE_PATH="${ENV_FILE_PATH#infra/}"
+          terraform apply -auto-approve \
             -var-file="$ADJUSTED_ENV_FILE_PATH"
         working-directory: ./infra
