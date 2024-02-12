@@ -134,6 +134,5 @@ jobs:
       - name: Terraform Plan
         run: |
           terraform plan \
-            -var="region=${{ secrets.AWS_REGION }}" \
             -var-file="${{ env.env-file}}"
         working-directory: ./infra

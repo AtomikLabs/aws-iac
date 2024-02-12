@@ -1,6 +1,6 @@
 resource "aws_security_group" "app_sg" {
-  name        = "app-sg-${var.environment}"
-  description = "Security group for application in ${var.environment} environment"
+  name        = "app-sg-${var.ENVIRONMENT_NAME}"
+  description = "Security group for application in ${var.ENVIRONMENT_NAME} environment"
   vpc_id      = aws_vpc.app_vpc.id
 
   ingress {
@@ -18,6 +18,6 @@ resource "aws_security_group" "app_sg" {
   }
 
   tags = {
-    Name = "app-sg-${var.environment}"
+    Name = "app-sg-${var.ENVIRONMENT_NAME}"
   }
 }
