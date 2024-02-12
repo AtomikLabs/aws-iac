@@ -134,6 +134,9 @@ jobs:
 
       - name: Terraform Plan
         run: |
+          ENV_FILE_PATH="${{ env.env_file }}"
+          # Remove the 'infra/' prefix from ENV_FILE_PATH since the working directory is already './infra'
+          ADJUSTED_ENV_FILE_PATH="${ENV_FILE_PATH#infra/}"
           terraform plan \
-            -var-file="${{ env.env_file}}"
+            -var-file="$ADJUSTED_ENV_FILE_PATH"
         working-directory: ./infra
