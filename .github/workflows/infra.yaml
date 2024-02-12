@@ -61,8 +61,6 @@ jobs:
         run: |
           jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env-file }}" >> $GITHUB_ENV
 
-    uses: ./.github/workflows/infra_config.yaml
-
   terraform:
     runs-on: ubuntu-latest
     steps:
