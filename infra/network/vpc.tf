@@ -8,10 +8,10 @@ resource "aws_vpc" "atomiklabs_vpc" {
 }
 
 resource "aws_subnet" "public_subnet" {
-  count = length(var.SUBNET_CIDRS.public)
+  count = length(var.SUBNET_CIDRS.PUBLIC)
 
   vpc_id            = aws_vpc.atomiklabs_vpc.id
-  cidr_block        = var.SUBNET_CIDRS.public[count.index]
+  cidr_block        = var.SUBNET_CIDRS.PUBLIC[count.index]
   availability_zone = element(var.AVAILABILITY_ZONES, count.index)
   map_public_ip_on_launch = true
   tags = {
