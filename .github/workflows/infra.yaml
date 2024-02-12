@@ -15,54 +15,6 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
-  setup-environment:
-    runs-on: ubuntu-latest
-    outputs:
-      env_file: ${{ steps.set-env.outputs.env_file }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Determine environment
-        id: set-env
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "Base branch of the PR: ${{ github.base_ref }}"
-            BRANCH_NAME="${{ github.base_ref }}"
-          else
-            echo "Push to branch: ${GITHUB_REF#refs/heads/}"
-            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          fi
-
-          if [[ $BRANCH_NAME == 'dev' ]]; then
-            echo "Development environment selected"
-            echo "env_file=infra/environments/env.dev.json" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'stage' ]]; then
-            echo "Staging environment selected"
-            echo "env_file=infra/environments/env.stage.json" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'main' ]]; then
-            echo "Production environment selected"
-            echo "env_file=infra/environments/env.prod.json" >> $GITHUB_ENV
-          else
-            echo "No matching environment for branch $BRANCH_NAME"
-          fi
-
-          echo "::set-output name=env_file::${ENV_FILE_PATH}"
-
-      - name: Echo environment file path
-        run: |
-          echo "Environment file path: ${{ env.env_file }}"
-          if [[ -z "${{ env.env_file }}" ]]; then
-            echo "Environment file path is empty"
-          else
-            echo "Environment file path is set"
-          fi
-
-      - name: Set environment variables from file
-        if: env.env_file != ''
-        run: |
-          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env_file }}" >> $GITHUB_ENV
-
   terraform:
     runs-on: ubuntu-latest
     steps:
@@ -120,7 +72,7 @@ jobs:
         working-directory: infra/backend
 
   deploy-infra:
-    needs: [setup-environment, terraform]
+    needs: terraform
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -133,6 +85,46 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Determine environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "Base branch of the PR: ${{ github.base_ref }}"
+            BRANCH_NAME="${{ github.base_ref }}"
+          else
+            echo "Push to branch: ${GITHUB_REF#refs/heads/}"
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          fi
+
+          if [[ $BRANCH_NAME == 'dev' ]]; then
+            echo "Development environment selected"
+            echo "env_file=infra/environments/env.dev.json" >> $GITHUB_ENV
+          elif [[ $BRANCH_NAME == 'stage' ]]; then
+            echo "Staging environment selected"
+            echo "env_file=infra/environments/env.stage.json" >> $GITHUB_ENV
+          elif [[ $BRANCH_NAME == 'main' ]]; then
+            echo "Production environment selected"
+            echo "env_file=infra/environments/env.prod.json" >> $GITHUB_ENV
+          else
+            echo "No matching environment for branch $BRANCH_NAME"
+          fi
+
+          echo "::set-output name=env_file::${ENV_FILE_PATH}"
+
+      - name: Echo environment file path
+        run: |
+          echo "Environment file path: ${{ env.env_file }}"
+          if [[ -z "${{ env.env_file }}" ]]; then
+            echo "Environment file path is empty"
+          else
+            echo "Environment file path is set"
+          fi
+
+      - name: Set environment variables from file
+        if: env.env_file != ''
+        run: |
+          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env_file }}" >> $GITHUB_ENV
+
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
 
@@ -143,5 +135,5 @@ jobs:
       - name: Terraform Plan
         run: |
           terraform plan \
-            -var-file="${{ needs.setup-environment.outputs.env_file }}"
+            -var-file="${{ env.env_file}}"
         working-directory: ./infra
