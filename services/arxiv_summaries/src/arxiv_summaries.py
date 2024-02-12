@@ -1010,7 +1010,7 @@ def config_for_test():
     global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET, OPENAI_KEY
     AURORA_CLUSTER_ARN = "arn:aws:rds:us-east-1:758145997264:cluster:atomiklabs-dev-aurora-cluster"
     BASE_URL = "http://export.arxiv.org/oai2"
-    BUCKET_NAME = "atomiklabs-data-bucket-dev"
+    BUCKET_NAME = "atomiklabs-infra-config-bucket"
     DB_CREDENTIALS_SECRET_ARN = "arn:aws:secretsmanager:us-east-1:758145997264:secret:dev/database-credentials-TuF8OS"
     DATABASE = "atomiklabs_dev_database"
     SUMMARY_SET = "cs"
@@ -1052,9 +1052,13 @@ def run_aws_test():
     print(f"Today: {today}")
     log_initial_info({"test": "test"})
     insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-    earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+    # earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+    earliest = datetime.today().date() - timedelta(days=5)
     print(f"Earliest: {earliest}")
-    date_list = generate_date_list(earliest, today)
+    # date_list = generate_date_list(earliest, today)
+    date_list = [datetime.today().date()]
+    for i in range(1, 4):
+        date_list.append(datetime.today().date() - timedelta(days=i))
     print(f"Date List: {date_list}")
     xml_data_list = fetch_data(BASE_URL, earliest, SUMMARY_SET)
 

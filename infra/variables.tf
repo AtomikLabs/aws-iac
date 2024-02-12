@@ -1,6 +1,6 @@
 variable "REGION" {
-    type      = string
-    description = "AWS region"
+  type        = string
+  description = "AWS region"
 }
 variable "ENVIRONMENT_NAME" {
   type        = string
@@ -13,8 +13,8 @@ variable "VPC_CIDR" {
 }
 
 variable "SUBNET_CIDRS" {
-    type         = map(list(string))
-    description  = "Map of subnet CIDRs"
+  type        = map(list(string))
+  description = "Map of subnet CIDRs"
 }
 
 variable "AVAILABILITY_ZONES" {
