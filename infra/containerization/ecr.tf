@@ -1,32 +1,61 @@
 resource "aws_ecr_repository" "repo" {
-  name                 = "${var.ENVIRONMENT_NAME}-repo"
+  name                 = "${var.ENVIRONMENT_NAME}-repository"
   image_tag_mutability = "IMMUTABLE"
+
   image_scanning_configuration {
     scan_on_push = true
   }
-  tags = {
-    Name = "${var.ENVIRONMENT_NAME}-repo"
-  }
 }
 
-resource "aws_ecr_lifecycle_policy" "repo_lifecycle_policy" {
-  repository = aws_ecr_repository.repo.name
+resource "aws_iam_policy" "ecr_policy" {
+  name        = "${var.ENVIRONMENT_NAME}-ECRPolicy"
+  path        = "/"
+  description = "ECR policy for pushing and pulling images"
 
   policy = jsonencode({
-    rules = [
+    Version = "2012-10-17"
+    Statement = [
       {
-        rulePriority = 1,
-        description = "Expire images older than 14 days",
-        selection = {
-          tagStatus = "untagged",
-          countType = "sinceImagePushed",
-          countUnit = "days",
-          countNumber = 14
-        },
-        action = {
-          type = "expire"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
+        ]
+        Resource = "${aws_ecr_repository.repo.arn}"
+      },
+      {
+        Effect = "Allow"
+        Action = "ecr:DescribeRepositories"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role" "ecr_role" {
+  name = "${var.ENVIRONMENT_NAME}-ECRRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
         }
       }
     ]
   })
+}
+
+resource "aws_iam_policy_attachment" "ecr_policy_attach" {
+  name       = "${var.ENVIRONMENT_NAME}-ECRPolicyAttachment"
+  roles      = [aws_iam_role.ecr_role.name]
+  policy_arn = aws_iam_policy.ecr_policy.arn
 }
