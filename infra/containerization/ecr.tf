@@ -15,14 +15,14 @@ resource "aws_ecr_lifecycle_policy" "repo_lifecycle_policy" {
   policy = jsonencode({
     rules = [
       {
-        rulePriority = 1
-        description  = "Expire images older than 14 days"
+        rulePriority = 1,
+        description = "Expire images older than 14 days",
         selection = {
-          tagStatus   = "untagged"
-          countType   = "sinceImagePushed"
-          countUnit   = "days"
+          tagStatus = "untagged",
+          countType = "sinceImagePushed",
+          countUnit = "days",
           countNumber = 14
-        }
+        },
         action = {
           type = "expire"
         }
