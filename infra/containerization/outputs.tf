@@ -14,7 +14,7 @@ output "cluster_name" {
 }
 
 output "node_group_ids" {
-  value = aws_eks_node_group.general_node_group.*.id
+  value       = aws_eks_node_group.general_node_group.*.id
   description = "The IDs of the EKS node group(s)."
 }
 
@@ -49,7 +49,7 @@ output "fargate_profile_subnet_ids" {
 }
 
 output "fargate_profile_selector" {
-  value = aws_eks_fargate_profile.app_fargate_profile.selector
+  value       = aws_eks_fargate_profile.app_fargate_profile.selector
   description = "The selector to match for pods to use the Fargate profile."
 }
 
