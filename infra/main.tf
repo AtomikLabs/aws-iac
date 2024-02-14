@@ -83,13 +83,13 @@ module "eks" {
   eks_managed_node_groups = {
     core_node_group = {
       name        = "core-node-group"
-      description = "EKS managed node group example launch template"
+      description = "EKS managed node group launch template"
 
       min_size     = 1
       max_size     = 2
       desired_size = 1
 
-      instance_types = ["t2.small"]
+      instance_types = ["t3.medium"]
 
       ebs_optimized = true
       block_device_mappings = {
@@ -112,13 +112,13 @@ module "eks" {
 
     kafka_node_group = {
       name        = "kafka-node-group"
-      description = "EKS managed node group example launch template"
+      description = "EKS managed node group launch template"
 
       min_size     = 1
       max_size     = 2
       desired_size = 1
 
-      instance_types = ["t2.small"]
+      instance_types = ["t3.medium"]
 
       ebs_optimized = true
       # This is the root filesystem Not used by the brokers
