@@ -95,7 +95,7 @@ jobs:
             terraform apply -target="$target" -auto-approve
           done
           echo "Applying remaining resources..."
-          terraform apply -var-file="${{ env.ENV_FILE }}" -auto-approve
+          terraform apply -var-file="../${{ env.ENV_FILE }}" -auto-approve
         working-directory: ./infra
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
