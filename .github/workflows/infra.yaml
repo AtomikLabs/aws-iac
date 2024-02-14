@@ -19,7 +19,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
-  terraform:
+  terraform-deployment:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -58,36 +58,6 @@ jobs:
           else
             echo "DynamoDB table exists."
           fi
-
-      - name: Initialize Terraform
-        run: terraform init
-        working-directory: infra/backend
-
-      - name: Terraform Plan
-        run: terraform plan
-        working-directory: infra/backend
-
-      - name: Terraform Validate
-        run: terraform validate
-        working-directory: infra/backend
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        working-directory: infra/backend
-
-  terraform-deployment:
-    runs-on: ubuntu-latest
-    needs: terraform
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
