@@ -97,7 +97,7 @@ jobs:
       - name: Load Environment Variables
         id: load-env-vars
         run: |
-          env_file="infra/environments/${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}.json"
+          env_file="infra/environments/$env.{{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}.json"
           echo "ENV_FILE=$env_file" >> $GITHUB_ENV
           echo "::set-output name=env_file::$env_file"
 
