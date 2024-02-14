@@ -89,7 +89,7 @@ module "eks" {
       max_size     = 2
       desired_size = 1
 
-      instance_types = ["t2.small"]
+      instance_types = ["t3.small"]
 
       ebs_optimized = true
       block_device_mappings = {
@@ -118,7 +118,7 @@ module "eks" {
       max_size     = 2
       desired_size = 1
 
-      instance_types = ["t2.small"]
+      instance_types = ["t3.small"]
 
       ebs_optimized = true
       # This is the root filesystem Not used by the brokers
