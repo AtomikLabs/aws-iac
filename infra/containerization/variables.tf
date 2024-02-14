@@ -1,6 +1,6 @@
 variable "REGION" {
-    type      = string
-    description = "AWS region"
+  type        = string
+  description = "AWS region"
 }
 
 variable "ENVIRONMENT_NAME" {

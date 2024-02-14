@@ -73,8 +73,8 @@ resource "aws_iam_policy" "cluster_autoscaler" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect    = "Allow",
-        Action    = [
+        Effect = "Allow",
+        Action = [
           "autoscaling:DescribeAutoScalingGroups",
           "autoscaling:DescribeAutoScalingInstances",
           "autoscaling:DescribeLaunchConfigurations",
@@ -89,7 +89,7 @@ resource "aws_iam_policy" "cluster_autoscaler" {
           "ec2:RequestSpotFleet",
           "ec2:RequestSpotInstances",
         ],
-        Resource  = "*",
+        Resource = "*",
       },
     ],
   })
@@ -104,13 +104,13 @@ resource "aws_iam_role" "fargate_pod_execution_role" {
   name = "${var.ENVIRONMENT_NAME}-fargate-pod-execution-role"
 
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [{
-      Effect    = "Allow",
+      Effect = "Allow",
       Principal = {
         Service = "eks-fargate-pods.amazonaws.com"
       },
-      Action    = "sts:AssumeRole"
+      Action = "sts:AssumeRole"
     }]
   })
 
