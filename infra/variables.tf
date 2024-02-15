@@ -1,23 +1,17 @@
-variable "REGION" {
+variable "region" {
+  description = "AWS region to deploy the infrastructure"
   type        = string
-  description = "AWS region"
-}
-variable "ENVIRONMENT_NAME" {
-  type        = string
-  description = "Name of the deployment environment"
+  default     = "us-east-1"
 }
 
-variable "VPC_CIDR" {
+variable "name" {
+  description = "Base name of the application"
   type        = string
-  description = "CIDR block for the VPC"
+  default     = "atomiklabs"
 }
 
-variable "SUBNET_CIDRS" {
-  type        = map(list(string))
-  description = "Map of subnet CIDRs"
-}
-
-variable "AVAILABILITY_ZONES" {
-  type        = list(string)
-  description = "List of availability zones in which to create subnets"
+variable "environment" {
+  description = "Environment"
+  type        = string
+  default     = "dev"
 }

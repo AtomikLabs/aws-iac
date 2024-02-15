@@ -19,7 +19,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
-  terraform:
+  terraform-deployment:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -59,99 +59,46 @@ jobs:
             echo "DynamoDB table exists."
           fi
 
-      - name: Initialize Terraform
-        run: terraform init
-        working-directory: infra/backend
-
-      - name: Terraform Plan
-        run: terraform plan
-        working-directory: infra/backend
-
-      - name: Terraform Validate
-        run: terraform validate
-        working-directory: infra/backend
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        working-directory: infra/backend
-
-  deploy-infra:
-    needs: terraform
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Determine environment
-        id: set-env
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "Base branch of the PR: ${{ github.base_ref }}"
-            BRANCH_NAME="${{ github.base_ref }}"
-          else
-            echo "Push to branch: ${GITHUB_REF#refs/heads/}"
-            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          fi
-
-          if [[ $BRANCH_NAME == 'dev' ]]; then
-            echo "Development environment selected"
-            echo "env_file=infra/environments/env.dev.json" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'stage' ]]; then
-            echo "Staging environment selected"
-            echo "env_file=infra/environments/env.stage.json" >> $GITHUB_ENV
-          elif [[ $BRANCH_NAME == 'main' ]]; then
-            echo "Production environment selected"
-            echo "env_file=infra/environments/env.prod.json" >> $GITHUB_ENV
-          else
-            echo "No matching environment for branch $BRANCH_NAME"
-          fi
-
-          echo "::set-output name=env_file::${ENV_FILE_PATH}"
-
-      - name: Echo environment file path
-        run: |
-          echo "Environment file path: ${{ env.env_file }}"
-          if [[ -z "${{ env.env_file }}" ]]; then
-            echo "Environment file path is empty"
-          else
-            echo "Environment file path is set"
-          fi
-
-      - name: Set environment variables from file
-        if: env.env_file != ''
-        run: |
-          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' "${{ env.env_file }}" >> $GITHUB_ENV
-
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
 
-      - name: Terraform Init
-        run: terraform init
+      - name: Load Environment Variables
+        id: load-env-vars
+        run: |
+          env_file="infra/environments/env.${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}.json"
+          echo "ENV_FILE=$env_file" >> $GITHUB_ENV
+          echo "::set-output name=env_file::$env_file"
+          echo "REGION=${{ secrets.AWS_REGION }}"
+          echo "NAME=${{ env.name }}"
+
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Set Terraform Variables from Environment File
+        run: |
+          jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' ${{ env.ENV_FILE }} > env_vars
+          while IFS= read -r line; do
+            echo "$line" >> $GITHUB_ENV
+          done < env_vars
+
+      - name: Initialize Terraform
+        run: terraform init -upgrade
         working-directory: ./infra
 
-      - name: Terraform Validate
+      - name: Validate Terraform
         run: terraform validate
         working-directory: ./infra
 
-      - name: Terraform Plan
-        run: |
-          ENV_FILE_PATH="${{ env.env_file }}"
-          ADJUSTED_ENV_FILE_PATH="${ENV_FILE_PATH#infra/}"
-          terraform plan \
-            -var-file="$ADJUSTED_ENV_FILE_PATH"
+      - name: Plan Terraform
+        id: plan
+        run: terraform plan
         working-directory: ./infra
 
-      - name: Terraform Apply
-        run: |
-          ENV_FILE_PATH="${{ env.env_file }}"
-          ADJUSTED_ENV_FILE_PATH="${ENV_FILE_PATH#infra/}"
-          terraform apply -auto-approve \
-            -var-file="$ADJUSTED_ENV_FILE_PATH"
+      - name: Apply Terraform
+        run: terraform apply -var-file="../${{ env.ENV_FILE }}" -auto-approve
         working-directory: ./infra
+        env:
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_region: ${{ env.region }}

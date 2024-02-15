@@ -8,21 +8,23 @@ terraform {
   }
 }
 
-module "network" {
-  source             = "./network"
-  REGION             = var.REGION
-  ENVIRONMENT_NAME   = var.ENVIRONMENT_NAME
-  VPC_CIDR           = var.VPC_CIDR
-  SUBNET_CIDRS       = var.SUBNET_CIDRS
-  AVAILABILITY_ZONES = var.AVAILABILITY_ZONES
-}
+data "aws_availability_zones" "available" {}
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
 
-module "containerization" {
-  source             = "./containerization"
-  REGION             = var.REGION
-  ENVIRONMENT_NAME   = var.ENVIRONMENT_NAME
-  VPC_ID             = module.network.VPC_ID
-  PUBLIC_SUBNET_IDS  = module.network.PUBLIC_SUBNET_IDS
-  PRIVATE_SUBNET_IDS = module.network.PRIVATE_SUBNET_IDS
-  SECURITY_GROUP_ID  = module.network.SECURITY_GROUP_ID
+locals {
+  name   = var.name
+  region = var.region
+  environment = var.environment
+
+  account_id = data.aws_caller_identity.current.account_id
+  partition  = data.aws_partition.current.partition
+
+  tags = {
+    Blueprint  = local.name
+    GithubRepo = "github.com/AtomikLabs/atomiklabs"
+    Environment = local.environment
+    Region     = local.region
+    Application = local.name
+  }
 }
