@@ -1,14 +1,14 @@
-resource "aws_s3_bucket" "data" {
+resource "aws_s3_bucket" "data_bucket" {
   bucket = "${local.environment}-data_bucket"
 }
 
 resource "aws_s3_bucket_acl" "data_acl" {
-  bucket = aws_s3_bucket.data.id
+  bucket = aws_s3_bucket.data_bucket.id
   acl    = "private"
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "data_lifecycle" {
-  bucket = aws_s3_bucket.data.id
+  bucket = aws_s3_bucket.data_bucket.id
 
   rule {
     id     = "expire-old-metadata"
@@ -25,7 +25,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "data_lifecycle" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "data_encryption" {
-  bucket = aws_s3_bucket.data.id
+  bucket = aws_s3_bucket.data_bucket.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -50,7 +50,7 @@ resource "aws_glue_catalog_table" "data_ingestion_metadata_table" {
   }
 
   storage_descriptor {
-    location      = "s3://${aws_s3_bucket.data.id}/data_ingestion_metadata/"
+    location      = "s3://${aws_s3_bucket.data_bucket.id}/data_ingestion_metadata/"
     input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
     ser_de_info {

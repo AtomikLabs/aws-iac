@@ -39,9 +39,17 @@ output "aws_iam_policy_attachment_ecr_policy_attach_policy_arn" {
 }
 
 output "bucket_name" {
-  value = aws_s3_bucket.data.bucket
+  value = aws_s3_bucket.data_bucket.bucket
 }
 
 output "bucket_arn" {
-  value = aws_s3_bucket.data.arn
+  value = aws_s3_bucket.data_bucket.arn
+}
+
+output "glue_catalog_database_name" {
+  value = aws_glue_catalog_database.data_catalog_database.name
+}
+
+output "glue_data_ingestion_metadata_catalog_table_name" {
+  value = aws_glue_catalog_table.data_ingestion_metadata_table.name
 }
