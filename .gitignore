@@ -171,3 +171,7 @@ show_notes/
 
 **/records.json
 
+# Terraform
+
+**/.terraform/
+.terraform.lock.hcl
