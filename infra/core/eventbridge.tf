@@ -1,13 +1,12 @@
-
 resource "aws_cloudwatch_event_rule" "fetch_daily_summaries" {
-  name                = "${local.environment}-FetchDailySummaries"
-  description         = "Rule to trigger the FetchDailySummaries lambda"
+  name                = "${local.environment}-fetch_daily_summaries"
+  description         = "Rule to trigger the fetch_daily_summaries lambda"
   schedule_expression = "cron(0 3 * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "fetch_daily_summaries_target" {
   rule      = aws_cloudwatch_event_rule.fetch_daily_summaries.name
-  target_id = "FetchDailySummaries"
+  target_id = "fetch_daily_summaries"
   arn       = aws_lambda_function.fetch_daily_summaries.arn
 }
 
@@ -48,9 +47,4 @@ resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
   name       = "${local.environment}-EventBridgePolicyAttachment"
   roles      = [aws_iam_role.eventbridge_role.name]
   policy_arn = aws_iam_policy.eventbridge_policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "eventbridge_lambda_policy_attach" {
-  policy_arn = aws_iam_policy.eventbridge_policy.arn
-  role       = aws_iam_role.fetch_daily_summaries_role.name
 }
