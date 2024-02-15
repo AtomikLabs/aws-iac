@@ -17,8 +17,9 @@ resource "aws_iam_role" "fetch_daily_summaries_role" {
 
 resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_policy_attach" {
   role       = aws_iam_role.fetch_daily_summaries_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/fetch_daily_summaries_role"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
 
 resource "aws_lambda_function" "fetch_daily_summaries" {
   function_name = "${local.environment}-FetchDailySummaries"
