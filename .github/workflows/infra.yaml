@@ -83,6 +83,19 @@ jobs:
             echo "$line" >> $GITHUB_ENV
           done < env_vars
 
+      - name: Install kubectl and AWS CLI
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          mv ./kubectl /usr/local/bin
+          sudo apt-get update
+          sudo apt-get install awscli -y
+
+      - name: Configure Kubernetes contexts
+        run: |
+          aws eks --region ${{ secrets.AWS_REGION }} update-kubeconfig --name ${{ env.name}}
+          kubectl config use-context atomiklabs-eks-cluster
+
       - name: Initialize Terraform
         run: terraform init -upgrade
         working-directory: ./infra
