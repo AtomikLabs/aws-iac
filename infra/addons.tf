@@ -204,8 +204,14 @@ module "eks_data_addons" {
       node_group_type  = "core"
     })]
   }
+  depends_on = [
+      time_sleep.wait_for_cluster,
+    ]
 }
 
+resource "time_sleep" "wait_for_cluster" {
+  create_duration = "10m"
+}
 #---------------------------------------------------------------
 # Install Kafka cluster
 # NOTE: Kafka Zookeeper and Broker pod creation may to 2 to 3 mins
