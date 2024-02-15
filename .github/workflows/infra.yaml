@@ -58,7 +58,7 @@ jobs:
           else
             echo "DynamoDB table exists."
           fi
-          
+
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -93,11 +93,11 @@ jobs:
 
       - name: Plan Terraform
         id: plan
-        run: terraform plan -out=tfplan -input=false
+        run: terraform plan
         working-directory: ./infra
 
       - name: Apply Terraform
-        run: terraform apply -var-file="../${{ env.ENV_FILE }}" -auto-approve tfplan
+        run: terraform apply -var-file="../${{ env.ENV_FILE }}" -auto-approve
         working-directory: ./infra
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
