@@ -39,11 +39,11 @@ output "aws_iam_policy_attachment_ecr_policy_attach_policy_arn" {
 }
 
 output "bucket_name" {
-  value = aws_s3_bucket.data_bucket.bucket
+  value = aws_s3_bucket.atomiklabs_data_bucket.bucket
 }
 
 output "bucket_arn" {
-  value = aws_s3_bucket.data_bucket.arn
+  value = aws_s3_bucket.atomiklabs_data_bucket.arn
 }
 
 output "glue_catalog_database_name" {
