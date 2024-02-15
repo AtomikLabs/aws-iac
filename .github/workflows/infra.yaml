@@ -100,20 +100,20 @@ jobs:
 
       - name: Initialize Terraform
         run: terraform init -upgrade
-        working-directory: ./infra
+        working-directory: ./infra/core
 
       - name: Validate Terraform
         run: terraform validate
-        working-directory: ./infra
+        working-directory: ./infra/core
 
       - name: Plan Terraform
         id: plan
         run: terraform plan
-        working-directory: ./infra
+        working-directory: ./infra/core
 
       - name: Apply Terraform
         run: terraform apply -var-file="../${{ env.ENV_FILE }}" -auto-approve
-        working-directory: ./infra
+        working-directory: ./infra/core
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
           TF_VAR_region: ${{ env.region }}
