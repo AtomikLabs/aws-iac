@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "repo" {
-  name                 = "${var.ENVIRONMENT_NAME}-repository"
+  name                 = "${local.environment}-repository"
   image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
@@ -8,7 +8,7 @@ resource "aws_ecr_repository" "repo" {
 }
 
 resource "aws_iam_policy" "ecr_policy" {
-  name        = "${var.ENVIRONMENT_NAME}-ECRPolicy"
+  name        = "${local.environment}-ECRPolicy"
   path        = "/"
   description = "ECR policy for pushing and pulling images"
 
@@ -38,7 +38,7 @@ resource "aws_iam_policy" "ecr_policy" {
 }
 
 resource "aws_iam_role" "ecr_role" {
-  name = "${var.ENVIRONMENT_NAME}-ECRRole"
+  name = "${local.environment}-ECRRole"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -55,7 +55,7 @@ resource "aws_iam_role" "ecr_role" {
 }
 
 resource "aws_iam_policy_attachment" "ecr_policy_attach" {
-  name       = "${var.ENVIRONMENT_NAME}-ECRPolicyAttachment"
+  name       = "${local.environment}-ECRPolicyAttachment"
   roles      = [aws_iam_role.ecr_role.name]
   policy_arn = aws_iam_policy.ecr_policy.arn
 }
