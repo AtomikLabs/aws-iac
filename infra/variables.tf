@@ -15,3 +15,9 @@ variable "environment" {
   type        = string
   default     = "dev"
 }
+
+variable "iam_user_name" {
+  description = "IAM user name"
+  type        = string
+  default     = "atomiklabs-dev-ci-cd"
+}
