@@ -16,6 +16,7 @@ locals {
   name   = var.name
   region = var.region
   environment = var.environment
+  iam_user_name = var.iam_user_name
 
   account_id = data.aws_caller_identity.current.account_id
   partition  = data.aws_partition.current.partition

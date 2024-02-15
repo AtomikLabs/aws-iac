@@ -59,3 +59,8 @@ resource "aws_iam_policy_attachment" "ecr_policy_attach" {
   roles      = [aws_iam_role.ecr_role.name]
   policy_arn = aws_iam_policy.ecr_policy.arn
 }
+
+resource "aws_iam_user_policy_attachment" "ecr_user_policy_attach" {
+  user       = local.iam_user_name
+  policy_arn = aws_iam_policy.ecr_policy.arn
+}
