@@ -37,3 +37,11 @@ output "aws_iam_policy_attachment_ecr_policy_attach_policy_arn" {
   value       = aws_iam_policy_attachment.ecr_policy_attach.policy_arn
   description = "The Amazon Resource Name (ARN) that identifies the policy."
 }
+
+output "bucket_name" {
+  value = aws_s3_bucket.data.bucket
+}
+
+output "bucket_arn" {
+  value = aws_s3_bucket.data.arn
+}
