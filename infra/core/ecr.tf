@@ -1,6 +1,6 @@
 resource "aws_ecr_repository" "repo" {
   name                 = "${local.environment}-repository"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -29,8 +29,8 @@ resource "aws_iam_policy" "ecr_policy" {
         Resource = "${aws_ecr_repository.repo.arn}"
       },
       {
-        Effect = "Allow"
-        Action = "ecr:DescribeRepositories"
+        Effect   = "Allow"
+        Action   = "ecr:DescribeRepositories"
         Resource = "*"
       }
     ]

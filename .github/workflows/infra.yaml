@@ -19,7 +19,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
-  terraform-deployment:
+  core_infra:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -28,7 +28,7 @@ jobs:
       - name: Load Environment Variables
         id: load-env-vars
         run: |
-          env_file="infra/environments/env.${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}.json"
+          env_file="infra/core/environments/env.${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}.json"
           echo "ENV_FILE=$env_file" >> $GITHUB_ENV
           echo "::set-output name=env_file::$env_file"
           iam_user_name=$(jq -r '.iam_user_name' $env_file)
@@ -100,20 +100,20 @@ jobs:
 
       - name: Initialize Terraform
         run: terraform init -upgrade
-        working-directory: ./infra
+        working-directory: ./infra/core
 
       - name: Validate Terraform
         run: terraform validate
-        working-directory: ./infra
+        working-directory: ./infra/core
 
       - name: Plan Terraform
         id: plan
         run: terraform plan
-        working-directory: ./infra
+        working-directory: ./infra/core
 
       - name: Apply Terraform
-        run: terraform apply -var-file="../${{ env.ENV_FILE }}" -auto-approve
-        working-directory: ./infra
+        run: terraform apply -var-file="../../${{ env.ENV_FILE }}" -auto-approve
+        working-directory: ./infra/core
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
           TF_VAR_region: ${{ env.region }}
