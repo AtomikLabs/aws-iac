@@ -19,7 +19,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
-  terraform-deployment:
+  core_infra:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -112,7 +112,7 @@ jobs:
         working-directory: ./infra/core
 
       - name: Apply Terraform
-        run: terraform apply -var-file="../${{ env.ENV_FILE }}" -auto-approve
+        run: terraform apply -var-file="../../${{ env.ENV_FILE }}" -auto-approve
         working-directory: ./infra/core
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
