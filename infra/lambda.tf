@@ -22,9 +22,9 @@ resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_policy_a
 
 
 resource "aws_lambda_function" "fetch_daily_summaries" {
-  function_name = "${local.environment}-FetchDailySummaries"
+  function_name = "${local.environment}-fetch_daily_summaries"
   package_type  = "Image"
-  image_uri     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${local.region}.amazonaws.com/${local.environment}-fetch-daily-summaries:${local.fetch_daily_summaries_image_tag}"
+  image_uri     = "${aws_ecr_repository.repo.repository_url}:fetch_daily_summaries-latest"
   role          = aws_iam_role.fetch_daily_summaries_role.arn
   timeout       = 900
   memory_size   = 128
