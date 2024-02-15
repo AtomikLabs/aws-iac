@@ -58,7 +58,7 @@ jobs:
           else
             echo "DynamoDB table exists."
           fi
-
+          
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
