@@ -53,3 +53,7 @@ output "glue_catalog_database_name" {
 output "glue_data_ingestion_metadata_catalog_table_name" {
   value = aws_glue_catalog_table.data_ingestion_metadata_table.name
 }
+
+output "glue_data_ingestion_metadata_catalog_table_location" {
+  value = aws_glue_catalog_table.data_ingestion_metadata_table.storage_descriptor.0.location
+}
