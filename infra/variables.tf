@@ -21,3 +21,9 @@ variable "iam_user_name" {
   type        = string
   default     = "atomiklabs-dev-ci-cd"
 }
+
+variable "fetch_daily_summaries_image_tag" {
+  description = "Fetch daily summaries image tag"
+  type        = string
+  default     = "latest"
+}

@@ -29,8 +29,8 @@ resource "aws_iam_policy" "ecr_policy" {
         Resource = "${aws_ecr_repository.repo.arn}"
       },
       {
-        Effect = "Allow"
-        Action = "ecr:DescribeRepositories"
+        Effect   = "Allow"
+        Action   = "ecr:DescribeRepositories"
         Resource = "*"
       }
     ]
