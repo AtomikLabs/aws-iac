@@ -5,12 +5,14 @@ import logging
 import os
 import time
 from datetime import date, datetime, timedelta
-from typing import List
+import uuid
 
 import boto3
 import defusedxml.ElementTree as ET
 import requests
 import structlog
+
+from src.data_ingestion_metadata import DataIngestionMetadata
 
 structlog.configure(
     [
@@ -25,98 +27,28 @@ structlog.configure(
 
 logger = structlog.get_logger()
 BACKOFF_TIMES = [30, 120]
+DAY_SPAN = 5
+S3_STORAGE_PREFIX = "data-ingestion/raw/fetch-daily-summaries/"
 
 # Environment variables
 APP_NAME = "app_name"
 BASE_URL_STR = "base_url"
-ENVIRONMENT = "environment"
+ENVIRONMENT_NAME = "environment"
 GLUE_DATABASE_NAME = "glue_database_name"
 GLUE_TABLE_NAME = "glue_table_name"
 S3_BUCKET_NAME = "s3_bucket_name"
+S3_STORAGE_KEY_PREFIX_NAME = "s3_storage_prefix"
 SUMMARY_SET_STR = "summary_set"
 
 # Logging constants
-CALCULATE_FROM_DATE = "fetch_daily_summaries.calculate_from_date"
 FETCH_DATA = "fetch_daily_summaries.fetch_data"
 GET_CONFIG = "fetch_daily_summaries.get_config"
-GET_EARLIEST_UNFETCHED_DATE = "fetch_daily_summaries.get_earliest_unfetched_date"
-GET_FETCH_STATUS = "fetch_daily_summaries.get_fetch_status"
-GET_METADATA_SCHEMA = "fetch_daily_summaries.get_metadata_schema"
-INSERT_FETCH_STATUS = "fetch_daily_summaries.insert_fetch_status"
+GET_EARLIEST_DATE = "fetch_daily_summaries.get_earliest_date"
+GET_STORAGE_KEY = "fetch_daily_summaries.get_storage_key"
 LAMBDA_HANDLER = "fetch_daily_summaries.lambda_handler"
 LAMBDA_NAME = "fetch_daily_summaries"
 LOG_INITIAL_INFO = "fetch_daily_summaries.log_initial_info"
-NOTIFY_PARSER = "fetch_daily_summaries.notify_parser"
 PERSIST_TO_S3 = "fetch_daily_summaries.persist_to_s3"
-SET_FETCH_STATUS = "fetch_daily_summaries.set_fetch_status"
-
-
-class Database:
-    def __init__(self, aurora_cluster_arn, db_credentials_secret_arn, database_name):
-        """
-        Initialize a Database object.
-
-        Args:
-            aurora_cluster_arn (str): The ARN of the Aurora cluster.
-            db_credentials_secret_arn (str): The ARN of the secret containing the database credentials.
-            database_name (str): The name of the database.
-
-        Returns:
-            None
-
-        Raises:
-            ValueError: If aurora_cluster_arn is None or an empty string.
-            ValueError: If db_credentials_secret_arn is None or an empty string.
-            ValueError: If database_name is None or an empty string.
-        """
-        if not aurora_cluster_arn:
-            raise ValueError("aurora_cluster_arn must be a non-empty string")
-        if not db_credentials_secret_arn:
-            raise ValueError("db_credentials_secret_arn must be a non-empty string")
-        if not database_name:
-            raise ValueError("database_name must be a non-empty string")
-        self.aurora_cluster_arn = aurora_cluster_arn
-        self.db_credentials_secret_arn = db_credentials_secret_arn
-        self.database_name = database_name
-
-    def execute_sql(self, sql_statement: str, parameters: List[dict]) -> dict:
-        """
-        Executes the given SQL statement using AWS RDSDataService.
-
-        Args:
-            sql_statement (str): SQL statement to execute.
-            parameters (List[dict]): List of parameters.
-
-        Returns:
-            dict: Response from RDSDataService.
-
-        Raises:
-            ValueError: If SQL statement is not provided.
-            ValueError: If parameters are not provided.
-        """
-        if not sql_statement:
-            raise ValueError("SQL statement is required")
-
-        if not parameters:
-            raise ValueError("Parameters are required")
-
-        if not isinstance(parameters, list):
-            raise ValueError("Parameters must be a list")
-
-        client = boto3.client("rds-data")
-
-        try:
-            response = client.execute_statement(
-                resourceArn=self.aurora_cluster_arn,
-                secretArn=self.db_credentials_secret_arn,
-                database=self.database_name,
-                sql=sql_statement,
-                parameters=parameters,
-            )
-            return response
-        except Exception as e:
-            logger.error(f"Database query failed: {str(e)}")
-            return {}
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -133,24 +65,28 @@ def lambda_handler(event: dict, context) -> dict:
     try:
         log_initial_info(event)
 
-        today = calculate_from_date()
-
         config = get_config()
 
-        db = Database(
-            config.get("aurora_cluster_arn"), config.get(DB_CREDENTIALS_SECRET_ARN_STR), config.get(DATABASE_STR)
+        metadata = DataIngestionMetadata(
+            app_name=config[APP_NAME],
+            date_time=datetime.now(),
+            database_name=config[GLUE_DATABASE_NAME],
+            environment=config[ENVIRONMENT_NAME],
+            function_name=context.function_name,
+            raw_data_bucket=config[S3_BUCKET_NAME],
+            table_name=config[GLUE_TABLE_NAME],
         )
 
-        insert_fetch_status(date.today(), db)
+        today = datetime.today().date()
+        earliest = today - timedelta(days=DAY_SPAN)
+        metadata.today = today.strftime(DataIngestionMetadata.DATETIME_FORMAT)
+        metadata.earliest = earliest.strftime(DataIngestionMetadata.DATETIME_FORMAT)
 
-        earliest = get_earliest_unfetched_date(today, db)
+        xml_data_list = fetch_data(config.get(BASE_URL_STR), earliest, config.get(SUMMARY_SET_STR), metadata)
 
-        xml_data_list = fetch_data(config.get(BASE_URL_STR), earliest, config.get(SUMMARY_SET_STR))
-
-        key_date = time.strftime("%Y%m%d-%H%M%S")
-        key = f"arxiv_daily_summaries/{key_date}.json"
-        persist_to_s3(config.get(BUCKET_NAME_STR), key, json.dumps(xml_data_list))
-        notify_parser(config.get(ARXIV_SUMMARY_LAMBDA_STR), config.get(BUCKET_NAME_STR), key)
+        metadata.raw_data_key = get_storage_key(config)
+        content_str = json.dumps(xml_data_list)
+        persist_to_s3(content_str, metadata)
 
         logger.info("Fetching arXiv summaries succeeded", method=LAMBDA_HANDLER, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
@@ -163,7 +99,35 @@ def lambda_handler(event: dict, context) -> dict:
             body="Internal Server Error",
             error=str(e),
         )
+        metadata.error_message = str(e)
+        metadata.status = "failure"
         return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
+
+
+def get_config() -> dict:
+    """
+    Gets the config from the environment variables.
+
+    Returns:
+        dict: The config.
+    """
+    try:
+        config = {
+            APP_NAME: os.environ["APP_NAME"],
+            BASE_URL_STR: "http://export.arxiv.org/oai2",
+            ENVIRONMENT_NAME: os.environ["ENVIRONMENT"],
+            GLUE_DATABASE_NAME: os.environ["GLUE_DATABASE_NAME"],
+            GLUE_TABLE_NAME: os.environ["GLUE_TABLE_NAME"],
+            S3_BUCKET_NAME: os.environ["S3_BUCKET_NAME"],
+            S3_STORAGE_KEY_PREFIX_NAME: os.environ.get("S3_STORAGE_KEY_PREFIX", S3_STORAGE_PREFIX),
+            SUMMARY_SET_STR: "cs",
+        }
+        logger.debug("Config", method=GET_CONFIG, config=config)
+    except KeyError as e:
+        logger.error("Missing environment variable", method=GET_CONFIG, error=str(e))
+        raise e
+
+    return config
 
 
 def log_initial_info(event: dict) -> None:
@@ -186,207 +150,7 @@ def log_initial_info(event: dict) -> None:
     logger.debug("Event received", method=LOG_INITIAL_INFO, trigger_event=event)
 
 
-def get_config() -> dict:
-    """
-    Gets the config from the environment variables.
-
-    Returns:
-        dict: The config.
-    """
-    try:
-        config = {
-            APP_NAME: os.environ["APP_NAME"],
-            BASE_URL_STR: os.environ["BASE_URL"],
-            ENVIRONMENT: os.environ["ENVIRONMENT"],
-            GLUE_DATABASE_NAME: os.environ["GLUE_DATABASE_NAME"],
-            GLUE_TABLE_NAME: os.environ["GLUE_TABLE_NAME"],
-            S3_BUCKET_NAME: os.environ["S3_BUCKET_NAME"],
-            SUMMARY_SET_STR: os.environ["SUMMARY_SET"],
-        }
-        safe_config = {k: config[k] for k in set(list(config.keys())) - set([DB_CREDENTIALS_SECRET_ARN_STR])}
-        logger.debug("Config", method=GET_CONFIG, config=safe_config)
-    except KeyError as e:
-        logger.error("Missing environment variable", method=GET_CONFIG, error=str(e))
-        raise e
-
-    return config
-
-
-def get_metadata_schema(config: dict) -> dict:
-    """
-    Gets the metadata schema for data ingestion from the AWS Glue Data Catalog.
-
-    Args:
-        config (dict): The config.
-
-    Returns:
-        dict: The metadata schema.
-    """
-    try:
-        glue = boto3.client("glue")
-        response = glue.get_table(DatabaseName=config[GLUE_DATABASE_NAME], Name=config[GLUE_TABLE_NAME])
-        schema = response["Table"]["StorageDescriptor"]["Columns"]
-        logger.debug("Metadata schema", method=GET_METADATA_SCHEMA, schema=schema)
-    except Exception as e:
-        logger.exception("Failed to get metadata schema", method=GET_METADATA_SCHEMA, error=str(e))
-        raise e
-
-    return schema
-
-def calculate_from_date() -> date:
-    """Calculates from date for fetching summaries.
-
-    Returns:
-        date: From date.
-    """
-    today = datetime.today().date()
-    logger.info("Today's date", method=CALCULATE_FROM_DATE, date=today)
-    return today
-
-
-def insert_fetch_status(date: date, db: Database) -> None:
-    """
-    Inserts fetch status as 'pending' for the given date using
-    AWS RDSDataService.
-
-    Args:
-        date (date): Date for which to insert fetch status.
-        db (Database): Database object.
-
-    Throws:
-        ValueError: If date is not provided.
-        ValueError: If database is not provided.
-    """
-    if not date:
-        logger.error("Date is required", method=INSERT_FETCH_STATUS)
-        raise ValueError("Date is required")
-
-    if not db:
-        logger.error("Database is required", method=INSERT_FETCH_STATUS)
-        raise ValueError("Database is required")
-
-    try:
-        formatted_date = date.strftime("%Y-%m-%d")
-        # Update spaces in tests if changed here
-        sql_statement = """
-    INSERT INTO research_fetch_status (fetch_date, status)
-    VALUES (CAST(:date AS DATE), 'pending') ON CONFLICT (fetch_date) DO NOTHING
-    """
-
-        parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
-
-        response = db.execute_sql(sql_statement, parameters)
-        return response
-    except Exception as e:
-        logger.exception("Database query failed", method=INSERT_FETCH_STATUS, error=str(e))
-        raise e
-
-
-def get_earliest_unfetched_date(today: date, db: Database, days=5) -> date:
-    """
-    Gets the earliest unfetched date using AWS RDSDataService.
-
-    Args:
-        today (date): Today's date.
-        db (Database): Database object.
-        days (int): Number of days to check for unfetched dates.
-
-    Returns:
-        date: Earliest unfetched date.
-
-    Raises:
-        ValueError: If today's date is not provided.
-        ValueError: If days is not an int between 1 and 10.
-    """
-    if not today:
-        logger.error("Today's date is required", method=GET_EARLIEST_UNFETCHED_DATE)
-        raise ValueError("Today's date is required")
-
-    if type(days) is not int or days < 1 or days > 10:
-        logger.error("Days must be an int between 1 and 10", method=GET_EARLIEST_UNFETCHED_DATE)
-        raise ValueError("Days must be an int between 1 and 10")
-
-    past_dates = [(today - timedelta(days=i)) for i in range(1, days + 1)]
-    logger.debug("Dates", method=GET_EARLIEST_UNFETCHED_DATE, dates=past_dates, days=days, today=today)
-
-    placeholders = [f":date{i}" for i in range(len(past_dates))]
-    placeholder_string = ", ".join(placeholders)
-    # Issues doing this with the RDSDataService client, so using string formatting. No user input.
-    sql_statement = f"""
-    SELECT fetch_date FROM research_fetch_status
-    WHERE fetch_date = ANY(ARRAY[{placeholder_string}]::DATE[]) AND status = 'success'
-    """  # nosec
-
-    parameters = [
-        {"name": f"date{i}", "value": {"stringValue": date.strftime("%Y-%m-%d")}} for i, date in enumerate(past_dates)
-    ]
-
-    try:
-        response = db.execute_sql(sql_statement, parameters)
-
-        fetched_dates = [
-            datetime.strptime(result[0]["stringValue"], "%Y-%m-%d").date() for result in response["records"]
-        ]
-        unfetched_dates = sorted(list(set(past_dates) - set(fetched_dates)))
-        # prepend one day earlier than the earliest unfetched date (first date in the list)
-        # arXiv doesn't always return the research for the date in the request (earliest date in this list)
-
-        unfetched_dates.insert(0, unfetched_dates[0] - timedelta(days=1))
-        logger.info("Unfetched dates", method=GET_EARLIEST_UNFETCHED_DATE, unfetched_dates=unfetched_dates)
-
-        earliest_date = min(unfetched_dates) if len(unfetched_dates) > 1 else None
-        logger.info("Earliest unfetched date", method=GET_EARLIEST_UNFETCHED_DATE, earliest_date=earliest_date)
-        return earliest_date
-    except Exception as e:
-        logger.exception("Database query failed", method=GET_EARLIEST_UNFETCHED_DATE, error=str(e))
-        raise e
-
-
-def get_fetch_status(date: date, db: Database) -> str:
-    """
-    Gets fetch status for the given date using AWS RDSDataService.
-
-    Args:
-        date (date): Date for which to get fetch status.
-        db (Database): Database object.
-
-    Returns:
-        str: Fetch status.
-
-    Raises:
-        TypeError: If date is not a date object.
-        ValueError: If date is after today.
-    """
-    if isinstance(date, datetime.date.__class__) or not date:
-        logger.error("Date must be a date object", method=GET_FETCH_STATUS)
-        raise TypeError("Date must be a date object")
-
-    if date > datetime.today().date():
-        logger.error("Date must be today or earlier", method=GET_FETCH_STATUS)
-        raise ValueError("Date must be today or earlier")
-
-    formatted_date = date.strftime("%Y-%m-%d")
-
-    sql_statement = """
-    SELECT status FROM research_fetch_status
-    WHERE fetch_date = CAST(:date AS DATE)
-    """
-
-    parameters = [{"name": "date", "value": {"stringValue": formatted_date}}]
-
-    try:
-        response = db.execute_sql(sql_statement, parameters)
-        logger.debug("Fetch status response", method=GET_FETCH_STATUS, response=response, date=date)
-        if "records" in response and response["records"]:
-            return response["records"][0][0].get("stringValue", "status_not_found")
-        else:
-            return "status_not_found"
-    except Exception as e:
-        logger.error(f"get_fetch_status - database query failed: {str(e)}")
-        raise e
-
-
-def fetch_data(base_url: str, from_date: str, set: str) -> list:
+def fetch_data(base_url: str, from_date: str, set: str, metadata: DataIngestionMetadata) -> list:
     """
     Fetches data from arXiv.
 
@@ -394,6 +158,7 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
         base_url (str): Base URL.
         from_date (str): From date.
         set (str): Set.
+        metadata (DataIngestionMetadata): Metadata.
 
     Returns:
         list: List of XML responses.
@@ -402,7 +167,24 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
         ValueError: If base URL is not provided.
         ValueError: If from date is not provided.
         ValueError: If set is not provided.
+        ValueError: If metadata is not provided.
     """
+    if not base_url:
+        logger.error("Base URL is required", method=FETCH_DATA)
+        raise ValueError("Base URL is required")
+
+    if not from_date:
+        logger.error("From date is required", method=FETCH_DATA)
+        raise ValueError("From date is required")
+
+    if not set:
+        logger.error("Set is required", method=FETCH_DATA)
+        raise ValueError("Set is required")
+
+    if not metadata:
+        logger.error("Metadata is required", method=FETCH_DATA)
+        raise ValueError("Metadata is required")
+
     backoff_times = BACKOFF_TIMES.copy()
     full_xml_responses = []
     params = {"verb": "ListRecords", "set": set, "metadataPrefix": "oai_dc", "from": from_date}
@@ -418,6 +200,8 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
                 backoff_times=backoff_times,
             )
             response = requests.get(base_url, params=params, timeout=60)
+            metadata.uri = response.request.url
+            metadata.size_of_data_downloaded = str(calculate_mb(len(response.content))) + " MB"
             response.raise_for_status()
             full_xml_responses.append(response.text)
             root = ET.fromstring(response.content)
@@ -453,71 +237,62 @@ def fetch_data(base_url: str, from_date: str, set: str) -> list:
     return full_xml_responses
 
 
-def set_fetch_status(date: date, status: str, db: Database) -> bool:
+def calculate_mb(size: int) -> float:
     """
-    Sets fetch status in the database using AWS RDSDataService.
+    Converts bytes to MB.
 
     Args:
-        date (date): Date for which to set fetch status.
-        status (str): Status to set ('success' or 'failure').
-        db (Database): Database object.
+        size (int): Size in bytes.
 
     Returns:
-        bool: True if successful, False otherwise.
+        float: Size in MB to two decimal places.
+    """
+    return round(size / (1024 * 1024), 2)
+
+
+def get_storage_key(config: dict) -> str:
+    """
+    Gets the storage key for the S3 bucket.
+
+    Args:
+        config (dict): The config.
+
+    Returns:
+        str: The storage key.
 
     Raises:
-        ValueError: If date is not provided.
-        ValueError: If status is not provided.
-        ValueError: If database is not provided.
-        Exception: If database query fails.
+        ValueError: If config is not provided.
     """
-    if not date:
-        logger.error("Date is required", method=SET_FETCH_STATUS)
-        raise ValueError("Date is required")
+    if not config:
+        logger.error("Config is required", method=GET_STORAGE_KEY)
+        raise ValueError("Config is required")
 
-    if not status:
-        logger.error("Status is required", method=SET_FETCH_STATUS)
-        raise ValueError("Status is required")
-
-    if not db:
-        logger.error("Database is required", method=SET_FETCH_STATUS)
-        raise ValueError("Database is required")
-    try:
-        sql_statement = "UPDATE research_fetch_status SET status = :status \
-            WHERE fetch_date = CAST(:date AS DATE)"
-
-        parameters = [
-            {"name": "date", "value": {"stringValue": date.strftime("%Y-%m-%d")}},
-            {"name": "status", "value": {"stringValue": status}},
-        ]
-
-        db.execute_sql(sql_statement, parameters)
-        logger.debug("Set fetch status", method=SET_FETCH_STATUS, date=date, status=status)
-        return True
-    except Exception as e:
-        logger.exception("Database query failed", method=SET_FETCH_STATUS, error=str(e))
-        return False
+    key_date = time.strftime(DataIngestionMetadata.S3_KEY_DATE_FORMAT)
+    key = f"{config.get(S3_STORAGE_KEY_PREFIX_NAME)}/{key_date}.json"
+    logger.info("Storage key", method=GET_STORAGE_KEY, key=key)
+    return key
 
 
-def persist_to_s3(bucket_name: str, key: str, content: str) -> None:
+def persist_to_s3(content: str, metadata: DataIngestionMetadata) -> None:
     """
     Persists the given content to S3.
 
     Args:
-        bucket_name (str): Bucket name.
-        key (str): Key.
-        content (str): Content.
+        bucket_name (str): The s3 data bucket name.
+        key (str): The s3 storage key.
+        content (str): The raw XML responses from arXiv.
+        metadata (DataIngestionMetadata): The data ingestion metadata.
 
     Raises:
         ValueError: If bucket name is not provided.
         ValueError: If key is not provided.
         ValueError: If content is not provided.
     """
-    if not bucket_name:
+    if not metadata.raw_data_bucket:
         logger.error("Bucket name is required", method=PERSIST_TO_S3)
         raise ValueError("Bucket name is required")
 
-    if not key:
+    if not metadata.raw_data_key:
         logger.error("Key is required", method=PERSIST_TO_S3)
         raise ValueError("Key is required")
 
@@ -527,61 +302,16 @@ def persist_to_s3(bucket_name: str, key: str, content: str) -> None:
 
     try:
         s3 = boto3.resource("s3")
-        s3.Bucket(bucket_name).put_object(Key=key, Body=content)
-        logger.info("Persisting content to S3", method=PERSIST_TO_S3, bucket_name=bucket_name, key=key)
+        s3.Bucket(metadata.raw_data_bucket).put_object(Key=metadata.raw_data_key, Body=content)
+        logger.info("Persisting content to S3", method=PERSIST_TO_S3,
+                    bucket_name=metadata.raw_data_bucket,
+                    key=metadata.raw_data_key)
     except Exception as e:
         logger.exception(
-            "Failed to persist content to S3", method=PERSIST_TO_S3, bucket_name=bucket_name, key=key, error=str(e)
-        )
-        raise e
-
-
-def notify_parser(lambda_arn: str, bucket_name: str, key: str) -> None:
-    """
-    Notifies the parser Lambda function that new data is available.
-
-    Args:
-        lambda_arn (str): Lambda ARN.
-        bucket_name (str): Bucket name.
-        key (str): Key.
-
-    Raises:
-        ValueError: If lambda ARN is not provided.
-        ValueError: If bucket name is not provided.
-        ValueError: If key is not provided.
-    """
-    if not lambda_arn:
-        logger.error("Lambda ARN is required", method=NOTIFY_PARSER)
-        raise ValueError("Lambda ARN is required")
-    if not bucket_name:
-        logger.error("Bucket name is required", method=NOTIFY_PARSER)
-        raise ValueError("Bucket name is required")
-
-    if not key:
-        logger.error("Key is required", method=NOTIFY_PARSER)
-        raise ValueError("Key is required")
-    try:
-        client = boto3.client("lambda")
-        payload = {BUCKET_NAME_STR: bucket_name, "key": key}
-        client.invoke(
-            FunctionName=lambda_arn,
-            InvocationType="Event",
-            Payload=json.dumps(payload),
-        )
-        logger.debug(
-            "Notified parser Lambda function",
-            method=NOTIFY_PARSER,
-            lambda_arn=lambda_arn,
-            bucket_name=bucket_name,
-            key=key,
-        )
-    except Exception as e:
-        logger.exception(
-            "Failed to notify parser Lambda function",
-            method=NOTIFY_PARSER,
-            lambda_arn=lambda_arn,
-            bucket_name=bucket_name,
-            key=key,
-            error=str(e),
+            "Failed to persist content to S3",
+            method=PERSIST_TO_S3,
+            bucket_name=metadata.raw_data_bucket,
+            key=metadata.raw_data_key,
+            error=str(e)
         )
         raise e

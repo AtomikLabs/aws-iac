@@ -30,6 +30,7 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
       GLUE_DATABASE_NAME = aws_glue_catalog_database.data_catalog_database.name
       GLUE_TABLE_NAME    = aws_glue_catalog_table.data_ingestion_metadata_table.name 
       S3_BUCKET   = aws_s3_bucket.atomiklabs_data_bucket.arn
+      S3_STORAGE_KEY_PREFIX = local.data_ingestion_metadata_key_prefix
     }  
   }
 }

@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+import json
+import uuid
 
 import boto3
 import structlog
@@ -30,19 +32,27 @@ class DataIngestionMetadata:
 
     The schema of the metadata must match the definition in the AWS Glue Data Catalog.
     """
+    DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+    S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
+
+    uuid = uuid.uuid4()
 
     def __init__(self, **kwargs):
         self.app_name = kwargs.get('app_name')
-        self.date_time = kwargs.get('date_time') or datetime.now(timezone.utc)
+        self.data_source = kwargs.get('data_source')
+        self.date_time = kwargs.get('date_time') or datetime.now(timezone.utc).strftime(self.DATETIME_FORMAT)
         self.database_name = kwargs.get('database_name')
         self.environment = kwargs.get('environment')
         self.error_message = kwargs.get('error_message')
         self.function_name = kwargs.get('function_name')
         self.ingestion_job_uuid = kwargs.get('ingestion_job_uuid')
-        self.location_raw_data_saved = kwargs.get('location_raw_data_saved')
         self.metadata_bucket = kwargs.get('metadata_bucket')
+        self.original_data_format = kwargs.get('original_data_format')
+        self.raw_data_bucket = kwargs.get('raw_data_bucket')
+        self.raw_data_key = kwargs.get('raw_data_key')
         self.size_of_data_downloaded = kwargs.get('size_of_data_downloaded')
         self.status = kwargs.get('status')
+        self.stored_data_format = kwargs.get('stored_data_format')
         self.table_name = kwargs.get('table_name')
         self.triggered_functions = kwargs.get('triggered_functions')
         self.uri = kwargs.get('uri')
@@ -58,14 +68,27 @@ class DataIngestionMetadata:
         self._app_name = app_name
 
     @property
-    def date_time(self) -> datetime:
+    def date_time(self) -> str:
         return self._date_time
 
     @date_time.setter
     def date_time(self, date_time: datetime):
-        if not isinstance(date_time, datetime):
-            raise ValueError("date_time must be a datetime")
-        self._date_time = date_time
+        if not isinstance(date_time, datetime) and not isinstance(date_time, str):
+            raise ValueError("date_time must be a datetime or a string")
+        if isinstance(date_time, datetime):
+            self.date_time.strftime(self.DATETIME_FORMAT)
+        else:
+            self.date_time = date_time
+
+    @property
+    def data_source(self) -> str:
+        return self._data_source
+
+    @data_source.setter
+    def data_source(self, data_source: str):
+        if not isinstance(data_source, str):
+            raise ValueError("data_source must be a string")
+        self._data_source = data_source
 
     @property
     def database_name(self) -> str:
@@ -138,6 +161,36 @@ class DataIngestionMetadata:
         self._metadata_bucket = metadata_bucket
 
     @property
+    def original_data_format(self) -> str:
+        return self._original_data_format
+
+    @original_data_format.setter
+    def original_data_format(self, original_data_format: str):
+        if not isinstance(original_data_format, str):
+            raise ValueError("original_data_format must be a string")
+        self._original_data_format = original_data_format
+
+    @property
+    def raw_data_bucket(self) -> str:
+        return self._raw_data_bucket
+
+    @raw_data_bucket.setter
+    def raw_data_bucket(self, raw_data_bucket: str):
+        if not isinstance(raw_data_bucket, str):
+            raise ValueError("raw_data_bucket must be a string")
+        self._raw_data_bucket = raw_data_bucket
+
+    @property
+    def raw_data_key(self) -> str:
+        return self._raw_data_key
+
+    @raw_data_key.setter
+    def raw_data_key(self, raw_data_key: str):
+        if not isinstance(raw_data_key, str):
+            raise ValueError("raw_data_key must be a string")
+        self._raw_data_key = raw_data_key
+
+    @property
     def size_of_data_downloaded(self) -> str:
         return self._size_of_data_downloaded
 
@@ -156,6 +209,16 @@ class DataIngestionMetadata:
         if not isinstance(status, str):
             raise ValueError("status must be a string")
         self._status = status
+
+    @property
+    def stored_data_format(self) -> str:
+        return self._stored_data_format
+
+    @stored_data_format.setter
+    def stored_data_format(self, stored_data_format: str):
+        if not isinstance(stored_data_format, str):
+            raise ValueError("stored_data_format must be a string")
+        self._stored_data_format = stored_data_format
 
     @property
     def table_name(self) -> str:
@@ -229,7 +292,7 @@ class DataIngestionMetadata:
         logger.info("Writing data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write")
         try:
             client = boto3.client("s3")
-            client.put_object(Body=str(self.to_dict()), Bucket=self.metadata_bucket, Key=f"{DATA_INGESTION_METADATA_PREFIX}{self.date_time}-{self.ingestion_job_uuid}.json")
+            client.put_object(Body=json.dumps(self), Bucket=self.metadata_bucket, Key=f"{DATA_INGESTION_METADATA_PREFIX}{self.date_time}-{self.ingestion_job_uuid}.json")
             logger.info("Wrote data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write")
         except Exception as e:
             logger.error("Failed to write data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write", error_message=str(e))
