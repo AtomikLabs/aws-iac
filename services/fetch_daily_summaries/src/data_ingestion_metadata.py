@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 import structlog
@@ -19,6 +19,7 @@ logger = structlog.get_logger()
 
 # Logging Constants
 DATA_INGESTION_METADATA = "DataIngestionMetadata"
+DATA_INGESTION_METADATA_PREFIX = "metadata/data-ingestion/"
 GET_SCHEMA = "DataIngestionMetadata.get_schema"
 VALIDATE = "DataIngestionMetadata.validate"
 
@@ -32,7 +33,7 @@ class DataIngestionMetadata:
 
     def __init__(self, **kwargs):
         self.app_name = kwargs.get('app_name')
-        self.date_time = kwargs.get('date_time')
+        self.date_time = kwargs.get('date_time') or datetime.now(timezone.utc)
         self.database_name = kwargs.get('database_name')
         self.environment = kwargs.get('environment')
         self.error_message = kwargs.get('error_message')
@@ -225,11 +226,11 @@ class DataIngestionMetadata:
         """
         Write the metadata to the metadata bucket.
         """
-        logger.info("Writing data ingestion metadata", method="DataIngestionMetadata.write")
+        logger.info("Writing data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write")
         try:
             client = boto3.client("s3")
-            client.put_object(Body=str(self.to_dict()), Bucket=self.metadata_bucket, Key=f"{self.ingestion_job_uuid}.json")
-            logger.info("Wrote data ingestion metadata", method="DataIngestionMetadata.write")
+            client.put_object(Body=str(self.to_dict()), Bucket=self.metadata_bucket, Key=f"{DATA_INGESTION_METADATA_PREFIX}{self.date_time}-{self.ingestion_job_uuid}.json")
+            logger.info("Wrote data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write")
         except Exception as e:
-            logger.error("Failed to write data ingestion metadata", method="DataIngestionMetadata.write", error_message=str(e))
+            logger.error("Failed to write data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write", error_message=str(e))
             raise e
