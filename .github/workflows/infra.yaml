@@ -34,7 +34,6 @@ jobs:
           iam_user_name=$(jq -r '.iam_user_name' $env_file)
           echo "IAM_USER_NAME=$iam_user_name" >> $GITHUB_ENV
           echo "REGION=${{ secrets.AWS_REGION }}"
-          echo "NAME=${{ env.name }}"
 
       - name: Set AWS Credentials Based on Environment
         run: |
@@ -112,7 +111,10 @@ jobs:
         working-directory: ./infra/core
 
       - name: Apply Terraform
-        run: terraform apply -var-file="../../${{ env.ENV_FILE }}" -auto-approve
+        run: |
+          echo "${{ env.ENV_FILE }}"
+          echo "${{ env.region }}"
+          terraform apply -var-file="../../${{ env.ENV_FILE }}" -auto-approve
         working-directory: ./infra/core
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
