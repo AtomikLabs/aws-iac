@@ -34,8 +34,6 @@ jobs:
           iam_user_name=$(jq -r '.iam_user_name' $env_file)
           echo "IAM_USER_NAME=$iam_user_name" >> $GITHUB_ENV
           echo "REGION=${{ secrets.AWS_REGION }}"
-          echo "NAME=${{ env.name }}"
-          echo "region=${{ env.region }}"
 
       - name: Set AWS Credentials Based on Environment
         run: |
@@ -98,6 +96,8 @@ jobs:
           while IFS= read -r line; do
             echo "$line" >> $GITHUB_ENV
           done < env_vars
+          echo "NAME=${{ env.name }}"
+          echo "region=${{ env.region }}"
 
       - name: Initialize Terraform
         run: terraform init -upgrade
