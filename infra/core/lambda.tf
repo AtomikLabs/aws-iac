@@ -23,8 +23,3 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   timeout       = 900
   memory_size   = 128
 }
-
-resource "aws_iam_role_policy_attachment" "lambda_glue_policy_attach" {
-  role       = aws_iam_role.lambda_execution_role.name
-  policy_arn = aws_iam_policy.lambda_glue_policy.arn
-}
