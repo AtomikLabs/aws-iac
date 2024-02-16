@@ -1,6 +1,7 @@
 resource "aws_s3_bucket" "atomiklabs_data_bucket" {
   bucket = "${local.environment}-data-bucket"
-  region = local.region
+  
+  tags = local.tags
 }
 
 resource "aws_s3_bucket_acl" "data_acl" {
