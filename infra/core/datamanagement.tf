@@ -4,11 +4,6 @@ resource "aws_s3_bucket" "atomiklabs_data_bucket" {
   tags = local.tags
 }
 
-resource "aws_s3_bucket_acl" "data_acl" {
-  bucket = aws_s3_bucket.atomiklabs_data_bucket.id
-  acl    = "private"
-}
-
 resource "aws_s3_bucket_lifecycle_configuration" "data_lifecycle" {
   bucket = aws_s3_bucket.atomiklabs_data_bucket.id
 
