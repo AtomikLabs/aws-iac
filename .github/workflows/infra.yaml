@@ -112,7 +112,10 @@ jobs:
         working-directory: ./infra/core
 
       - name: Apply Terraform
-        run: terraform apply -var-file="../../${{ env.ENV_FILE }}" -auto-approve
+        run: |
+          echo "${{ env.ENV_FILE }}"
+          echo "${{ env.region }}"
+          terraform apply -var-file="../../${{ env.ENV_FILE }}" -auto-approve
         working-directory: ./infra/core
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
