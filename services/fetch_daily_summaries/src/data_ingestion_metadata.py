@@ -220,3 +220,16 @@ class DataIngestionMetadata:
                 return False
 
         return True
+
+    def write(self) -> None:
+        """
+        Write the metadata to the metadata bucket.
+        """
+        logger.info("Writing data ingestion metadata", method="DataIngestionMetadata.write")
+        try:
+            client = boto3.client("s3")
+            client.put_object(Body=str(self.to_dict()), Bucket=self.metadata_bucket, Key=f"{self.ingestion_job_uuid}.json")
+            logger.info("Wrote data ingestion metadata", method="DataIngestionMetadata.write")
+        except Exception as e:
+            logger.error("Failed to write data ingestion metadata", method="DataIngestionMetadata.write", error_message=str(e))
+            raise e
