@@ -24,28 +24,31 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-
 BACKOFF_TIMES = [30, 120]
-LAMBDA_NAME = "fetch_daily_summaries"
-LAMBDA_HANDLER = "fetch_daily_summaries.lambda_handler"
-LOG_INITIAL_INFO = "fetch_daily_summaries.log_initial_info"
-GET_CONFIG = "fetch_daily_summaries.get_config"
+
+# Environment variables
+APP_NAME = "app_name"
+BASE_URL_STR = "base_url"
+ENVIRONMENT = "environment"
+GLUE_DATABASE_NAME = "glue_database_name"
+GLUE_TABLE_NAME = "glue_table_name"
+S3_BUCKET_NAME = "s3_bucket_name"
+SUMMARY_SET_STR = "summary_set"
+
+# Logging constants
 CALCULATE_FROM_DATE = "fetch_daily_summaries.calculate_from_date"
-INSERT_FETCH_STATUS = "fetch_daily_summaries.insert_fetch_status"
+FETCH_DATA = "fetch_daily_summaries.fetch_data"
+GET_CONFIG = "fetch_daily_summaries.get_config"
 GET_EARLIEST_UNFETCHED_DATE = "fetch_daily_summaries.get_earliest_unfetched_date"
 GET_FETCH_STATUS = "fetch_daily_summaries.get_fetch_status"
-FETCH_DATA = "fetch_daily_summaries.fetch_data"
-SET_FETCH_STATUS = "fetch_daily_summaries.set_fetch_status"
-PERSIST_TO_S3 = "fetch_daily_summaries.persist_to_s3"
+GET_METADATA_SCHEMA = "fetch_daily_summaries.get_metadata_schema"
+INSERT_FETCH_STATUS = "fetch_daily_summaries.insert_fetch_status"
+LAMBDA_HANDLER = "fetch_daily_summaries.lambda_handler"
+LAMBDA_NAME = "fetch_daily_summaries"
+LOG_INITIAL_INFO = "fetch_daily_summaries.log_initial_info"
 NOTIFY_PARSER = "fetch_daily_summaries.notify_parser"
-
-ARXIV_SUMMARY_LAMBDA_STR = "arxiv_summary_lambda"
-BASE_URL_STR = "base_url"
-BUCKET_NAME_STR = "bucket_name"
-DATABASE_STR = "database"
-DB_CREDENTIALS_SECRET_ARN_STR = "db_credentials_secret_arn"  # nosec
-RESOURCE_ARN_STR = "resource_arn"
-SUMMARY_SET_STR = "summary_set"
+PERSIST_TO_S3 = "fetch_daily_summaries.persist_to_s3"
+SET_FETCH_STATUS = "fetch_daily_summaries.set_fetch_status"
 
 
 class Database:
@@ -192,12 +195,12 @@ def get_config() -> dict:
     """
     try:
         config = {
-            ARXIV_SUMMARY_LAMBDA_STR: os.environ["ARXIV_SUMMARY_LAMBDA"],
-            "aurora_cluster_arn": os.environ["RESOURCE_ARN"],
+            APP_NAME: os.environ["APP_NAME"],
             BASE_URL_STR: os.environ["BASE_URL"],
-            BUCKET_NAME_STR: os.environ["BUCKET_NAME"],
-            DATABASE_STR: os.environ["DATABASE_NAME"],
-            DB_CREDENTIALS_SECRET_ARN_STR: os.environ["SECRET_ARN"],
+            ENVIRONMENT: os.environ["ENVIRONMENT"],
+            GLUE_DATABASE_NAME: os.environ["GLUE_DATABASE_NAME"],
+            GLUE_TABLE_NAME: os.environ["GLUE_TABLE_NAME"],
+            S3_BUCKET_NAME: os.environ["S3_BUCKET_NAME"],
             SUMMARY_SET_STR: os.environ["SUMMARY_SET"],
         }
         safe_config = {k: config[k] for k in set(list(config.keys())) - set([DB_CREDENTIALS_SECRET_ARN_STR])}
@@ -208,6 +211,27 @@ def get_config() -> dict:
 
     return config
 
+
+def get_metadata_schema(config: dict) -> dict:
+    """
+    Gets the metadata schema for data ingestion from the AWS Glue Data Catalog.
+
+    Args:
+        config (dict): The config.
+
+    Returns:
+        dict: The metadata schema.
+    """
+    try:
+        glue = boto3.client("glue")
+        response = glue.get_table(DatabaseName=config[GLUE_DATABASE_NAME], Name=config[GLUE_TABLE_NAME])
+        schema = response["Table"]["StorageDescriptor"]["Columns"]
+        logger.debug("Metadata schema", method=GET_METADATA_SCHEMA, schema=schema)
+    except Exception as e:
+        logger.exception("Failed to get metadata schema", method=GET_METADATA_SCHEMA, error=str(e))
+        raise e
+
+    return schema
 
 def calculate_from_date() -> date:
     """Calculates from date for fetching summaries.

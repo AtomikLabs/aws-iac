@@ -22,6 +22,16 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   role          = aws_iam_role.lambda_execution_role.arn
   timeout       = 900
   memory_size   = 128
+
+  environment {
+    variables = {
+      APP_NAME    = local.name
+      ENVIRONMENT = local.environment
+      GLUE_DATABASE_NAME = aws_glue_catalog_database.data_catalog_database.name
+      GLUE_TABLE_NAME    = aws_glue_catalog_table.data_ingestion_metadata_table.name 
+      S3_BUCKET   = aws_s3_bucket.atomiklabs_data_bucket.arn
+    }  
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_glue_policy_attach" {
