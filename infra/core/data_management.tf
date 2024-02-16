@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "atomiklabs_data_bucket" {
-  bucket = "${local.environment}-data_bucket"
+  bucket = "${local.environment}-data-bucket"
 }
 
 resource "aws_s3_bucket_acl" "data_acl" {
