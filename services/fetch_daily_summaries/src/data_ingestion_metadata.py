@@ -1,10 +1,9 @@
-from datetime import datetime, timezone
 import json
 import uuid
+from datetime import datetime, timezone
 
 import boto3
 import structlog
-
 
 structlog.configure(
     [
@@ -32,30 +31,31 @@ class DataIngestionMetadata:
 
     The schema of the metadata must match the definition in the AWS Glue Data Catalog.
     """
+
     DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
     S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
     uuid = uuid.uuid4()
 
     def __init__(self, **kwargs):
-        self.app_name = kwargs.get('app_name')
-        self.data_source = kwargs.get('data_source')
-        self.date_time = kwargs.get('date_time') or datetime.now(timezone.utc).strftime(self.DATETIME_FORMAT)
-        self.database_name = kwargs.get('database_name')
-        self.environment = kwargs.get('environment')
-        self.error_message = kwargs.get('error_message')
-        self.function_name = kwargs.get('function_name')
-        self.ingestion_job_uuid = kwargs.get('ingestion_job_uuid')
-        self.metadata_bucket = kwargs.get('metadata_bucket')
-        self.original_data_format = kwargs.get('original_data_format')
-        self.raw_data_bucket = kwargs.get('raw_data_bucket')
-        self.raw_data_key = kwargs.get('raw_data_key')
-        self.size_of_data_downloaded = kwargs.get('size_of_data_downloaded')
-        self.status = kwargs.get('status')
-        self.stored_data_format = kwargs.get('stored_data_format')
-        self.table_name = kwargs.get('table_name')
-        self.triggered_functions = kwargs.get('triggered_functions')
-        self.uri = kwargs.get('uri')
+        self.app_name = kwargs.get("app_name")
+        self.data_source = kwargs.get("data_source")
+        self.date_time = kwargs.get("date_time") or datetime.now(timezone.utc).strftime(self.DATETIME_FORMAT)
+        self.database_name = kwargs.get("database_name")
+        self.environment = kwargs.get("environment")
+        self.error_message = kwargs.get("error_message")
+        self.function_name = kwargs.get("function_name")
+        self.ingestion_job_uuid = kwargs.get("ingestion_job_uuid")
+        self.metadata_bucket = kwargs.get("metadata_bucket")
+        self.original_data_format = kwargs.get("original_data_format")
+        self.raw_data_bucket = kwargs.get("raw_data_bucket")
+        self.raw_data_key = kwargs.get("raw_data_key")
+        self.size_of_data_downloaded = kwargs.get("size_of_data_downloaded")
+        self.status = kwargs.get("status")
+        self.stored_data_format = kwargs.get("stored_data_format")
+        self.table_name = kwargs.get("table_name")
+        self.triggered_functions = kwargs.get("triggered_functions")
+        self.uri = kwargs.get("uri")
 
     @property
     def app_name(self) -> str:
@@ -261,10 +261,21 @@ class DataIngestionMetadata:
         Returns:
             dict: The schema of the table.
         """
-        logger.info("Getting data ingestion metadata schema", database_name=database_name, table_name=table_name, method=GET_SCHEMA)
+        logger.info(
+            "Getting data ingestion metadata schema",
+            database_name=database_name,
+            table_name=table_name,
+            method=GET_SCHEMA,
+        )
         client = boto3.client("glue")
         response = client.get_table(DatabaseName=database_name, Name=table_name)
-        logger.debug("Got data ingestion metadata schema", database_name=database_name, table_name=table_name, method=GET_SCHEMA, response=response)
+        logger.debug(
+            "Got data ingestion metadata schema",
+            database_name=database_name,
+            table_name=table_name,
+            method=GET_SCHEMA,
+            response=response,
+        )
         return response["Table"]
 
     def validate(self, table_schema: dict) -> bool:
@@ -292,8 +303,16 @@ class DataIngestionMetadata:
         logger.info("Writing data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write")
         try:
             client = boto3.client("s3")
-            client.put_object(Body=json.dumps(self), Bucket=self.metadata_bucket, Key=f"{DATA_INGESTION_METADATA_PREFIX}{self.date_time}-{self.ingestion_job_uuid}.json")
+            client.put_object(
+                Body=json.dumps(self),
+                Bucket=self.metadata_bucket,
+                Key=f"{DATA_INGESTION_METADATA_PREFIX}{self.date_time}-{self.ingestion_job_uuid}.json",
+            )
             logger.info("Wrote data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write")
         except Exception as e:
-            logger.error("Failed to write data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write", error_message=str(e))
+            logger.error(
+                "Failed to write data ingestion metadata",
+                method=f"{DATA_INGESTION_METADATA}.write",
+                error_message=str(e),
+            )
             raise e

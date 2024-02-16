@@ -4,14 +4,12 @@ import json
 import logging
 import os
 import time
-from datetime import date, datetime, timedelta
-import uuid
+from datetime import datetime, timedelta
 
 import boto3
 import defusedxml.ElementTree as ET
 import requests
 import structlog
-
 from src.data_ingestion_metadata import DataIngestionMetadata
 
 structlog.configure(
@@ -303,15 +301,18 @@ def persist_to_s3(content: str, metadata: DataIngestionMetadata) -> None:
     try:
         s3 = boto3.resource("s3")
         s3.Bucket(metadata.raw_data_bucket).put_object(Key=metadata.raw_data_key, Body=content)
-        logger.info("Persisting content to S3", method=PERSIST_TO_S3,
-                    bucket_name=metadata.raw_data_bucket,
-                    key=metadata.raw_data_key)
+        logger.info(
+            "Persisting content to S3",
+            method=PERSIST_TO_S3,
+            bucket_name=metadata.raw_data_bucket,
+            key=metadata.raw_data_key,
+        )
     except Exception as e:
         logger.exception(
             "Failed to persist content to S3",
             method=PERSIST_TO_S3,
             bucket_name=metadata.raw_data_bucket,
             key=metadata.raw_data_key,
-            error=str(e)
+            error=str(e),
         )
         raise e
