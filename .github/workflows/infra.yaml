@@ -31,22 +31,14 @@ jobs:
         id: load-config
         run: |
           config_file=".atomiklabs.yaml"
-          arxiv_summary_set=$(yaml2json "$config_file" | jq -r '.data_ingestion.arxiv_summary_set')
-          arxiv_summary_sets=$(yq eval '.data_ingestion.arxiv_summary_sets | join(" ")' "$config_file")
-          aws_region=$(yaml2json "$config_file" | jq -r '.infra.aws_region')
-          infra_config_bucket=$(yaml2json "$yaml_file" | jq -r '.infra.infra_config_bucket')
-          infra_config_prefix=$(yaml2json "$yaml_file" | jq -r '.infra.infra_config_prefix')
-          backend_dynamodb_table=$(yaml2json "$yaml_file" | jq -r '.infra.backend_dynamodb_table')
-          outputs_prefix=$(yaml2json "$yaml_file" | jq -r '.infra.outputs_prefix')
-          repo=$(yaml2json "$yaml_file" | jq -r '.infra.repo')
-          echo "ARXIV_SUMMARY_SET=$arxiv_summary_set" >> $GITHUB_ENV
-          echo "::set-env name=ARXIV_SUMMARY_SET::$arxiv_summary_set"
-          echo "AWS_REGION=$aws_region" >> $GITHUB_ENV
-          echo "INFRA_CONFIG_BUCKET=$infra_config_bucket" >> $GITHUB_ENV
-          echo "INFRA_CONFIG_PREFIX=$infra_config_prefix" >> $GITHUB_ENV
-          echo "BACKEND_DYNAMODB_TABLE=$backend_dynamodb_table" >> $GITHUB_ENV
-          echo "OUTPUTS_PREFIX=$outputs_prefix" >> $GITHUB_ENV
-          echo "REPO=$repo" >> $GITHUB_ENV
+          echo "ARXIV_SUMMARY_SET=$(yaml2json "$config_file" | jq -r '.data_ingestion.arxiv_summary_sets | join(" ")')" >> $GITHUB_ENV
+          echo "ARXIV_SUMMARY_SET=$(yq eval '.data_ingestion.arxiv_summary_sets | join(" ")' "$config_file")" >> $GITHUB_ENV
+          echo "AWS_REGION=$(yaml2json "$config_file" | jq -r '.infra.aws_region')" >> $GITHUB_ENV
+          echo "INFRA_CONFIG_BUCKET=$(yaml2json "$config_file" | jq -r '.infra.infra_config_bucket')" >> $GITHUB_ENV
+          echo "INFRA_CONFIG_PREFIX=$(yaml2json "$config_file" | jq -r '.infra.infra_config_prefix')" >> $GITHUB_ENV
+          echo "BACKEND_DYNAMODB_TABLE=$(yaml2json "$config_file" | jq -r '.infra.backend_dynamodb_table')" >> $GITHUB_ENV
+          echo "OUTPUTS_PREFIX=$(yaml2json "$config_file" | jq -r '.infra.outputs_prefix')" >> $GITHUB_ENV
+          echo "REPO=$(yaml2json "$config_file" | jq -r '.infra.repo')" >> $GITHUB_ENV
 
       - name: Load Environment Variables
         id: load-env-vars
