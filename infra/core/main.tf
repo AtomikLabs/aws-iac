@@ -1,3 +1,13 @@
+terraform {
+  backend "s3" {
+    bucket         = "atomiklabs-infra-config-bucket"
+    key            = "terraform/terraform.state"
+    aws_region     = "us-east-1"
+    dynamodb_table = "atomiklabs-terraform-locks"
+    encrypt        = true
+  }
+}
+
 locals {
   # AWS CONFIGURATION
   account_id = data.aws_caller_identity.current.account_id
@@ -29,16 +39,6 @@ locals {
     Environment = local.environment
     Region      = local.aws_region
     Application = local.name
-  }
-}
-
-terraform {
-  backend "s3" {
-    bucket         = var.infra_config_bucket
-    key            = var.infra_config_prefix
-    aws_region     = var.aws_region
-    dynamodb_table = var.backend_dynamodb_table
-    encrypt        = true
   }
 }
 
