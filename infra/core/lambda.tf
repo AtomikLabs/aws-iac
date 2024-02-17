@@ -18,7 +18,7 @@ resource "aws_iam_role" "lambda_execution_role" {
 resource "aws_lambda_function" "fetch_daily_summaries" {
   function_name = "${local.environment}-fetch_daily_summaries"
   package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.repo.repository_url}:fetch_daily_summaries-latest"
+  image_uri     = "${aws_ecr_repository.repo.repository_url}:${local.fetch_daily_summaries_image_tag}"
   role          = aws_iam_role.lambda_execution_role.arn
   timeout       = 900
   memory_size   = 128

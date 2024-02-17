@@ -42,3 +42,8 @@ output "aws_s3_bucket_atomiklabs_data_bucket_arn" {
   value       = aws_s3_bucket.atomiklabs_data_bucket.arn
   description = "The Amazon Resource Name (ARN) that identifies the bucket."
 }
+
+output "aws_lambda_function_fetch_daily_summaries_arn" {
+  value       = aws_lambda_function.fetch_daily_summaries.arn
+  description = "The Amazon Resource Name (ARN) that identifies the fetch daily summaries Lambda function."
+}
