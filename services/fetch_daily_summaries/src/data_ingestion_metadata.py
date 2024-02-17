@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 import boto3
 import structlog
@@ -35,27 +35,45 @@ class DataIngestionMetadata:
     DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
     S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
-    uuid = uuid.uuid4()
+    app_name: str
+    date_time: str
+    data_source: str
+    database_name: str
+    environment: str
+    error_message: str
+    function_name: str
+    ingestion_job_uuid: uuid.UUID
+    metadata_bucket: str
+    original_data_format: str
+    raw_data_bucket: str
+    raw_data_key: str
+    size_of_data_downloaded: int
+    status: str
+    stored_data_format: str
+    table_name: str
+    triggered_functions: list
+    uri: str
 
-    def __init__(self, **kwargs):
-        self.app_name = kwargs.get("app_name")
-        self.data_source = kwargs.get("data_source")
-        self.date_time = kwargs.get("date_time") or datetime.now(timezone.utc).strftime(self.DATETIME_FORMAT)
-        self.database_name = kwargs.get("database_name")
-        self.environment = kwargs.get("environment")
-        self.error_message = kwargs.get("error_message")
-        self.function_name = kwargs.get("function_name")
-        self.ingestion_job_uuid = kwargs.get("ingestion_job_uuid")
-        self.metadata_bucket = kwargs.get("metadata_bucket")
-        self.original_data_format = kwargs.get("original_data_format")
-        self.raw_data_bucket = kwargs.get("raw_data_bucket")
-        self.raw_data_key = kwargs.get("raw_data_key")
-        self.size_of_data_downloaded = kwargs.get("size_of_data_downloaded")
-        self.status = kwargs.get("status")
-        self.stored_data_format = kwargs.get("stored_data_format")
-        self.table_name = kwargs.get("table_name")
-        self.triggered_functions = kwargs.get("triggered_functions")
-        self.uri = kwargs.get("uri")
+    def __init__(self):
+        self.ingestion_job_uuid = uuid.uuid4()
+        self.app_name = ""
+        self.date_time = datetime.now().strftime(self.DATETIME_FORMAT)
+        self.data_source = ""
+        self.database_name = ""
+        self.environment = ""
+        self.error_message = ""
+        self.function_name = ""
+        self.location_raw_data_saved = ""
+        self.metadata_bucket = ""
+        self.original_data_format = ""
+        self.raw_data_bucket = ""
+        self.raw_data_key = ""
+        self.size_of_data_downloaded = 0
+        self.status = ""
+        self.stored_data_format = ""
+        self.table_name = ""
+        self.triggered_functions = []
+        self.uri = ""
 
     @property
     def app_name(self) -> str:
@@ -72,13 +90,13 @@ class DataIngestionMetadata:
         return self._date_time
 
     @date_time.setter
-    def date_time(self, date_time: datetime):
+    def date_time(self, date_time):
         if not isinstance(date_time, datetime) and not isinstance(date_time, str):
             raise ValueError("date_time must be a datetime or a string")
         if isinstance(date_time, datetime):
-            self.date_time.strftime(self.DATETIME_FORMAT)
+            self._date_time = date_time.strftime(self.DATETIME_FORMAT)
         else:
-            self.date_time = date_time
+            self._date_time = date_time
 
     @property
     def data_source(self) -> str:
@@ -131,13 +149,13 @@ class DataIngestionMetadata:
         self._function_name = function_name
 
     @property
-    def ingestion_job_uuid(self) -> str:
+    def ingestion_job_uuid(self) -> uuid.UUID:
         return self._ingestion_job_uuid
 
     @ingestion_job_uuid.setter
-    def ingestion_job_uuid(self, ingestion_job_uuid: str):
-        if not isinstance(ingestion_job_uuid, str):
-            raise ValueError("ingestion_job_uuid must be a string")
+    def ingestion_job_uuid(self, ingestion_job_uuid: uuid.UUID):
+        if not isinstance(ingestion_job_uuid, uuid.UUID):
+            raise ValueError("ingestion_job_uuid must be a uuid")
         self._ingestion_job_uuid = ingestion_job_uuid
 
     @property
@@ -195,9 +213,9 @@ class DataIngestionMetadata:
         return self._size_of_data_downloaded
 
     @size_of_data_downloaded.setter
-    def size_of_data_downloaded(self, size_of_data_downloaded: str):
-        if not isinstance(size_of_data_downloaded, str):
-            raise ValueError("size_of_data_downloaded must be a string")
+    def size_of_data_downloaded(self, size_of_data_downloaded: int):
+        if not isinstance(size_of_data_downloaded, int):
+            raise ValueError("size_of_data_downloaded must be an integer")
         self._size_of_data_downloaded = size_of_data_downloaded
 
     @property
@@ -250,6 +268,24 @@ class DataIngestionMetadata:
             raise ValueError("uri must be a string")
         self._uri = uri
 
+    def validate(self) -> bool:
+        """
+        Validate the metadata against the schema of the table.
+
+        Returns:
+            bool: True if the metadata is valid, False otherwise.
+        """
+        logger.info("Validating data ingestion metadata", method=VALIDATE)
+        if not self.database_name or not self.table_name:
+            logger.error("Database name and table name must be set", method=VALIDATE)
+            raise ValueError("Database name and table name must be set")
+        table_schema = self.get_schema(self.database_name, self.table_name)
+        for column in table_schema["StorageDescriptor"]["Columns"]:
+            if not hasattr(self, column["Name"]):
+                logger.error(f"Metadata is missing attribute {column['Name']}")
+                return False
+        return True
+
     def get_schema(self, database_name: str, table_name: str) -> dict:
         """
         Get the schema of the table from the AWS Glue Data Catalog.
@@ -277,24 +313,6 @@ class DataIngestionMetadata:
             response=response,
         )
         return response["Table"]
-
-    def validate(self, table_schema: dict) -> bool:
-        """
-        Validate the metadata against the schema of the table.
-
-        Args:
-            table_schema (dict): The schema of the table.
-
-        Returns:
-            bool: True if the metadata is valid, False otherwise.
-        """
-        logger.info("Validating data ingestion metadata", method=VALIDATE)
-        for column in table_schema["StorageDescriptor"]["Columns"]:
-            if not hasattr(self, column["Name"]):
-                logger.error(f"Metadata is missing attribute {column['Name']}")
-                return False
-
-        return True
 
     def write(self) -> None:
         """

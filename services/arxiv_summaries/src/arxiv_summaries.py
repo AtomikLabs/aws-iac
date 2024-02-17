@@ -1057,7 +1057,7 @@ def run_aws_test():
     print(f"Earliest: {earliest}")
     # date_list = generate_date_list(earliest, today)
     date_list = [datetime.today().date()]
-    for i in range(1, 4):
+    for i in range(1, 2):
         date_list.append(datetime.today().date() - timedelta(days=i))
     print(f"Date List: {date_list}")
     xml_data_list = fetch_data(BASE_URL, earliest, SUMMARY_SET)
