@@ -8,30 +8,39 @@ terraform {
   }
 }
 
-data "aws_availability_zones" "available" {}
-data "aws_caller_identity" "current" {}
-data "aws_partition" "current" {}
-
 locals {
+  # AWS CONFIGURATION
+  account_id = data.aws_caller_identity.current.account_id
+  partition  = data.aws_partition.current.partition
+  
+  # INFRASTRUCTURE CONFIGURATION
+  aws_region                      = var.aws_region
+  backend_dynamodb_table          = var.backend_dynamodb_table
   environment                     = var.environment
   fetch_daily_summaries_image_tag = var.fetch_daily_summaries_image_tag
   iam_user_name                   = var.iam_user_name
+  infra_config_bucket             = var.infra_config_bucket
+  infra_config_prefix             = var.infra_config_prefix
   name                            = var.name
-  region                          = var.region
+  outputs_prefix                  = var.outputs_prefix
+  repo                            = var.repo
+  
+  # DATA INGESTION CONFIGURATION
+  arxiv_base_url                          = var.arxiv_base_url
+  max_daily_summary_fetch_attempts        = 10
+  arxiv_summary_set                       = var.arxiv_summary_set
 
-  arxiv_base_url = "http://export.arxiv.org/oai2"
-  data_ingestion_metadata_key_prefix = "data_ingestion_metadata"
-  max_daily_summary_fetch_attempts  = 10
-  summary_set                       = "cs"
-
-  account_id = data.aws_caller_identity.current.account_id
-  partition  = data.aws_partition.current.partition
-
+  # METADATA CONFIGURATION
+  data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
   tags = {
     Blueprint   = local.name
-    GithubRepo  = "github.com/AtomikLabs/atomiklabs"
+    GithubRepo  = local.repo
     Environment = local.environment
-    Region      = local.region
+    Region      = local.aws_region
     Application = local.name
   }
 }
+
+data "aws_availability_zones" "available" {}
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
