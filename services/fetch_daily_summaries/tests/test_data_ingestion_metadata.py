@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from services.fetch_daily_summaries.src.data_ingestion_metadata import DataIngestionMetadata
@@ -92,7 +94,7 @@ def test_set_app_name():
     metadata.app_name = "test_app"
     assert metadata.app_name == "test_app"
     with pytest.raises(ValueError):
-        metadata.app_name = 123
+        metadata.app_name = 123.0
 
 
 def test_set_date_time():
@@ -100,7 +102,7 @@ def test_set_date_time():
     metadata.date_time = "2021-01-01T00:00:00"
     assert metadata.date_time == "2021-01-01T00:00:00"
     with pytest.raises(ValueError):
-        metadata.date_time = 123
+        metadata.date_time = 123.0
 
 
 def test_set_data_source():
@@ -108,7 +110,7 @@ def test_set_data_source():
     metadata.data_source = "test_source"
     assert metadata.data_source == "test_source"
     with pytest.raises(ValueError):
-        metadata.data_source = 123
+        metadata.data_source = 123.0
 
 
 def test_set_database_name():
@@ -116,7 +118,7 @@ def test_set_database_name():
     metadata.database_name = "test_db"
     assert metadata.database_name == "test_db"
     with pytest.raises(ValueError):
-        metadata.database_name = 123
+        metadata.database_name = 123.0
 
 
 def test_set_environment():
@@ -124,7 +126,7 @@ def test_set_environment():
     metadata.environment = "test"
     assert metadata.environment == "test"
     with pytest.raises(ValueError):
-        metadata.environment = 123
+        metadata.environment = 123.0
 
 
 def test_set_error_message():
@@ -132,7 +134,7 @@ def test_set_error_message():
     metadata.error_message = "test_error"
     assert metadata.error_message == "test_error"
     with pytest.raises(ValueError):
-        metadata.error_message = 123
+        metadata.error_message = 123.0
 
 
 def test_set_function_name():
@@ -140,7 +142,7 @@ def test_set_function_name():
     metadata.function_name = "test_function"
     assert metadata.function_name == "test_function"
     with pytest.raises(ValueError):
-        metadata.function_name = 123
+        metadata.function_name = 123.0
 
 
 def test_set_location_raw_data_saved():
@@ -148,7 +150,7 @@ def test_set_location_raw_data_saved():
     metadata.location_raw_data_saved = "test_location"
     assert metadata.location_raw_data_saved == "test_location"
     with pytest.raises(ValueError):
-        metadata.location_raw_data_saved = 123
+        metadata.location_raw_data_saved = 123.0
 
 
 def test_set_metadata_bucket():
@@ -156,7 +158,7 @@ def test_set_metadata_bucket():
     metadata.metadata_bucket = "test_bucket"
     assert metadata.metadata_bucket == "test_bucket"
     with pytest.raises(ValueError):
-        metadata.metadata_bucket = 123
+        metadata.metadata_bucket = 123.0
 
 
 def test_set_original_data_format():
@@ -164,7 +166,7 @@ def test_set_original_data_format():
     metadata.original_data_format = "test_format"
     assert metadata.original_data_format == "test_format"
     with pytest.raises(ValueError):
-        metadata.original_data_format = 123
+        metadata.original_data_format = 123.0
 
 
 def test_set_raw_data_bucket():
@@ -172,7 +174,7 @@ def test_set_raw_data_bucket():
     metadata.raw_data_bucket = "test_bucket"
     assert metadata.raw_data_bucket == "test_bucket"
     with pytest.raises(ValueError):
-        metadata.raw_data_bucket = 123
+        metadata.raw_data_bucket = 123.0
 
 
 def test_set_raw_data_key():
@@ -180,13 +182,13 @@ def test_set_raw_data_key():
     metadata.raw_data_key = "test_key"
     assert metadata.raw_data_key == "test_key"
     with pytest.raises(ValueError):
-        metadata.raw_data_key = 123
+        metadata.raw_data_key = 123.0
 
 
 def test_set_size_of_data_downloaded():
     metadata = DataIngestionMetadata()
-    metadata.size_of_data_downloaded = 123
-    assert metadata.size_of_data_downloaded == 123
+    metadata.size_of_data_downloaded = 123.0
+    assert math.isclose(metadata.size_of_data_downloaded, 123.0)
     with pytest.raises(ValueError):
         metadata.size_of_data_downloaded = "test"
 

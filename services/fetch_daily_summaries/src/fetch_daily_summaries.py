@@ -1,16 +1,17 @@
 # Description: Lambda function to fetch daily summaries from arXiv.
 
 import json
-import logging
 import os
 import time
 from datetime import datetime, timedelta
 
-import boto3
 import defusedxml.ElementTree as ET
 import requests
 import structlog
+from requests.adapters import HTTPAdapter
 from src.data_ingestion_metadata import DataIngestionMetadata
+from src.storage_manager import StorageManager
+from urllib3.util.retry import Retry
 
 structlog.configure(
     [
@@ -26,17 +27,17 @@ structlog.configure(
 logger = structlog.get_logger()
 BACKOFF_TIMES = [30, 120]
 DAY_SPAN = 5
-S3_STORAGE_PREFIX = "data-ingestion/raw/fetch-daily-summaries/"
 
 # Environment variables
-APP_NAME = "app_name"
-BASE_URL_STR = "base_url"
-ENVIRONMENT_NAME = "environment"
-GLUE_DATABASE_NAME = "glue_database_name"
-GLUE_TABLE_NAME = "glue_table_name"
-S3_BUCKET_NAME = "s3_bucket_name"
-S3_STORAGE_KEY_PREFIX_NAME = "s3_storage_prefix"
-SUMMARY_SET_STR = "summary_set"
+APP_NAME = "APP_NAME"
+ARXIV_BASE_URL = "ARXIV_BASE_URL"
+ENVIRONMENT_NAME = "ENVIRONMENT"
+GLUE_DATABASE_NAME = "GLUE_DATABASE_NAME"
+GLUE_TABLE_NAME = "GLUE_TABLE_NAME"
+MAX_FETCH_ATTEMPTS = "MAX_FETCH_ATTEMPTS"
+S3_BUCKET_NAME = "S3_BUCKET_NAME"
+S3_STORAGE_KEY_PREFIX = "S3_STORAGE_KEY_PREFIX"
+SUMMARY_SET = "SUMMARY_SET"
 
 # Logging constants
 FETCH_DATA = "fetch_daily_summaries.fetch_data"
@@ -60,10 +61,15 @@ def lambda_handler(event: dict, context) -> dict:
     Returns:
         dict: A dict with the status code and body.
     """
+    metadata = DataIngestionMetadata()
+    metadata.date_time = datetime.now()
+    metadata.function_name = context.function_name
     try:
         log_initial_info(event)
 
         config = get_config()
+
+        metadata
 
         metadata = DataIngestionMetadata(
             app_name=config[APP_NAME],
@@ -80,11 +86,14 @@ def lambda_handler(event: dict, context) -> dict:
         metadata.today = today.strftime(DataIngestionMetadata.DATETIME_FORMAT)
         metadata.earliest = earliest.strftime(DataIngestionMetadata.DATETIME_FORMAT)
 
-        xml_data_list = fetch_data(config.get(BASE_URL_STR), earliest, config.get(SUMMARY_SET_STR), metadata)
+        xml_data_list = fetch_data(
+            config.get(ARXIV_BASE_URL), earliest, config.get(SUMMARY_SET), config.get(MAX_FETCH_ATTEMPTS), metadata
+        )
 
         metadata.raw_data_key = get_storage_key(config)
         content_str = json.dumps(xml_data_list)
-        persist_to_s3(content_str, metadata)
+        storage_manager = StorageManager(metadata.metadata_bucket, logger)
+        storage_manager.persist(metadata.raw_data_key, content_str)
 
         logger.info("Fetching arXiv summaries succeeded", method=LAMBDA_HANDLER, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
@@ -111,14 +120,15 @@ def get_config() -> dict:
     """
     try:
         config = {
-            APP_NAME: os.environ["APP_NAME"],
-            BASE_URL_STR: "http://export.arxiv.org/oai2",
-            ENVIRONMENT_NAME: os.environ["ENVIRONMENT"],
-            GLUE_DATABASE_NAME: os.environ["GLUE_DATABASE_NAME"],
-            GLUE_TABLE_NAME: os.environ["GLUE_TABLE_NAME"],
-            S3_BUCKET_NAME: os.environ["S3_BUCKET_NAME"],
-            S3_STORAGE_KEY_PREFIX_NAME: os.environ.get("S3_STORAGE_KEY_PREFIX", S3_STORAGE_PREFIX),
-            SUMMARY_SET_STR: "cs",
+            APP_NAME: os.environ[APP_NAME],
+            ARXIV_BASE_URL: os.environ[ARXIV_BASE_URL],
+            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
+            GLUE_DATABASE_NAME: os.environ[GLUE_DATABASE_NAME],
+            GLUE_TABLE_NAME: os.environ[GLUE_TABLE_NAME],
+            MAX_FETCH_ATTEMPTS: int(os.environ[MAX_FETCH_ATTEMPTS]),
+            S3_BUCKET_NAME: os.environ[S3_BUCKET_NAME],
+            S3_STORAGE_KEY_PREFIX: os.environ[S3_STORAGE_KEY_PREFIX],
+            SUMMARY_SET: os.environ[SUMMARY_SET],
         }
         logger.debug("Config", method=GET_CONFIG, config=config)
     except KeyError as e:
@@ -148,91 +158,80 @@ def log_initial_info(event: dict) -> None:
     logger.debug("Event received", method=LOG_INITIAL_INFO, trigger_event=event)
 
 
-def fetch_data(base_url: str, from_date: str, set: str, metadata: DataIngestionMetadata) -> list:
+def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int, metadata: DataIngestionMetadata) -> list:
     """
     Fetches data from arXiv.
 
     Args:
-        base_url (str): Base URL.
-        from_date (str): From date.
-        set (str): Set.
-        metadata (DataIngestionMetadata): Metadata.
+        base_url (str): The base URL.
+        from_date (str): The from date.
+        set (str): The set.
+        max_fetches (int): The maximum number of fetches.
+        metadata (DataIngestionMetadata): The metadata.
 
     Returns:
-        list: List of XML responses.
+        list: A list of XML data.
 
     Raises:
-        ValueError: If base URL is not provided.
-        ValueError: If from date is not provided.
-        ValueError: If set is not provided.
-        ValueError: If metadata is not provided.
+        ValueError: If base_url, from_date, set, or metadata are not provided.
     """
-    if not base_url:
-        logger.error("Base URL is required", method=FETCH_DATA)
-        raise ValueError("Base URL is required")
+    if not base_url or not from_date or not set or not metadata:
+        error_msg = "Base URL, from date, set, and metadata are required"
+        logger.error(error_msg, method=FETCH_DATA)
+        raise ValueError(error_msg)
 
-    if not from_date:
-        logger.error("From date is required", method=FETCH_DATA)
-        raise ValueError("From date is required")
+    session = configure_request_retries()
 
-    if not set:
-        logger.error("Set is required", method=FETCH_DATA)
-        raise ValueError("Set is required")
-
-    if not metadata:
-        logger.error("Metadata is required", method=FETCH_DATA)
-        raise ValueError("Metadata is required")
-
-    backoff_times = BACKOFF_TIMES.copy()
-    full_xml_responses = []
     params = {"verb": "ListRecords", "set": set, "metadataPrefix": "oai_dc", "from": from_date}
-    retries = 0
-    while retries < len(BACKOFF_TIMES):
-        try:
-            logger.info(
-                "Fetching data from arXiv",
-                method=FETCH_DATA,
-                base_url=base_url,
-                params=params,
-                retries=retries,
-                backoff_times=backoff_times,
-            )
-            response = requests.get(base_url, params=params, timeout=60)
-            metadata.uri = response.request.url
-            metadata.size_of_data_downloaded = str(calculate_mb(len(response.content))) + " MB"
+    full_xml_responses = []
+    fetch_attempts = 0
+    max_fetch_attempts = max_fetches
+
+    try:
+        while fetch_attempts < max_fetch_attempts:
+            response = session.get(base_url, params=params, timeout=(10, 30))
             response.raise_for_status()
+            metadata.uri = response.request.url
+            metadata.size_of_data_downloaded = calculate_mb(len(response.content))
             full_xml_responses.append(response.text)
+
             root = ET.fromstring(response.content)
             resumption_token_element = root.find(".//{http://www.openarchives.org/OAI/2.0/}resumptionToken")
-
             if resumption_token_element is not None and resumption_token_element.text:
-                logger.debug(
-                    "Resumption token found", method=FETCH_DATA, resumption_token=resumption_token_element.text
-                )
-                time.sleep(5)
                 params = {"verb": "ListRecords", "resumptionToken": resumption_token_element.text}
-                retries += 1
+                fetch_attempts += 1
             else:
                 break
+    except requests.exceptions.RequestException as e:
+        logger.exception("Error occurred while fetching data from arXiv", method=FETCH_DATA, error=str(e))
+        raise
 
-        except requests.exceptions.HTTPError as e:
-            logger.exception("Error occurred while fetching data from arXiv", method=FETCH_DATA, error=str(e))
+    if fetch_attempts == max_fetch_attempts:
+        logger.warning("Reached maximum fetch attempts without completing data retrieval", method=FETCH_DATA)
 
-            if response.status_code == 503:
-                backoff_time = response.headers.get("Retry-After", backoff_times.pop(0) if backoff_times else None)
-                if backoff_time is None:
-                    logger.exception("Exhausted all backoff times", method=FETCH_DATA)
-                    break
-                logger.warning("Retrying after backoff time", method=FETCH_DATA, backoff_time=backoff_time)
-                time.sleep(int(backoff_time))
-            else:
-                break
-
-        except Exception as e:
-            logging.exception("Error occurred while fetching data from arXiv", method=FETCH_DATA, error=str(e))
-            break
-    logger.info("Fetched data from arXiv", method=FETCH_DATA, full_xml_responses=full_xml_responses)
+    logger.info("Fetched data from arXiv successfully", method=FETCH_DATA, num_xml_responses=len(full_xml_responses))
     return full_xml_responses
+
+
+def configure_request_retries() -> requests.Session:
+    """
+    Configures request retries.
+
+    Returns:
+        requests.Session: The session.
+    """
+    session = requests.Session()
+    retries = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[503],
+        respect_retry_after_header=True,
+        allowed_methods=frozenset(["GET"]),
+        raise_on_status=False,
+    )
+    session.mount("http://", HTTPAdapter(max_retries=retries))
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+    return session
 
 
 def calculate_mb(size: int) -> float:
@@ -266,53 +265,6 @@ def get_storage_key(config: dict) -> str:
         raise ValueError("Config is required")
 
     key_date = time.strftime(DataIngestionMetadata.S3_KEY_DATE_FORMAT)
-    key = f"{config.get(S3_STORAGE_KEY_PREFIX_NAME)}/{key_date}.json"
+    key = f"{config.get(S3_STORAGE_KEY_PREFIX)}/{key_date}.json"
     logger.info("Storage key", method=GET_STORAGE_KEY, key=key)
     return key
-
-
-def persist_to_s3(content: str, metadata: DataIngestionMetadata) -> None:
-    """
-    Persists the given content to S3.
-
-    Args:
-        bucket_name (str): The s3 data bucket name.
-        key (str): The s3 storage key.
-        content (str): The raw XML responses from arXiv.
-        metadata (DataIngestionMetadata): The data ingestion metadata.
-
-    Raises:
-        ValueError: If bucket name is not provided.
-        ValueError: If key is not provided.
-        ValueError: If content is not provided.
-    """
-    if not metadata.raw_data_bucket:
-        logger.error("Bucket name is required", method=PERSIST_TO_S3)
-        raise ValueError("Bucket name is required")
-
-    if not metadata.raw_data_key:
-        logger.error("Key is required", method=PERSIST_TO_S3)
-        raise ValueError("Key is required")
-
-    if not content:
-        logger.error("Content is required", method=PERSIST_TO_S3)
-        raise ValueError("Content is required")
-
-    try:
-        s3 = boto3.resource("s3")
-        s3.Bucket(metadata.raw_data_bucket).put_object(Key=metadata.raw_data_key, Body=content)
-        logger.info(
-            "Persisting content to S3",
-            method=PERSIST_TO_S3,
-            bucket_name=metadata.raw_data_bucket,
-            key=metadata.raw_data_key,
-        )
-    except Exception as e:
-        logger.exception(
-            "Failed to persist content to S3",
-            method=PERSIST_TO_S3,
-            bucket_name=metadata.raw_data_bucket,
-            key=metadata.raw_data_key,
-            error=str(e),
-        )
-        raise e

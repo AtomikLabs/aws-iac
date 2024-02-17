@@ -19,7 +19,10 @@ locals {
   name                            = var.name
   region                          = var.region
 
+  arxiv_base_url = "http://export.arxiv.org/oai2"
   data_ingestion_metadata_key_prefix = "data_ingestion_metadata"
+  max_daily_summary_fetch_attempts  = 10
+  summary_set                       = "cs"
 
   account_id = data.aws_caller_identity.current.account_id
   partition  = data.aws_partition.current.partition

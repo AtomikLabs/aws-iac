@@ -47,7 +47,7 @@ class DataIngestionMetadata:
     original_data_format: str
     raw_data_bucket: str
     raw_data_key: str
-    size_of_data_downloaded: int
+    size_of_data_downloaded: float
     status: str
     stored_data_format: str
     table_name: str
@@ -68,7 +68,7 @@ class DataIngestionMetadata:
         self.original_data_format = ""
         self.raw_data_bucket = ""
         self.raw_data_key = ""
-        self.size_of_data_downloaded = 0
+        self.size_of_data_downloaded = 0.0
         self.status = ""
         self.stored_data_format = ""
         self.table_name = ""
@@ -209,13 +209,13 @@ class DataIngestionMetadata:
         self._raw_data_key = raw_data_key
 
     @property
-    def size_of_data_downloaded(self) -> str:
+    def size_of_data_downloaded(self) -> float:
         return self._size_of_data_downloaded
 
     @size_of_data_downloaded.setter
-    def size_of_data_downloaded(self, size_of_data_downloaded: int):
-        if not isinstance(size_of_data_downloaded, int):
-            raise ValueError("size_of_data_downloaded must be an integer")
+    def size_of_data_downloaded(self, size_of_data_downloaded: float):
+        if not isinstance(size_of_data_downloaded, float):
+            raise ValueError("size_of_data_downloaded must be a float")
         self._size_of_data_downloaded = size_of_data_downloaded
 
     @property
