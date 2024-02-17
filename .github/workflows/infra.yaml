@@ -28,12 +28,18 @@ jobs:
       - name: Load Environment Variables
         id: load-env-vars
         run: |
-          env_file="infra/core/environments/env.${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}.json"
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            ENV_NAME=$(echo "${{ github.base_ref }}" | tr '/' '-')
+          else
+            ENV_NAME=$(echo "${{ github.ref_name }}" | tr '/' '-')
+          fi
+          echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
+          env_file="infra/core/environments/env.$ENV_NAME.json"
           echo "ENV_FILE=$env_file" >> $GITHUB_ENV
           echo "::set-output name=env_file::$env_file"
           iam_user_name=$(jq -r '.iam_user_name' $env_file)
           echo "IAM_USER_NAME=$iam_user_name" >> $GITHUB_ENV
-          echo "REGION=${{ secrets.AWS_REGION }}"
+          echo "REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
 
       - name: Set AWS Credentials Based on Environment
         run: |
@@ -43,9 +49,12 @@ jobs:
           elif [ "$ENV_NAME" == "stage" ]; then
             echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          else # Default to dev
+          elif [ "$ENV_NAME" == "dev" ]; then
             echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          else
+            echo "Invalid environment name: $ENV_NAME"
+            exit 1
           fi
 
       - name: Configure AWS credentials
@@ -119,3 +128,11 @@ jobs:
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
           TF_VAR_region: ${{ env.region }}
+
+      - name: Save Terraform Outputs
+        run: |
+          # Generate Terraform outputs as a JSON file
+          terraform output -json > terraform_outputs.json
+          # Upload Terraform outputs to S3 bucket with environment-based naming
+          aws s3 cp terraform_outputs.json s3://atomiklabs-infra-config-bucket/terraform-outputs/${{ env.ENV_NAME }}-terraform-outputs.json
+        working-directory: ./infra/core
