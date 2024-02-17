@@ -5,12 +5,12 @@ from services.fetch_daily_summaries.src.data_ingestion_metadata import DataInges
 
 @pytest.fixture
 def mock_boto3(mocker):
-    return mocker.patch('boto3.client')
+    return mocker.patch("boto3.client")
 
 
 @pytest.fixture
 def mock_logger(mocker):
-    return mocker.patch('services.fetch_daily_summaries.src.data_ingestion_metadata.logger')
+    return mocker.patch("services.fetch_daily_summaries.src.data_ingestion_metadata.logger")
 
 
 def test_get_schema(mock_boto3, mock_logger):
@@ -47,7 +47,7 @@ def valid_table_schema():
 
 
 def test_validate_success(metadata_instance, valid_table_schema, mocker):
-    mocker.patch.object(metadata_instance, 'get_schema', return_value=valid_table_schema)
+    mocker.patch.object(metadata_instance, "get_schema", return_value=valid_table_schema)
 
     assert metadata_instance.validate(), "Validation should pass with a matching schema"
 
@@ -60,14 +60,14 @@ def test_validate_failure_missing_attribute(metadata_instance, mocker):
             ]
         }
     }
-    mocker.patch.object(metadata_instance, 'get_schema', return_value=invalid_table_schema)
+    mocker.patch.object(metadata_instance, "get_schema", return_value=invalid_table_schema)
 
     assert not metadata_instance.validate(), "Validation should fail due to missing attribute"
 
 
 def test_validate_error_no_database_or_table_name(mocker):
     metadata = DataIngestionMetadata()
-    mocker.patch('services.fetch_daily_summaries.src.data_ingestion_metadata.logger')
+    mocker.patch("services.fetch_daily_summaries.src.data_ingestion_metadata.logger")
 
     with pytest.raises(ValueError, match="Database name and table name must be set"):
         metadata.validate()
