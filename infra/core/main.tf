@@ -13,11 +13,16 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 locals {
+  environment                     = var.environment
+  fetch_daily_summaries_image_tag = var.fetch_daily_summaries_image_tag
+  iam_user_name                   = var.iam_user_name
   name                            = var.name
   region                          = var.region
-  environment                     = var.environment
-  iam_user_name                   = var.iam_user_name
-  fetch_daily_summaries_image_tag = var.fetch_daily_summaries_image_tag
+
+  arxiv_base_url = "http://export.arxiv.org/oai2"
+  data_ingestion_metadata_key_prefix = "data_ingestion_metadata"
+  max_daily_summary_fetch_attempts  = 10
+  summary_set                       = "cs"
 
   account_id = data.aws_caller_identity.current.account_id
   partition  = data.aws_partition.current.partition

@@ -47,7 +47,7 @@ resource "aws_glue_catalog_table" "data_ingestion_metadata_table" {
   }
 
   storage_descriptor {
-    location      = "s3://${aws_s3_bucket.atomiklabs_data_bucket.id}/data_ingestion_metadata/"
+    location      = "s3://${aws_s3_bucket.atomiklabs_data_bucket.id}/${local.data_ingestion_metadata_key_prefix}/"
     input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
     ser_de_info {
@@ -83,10 +83,6 @@ resource "aws_glue_catalog_table" "data_ingestion_metadata_table" {
       type = "bigint"
     }
     columns {
-      name = "location_raw_data_saved"
-      type = "string"
-    }
-    columns {
       name = "ingestion_job_uuid"
       type = "string"
     }
@@ -100,6 +96,26 @@ resource "aws_glue_catalog_table" "data_ingestion_metadata_table" {
     }
     columns {
       name = "triggered_functions"
+      type = "string"
+    }
+    columns {
+      name = "original_data_format"
+      type = "string"
+    }
+    columns {
+      name = "stored_data_format"
+      type = "string"
+    }
+    columns {
+      name = "data_source"
+      type = "string"
+    }
+    columns {
+      name = "raw_data_bucket"
+      type = "string"
+    }
+    columns {
+      name = "raw_data_key"
       type = "string"
     }
   }
