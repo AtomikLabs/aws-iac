@@ -32,8 +32,6 @@ jobs:
           config_file=".atomiklabs.json"
           echo "ARXIV_BASE_URL=$(jq -r '.data_ingestion.arxiv_base_url' "$config_file")" >> $GITHUB_ENV
           echo "ARXIV_SUMMARY_SET=$(jq -r '.data_ingestion.arxiv_summary_set' "$config_file")" >> $GITHUB_ENV
-          arxiv_summary_sets=$(jq -r '.data_ingestion.arxiv_summary_sets | join(" ")' "$config_file")
-          echo "ARXIV_SUMMARY_SETS=$arxiv_summary_sets" >> $GITHUB_ENV
           echo "AWS_REGION=$(jq -r '.infra.terraform_aws_region' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_METADATA_KEY_PREFIX=$(jq -r '.metadata.data_ingestion_metadata_key_prefix' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
@@ -135,7 +133,6 @@ jobs:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
           TF_VAR_arxiv_base_url: ${{ env.ARXIV_BASE_URL }}
           TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
-          TF_VAR_arxiv_summary_sets: ${{ env.ARXIV_SUMMARY_SETS }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
@@ -154,7 +151,6 @@ jobs:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
           TF_VAR_arxiv_base_url: ${{ env.ARXIV_BASE_URL }}
           TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
-          TF_VAR_arxiv_summary_sets: ${{ env.ARXIV_SUMMARY_SETS }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}

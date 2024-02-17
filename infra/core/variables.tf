@@ -9,11 +9,6 @@ variable "arxiv_summary_set" {
   default     = "cs"
 }
 
-variable "arxiv_summary_sets" {
-  description = "arXiv summary sets to fetch"
-  type        = list(string)
-}
-
 variable "aws_region" {
   description = "AWS region to deploy the infrastructure"
   type        = string
