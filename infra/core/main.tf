@@ -17,7 +17,6 @@ locals {
   aws_region                      = var.aws_region
   backend_dynamodb_table          = var.backend_dynamodb_table
   environment                     = var.environment
-  fetch_daily_summaries_image_tag = var.fetch_daily_summaries_image_tag
   iam_user_name                   = var.iam_user_name
   infra_config_bucket             = var.infra_config_bucket
   infra_config_prefix             = var.infra_config_prefix
@@ -27,8 +26,9 @@ locals {
   
   # DATA INGESTION CONFIGURATION
   arxiv_base_url                          = var.arxiv_base_url
-  max_daily_summary_fetch_attempts        = 10
   arxiv_summary_set                       = var.arxiv_summary_set
+  fetch_daily_summaries_image_tag         = var.fetch_daily_summaries_image_tag
+  max_daily_summary_fetch_attempts        = 10
 
   # METADATA CONFIGURATION
   data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix

@@ -13,7 +13,8 @@
     {
       "arxiv_base_url": "http://export.arxiv.org/oai2",
       "arxiv_summary_set": "cs",
-      "arxiv_summary_sets": ["cs"]
+      "arxiv_summary_sets": ["cs"],
+      "fetch_daily_summaries_image_tag": "fetch_daily_summaries-latest"
     },
   "metadata":
     { "data_ingestion_metadata_key_prefix": "data_ingestion_metadata" }

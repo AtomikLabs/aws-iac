@@ -34,7 +34,6 @@ variable "environment" {
 variable "fetch_daily_summaries_image_tag" {
   description = "Fetch daily summaries image tag"
   type        = string
-  default     = "latest"
 }
 
 variable "iam_user_name" {
