@@ -34,10 +34,10 @@ locals {
 
 terraform {
   backend "s3" {
-    bucket         = local.infra_config_bucket
-    key            = local.infra_config_prefix
-    aws_region     = local.aws_region
-    dynamodb_table = local.backend_dynamodb_table
+    bucket         = var.infra_config_bucket
+    key            = var.infra_config_prefix
+    aws_region     = var.aws_region
+    dynamodb_table = var.backend_dynamodb_table
     encrypt        = true
   }
 }
