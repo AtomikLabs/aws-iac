@@ -28,6 +28,7 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
       APP_NAME    = local.name
       ARXIV_BASE_URL = local.arxiv_base_url
       ENVIRONMENT = local.environment
+      data_ingestion_metadata_key_prefix = local.data_ingestion_metadata_key_prefix
       GLUE_DATABASE_NAME = aws_glue_catalog_database.data_catalog_database.name
       GLUE_TABLE_NAME    = aws_glue_catalog_table.data_ingestion_metadata_table.name
       MAX_FETCH_ATTEMPTS = local.max_daily_summary_fetch_attempts

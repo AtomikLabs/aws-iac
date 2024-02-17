@@ -1,3 +1,8 @@
+variable "arxiv_base_url" {
+  description = "arXiv base URL"
+  type        = string
+}
+
 variable "arxiv_summary_set" {
   description = "arXiv summary set to fetch"
   type        = string
@@ -17,6 +22,11 @@ variable "aws_region" {
 
 variable "backend_dynamodb_table" {
   description = "DynamoDB table name for Terraform state"
+  type        = string
+}
+
+variable "data_ingestion_metadata_key_prefix" {
+  description = "Prefix for the data ingestion metadata"
   type        = string
 }
 

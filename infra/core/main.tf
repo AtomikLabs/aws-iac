@@ -26,13 +26,13 @@ locals {
   repo                            = var.repo
   
   # DATA INGESTION CONFIGURATION
-  arxiv_base_url = "http://export.arxiv.org/oai2"
-  max_daily_summary_fetch_attempts  = 10
+  arxiv_base_url                          = var.arxiv_base_url
+  max_daily_summary_fetch_attempts        = 10
   arxiv_summary_set                       = var.arxiv_summary_set
   arxiv_summary_sets                      = var.arxiv_summary_sets
 
   # METADATA CONFIGURATION
-  data_ingestion_metadata_key_prefix = "data_ingestion_metadata"
+  data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
   tags = {
     Blueprint   = local.name
     GithubRepo  = local.repo
