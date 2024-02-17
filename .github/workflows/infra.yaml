@@ -17,15 +17,36 @@ on:
       - "infra/**"
       - ".github/workflows/infra.yaml"
 
-env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-
 jobs:
   core_infra:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Load AtomikLabs config
+        id: load-config
+        run: |
+          config_file=".atomiklabs.yaml"
+          arxiv_summary_set=$(yaml2json "$config_file" | jq -r '.data_ingestion.arxiv_summary_set')
+          arxiv_summary_sets=$(yq eval '.data_ingestion.arxiv_summary_sets | join(" ")' "$config_file")
+          aws_region=$(yaml2json "$config_file" | jq -r '.infra.aws_region')
+          infra_config_bucket=$(yaml2json "$yaml_file" | jq -r '.infra.infra_config_bucket')
+          infra_config_prefix=$(yaml2json "$yaml_file" | jq -r '.infra.infra_config_prefix')
+          backend_dynamodb_table=$(yaml2json "$yaml_file" | jq -r '.infra.backend_dynamodb_table')
+          outputs_prefix=$(yaml2json "$yaml_file" | jq -r '.infra.outputs_prefix')
+          repo=$(yaml2json "$yaml_file" | jq -r '.infra.repo')
+          echo "ARXIV_SUMMARY_SET=$arxiv_summary_set" >> $GITHUB_ENV
+          echo "::set-env name=ARXIV_SUMMARY_SET::$arxiv_summary_set"
+          echo "AWS_REGION=$aws_region" >> $GITHUB_ENV
+          echo "INFRA_CONFIG_BUCKET=$infra_config_bucket" >> $GITHUB_ENV
+          echo "INFRA_CONFIG_PREFIX=$infra_config_prefix" >> $GITHUB_ENV
+          echo "BACKEND_DYNAMODB_TABLE=$backend_dynamodb_table" >> $GITHUB_ENV
+          echo "OUTPUTS_PREFIX=$outputs_prefix" >> $GITHUB_ENV
+          echo "REPO=$repo" >> $GITHUB_ENV
 
       - name: Load Environment Variables
         id: load-env-vars
@@ -41,7 +62,6 @@ jobs:
           echo "::set-output name=env_file::$env_file"
           iam_user_name=$(jq -r '.iam_user_name' $env_file)
           echo "IAM_USER_NAME=$iam_user_name" >> $GITHUB_ENV
-          echo "REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
 
       - name: Set AWS Credentials Based on Environment
         run: |
@@ -79,7 +99,7 @@ jobs:
       - name: Ensure DynamoDB table exists
         run: |
           TABLE_NAME="atomiklabs-terraform-locks"
-          REGION="${{ secrets.AWS_REGION }}"
+          REGION="${{ env.AWS_REGION }}"
           if aws dynamodb describe-table --table-name $TABLE_NAME 2>&1 | grep -q 'ResourceNotFoundException'; then
             echo "DynamoDB table does not exist. Creating table..."
             aws dynamodb create-table \
@@ -97,9 +117,6 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.0
-
-      - name: Install jq
-        run: sudo apt-get install jq
 
       - name: Set Terraform Variables from Environment File
         run: |
@@ -128,8 +145,15 @@ jobs:
           terraform apply -var-file="../../${{ env.ENV_FILE }}" -auto-approve
         working-directory: ./infra/core
         env:
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-          TF_VAR_region: ${{ env.region }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+          TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
+          TF_VAR_arxiv_summary_sets: ${{ env.ARXIV_SUMMARY_SETS }}
+          TF_VAR_aws_region: ${{ env.AWS_REGION }}
+          TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
+          TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
+          TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
+          TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
+          TF_VAR_repo: ${{ env.REPO }}
 
       - name: Save Terraform Outputs
         run: |

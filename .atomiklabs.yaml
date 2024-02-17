@@ -1,0 +1,19 @@
+version: 1
+
+infra:
+  infra_config_bucket: atomiklabs-infra-config-bucket
+  infra_config_prefix: terraform/terraform.state
+  backend_dynamodb_table: atomiklabs-terraform-locks
+  outputs_prefix: terraform-outputs
+  repo: github.com/AtomikLabs/atomiklabs
+  terraform_aws_region: us-east-1
+
+data_ingestion:
+  arxiv_base_url: http://export.arxiv.org/oai2
+  # deprecate set in favor of sets
+  arxiv_summary_set: cs
+  arxiv_summary_sets:
+    - cs
+
+metadata:
+  data_ingestion_metadata_key_prefix: data_ingestion_metadata
