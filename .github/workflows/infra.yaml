@@ -129,7 +129,7 @@ jobs:
 
       - name: Plan Terraform
         id: plan
-        run: terraform plan -var-file="../../${{ env.ENV_FILE }}" -auto-approve
+        run: terraform plan -var-file="../../${{ env.ENV_FILE }}"
         working-directory: ./infra/core
         env:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
