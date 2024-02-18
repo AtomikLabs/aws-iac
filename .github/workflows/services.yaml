@@ -146,7 +146,6 @@ jobs:
           REPO: ${{ env.REPO }}
           FETCH_DAILY_SUMMARIES_NAME: ${{ steps.read-config.outputs.fetch_daily_summaries_name }}
           FETCH_DAILY_SUMMARIES_VERSION: ${{ steps.read-config.outputs.fetch_daily_summaries_version }}
-          GITHUB_SHA: ${{ github.sha }}
 
       - name: Build, Tag and Push Fetch Daily Summaries Image
         id: build-tag-push-fetch-daily-summaries
@@ -154,13 +153,10 @@ jobs:
           image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}
           docker build -t ${image_name} -f services/fetch-daily-summaries/Dockerfile .
           docker push ${image_name}
-          docker tag ${image_name} $ECR_REPO_URL:${{ github.sha }}
-          docker push $ECR_REPO_URL:${{ github.sha }}
         env:
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
           FETCH_DAILY_SUMMARIES_NAME: ${{ env.FETCH_DAILY_SUMMARIES_NAME}}
           FETCH_DAILY_SUMMARIES_VERSION: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
-          GITHUB_SHA: ${{ github.sha }}
 
       - name: Update Fetch Daily Summaries Lambda Function
         id: update-fetch-daily-summaries
