@@ -42,6 +42,7 @@ class DataIngestionMetadata:
     environment: str
     error_message: str
     function_name: str
+    function_version: str
     ingestion_job_uuid: uuid.UUID
     metadata_bucket: str
     original_data_format: str
@@ -63,6 +64,7 @@ class DataIngestionMetadata:
         self.environment = ""
         self.error_message = ""
         self.function_name = ""
+        self.function_version = ""
         self.location_raw_data_saved = ""
         self.metadata_bucket = ""
         self.original_data_format = ""
@@ -147,6 +149,16 @@ class DataIngestionMetadata:
         if not isinstance(function_name, str):
             raise ValueError("function_name must be a string")
         self._function_name = function_name
+
+    @property
+    def function_version(self) -> str:
+        return self._function_version
+
+    @function_version.setter
+    def function_version(self, function_version: str):
+        if not isinstance(function_version, str):
+            raise ValueError("function_version must be a string")
+        self._function_version = function_version
 
     @property
     def ingestion_job_uuid(self) -> uuid.UUID:

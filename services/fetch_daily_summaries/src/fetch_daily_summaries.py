@@ -76,16 +76,15 @@ def lambda_handler(event: dict, context) -> dict:
             service_version=config[SERVICE_VERSION],
         )
 
-        metadata = DataIngestionMetadata(
-            app_name=config[APP_NAME],
-            date_time=datetime.now(),
-            database_name=config[GLUE_DATABASE_NAME],
-            environment=config[ENVIRONMENT_NAME],
-            function_name=config[SERVICE_NAME],
-            function_version=config[SERVICE_VERSION],
-            raw_data_bucket=config[S3_BUCKET_NAME],
-            table_name=config[GLUE_TABLE_NAME],
-        )
+        metadata = DataIngestionMetadata()
+        metadata.app_name = config[APP_NAME]
+        metadata.date_time = datetime.now()
+        metadata.database_name = config[GLUE_DATABASE_NAME]
+        metadata.environment = config[ENVIRONMENT_NAME]
+        metadata.function_name = config[SERVICE_NAME]
+        metadata.function_version = config[SERVICE_VERSION]
+        metadata.raw_data_bucket = config[S3_BUCKET_NAME]
+        metadata.table_name = config[GLUE_TABLE_NAME]
 
         today = datetime.today().date()
         earliest = today - timedelta(days=DAY_SPAN)

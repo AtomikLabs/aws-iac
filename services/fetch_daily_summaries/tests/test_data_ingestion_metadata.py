@@ -145,6 +145,14 @@ def test_set_function_name():
         metadata.function_name = 123.0
 
 
+def test_set_function_version():
+    metadata = DataIngestionMetadata()
+    metadata.function_version = "test_version"
+    assert metadata.function_version == "test_version"
+    with pytest.raises(ValueError):
+        metadata.function_version = 123.0
+
+
 def test_set_location_raw_data_saved():
     metadata = DataIngestionMetadata()
     metadata.location_raw_data_saved = "test_location"
