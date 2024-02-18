@@ -135,13 +135,20 @@ jobs:
       - name: Check if Image Version Already Exists
         id: check-version
         run: |
-          image_tag="${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}"
-          image_exists=$(aws ecr describe-images --repository-name ${{ env.ENV_NAME }}-repository --image-ids imageTag=${image_tag} --region ${{ env.AWS_REGION }} && echo "true" || echo "false")
-          if [ "$image_exists" = "true" ]; then
+          image_tag="${{ env.ENV_NAME }}-${{ env.FETCH_DAILY_SUMMARIES_NAME }}-${{ env.FETCH_DAILY_SUMMARIES_VERSION }}"
+          set +e  # Disable exit on error
+          image_exists=$(aws ecr describe-images --repository-name ${{ env.ENV_NAME }}-repository --image-ids imageTag=${image_tag} --region ${{ env.AWS_REGION }} 2>&1)
+          result=$?
+          set -e  # Re-enable exit on error
+          if [ $result -eq 0 ]; then
             echo "::error::Image with tag ${image_tag} already exists. Please update the version."
             exit 1
-          else
+          elif echo $image_exists | grep -q 'ImageNotFoundException'; then
             echo "Image tag ${image_tag} does not exist. Proceeding with build and push."
+          else
+            echo "::error::Unexpected error checking image existence: $image_exists"
+            exit 1
+          fi
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
           REPO: ${{ env.REPO }}
