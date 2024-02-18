@@ -145,8 +145,8 @@ jobs:
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
           REPO: ${{ env.REPO }}
-          FETCH_DAILY_SUMMARIES_NAME: ${{ steps.read-config.outputs.fetch_daily_summaries_name }}
-          FETCH_DAILY_SUMMARIES_VERSION: ${{ steps.read-config.outputs.fetch_daily_summaries_version }}
+          FETCH_DAILY_SUMMARIES_NAME: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
+          FETCH_DAILY_SUMMARIES_VERSION: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
 
       - name: Build, Tag and Push Fetch Daily Summaries Image
         id: build-tag-push-fetch-daily-summaries
