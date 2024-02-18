@@ -47,3 +47,8 @@ output "aws_lambda_function_fetch_daily_summaries_arn" {
   value       = aws_lambda_function.fetch_daily_summaries.arn
   description = "The Amazon Resource Name (ARN) that identifies the fetch daily summaries Lambda function."
 }
+
+output "aws_lambda_function_fetch_daily_summaries_name" {
+  value       = aws_lambda_function.fetch_daily_summaries.name
+  description = "The name of the fetch daily summaries Lambda function."
+}

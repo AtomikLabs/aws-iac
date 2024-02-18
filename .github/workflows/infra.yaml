@@ -34,7 +34,8 @@ jobs:
           echo "ARXIV_SUMMARY_SET=$(jq -r '.data_ingestion.arxiv_summary_set' "$config_file")" >> $GITHUB_ENV
           echo "AWS_REGION=$(jq -r '.infra.terraform_aws_region' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_METADATA_KEY_PREFIX=$(jq -r '.metadata.data_ingestion_metadata_key_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "FETCH_DAILY_SUMMARIES_IMAGE_TAG=$(jq -r '.data_ingestion.fetch_daily_summaries_image_tag' "$config_file")" >> $GITHUB_ENV
+          echo "FETCH_DAILY_SUMMARIES_NAME=$(jq -r '.data_ingestion.fetch_daily_summaries_name' "$config_file")" >> $GITHUB_ENV
+          echo "FETCH_DAILY_SUMMARIES_VERSION"=$(jq -r '.data_ingestion.fetch_daily_summaries_version' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
           echo "BACKEND_DYNAMODB_TABLE=$(jq -r '.infra.backend_dynamodb_table' "$config_file")" >> $GITHUB_ENV
@@ -137,7 +138,8 @@ jobs:
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
-          TF_VAR_fetch_daily_summaries_image_tag: ${{ env.FETCH_DAILY_SUMMARIES_IMAGE_TAG }}
+          TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
+          TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
@@ -156,7 +158,8 @@ jobs:
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
-          TF_VAR_fetch_daily_summaries_image_tag: ${{ env.FETCH_DAILY_SUMMARIES_IMAGE_TAG }}
+          TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
+          TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}

@@ -1,6 +1,6 @@
 resource "aws_ecr_repository" "repo" {
   name                 = "${local.environment}-repository"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 }
 
 resource "aws_iam_policy" "ecr_policy" {
