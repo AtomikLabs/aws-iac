@@ -43,6 +43,8 @@ def config():
         "MAX_FETCH_ATTEMPTS": "5",
         "S3_BUCKET_NAME": "testBucket",
         "S3_STORAGE_KEY_PREFIX": "testPrefix",
+        "SERVICE_NAME": "testService",
+        "SERVICE_VERSION": "testVersion",
         "SUMMARY_SET": "cs",
     }
 
@@ -66,6 +68,8 @@ def test_lambda_handler_success(
         "MAX_FETCH_ATTEMPTS": 5,
         "S3_BUCKET_NAME": "testBucket",
         "S3_STORAGE_KEY_PREFIX": "testPrefix",
+        "SERVICE_NAME": "testService",
+        "SERVICE_VERSION": "testVersion",
         "SUMMARY_SET": "cs",
     }
     mock_fetch_data.return_value = ["<xml>sample data</xml>"]
@@ -85,6 +89,8 @@ def test_get_config_with_all_variables_set():
             "MAX_FETCH_ATTEMPTS": "3",
             "S3_BUCKET_NAME": "test_bucket",
             "S3_STORAGE_KEY_PREFIX": "test_prefix",
+            "SERVICE_NAME": "testService",
+            "SERVICE_VERSION": "testVersion",
             "SUMMARY_SET": "test_set",
         },
     ):

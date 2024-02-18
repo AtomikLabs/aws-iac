@@ -15,7 +15,7 @@
       "arxiv_summary_set": "cs",
       "arxiv_summary_sets": ["cs"],
       "fetch_daily_summaries_name": "fetch_daily_summaries",
-      "fetch_daily_summaries_version": "v0.1.0"
+      "fetch_daily_summaries_version": "v0.2.0"
     },
   "metadata":
     { "data_ingestion_metadata_key_prefix": "data_ingestion_metadata" }

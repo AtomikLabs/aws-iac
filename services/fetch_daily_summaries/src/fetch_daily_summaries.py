@@ -37,6 +37,8 @@ GLUE_TABLE_NAME = "GLUE_TABLE_NAME"
 MAX_FETCH_ATTEMPTS = "MAX_FETCH_ATTEMPTS"
 S3_BUCKET_NAME = "S3_BUCKET_NAME"
 S3_STORAGE_KEY_PREFIX = "S3_STORAGE_KEY_PREFIX"
+SERVICE_NAME = "SERVICE_NAME"
+SERVICE_VERSION = "SERVICE_VERSION"
 SUMMARY_SET = "SUMMARY_SET"
 
 # Logging constants
@@ -69,14 +71,20 @@ def lambda_handler(event: dict, context) -> dict:
 
         config = get_config()
 
-        metadata
+        logger.info(
+            "Fetching arXiv daily summaries",
+            method=LAMBDA_HANDLER,
+            service_name=config[SERVICE_NAME],
+            service_version=config[SERVICE_VERSION],
+        )
 
         metadata = DataIngestionMetadata(
             app_name=config[APP_NAME],
             date_time=datetime.now(),
             database_name=config[GLUE_DATABASE_NAME],
             environment=config[ENVIRONMENT_NAME],
-            function_name=context.function_name,
+            function_name=config[SERVICE_NAME],
+            function_version=config[SERVICE_VERSION],
             raw_data_bucket=config[S3_BUCKET_NAME],
             table_name=config[GLUE_TABLE_NAME],
         )
@@ -128,6 +136,8 @@ def get_config() -> dict:
             MAX_FETCH_ATTEMPTS: int(os.environ[MAX_FETCH_ATTEMPTS]),
             S3_BUCKET_NAME: os.environ[S3_BUCKET_NAME],
             S3_STORAGE_KEY_PREFIX: os.environ[S3_STORAGE_KEY_PREFIX],
+            SERVICE_NAME: os.environ[SERVICE_NAME],
+            SERVICE_VERSION: os.environ[SERVICE_VERSION],
             SUMMARY_SET: os.environ[SUMMARY_SET],
         }
         logger.debug("Config", method=GET_CONFIG, config=config)
