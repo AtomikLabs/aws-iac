@@ -55,7 +55,7 @@ def lambda_handler(event: dict, context) -> dict:
     The main entry point for the Lambda function.
 
     Args:
-        event (dict): The event data.
+        event (dict): The event data from AWS.
         context: The context data.
 
     Returns:

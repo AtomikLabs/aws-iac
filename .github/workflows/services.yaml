@@ -158,10 +158,12 @@ jobs:
       - name: Build, Tag and Push Fetch Daily Summaries Image
         id: build-tag-push-fetch-daily-summaries
         run: |
+          aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin 758145997264.dkr.ecr.us-east-1.amazonaws.com
           image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}
           docker build -t ${image_name} -f services/fetch_daily_summaries/Dockerfile .
           docker push ${image_name}
         env:
+          AWS_REGION: ${{ env.AWS_REGION }}
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
           FETCH_DAILY_SUMMARIES_NAME: ${{ env.FETCH_DAILY_SUMMARIES_NAME}}
           FETCH_DAILY_SUMMARIES_VERSION: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
