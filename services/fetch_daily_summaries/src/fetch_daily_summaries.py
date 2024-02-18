@@ -7,9 +7,10 @@ import defusedxml.ElementTree as ET
 import requests
 import structlog
 from requests.adapters import HTTPAdapter
-from data_ingestion_metadata import DataIngestionMetadata
-from storage_manager import StorageManager
 from urllib3.util.retry import Retry
+
+from .data_ingestion_metadata import DataIngestionMetadata
+from .storage_manager import StorageManager
 
 structlog.configure(
     [
