@@ -98,7 +98,7 @@ def lambda_handler(event: dict, context) -> dict:
 
         metadata.raw_data_key = get_storage_key(config)
         content_str = json.dumps(xml_data_list)
-        storage_manager = StorageManager(metadata.metadata_bucket, logger)
+        storage_manager = StorageManager(metadata.raw_data_bucket, logger)
         storage_manager.persist(metadata.raw_data_key, content_str)
 
         logger.info("Fetching arXiv summaries succeeded", method=LAMBDA_HANDLER, status=200, body="Success")
