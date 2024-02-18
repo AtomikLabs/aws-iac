@@ -257,7 +257,7 @@ def calculate_mb(size: int) -> float:
 
 def get_storage_key(config: dict) -> str:
     """
-    Gets the storage key for the S3 bucket.
+    Gets the storage key for the S3 bucket to store the fetched data.
 
     Args:
         config (dict): The config.

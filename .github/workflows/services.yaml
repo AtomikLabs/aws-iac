@@ -159,7 +159,7 @@ jobs:
         id: build-tag-push-fetch-daily-summaries
         run: |
           image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}
-          docker build -t ${image_name} -f services/fetch-daily-summaries/Dockerfile .
+          docker build -t ${image_name} -f services/fetch_daily_summaries/Dockerfile .
           docker push ${image_name}
         env:
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
