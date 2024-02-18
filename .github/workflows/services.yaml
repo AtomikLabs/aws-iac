@@ -89,6 +89,7 @@ jobs:
           fi
 
       - name: Ensure DynamoDB table exists
+        id: ensure-dynamodb-table-exists
         run: |
           TABLE_NAME="atomiklabs-terraform-locks"
           REGION="${{ env.AWS_REGION }}"
