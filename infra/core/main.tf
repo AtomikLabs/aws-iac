@@ -27,7 +27,8 @@ locals {
   # DATA INGESTION CONFIGURATION
   arxiv_base_url                          = var.arxiv_base_url
   arxiv_summary_set                       = var.arxiv_summary_set
-  fetch_daily_summaries_image_tag         = var.fetch_daily_summaries_image_tag
+  fetch_daily_summaries_name              = var.fetch_daily_summaries_name
+  fetch_daily_summaries_version           = var.fetch_daily_summaries_version
   max_daily_summary_fetch_attempts        = 10
 
   # METADATA CONFIGURATION

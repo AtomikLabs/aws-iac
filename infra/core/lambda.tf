@@ -16,9 +16,9 @@ resource "aws_iam_role" "lambda_execution_role" {
 }
 
 resource "aws_lambda_function" "fetch_daily_summaries" {
-  function_name = "${local.environment}-fetch_daily_summaries"
+  function_name = "${local.environment}-${local.fetch_daily_summaries_name}"
   package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.repo.repository_url}:${local.fetch_daily_summaries_image_tag}"
+  image_uri     = "${aws_ecr_repository.repo.repository_url}:${local.environment}-${local.fetch_daily_summaries_name}-${local.fetch_daily_summaries_version}"
   role          = aws_iam_role.lambda_execution_role.arn
   timeout       = 900
   memory_size   = 128
@@ -28,12 +28,14 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
       APP_NAME    = local.name
       ARXIV_BASE_URL = local.arxiv_base_url
       ENVIRONMENT = local.environment
-      data_ingestion_metadata_key_prefix = local.data_ingestion_metadata_key_prefix
+      DATA_INGESTION_METADATA_KEY_PREFIX = local.data_ingestion_metadata_key_prefix
       GLUE_DATABASE_NAME = aws_glue_catalog_database.data_catalog_database.name
       GLUE_TABLE_NAME    = aws_glue_catalog_table.data_ingestion_metadata_table.name
       MAX_FETCH_ATTEMPTS = local.max_daily_summary_fetch_attempts
       S3_BUCKET_NAME   = aws_s3_bucket.atomiklabs_data_bucket.arn
       S3_STORAGE_KEY_PREFIX = local.data_ingestion_metadata_key_prefix
+      SERVICE_VERSION = local.fetch_daily_summaries_version
+      SERVICE_NAME = local.fetch_daily_summaries_name
       SUMMARY_SET = local.arxiv_summary_set
     }  
   }

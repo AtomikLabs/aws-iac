@@ -31,8 +31,13 @@ variable "environment" {
   default     = "dev"
 }
 
-variable "fetch_daily_summaries_image_tag" {
-  description = "Fetch daily summaries image tag"
+variable "fetch_daily_summaries_name" {
+  description = "Fetch daily summaries service name"
+  type        = string
+}
+
+variable "fetch_daily_summaries_version" {
+  description = "Fetch daily summaries service version"
   type        = string
 }
 

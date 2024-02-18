@@ -14,7 +14,8 @@
       "arxiv_base_url": "http://export.arxiv.org/oai2",
       "arxiv_summary_set": "cs",
       "arxiv_summary_sets": ["cs"],
-      "fetch_daily_summaries_image_tag": "fetch_daily_summaries-latest"
+      "fetch_daily_summaries_name": "fetch_daily_summaries",
+      "fetch_daily_summaries_version": "v0.1.0"
     },
   "metadata":
     { "data_ingestion_metadata_key_prefix": "data_ingestion_metadata" }
