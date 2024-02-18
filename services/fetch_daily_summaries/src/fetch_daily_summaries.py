@@ -26,7 +26,7 @@ logger = structlog.get_logger()
 BACKOFF_TIMES = [30, 120]
 DAY_SPAN = 5
 
-# ENVIRONMENT VARIABLES
+# Environment Constants
 APP_NAME = "APP_NAME"
 ARXIV_BASE_URL = "ARXIV_BASE_URL"
 ENVIRONMENT_NAME = "ENVIRONMENT"
@@ -39,7 +39,7 @@ SERVICE_NAME = "SERVICE_NAME"
 SERVICE_VERSION = "SERVICE_VERSION"
 SUMMARY_SET = "SUMMARY_SET"
 
-# LOGGING CONSTANTS
+# Logging Constants
 FETCH_DATA = "fetch_daily_summaries.fetch_data"
 GET_CONFIG = "fetch_daily_summaries.get_config"
 GET_EARLIEST_DATE = "fetch_daily_summaries.get_earliest_date"
