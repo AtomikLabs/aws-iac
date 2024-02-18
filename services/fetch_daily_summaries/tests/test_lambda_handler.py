@@ -128,7 +128,9 @@ def test_log_initial_info_full(mock_logger_debug):
         log_group="test_log_group",
         log_stream="test_log_stream",
     )
-    mock_logger_debug.assert_any_call("Running on", method="fetch_daily_summaries.lambda_handler.log_initial_info", platform="AWS")
+    mock_logger_debug.assert_any_call(
+        "Running on", method="fetch_daily_summaries.lambda_handler.log_initial_info", platform="AWS"
+    )
     mock_logger_debug.assert_any_call(
         "Event received", method="fetch_daily_summaries.lambda_handler.log_initial_info", trigger_event=event
     )
@@ -279,4 +281,6 @@ def test_get_storage_key_missing_config(mock_logger):
     with pytest.raises(ValueError) as excinfo:
         get_storage_key(config)
     assert "Config is required" in str(excinfo.value)
-    mock_logger.error.assert_called_once_with("Config is required", method="fetch_daily_summaries.lambda_handler.get_storage_key")
+    mock_logger.error.assert_called_once_with(
+        "Config is required", method="fetch_daily_summaries.lambda_handler.get_storage_key"
+    )

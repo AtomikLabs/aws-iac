@@ -14,7 +14,7 @@
       "arxiv_base_url": "http://export.arxiv.org/oai2",
       "arxiv_summary_set": "cs",
       "fetch_daily_summaries_name": "fetch_daily_summaries",
-      "fetch_daily_summaries_version": "v0.2.3",
+      "fetch_daily_summaries_version": "v0.2.4",
       "arxiv_summary_sets": ["cs"]
     },
   "metadata":
