@@ -164,8 +164,6 @@ jobs:
 
       - name: Save Terraform Outputs
         run: |
-          # Generate Terraform outputs as a JSON file
           terraform output -json > terraform_outputs.json
-          # Upload Terraform outputs to S3 bucket with environment-based naming
-          aws s3 cp terraform_outputs.json s3://atomiklabs-infra-config-bucket/terraform-outputs/${{ env.ENV_NAME }}-terraform-outputs.json
+          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}.json
         working-directory: ./infra/core
