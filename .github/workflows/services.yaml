@@ -135,7 +135,7 @@ jobs:
         id: check-version
         run: |
           image_tag="${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}"
-          image_exists=$(aws ecr describe-images --repository-name ${{ env.REPO }} --image-ids imageTag=${image_tag} --region ${{ env.AWS_REGION }} && echo "true" || echo "false")
+          image_exists=$(aws ecr describe-images --repository-name ${{ env.ENV_NAME }}-repository --image-ids imageTag=${image_tag} --region ${{ env.AWS_REGION }} && echo "true" || echo "false")
           if [ "$image_exists" = "true" ]; then
             echo "::error::Image with tag ${image_tag} already exists. Please update the version."
             exit 1
