@@ -6,7 +6,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from services.fetch_daily_summaries.src.fetch_daily_summaries import (
+from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import (
     DataIngestionMetadata,
     calculate_mb,
     configure_request_retries,
@@ -49,11 +49,11 @@ def config():
     }
 
 
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.StorageManager")
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.DataIngestionMetadata")
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.fetch_data")
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.get_config")
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.datetime")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.StorageManager")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.DataIngestionMetadata")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.fetch_data")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_config")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.datetime")
 def test_lambda_handler_success(
     mock_datetime, mock_get_config, mock_fetch_data, mock_data_ingestion_metadata, mock_storage_manager, event, context
 ):
@@ -94,7 +94,7 @@ def test_get_config_with_all_variables_set():
             "SUMMARY_SET": "test_set",
         },
     ):
-        with patch("services.fetch_daily_summaries.src.fetch_daily_summaries.logger") as mock_logger:
+        with patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger") as mock_logger:
             config = get_config()
             assert config["APP_NAME"] == "test_app"
             assert config["ARXIV_BASE_URL"] == "https://test.arxiv.org"
@@ -108,7 +108,7 @@ def test_get_config_missing_environment_variable():
         "APP_NAME": "test_app",
     }
     with patch.dict(os.environ, incomplete_env, clear=True):
-        with patch("services.fetch_daily_summaries.src.fetch_daily_summaries.logger") as mock_logger:
+        with patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger") as mock_logger:
             with pytest.raises(KeyError):
                 get_config()
             mock_logger.error.assert_called_once()
@@ -124,13 +124,13 @@ def test_log_initial_info_full(mock_logger_debug):
 
     mock_logger_debug.assert_any_call(
         "Log variables",
-        method="fetch_daily_summaries.log_initial_info",
+        method="fetch_daily_summaries.lambda_handler.log_initial_info",
         log_group="test_log_group",
         log_stream="test_log_stream",
     )
-    mock_logger_debug.assert_any_call("Running on", method="fetch_daily_summaries.log_initial_info", platform="AWS")
+    mock_logger_debug.assert_any_call("Running on", method="fetch_daily_summaries.lambda_handler.log_initial_info", platform="AWS")
     mock_logger_debug.assert_any_call(
-        "Event received", method="fetch_daily_summaries.log_initial_info", trigger_event=event
+        "Event received", method="fetch_daily_summaries.lambda_handler.log_initial_info", trigger_event=event
     )
 
 
@@ -141,10 +141,10 @@ def test_log_initial_info_missing_env(mock_logger_debug):
     log_initial_info(event)
 
     mock_logger_debug.assert_any_call(
-        "Running on", method="fetch_daily_summaries.log_initial_info", platform="CI/CD or local"
+        "Running on", method="fetch_daily_summaries.lambda_handler.log_initial_info", platform="CI/CD or local"
     )
     mock_logger_debug.assert_any_call(
-        "Event received", method="fetch_daily_summaries.log_initial_info", trigger_event=event
+        "Event received", method="fetch_daily_summaries.lambda_handler.log_initial_info", trigger_event=event
     )
 
 
@@ -224,9 +224,9 @@ def test_fetch_data_success_with_sequential(mock_get, metadata):
     assert mock_get.call_args_list[1][1]["params"] == followup_call_params, "Follow-up fetch parameters incorrect."
 
 
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.HTTPAdapter")
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.Retry")
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.requests.Session")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.HTTPAdapter")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.Retry")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.requests.Session")
 def test_configure_request_retries(mock_session_cls, mock_retry_cls, mock_http_adapter_cls):
     mock_retry_instance = MagicMock(spec=Retry)
     mock_retry_cls.return_value = mock_retry_instance
@@ -265,7 +265,7 @@ def test_calculate_mb():
     assert calculate_mb(1024 * 1024 * 1024) == 1024.0
 
 
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.time.strftime")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.time.strftime")
 def test_get_storage_key_valid_config(mock_strftime):
     mock_strftime.return_value = "2024-02-17"
     config = {"S3_STORAGE_KEY_PREFIX": "test_prefix"}
@@ -273,10 +273,10 @@ def test_get_storage_key_valid_config(mock_strftime):
     assert get_storage_key(config) == expected_key
 
 
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.logger")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger")
 def test_get_storage_key_missing_config(mock_logger):
     config = {}
     with pytest.raises(ValueError) as excinfo:
         get_storage_key(config)
     assert "Config is required" in str(excinfo.value)
-    mock_logger.error.assert_called_once_with("Config is required", method="fetch_daily_summaries.get_storage_key")
+    mock_logger.error.assert_called_once_with("Config is required", method="fetch_daily_summaries.lambda_handler.get_storage_key")

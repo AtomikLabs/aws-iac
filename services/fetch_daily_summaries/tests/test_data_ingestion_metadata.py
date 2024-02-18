@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from services.fetch_daily_summaries.src.data_ingestion_metadata import DataIngestionMetadata
+from services.fetch_daily_summaries.src.fetch_daily_summaries.data_ingestion_metadata import DataIngestionMetadata
 
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def mock_boto3(mocker):
 
 @pytest.fixture
 def mock_logger(mocker):
-    return mocker.patch("services.fetch_daily_summaries.src.data_ingestion_metadata.logger")
+    return mocker.patch("services.fetch_daily_summaries.src.fetch_daily_summaries.data_ingestion_metadata.logger")
 
 
 def test_get_schema(mock_boto3, mock_logger):
@@ -69,7 +69,7 @@ def test_validate_failure_missing_attribute(metadata_instance, mocker):
 
 def test_validate_error_no_database_or_table_name(mocker):
     metadata = DataIngestionMetadata()
-    mocker.patch("services.fetch_daily_summaries.src.data_ingestion_metadata.logger")
+    mocker.patch("services.fetch_daily_summaries.src.fetch_daily_summaries.data_ingestion_metadata.logger")
 
     with pytest.raises(ValueError, match="Database name and table name must be set"):
         metadata.validate()

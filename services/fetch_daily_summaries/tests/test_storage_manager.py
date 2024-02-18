@@ -2,7 +2,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from services.fetch_daily_summaries.src.storage_manager import StorageManager
+from services.fetch_daily_summaries.src.fetch_daily_summaries.storage_manager import StorageManager
 
 
 @pytest.fixture

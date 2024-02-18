@@ -41,14 +41,14 @@ SERVICE_VERSION = "SERVICE_VERSION"
 SUMMARY_SET = "SUMMARY_SET"
 
 # LOGGING CONSTANTS
-FETCH_DATA = "fetch_daily_summaries.fetch_data"
-GET_CONFIG = "fetch_daily_summaries.get_config"
-GET_EARLIEST_DATE = "fetch_daily_summaries.get_earliest_date"
-GET_STORAGE_KEY = "fetch_daily_summaries.get_storage_key"
+FETCH_DATA = "fetch_daily_summaries.lambda_handler.fetch_data"
+GET_CONFIG = "fetch_daily_summaries.lambda_handler.get_config"
+GET_EARLIEST_DATE = "fetch_daily_summaries.lambda_handler.get_earliest_date"
+GET_STORAGE_KEY = "fetch_daily_summaries.lambda_handler.get_storage_key"
 LAMBDA_HANDLER = "fetch_daily_summaries.lambda_handler"
 LAMBDA_NAME = "fetch_daily_summaries"
-LOG_INITIAL_INFO = "fetch_daily_summaries.log_initial_info"
-PERSIST_TO_S3 = "fetch_daily_summaries.persist_to_s3"
+LOG_INITIAL_INFO = "fetch_daily_summaries.lambda_handler.log_initial_info"
+PERSIST_TO_S3 = "fetch_daily_summaries.lambda_handler.persist_to_s3"
 
 
 def lambda_handler(event: dict, context) -> dict:

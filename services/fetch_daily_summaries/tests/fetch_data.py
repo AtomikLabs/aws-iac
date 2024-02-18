@@ -2,7 +2,7 @@ from unittest.mock import call, patch
 
 import requests
 
-from services.fetch_daily_summaries.src.fetch_daily_summaries import fetch_data
+from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import fetch_data
 
 
 class TestFetchData:
@@ -45,8 +45,8 @@ class TestFetchData:
         mock_get.assert_called()
         mock_sleep.assert_called()
 
-    @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.requests.get")
-    @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.time.sleep")
+    @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.requests.get")
+    @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.time.sleep")
     def test_fetch_data_handles_http_error(self, mock_sleep, mock_get):
         base_url = "http://example.com"
         from_date = "2024-01-01"
@@ -62,8 +62,8 @@ class TestFetchData:
 
         assert len(xml_responses) == 0
 
-    @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.requests.get")
-    @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.time.sleep")
+    @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.requests.get")
+    @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.time.sleep")
     def test_fetch_data_retries_twice_on_503(self, mock_sleep, mock_get):
         base_url = "http://example.com"
         from_date = "2024-01-01"
