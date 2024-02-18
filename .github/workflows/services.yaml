@@ -1,0 +1,141 @@
+name: AtomikLabs Services CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - stage
+      - dev
+    paths:
+      - "services/**"
+
+jobs:
+  fetch_daily_summaries:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        id: install-jq
+        run: sudo apt-get install jq
+
+      - name: Read AtomikLabs config and Set Environment Variables
+        id: read-config
+        run: |
+          config_file=".atomiklabs.json"
+          echo "ARXIV_BASE_URL=$(jq -r '.data_ingestion.arxiv_base_url' "$config_file")" >> $GITHUB_ENV
+          echo "ARXIV_SUMMARY_SET=$(jq -r '.data_ingestion.arxiv_summary_set' "$config_file")" >> $GITHUB_ENV
+          echo "AWS_REGION=$(jq -r '.infra.terraform_aws_region' "$config_file")" >> $GITHUB_ENV
+          echo "DATA_INGESTION_METADATA_KEY_PREFIX=$(jq -r '.metadata.data_ingestion_metadata_key_prefix' "$config_file")" >> $GITHUB_ENV
+          echo "FETCH_DAILY_SUMMARIES_NAME=$(jq -r '.data_ingestion.fetch_daily_summaries_name' "$config_file")" >> $GITHUB_ENV
+          echo "FETCH_DAILY_SUMMARIES_VERSION=$(jq -r '.data_ingestion.fetch_daily_summaries_version' "$config_file")" >> $GITHUB_ENV
+          echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
+          echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
+          echo "BACKEND_DYNAMODB_TABLE=$(jq -r '.infra.backend_dynamodb_table' "$config_file")" >> $GITHUB_ENV
+          echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
+          echo "REPO=$(jq -r '.infra.repo' "$config_file")" >> $GITHUB_ENV
+
+      - name: Load Environment Variables
+        id: load-env-vars
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            ENV_NAME=$(echo "${{ github.base_ref }}" | tr '/' '-')
+          else
+            ENV_NAME=$(echo "${{ github.ref_name }}" | tr '/' '-')
+          fi
+          echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
+          env_file="infra/core/environments/env.$ENV_NAME.json"
+          echo "ENV_FILE=$env_file" >> $GITHUB_ENV
+          echo "::set-output name=env_file::$env_file"
+          iam_user_name=$(jq -r '.iam_user_name' $env_file)
+          echo "IAM_USER_NAME=$iam_user_name" >> $GITHUB_ENV
+
+      - name: Set AWS Credentials Based on Environment
+        id: set-aws-credentials
+        run: |
+          if [ "$ENV_NAME" == "prod" ]; then
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          elif [ "$ENV_NAME" == "stage" ]; then
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          elif [ "$ENV_NAME" == "dev" ]; then
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          else
+            echo "Invalid environment name: $ENV_NAME"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        id: configure-aws-credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Ensure S3 bucket exists
+        id: ensure-s3-bucket-exists
+        run: |
+          if ! aws s3 ls "s3://atomiklabs-infra-config-bucket" 2>&1 | grep -q 'NoSuchBucket'; then
+            echo "Bucket exists."
+          else
+            echo "Bucket does not exist. Creating bucket..."
+            aws s3 mb "s3://${{ env.INFRA_CONFIG_BUCKET }}"
+            aws s3api put-bucket-versioning --bucket atomiklabs-infra-config-bucket --versioning-configuration Status=Enabled
+          fi
+
+      - name: Fetch Terraform Outputs
+        id: fetch-terraform-outputs
+        run: |
+          terraform_outputs_path="s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}.json"
+          aws s3 cp $terraform_outputs_path ./terraform_outputs.json
+          echo "FETCH_DAILY_SUMMARIES_ARN=$(jq -r '.aws_lambda_function_fetch_daily_summaries_arn.value' ./terraform_outputs.json)" >> $GITHUB_ENV
+          echo "ECR_REPO_URL=$(jq -r '.aws_ecr_repository_repository_url.value' ./terraform_outputs.json)" >> $GITHUB_ENV
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+
+      - name: Check if Image Version Already Exists
+        id: check-version
+        run: |
+          image_tag="${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}"
+          image_exists=$(aws ecr describe-images --repository-name ${{ env.REPO }} --image-ids imageTag=${image_tag} --region ${{ env.AWS_REGION }} && echo "true" || echo "false")
+          if [ "$image_exists" = "true" ]; then
+            echo "::error::Image with tag ${image_tag} already exists. Please update the version."
+            exit 1
+          else
+            echo "Image tag ${image_tag} does not exist. Proceeding with build and push."
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          REPO: ${{ env.REPO }}
+          FETCH_DAILY_SUMMARIES_NAME: ${{ steps.read-config.outputs.fetch_daily_summaries_name }}
+          FETCH_DAILY_SUMMARIES_VERSION: ${{ steps.read-config.outputs.fetch_daily_summaries_version }}
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Build, Tag and Push Fetch Daily Summaries Image
+        id: build-tag-push-fetch-daily-summaries
+        run: |
+          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}
+          docker build -t ${image_name} -f services/fetch-daily-summaries/Dockerfile .
+          docker push ${image_name}
+          docker tag ${image_name} $ECR_REPO_URL:${{ github.sha }}
+          docker push $ECR_REPO_URL:${{ github.sha }}
+        env:
+          ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
+          FETCH_DAILY_SUMMARIES_NAME: ${{ env.FETCH_DAILY_SUMMARIES_NAME}}
+          FETCH_DAILY_SUMMARIES_VERSION: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Update Fetch Daily Summaries Lambda Function
+        id: update-fetch-daily-summaries
+        run: |
+          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}
+          aws lambda update-function-code --function-name ${{ env.FETCH_DAILY_SUMMARIES_ARN }} --image-uri ${image_name}
+        env:
+          ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
+          FETCH_DAILY_SUMMARIES_ARN: ${{ env.FETCH_DAILY_SUMMARIES_ARN }}
+          FETCH_DAILY_SUMMARIES_NAME: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
+          FETCH_DAILY_SUMMARIES_VERSION: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
