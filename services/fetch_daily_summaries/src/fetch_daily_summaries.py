@@ -41,7 +41,7 @@ SERVICE_NAME = "SERVICE_NAME"
 SERVICE_VERSION = "SERVICE_VERSION"
 SUMMARY_SET = "SUMMARY_SET"
 
-# LOGGING CONSTANTS
+# LOGGING CONSTANTS AND FUNCTIONS
 FETCH_DATA = "fetch_daily_summaries.fetch_data"
 GET_CONFIG = "fetch_daily_summaries.get_config"
 GET_EARLIEST_DATE = "fetch_daily_summaries.get_earliest_date"
