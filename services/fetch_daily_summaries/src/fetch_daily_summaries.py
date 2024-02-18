@@ -71,7 +71,12 @@ def lambda_handler(event: dict, context) -> dict:
 
         config = get_config()
 
-        logger.info("Fetching arXiv daily summaries", method=LAMBDA_HANDLER, service_name=config[SERVICE_NAME], service_version=config[SERVICE_VERSION])
+        logger.info(
+            "Fetching arXiv daily summaries",
+            method=LAMBDA_HANDLER,
+            service_name=config[SERVICE_NAME],
+            service_version=config[SERVICE_VERSION],
+        )
 
         metadata = DataIngestionMetadata(
             app_name=config[APP_NAME],
