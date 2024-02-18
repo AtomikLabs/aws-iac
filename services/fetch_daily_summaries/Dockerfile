@@ -1,5 +1,5 @@
 FROM public.ecr.aws/lambda/python:3.9
-WORKDIR /app
+WORKDIR /var/task
 COPY services/fetch_daily_summaries/requirements.txt /app
 COPY services/fetch_daily_summaries/requirements.docker.txt /app
 RUN python -m pip install -r requirements.docker.txt
