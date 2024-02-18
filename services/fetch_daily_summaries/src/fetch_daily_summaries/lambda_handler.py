@@ -94,10 +94,7 @@ def lambda_handler(event: dict, context) -> dict:
         metadata.earliest = earliest.strftime(DataIngestionMetadata.DATETIME_FORMAT)
 
         xml_data_list = fetch_data(
-            config.get(ARXIV_BASE_URL),
-            earliest, config.get(SUMMARY_SET),
-            config.get(MAX_FETCH_ATTEMPTS),
-            metadata
+            config.get(ARXIV_BASE_URL), earliest, config.get(SUMMARY_SET), config.get(MAX_FETCH_ATTEMPTS), metadata
         )
 
         metadata.raw_data_key = get_storage_key(config)
