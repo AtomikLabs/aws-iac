@@ -1,5 +1,8 @@
-resource "aws_iam_role" "lambda_execution_role" {
-  name = "${local.environment}-lambda_exec_role"
+# **********************************************************
+# * GENERAL                                                *
+# **********************************************************
+resource "aws_iam_role" "fetch_daily_summaries_lambda_execution_role" {
+  name = "${local.environment}-${local.fetch_daily_summaries_name}-lambda-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -15,11 +18,14 @@ resource "aws_iam_role" "lambda_execution_role" {
   })
 }
 
+# **********************************************************
+# * fetch_daily_summaries                                  *
+# **********************************************************
 resource "aws_lambda_function" "fetch_daily_summaries" {
   function_name = "${local.environment}-${local.fetch_daily_summaries_name}"
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.repo.repository_url}:${local.environment}-${local.fetch_daily_summaries_name}-${local.fetch_daily_summaries_version}"
-  role          = aws_iam_role.lambda_execution_role.arn
+  role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
   timeout       = 900
   memory_size   = 128
 
@@ -41,13 +47,8 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_glue_policy_attach" {
-  role       = aws_iam_role.lambda_execution_role.name
-  policy_arn = aws_iam_policy.lambda_glue_policy.arn
-}
-
-resource "aws_iam_policy" "lambda_s3_access" {
-  name        = "${local.environment}-lambda-s3-access"
+resource "aws_iam_policy" "basic_lambda_s3_access" {
+  name        = "${local.environment}-fetch-daily-summaries-s3-access"
   description = "Allow Lambda to put objects in S3"
 
   policy = jsonencode({
@@ -55,14 +56,23 @@ resource "aws_iam_policy" "lambda_s3_access" {
     Statement = [
       {
         Action = [
-          "s3:DeleteObject",
+          "s3:PutObject",
           "s3:GetObject",
-          "s3:ListBucket",
-          "s3:PutObject"
+          "s3:DeleteObject",
+          "s3:PutObjectAcl"
         ]
-        Effect = "Allow"
+        Effect = "Allow",
         Resource = [
-          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/*",
+          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/data_ingestion/*",
+          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/metadata/*"
+        ]
+      },
+      {
+        Action = [
+          "s3:ListBucket"
+        ]
+        Effect = "Allow",
+        Resource = [
           "${aws_s3_bucket.atomiklabs_data_bucket.arn}"
         ]
       }
@@ -70,7 +80,17 @@ resource "aws_iam_policy" "lambda_s3_access" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
+  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
+  policy_arn = local.AWSBasicExecutionRoleARN
+}
+
 resource "aws_iam_role_policy_attachment" "lambda_s3_access_attachment" {
-  role       = aws_iam_role.lambda_execution_role.name
-  policy_arn = aws_iam_policy.lambda_s3_access.arn
+  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
+  policy_arn = aws_iam_policy.basic_lambda_s3_access.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_glue_policy_attach" {
+  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
+  policy_arn = aws_iam_policy.lambda_glue_policy.arn
 }
