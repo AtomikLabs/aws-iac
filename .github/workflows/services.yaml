@@ -192,6 +192,7 @@ jobs:
           TF_VAR_repo: ${{ env.REPO }}
 
       - name: Apply Terraform
+        id: apply-terraform
         run: |
           echo "${{ env.ENV_FILE }}"
           echo "${{ env.AWS_REGION }}"
@@ -212,6 +213,7 @@ jobs:
           TF_VAR_repo: ${{ env.REPO }}
 
       - name: Save Terraform Outputs
+        id: save-terraform-outputs
         run: |
           terraform output -json > terraform_outputs.json
           aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}.json
