@@ -1,7 +1,7 @@
 resource "aws_cloudwatch_event_rule" "fetch_daily_summaries" {
   name                = "${local.environment}-fetch_daily_summaries"
   description         = "Rule to trigger the fetch_daily_summaries lambda"
-  schedule_expression = "cron(0 3 * * ? *)"
+  schedule_expression = "cron(0 11 * * ? *)" # 3:00 AM PST
 }
 
 resource "aws_cloudwatch_event_target" "fetch_daily_summaries_target" {
