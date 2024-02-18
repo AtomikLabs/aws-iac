@@ -42,6 +42,7 @@ locals {
   # **********************************************************
   arxiv_base_url                          = var.arxiv_base_url
   arxiv_summary_set                       = var.arxiv_summary_set
+  data_ingestion_key_prefix               = var.data_ingestion_key_prefix
   fetch_daily_summaries_name              = var.fetch_daily_summaries_name
   fetch_daily_summaries_version           = var.fetch_daily_summaries_version
   max_daily_summary_fetch_attempts        = 10

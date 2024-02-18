@@ -30,6 +30,7 @@ DAY_SPAN = 5
 # Environment Variables
 APP_NAME = "APP_NAME"
 ARXIV_BASE_URL = "ARXIV_BASE_URL"
+DATA_INGESTION_METADATA_KEY_PREFIX = "DATA_INGESTION_METADATA_KEY_PREFIX"
 ENVIRONMENT_NAME = "ENVIRONMENT"
 GLUE_DATABASE_NAME = "GLUE_DATABASE_NAME"
 GLUE_TABLE_NAME = "GLUE_TABLE_NAME"
@@ -93,13 +94,19 @@ def lambda_handler(event: dict, context) -> dict:
         metadata.earliest = earliest.strftime(DataIngestionMetadata.DATETIME_FORMAT)
 
         xml_data_list = fetch_data(
-            config.get(ARXIV_BASE_URL), earliest, config.get(SUMMARY_SET), config.get(MAX_FETCH_ATTEMPTS), metadata
+            config.get(ARXIV_BASE_URL),
+            earliest, config.get(SUMMARY_SET),
+            config.get(MAX_FETCH_ATTEMPTS),
+            metadata
         )
 
         metadata.raw_data_key = get_storage_key(config)
         content_str = json.dumps(xml_data_list)
         storage_manager = StorageManager(metadata.raw_data_bucket, logger)
         storage_manager.persist(metadata.raw_data_key, content_str)
+
+        metadata.metadata_key = get_metadata_key(config)
+        metadata.persist_to_s3(metadata.metadata_key)
 
         logger.info("Fetching arXiv summaries succeeded", method=LAMBDA_HANDLER, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
@@ -128,6 +135,7 @@ def get_config() -> dict:
         config = {
             APP_NAME: os.environ[APP_NAME],
             ARXIV_BASE_URL: os.environ[ARXIV_BASE_URL],
+            DATA_INGESTION_METADATA_KEY_PREFIX: os.environ[DATA_INGESTION_METADATA_KEY_PREFIX],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
             GLUE_DATABASE_NAME: os.environ[GLUE_DATABASE_NAME],
             GLUE_TABLE_NAME: os.environ[GLUE_TABLE_NAME],
@@ -275,4 +283,27 @@ def get_storage_key(config: dict) -> str:
     key_date = time.strftime(DataIngestionMetadata.S3_KEY_DATE_FORMAT)
     key = f"{config.get(S3_STORAGE_KEY_PREFIX)}/{key_date}.json"
     logger.info("Storage key", method=GET_STORAGE_KEY, key=key)
+    return key
+
+
+def get_metadata_key(config: dict) -> str:
+    """
+    Gets the metadata key for the S3 bucket to store the fetched data.
+
+    Args:
+        config (dict): The config.
+
+    Returns:
+        str: The metadata key.
+
+    Raises:
+        ValueError: If config is not provided.
+    """
+    if not config:
+        logger.error("Config is required", method=GET_STORAGE_KEY)
+        raise ValueError("Config is required")
+
+    key_date = time.strftime(DataIngestionMetadata.S3_KEY_DATE_FORMAT)
+    key = f"{config.get(DATA_INGESTION_METADATA_KEY_PREFIX)}/{key_date}_metadata.json"
+    logger.info("Metadata key", method=GET_STORAGE_KEY, key=key)
     return key

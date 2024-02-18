@@ -72,3 +72,8 @@ variable "repo" {
   description = "application Github repository"
   type        = string
 }
+
+variable "data_ingestion_key_prefix" {
+  description = "Prefix for the data ingestion"
+  type        = string
+}

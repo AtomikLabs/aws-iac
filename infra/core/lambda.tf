@@ -39,7 +39,7 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
       GLUE_TABLE_NAME    = aws_glue_catalog_table.data_ingestion_metadata_table.name
       MAX_FETCH_ATTEMPTS = local.max_daily_summary_fetch_attempts
       S3_BUCKET_NAME   = aws_s3_bucket.atomiklabs_data_bucket.bucket
-      S3_STORAGE_KEY_PREFIX = local.data_ingestion_metadata_key_prefix
+      S3_STORAGE_KEY_PREFIX = local.data_ingestion_key_prefix
       SERVICE_VERSION = local.fetch_daily_summaries_version
       SERVICE_NAME = local.fetch_daily_summaries_name
       SUMMARY_SET = local.arxiv_summary_set
