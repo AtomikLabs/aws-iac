@@ -45,3 +45,32 @@ resource "aws_iam_role_policy_attachment" "lambda_glue_policy_attach" {
   role       = aws_iam_role.lambda_execution_role.name
   policy_arn = aws_iam_policy.lambda_glue_policy.arn
 }
+
+resource "aws_iam_policy" "lambda_s3_access" {
+  name        = "${local.environment}-lambda-s3-access"
+  description = "Allow Lambda to put objects in S3"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "s3:DeleteObject",
+          "s3:GetObject",
+          "s3:ListBucket",
+          "s3:PutObject"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/*",
+          "${aws_s3_bucket.atomiklabs_data_bucket.arn}"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_s3_access_attachment" {
+  role       = aws_iam_role.lambda_execution_role.name
+  policy_arn = aws_iam_policy.lambda_s3_access.arn
+}
