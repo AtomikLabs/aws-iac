@@ -86,6 +86,7 @@ def lambda_handler(event: dict, context) -> dict:
         metadata.function_name = config[SERVICE_NAME]
         metadata.function_version = config[SERVICE_VERSION]
         metadata.metadata_key = get_metadata_key(config)
+        metadata.metadata_bucket = config[S3_BUCKET_NAME]
         metadata.raw_data_bucket = config[S3_BUCKET_NAME]
         metadata.table_name = config[GLUE_TABLE_NAME]
 
