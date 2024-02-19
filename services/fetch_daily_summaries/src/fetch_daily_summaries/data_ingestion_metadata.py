@@ -345,8 +345,9 @@ class DataIngestionMetadata:
         logger.info("Writing data ingestion metadata", method=f"{DATA_INGESTION_METADATA}.write")
         try:
             client = boto3.client("s3")
+            metadata_dict = self.to_dict()
             client.put_object(
-                Body=json.dumps(self.to_dict()).encode("utf-8"),
+                Body=json.dumps(metadata_dict).encode("utf-8"),
                 Bucket=self.metadata_bucket,
                 Key=f"{DATA_INGESTION_METADATA_PREFIX}{self.date_time}-{self.ingestion_job_uuid}.json",
             )
