@@ -193,6 +193,7 @@ jobs:
           TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
+          TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
           TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
           TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
@@ -214,6 +215,7 @@ jobs:
           TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
+          TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
           TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
           TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
