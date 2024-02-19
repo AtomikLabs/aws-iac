@@ -6,7 +6,6 @@ resource "aws_cloudwatch_event_rule" "fetch_daily_summaries" {
 
 resource "aws_cloudwatch_event_target" "fetch_daily_summaries_target" {
   rule      = aws_cloudwatch_event_rule.fetch_daily_summaries.name
-  target_id = "fetch_daily_summaries"
   arn       = aws_lambda_function.fetch_daily_summaries.arn
 }
 
