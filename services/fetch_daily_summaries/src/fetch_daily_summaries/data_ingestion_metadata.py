@@ -358,7 +358,7 @@ class DataIngestionMetadata:
                 error_message=str(e),
             )
             raise e
-    
+
     def to_dict(self) -> dict:
         """
         Convert the metadata to a dictionary.
@@ -388,7 +388,7 @@ class DataIngestionMetadata:
             "triggered_functions": self.triggered_functions,
             "uri": self.uri,
         }
-    
+
     def from_dict(self, data: dict) -> None:
         """
         Load the metadata from a dictionary.
