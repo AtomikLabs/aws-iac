@@ -13,10 +13,11 @@
     {
       "arxiv_base_url": "http://export.arxiv.org/oai2",
       "arxiv_summary_set": "cs",
+      "data_ingestion_key_prefix": "raw_data/data_ingestion",
       "fetch_daily_summaries_name": "fetch_daily_summaries",
       "fetch_daily_summaries_version": "v0.2.6",
       "arxiv_summary_sets": ["cs"]
     },
   "metadata":
-    { "data_ingestion_metadata_key_prefix": "data_ingestion_metadata" }
+    { "data_ingestion_metadata_key_prefix": "metadata/data_ingestion" }
 }

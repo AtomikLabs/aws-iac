@@ -37,6 +37,7 @@ def config():
     return {
         "APP_NAME": "TestApp",
         "ARXIV_BASE_URL": "http://test.arxiv.org",
+        "DATA_INGESTION_METADATA_KEY_PREFIX": "test_prefix",
         "ENVIRONMENT": "test",
         "GLUE_DATABASE_NAME": "testDB",
         "GLUE_TABLE_NAME": "testTable",
@@ -53,15 +54,30 @@ def config():
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.DataIngestionMetadata")
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.fetch_data")
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_config")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_metadata_key")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_storage_key")
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.datetime")
 def test_lambda_handler_success(
-    mock_datetime, mock_get_config, mock_fetch_data, mock_data_ingestion_metadata, mock_storage_manager, event, context
+    mock_datetime,
+    mock_get_storage_key,
+    mock_get_metadata_key,
+    mock_get_config,
+    mock_fetch_data,
+    mock_data_ingestion_metadata,
+    mock_storage_manager,
+    event,
+    context,
 ):
     mock_data_ingestion_metadata_instance = mock_data_ingestion_metadata.return_value
-    mock_data_ingestion_metadata_instance.DATETIME_FORMAT = "%Y-%m-%d"
+    mock_data_ingestion_metadata_instance.DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+    mock_data_ingestion_metadata_instance.S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
+    mock_data_ingestion_metadata_instance.S3_STORAGE_KEY_PREFIX = "test_prefix"
+    mock_get_metadata_key.return_value = "test_prefix/2024-02-17T12-00-00.json"
+    mock_get_storage_key.return_value = "test_prefix/2024-02-17T12-00-00.json"
     mock_get_config.return_value = {
         "APP_NAME": "TestApp",
         "ARXIV_BASE_URL": "http://test.arxiv.org",
+        "DATA_INGESTION_METADATA_KEY_PREFIX": "test_prefix",
         "ENVIRONMENT": "test",
         "GLUE_DATABASE_NAME": "testDB",
         "GLUE_TABLE_NAME": "testTable",
@@ -83,6 +99,7 @@ def test_get_config_with_all_variables_set():
         {
             "APP_NAME": "test_app",
             "ARXIV_BASE_URL": "https://test.arxiv.org",
+            "DATA_INGESTION_METADATA_KEY_PREFIX": "test_prefix",
             "ENVIRONMENT": "development",
             "GLUE_DATABASE_NAME": "test_glue_db",
             "GLUE_TABLE_NAME": "test_table",

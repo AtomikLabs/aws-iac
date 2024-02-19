@@ -169,6 +169,14 @@ def test_set_metadata_bucket():
         metadata.metadata_bucket = 123.0
 
 
+def test_set_metadata_key():
+    metadata = DataIngestionMetadata()
+    metadata.metadata_key = "test_key"
+    assert metadata.metadata_key == "test_key"
+    with pytest.raises(ValueError):
+        metadata.metadata_key = 123.0
+
+
 def test_set_original_data_format():
     metadata = DataIngestionMetadata()
     metadata.original_data_format = "test_format"

@@ -45,6 +45,7 @@ class DataIngestionMetadata:
     function_version: str
     ingestion_job_uuid: uuid.UUID
     metadata_bucket: str
+    metadata_key: str
     original_data_format: str
     raw_data_bucket: str
     raw_data_key: str
@@ -67,6 +68,7 @@ class DataIngestionMetadata:
         self.function_version = ""
         self.location_raw_data_saved = ""
         self.metadata_bucket = ""
+        self.metadata_key = ""
         self.original_data_format = ""
         self.raw_data_bucket = ""
         self.raw_data_key = ""
@@ -189,6 +191,16 @@ class DataIngestionMetadata:
         if not isinstance(metadata_bucket, str):
             raise ValueError("metadata_bucket must be a string")
         self._metadata_bucket = metadata_bucket
+
+    @property
+    def metadata_key(self) -> str:
+        return self._metadata_key
+
+    @metadata_key.setter
+    def metadata_key(self, metadata_key: str):
+        if not isinstance(metadata_key, str):
+            raise ValueError("metadata_key must be a string")
+        self._metadata_key = metadata_key
 
     @property
     def original_data_format(self) -> str:

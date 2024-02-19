@@ -8,12 +8,20 @@ terraform {
   }
 }
 
+data "aws_availability_zones" "available" {}
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
+
 locals {
-  # AWS CONFIGURATION
+  # **********************************************************
+  # * AWS ACCOUNT                                            *
+  # **********************************************************
   account_id = data.aws_caller_identity.current.account_id
   partition  = data.aws_partition.current.partition
   
-  # INFRASTRUCTURE CONFIGURATION
+  # **********************************************************
+  # * INFRASTRUCTURE CONFIGURATION                           *
+  # **********************************************************
   aws_region                      = var.aws_region
   backend_dynamodb_table          = var.backend_dynamodb_table
   environment                     = var.environment
@@ -24,15 +32,26 @@ locals {
   outputs_prefix                  = var.outputs_prefix
   repo                            = var.repo
   
-  # DATA INGESTION CONFIGURATION
+  # **********************************************************
+  # * SERVICES CONFIGURATION                                 *
+  # **********************************************************
+  AWSBasicExecutionRoleARN        = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  
+  # **********************************************************
+  # * DATA INGESTION CONFIGURATION                           *
+  # **********************************************************
   arxiv_base_url                          = var.arxiv_base_url
   arxiv_summary_set                       = var.arxiv_summary_set
+  data_ingestion_key_prefix               = var.data_ingestion_key_prefix
   fetch_daily_summaries_name              = var.fetch_daily_summaries_name
   fetch_daily_summaries_version           = var.fetch_daily_summaries_version
   max_daily_summary_fetch_attempts        = 10
 
-  # METADATA CONFIGURATION
+  # **********************************************************
+  # * METADATA CONFIGURATION                                 *
+  # **********************************************************
   data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
+  
   tags = {
     Blueprint   = local.name
     GithubRepo  = local.repo
@@ -41,7 +60,3 @@ locals {
     Application = local.name
   }
 }
-
-data "aws_availability_zones" "available" {}
-data "aws_caller_identity" "current" {}
-data "aws_partition" "current" {}
