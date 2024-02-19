@@ -346,7 +346,7 @@ class DataIngestionMetadata:
         try:
             client = boto3.client("s3")
             client.put_object(
-                Body=json.dumps(self),
+                Body=json.dumps(self.to_dict()).encode("utf-8"),
                 Bucket=self.metadata_bucket,
                 Key=f"{DATA_INGESTION_METADATA_PREFIX}{self.date_time}-{self.ingestion_job_uuid}.json",
             )
@@ -358,3 +358,61 @@ class DataIngestionMetadata:
                 error_message=str(e),
             )
             raise e
+    
+    def to_dict(self) -> dict:
+        """
+        Convert the metadata to a dictionary.
+
+        Returns:
+            dict: The metadata as a dictionary.
+        """
+        return {
+            "app_name": self.app_name,
+            "date_time": self.date_time,
+            "data_source": self.data_source,
+            "database_name": self.database_name,
+            "environment": self.environment,
+            "error_message": self.error_message,
+            "function_name": self.function_name,
+            "function_version": self.function_version,
+            "ingestion_job_uuid": str(self.ingestion_job_uuid),
+            "metadata_bucket": self.metadata_bucket,
+            "metadata_key": self.metadata_key,
+            "original_data_format": self.original_data_format,
+            "raw_data_bucket": self.raw_data_bucket,
+            "raw_data_key": self.raw_data_key,
+            "size_of_data_downloaded": self.size_of_data_downloaded,
+            "status": self.status,
+            "stored_data_format": self.stored_data_format,
+            "table_name": self.table_name,
+            "triggered_functions": self.triggered_functions,
+            "uri": self.uri,
+        }
+    
+    def from_dict(self, data: dict) -> None:
+        """
+        Load the metadata from a dictionary.
+
+        Args:
+            data (dict): The metadata as a dictionary.
+        """
+        self.app_name = data["app_name"]
+        self.date_time = data["date_time"]
+        self.data_source = data["data_source"]
+        self.database_name = data["database_name"]
+        self.environment = data["environment"]
+        self.error_message = data["error_message"]
+        self.function_name = data["function_name"]
+        self.function_version = data["function_version"]
+        self.ingestion_job_uuid = uuid.UUID(data["ingestion_job_uuid"])
+        self.metadata_bucket = data["metadata_bucket"]
+        self.metadata_key = data["metadata_key"]
+        self.original_data_format = data["original_data_format"]
+        self.raw_data_bucket = data["raw_data_bucket"]
+        self.raw_data_key = data["raw_data_key"]
+        self.size_of_data_downloaded = data["size_of_data_downloaded"]
+        self.status = data["status"]
+        self.stored_data_format = data["stored_data_format"]
+        self.table_name = data["table_name"]
+        self.triggered_functions = data["triggered_functions"]
+        self.uri = data["uri"]
