@@ -16,6 +16,7 @@ on:
     paths:
       - "infra/**"
       - ".github/workflows/infra.yaml"
+  workflow_dispatch:
 
 jobs:
   core_infra:
