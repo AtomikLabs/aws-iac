@@ -64,8 +64,8 @@ resource "aws_iam_policy" "basic_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "arn:aws:s3:::${aws_s3_bucket.atomiklabs_data_bucket.arn}/raw_data/data_ingestion/*",
-          "arn:aws:s3:::${aws_s3_bucket.atomiklabs_data_bucket.arn}/metadata/*"
+          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/raw_data/data_ingestion/*",
+          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/metadata/*"
         ]
       },
       {
@@ -74,7 +74,7 @@ resource "aws_iam_policy" "basic_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "arn:aws:s3:::${aws_s3_bucket.atomiklabs_data_bucket.arn}"
+          "${aws_s3_bucket.atomiklabs_data_bucket.arn}"
         ]
       }
     ]
