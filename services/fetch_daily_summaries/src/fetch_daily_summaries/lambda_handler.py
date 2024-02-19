@@ -102,8 +102,7 @@ def lambda_handler(event: dict, context) -> dict:
         content_str = json.dumps(xml_data_list)
         storage_manager = StorageManager(metadata.raw_data_bucket, logger)
         storage_manager.persist(metadata.raw_data_key, content_str)
-        metadata.persist_to_s3(metadata.metadata_key)
-
+        metadata.write()
         logger.info("Fetching arXiv summaries succeeded", method=LAMBDA_HANDLER, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
 
