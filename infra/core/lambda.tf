@@ -95,3 +95,11 @@ resource "aws_iam_role_policy_attachment" "lambda_glue_policy_attach" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
   policy_arn = aws_iam_policy.lambda_glue_policy.arn
 }
+
+resource "aws_lambda_permission" "allow_eventbridge_to_invoke_lambda" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.fetch_daily_summaries.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.fetch_daily_summaries.arn
+}
