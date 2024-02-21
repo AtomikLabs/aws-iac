@@ -1,7 +1,7 @@
 # **********************************************************
 # * AWS Glue Job                                           *
 # **********************************************************
-resource "aws_glue_job" "arxiv-to-parquet" {
+resource "aws_glue_job" "arxiv_to_parquet" {
     name = "${local.environment}-arxiv-to-parquet"
     role_arn = aws_iam_role.glue_service_role.arn
     command {
