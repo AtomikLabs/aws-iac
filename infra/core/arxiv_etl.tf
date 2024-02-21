@@ -5,7 +5,7 @@ resource "aws_glue_job" "arxiv-to-parquet" {
     name = "${local.environment}-arxiv-to-parquet"
     role_arn = aws_iam_role.glue_service_role.arn
     command {
-        script_location="s3://${aws_s3_bucket.atomiklabs_data_bucket}/${local.etl_key_prefix}/scripts/arxiv_to_parquet.py"
+        script_location="s3://${aws_s3_bucket.atomiklabs_data_bucket.bucket}/${local.etl_key_prefix}/scripts/arxiv_to_parquet.py"
         name = "arxiv_to_parquet"
         python_version = "3"
     }
