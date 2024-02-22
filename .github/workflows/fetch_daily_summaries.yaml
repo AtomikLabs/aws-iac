@@ -28,6 +28,7 @@ jobs:
           config_file=".atomiklabs.json"
           echo "ARXIV_BASE_URL=$(jq -r '.data_ingestion.arxiv_base_url' "$config_file")" >> $GITHUB_ENV
           echo "ARXIV_SUMMARY_SET=$(jq -r '.data_ingestion.arxiv_summary_set' "$config_file")" >> $GITHUB_ENV
+          echo "AVAILABILITY_ZONES=$(jq -r '.infra.availability_zones' "$config_file")" >> $GITHUB_ENV
           echo "AWS_REGION=$(jq -r '.infra.terraform_aws_region' "$config_file")" >> $GITHUB_ENV
           echo "BASTION_HOST_KEY_PAIR_NAME=$(jq -r '.networking.bastion_host_key_pair_name' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_KEY_PREFIX=$(jq -r '.data_ingestion.data_ingestion_key_prefix' "$config_file")" >> $GITHUB_ENV
@@ -195,6 +196,7 @@ jobs:
           TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
           TF_VAR_arxiv_base_url: ${{ env.ARXIV_BASE_URL }}
           TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
+          TF_VAR_availability_zones: ${{ env.AVAILABILITY_ZONES }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_var_bastion_host_key_pair_name: ${{ env.BASTION_HOST_KEY_PAIR_NAME }}
@@ -221,6 +223,7 @@ jobs:
           TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
           TF_VAR_arxiv_base_url: ${{ env.ARXIV_BASE_URL }}
           TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
+          TF_VAR_availability_zones: ${{ env.AVAILABILITY_ZONES }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_var_bastion_host_key_pair_name: ${{ env.BASTION_HOST_KEY_PAIR_NAME }}

@@ -1,8 +1,8 @@
 resource "aws_s3_bucket" "atomiklabs_data_bucket" {
-  bucket = "${local.environment}-${local.name}-data-bucket"
+  bucket = "${var.environment}-${var.app_name}-data-bucket"
   
   
-  tags = local.tags
+  tags = var.tags
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "data_lifecycle" {
@@ -33,12 +33,12 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "data_encryption" 
 }
 
 resource "aws_glue_catalog_database" "data_catalog_database" {
-  name = "${local.environment}-data_catalog_database"
+  name = "${var.environment}-data_catalog_database"
 }
 
 resource "aws_glue_catalog_table" "data_ingestion_metadata_table" {
   database_name = aws_glue_catalog_database.data_catalog_database.name
-  name          = "${local.environment}-data_ingestion_metadata_table"
+  name          = "${var.environment}-data_ingestion_metadata_table"
 
   table_type = "EXTERNAL_TABLE"
 
@@ -48,11 +48,11 @@ resource "aws_glue_catalog_table" "data_ingestion_metadata_table" {
   }
 
   storage_descriptor {
-    location      = "s3://${aws_s3_bucket.atomiklabs_data_bucket.id}/${local.data_ingestion_metadata_key_prefix}/"
+    location      = "s3://${aws_s3_bucket.atomiklabs_data_bucket.id}/${var.data_ingestion_metadata_key_prefix}/"
     input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
     ser_de_info {
-      name                  = "${local.environment}-my_serde"
+      name                  = "${var.environment}-my_serde"
       serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
       parameters = {
         "serialization.format" = "1"
@@ -123,7 +123,7 @@ resource "aws_glue_catalog_table" "data_ingestion_metadata_table" {
 }
 
 resource "aws_iam_role" "lambda_glue_role" {
-  name = "${local.environment}-lambda_glue_access_role"
+  name = "${var.environment}-lambda_glue_access_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -140,7 +140,7 @@ resource "aws_iam_role" "lambda_glue_role" {
 }
 
 resource "aws_iam_policy" "lambda_glue_policy" {
-  name        = "${local.environment}-lambda_glue_data_catalog_access_policy"
+  name        = "${var.environment}-lambda_glue_data_catalog_access_policy"
   description = "IAM policy for accessing AWS Glue Data Catalog from Lambda"
 
   policy = jsonencode({
@@ -166,3 +166,7 @@ resource "aws_iam_policy" "lambda_glue_policy" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_glue_policy_attachment" {
+  policy_arn = aws_iam_policy.lambda_glue_policy.arn
+  role       = aws_iam_role.lambda_glue_role.name
+}

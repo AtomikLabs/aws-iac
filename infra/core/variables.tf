@@ -6,6 +6,11 @@ variable "alert_email"  {
   type        = string
 }
 
+variable "availability_zones" {
+  description = "Availability zones"
+  type        = list(string)
+}
+
 variable "aws_region" {
   description = "AWS region to deploy the infrastructure"
   type        = string

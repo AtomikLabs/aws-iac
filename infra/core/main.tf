@@ -64,8 +64,9 @@ locals {
   # * NETWORKING CONFIGURATION                               *
   # **********************************************************
 
-  bastion_host_key_pair_name        = var.bastion_host_key_pair_name
-  home_ip                           = "${var.home_ip}/32"
+  availability_zones               = var.availability_zones
+  bastion_host_key_pair_name       = var.bastion_host_key_pair_name
+  home_ip                          = "${var.home_ip}/32"
   vpc_cidr                         = "10.0.0.0/16"
   public_subnet_cidrs              = ["10.0.1.0/24", "10.0.2.0/24"]
   private_subnet_cidrs             = ["10.0.3.0/24", "10.0.4.0/24"]
@@ -76,4 +77,25 @@ locals {
     Region      = local.aws_region
     Application = local.name
   }
+}
+
+module "data_management" {
+  source                              = "./data_management"
+  app_name                            = local.name
+  aws_region                          = local.aws_region
+  data_ingestion_metadata_key_prefix  = local.data_ingestion_metadata_key_prefix
+  environment                         = local.environment
+  tags                                = local.tags
+}
+
+module "networking" {
+  source                = "./networking"
+  app_name              = local.name
+  availability_zones    = local.availability_zones
+  aws_region            = local.aws_region
+  environment           = local.environment
+  private_subnet_cidrs  = local.private_subnet_cidrs
+  public_subnet_cidrs   = local.public_subnet_cidrs
+  tags                  = local.tags
+  vpc_cidr              = local.vpc_cidr
 }
