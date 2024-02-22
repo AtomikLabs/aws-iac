@@ -2,7 +2,7 @@
   "version": 1,
   "infra":
   {
-      "availability_zones": ["us-east-1a", "us-east-1b"],
+      "availability_zones": "us-east-1a,us-east-1b",
       "infra_config_bucket": "atomiklabs-infra-config-bucket",
       "infra_config_prefix": "terraform/terraform.state",
       "backend_dynamodb_table": "atomiklabs-terraform-locks",
@@ -17,7 +17,7 @@
       "data_ingestion_key_prefix": "raw_data/data_ingestion",
       "fetch_daily_summaries_name": "fetch_daily_summaries",
       "fetch_daily_summaries_version": "v0.2.13",
-      "arxiv_summary_sets": ["cs"]
+      "arxiv_summary_sets": "cs"
     },
   "etl":
     {

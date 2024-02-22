@@ -6,9 +6,9 @@ variable "alert_email"  {
   type        = string
 }
 
-variable "availability_zones" {
+variable "availability_zones_string" {
   description = "Availability zones"
-  type        = list(string)
+  type        = string
 }
 
 variable "aws_region" {
@@ -71,7 +71,6 @@ variable "arxiv_base_url" {
 variable "arxiv_summary_set" {
   description = "arXiv summary set to fetch"
   type        = string
-  default     = "cs"
 }
 
 variable "data_ingestion_key_prefix" {

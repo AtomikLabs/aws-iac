@@ -72,7 +72,8 @@ locals {
   # * NETWORKING CONFIGURATION                               *
   # **********************************************************
 
-  availability_zones               = var.availability_zones
+  availability_zones_string        = var.availability_zones_string
+  availability_zones               = split(",", local.availability_zones_string)
   bastion_host_key_pair_name       = var.bastion_host_key_pair_name
   home_ip                          = "${var.home_ip}/32"
   vpc_cidr                         = "10.0.0.0/16"
