@@ -29,7 +29,7 @@ resource "aws_subnet" "private_subnet" {
   availability_zone = element(data.aws_availability_zones.available, count.index)
   map_public_ip_on_launch = false
   tags = {
-    Name = "${vlocal.environment}-private-subnet-${count.index + 1}"
+    Name = "${local.environment}-private-subnet-${count.index + 1}"
     "kubernetes.io/cluster/${local.environment}-cluster" = "shared"
   }
 }
@@ -70,7 +70,7 @@ resource "aws_route" "internet_access" {
 }
 
 resource "aws_route_table_association" "public_subnet_association" {
-  count = length(var.SUBNET_CIDRS.PUBLIC)
+  count = length(local.public_subnet_cidrs)
 
   subnet_id      = element(aws_subnet.public_subnet.*.id, count.index)
   route_table_id = aws_route_table.public_route_table.id
