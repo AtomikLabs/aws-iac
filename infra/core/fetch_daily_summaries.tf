@@ -85,19 +85,19 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
 
   environment {
     variables = {
-      APP_NAME    = local.name
-      ARXIV_BASE_URL = local.arxiv_base_url
-      DATA_INGESTION_KEY_PREFIX = local.data_ingestion_key_prefix
-      DATA_INGESTION_METADATA_KEY_PREFIX = local.data_ingestion_metadata_key_prefix
-      ENVIRONMENT = local.environment
-      GLUE_DATABASE_NAME = aws_glue_catalog_database.data_catalog_database.name
-      GLUE_TABLE_NAME    = aws_glue_catalog_table.data_ingestion_metadata_table.name
-      MAX_FETCH_ATTEMPTS = local.max_daily_summary_fetch_attempts
-      S3_BUCKET_NAME   = aws_s3_bucket.atomiklabs_data_bucket.bucket
-      S3_STORAGE_KEY_PREFIX = local.data_ingestion_key_prefix
-      SERVICE_VERSION = local.fetch_daily_summaries_version
-      SERVICE_NAME = local.fetch_daily_summaries_name
-      SUMMARY_SET = local.arxiv_summary_set
+      APP_NAME                            = local.name
+      ARXIV_BASE_URL                      = local.arxiv_base_url
+      DATA_INGESTION_KEY_PREFIX           = local.data_ingestion_key_prefix
+      DATA_INGESTION_METADATA_KEY_PREFIX  = local.data_ingestion_metadata_key_prefix
+      ENVIRONMENT                         = local.environment
+      GLUE_DATABASE_NAME                  = module.data_management.aws_glue_catalog_database_name
+      GLUE_TABLE_NAME                     = module.data_management.data_ingestion_metadata_table_name
+      MAX_FETCH_ATTEMPTS                  = local.max_daily_summary_fetch_attempts
+      S3_BUCKET_NAME                      = local.s3_bucket_name
+      S3_STORAGE_KEY_PREFIX               = local.data_ingestion_key_prefix
+      SERVICE_VERSION                     = local.fetch_daily_summaries_version
+      SERVICE_NAME                        = local.fetch_daily_summaries_name
+      SUMMARY_SET                         = local.arxiv_summary_set
     }  
   }
 }
@@ -118,8 +118,8 @@ resource "aws_iam_policy" "basic_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/raw_data/data_ingestion/*",
-          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/metadata/*"
+          "${local.s3_bucket_arn}/raw_data/data_ingestion/*",
+          "${local.s3_bucket_arn}/metadata/*"
         ]
       },
       {
@@ -128,7 +128,7 @@ resource "aws_iam_policy" "basic_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${aws_s3_bucket.atomiklabs_data_bucket.arn}"
+          "${local.s3_bucket_arn}"
         ]
       }
     ]
@@ -147,7 +147,7 @@ resource "aws_iam_role_policy_attachment" "lambda_s3_access_attachment" {
 
 resource "aws_iam_role_policy_attachment" "lambda_glue_policy_attach" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
-  policy_arn = aws_iam_policy.lambda_glue_policy.arn
+  policy_arn = local.lambda_glue_policy_arn
 }
 
 resource "aws_lambda_permission" "allow_eventbridge_to_invoke_lambda" {

@@ -32,6 +32,13 @@ locals {
   name                            = var.name
   outputs_prefix                  = var.outputs_prefix
   repo                            = var.repo
+
+  # **********************************************************
+  # * DATA MANAGEMENT CONFIGURATION                          *
+  # **********************************************************
+  s3_bucket_arn                   = module.data_management.data_bucket_arn
+  s3_bucket_name                  = module.data_management.data_bucket_name
+
   
   # **********************************************************
   # * SERVICES CONFIGURATION                                 *
@@ -54,6 +61,7 @@ locals {
 
   etl_key_prefix                    = var.etl_key_prefix
   AWSGlueServiceRoleARN             = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+  lambda_glue_policy_arn            = module.data_management.lambda_glue_policy_arn
 
   # **********************************************************
   # * METADATA CONFIGURATION                                 *
@@ -89,7 +97,9 @@ module "data_management" {
 }
 
 module "networking" {
+  depends_on = [ module.data_management ]
   source                = "./networking"
+  
   app_name              = local.name
   availability_zones    = local.availability_zones
   aws_region            = local.aws_region

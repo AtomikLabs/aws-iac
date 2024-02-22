@@ -39,12 +39,12 @@ output "aws_iam_policy_attachment_ecr_policy_attach_policy_arn" {
 }
 
 output "aws_s3_bucket_atomiklabs_data_bucket_arn" {
-  value       = aws_s3_bucket.atomiklabs_data_bucket.arn
+  value       = local.s3_bucket_arn
   description = "The Amazon Resource Name (ARN) that identifies the bucket."
 }
 
 output "aws_s3_bucket_atomiklabs_data_bucket_name" {
-  value       = aws_s3_bucket.atomiklabs_data_bucket.bucket
+  value       = local.s3_bucket_name
   description = "The name of the bucket."
 }
 

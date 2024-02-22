@@ -4,8 +4,8 @@
 resource "aws_glue_job" "arxiv_xml_to_parquet" {
     name = "${local.environment}-arxiv-to-parquet"
     role_arn = aws_iam_role.glue_service_role.arn
-    command {
-        script_location="s3://${aws_s3_bucket.atomiklabs_data_bucket.bucket}/${local.etl_key_prefix}/scripts/arxiv_xml_to_parquet.py"
+    command { 
+        script_location="s3://${module.data_management.data_bucket_name}/${local.etl_key_prefix}/scripts/arxiv_xml_to_parquet.py"
         name = "arxiv_xml_to_parquet"
         python_version = "3"
     }
@@ -53,8 +53,8 @@ resource "aws_iam_policy" "glue_s3_access_policy" {
         ],
         Effect = "Allow",
         Resource = [
-          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/raw_data/data_ingestion/*",
-          "${aws_s3_bucket.atomiklabs_data_bucket.arn}/metadata/*"
+          "${module.data_management.data_bucket_arn}/raw_data/data_ingestion/*",
+          "${module.data_management.data_bucket_arn}/metadata/*"
         ],
       },
     ],
