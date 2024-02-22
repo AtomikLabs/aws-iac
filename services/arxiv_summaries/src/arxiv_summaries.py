@@ -1010,7 +1010,7 @@ def config_for_test():
     global AURORA_CLUSTER_ARN, BASE_URL, BUCKET_NAME, DB_CREDENTIALS_SECRET_ARN, DATABASE, SUMMARY_SET, OPENAI_KEY
     AURORA_CLUSTER_ARN = "arn:aws:rds:us-east-1:758145997264:cluster:atomiklabs-dev-aurora-cluster"
     BASE_URL = "http://export.arxiv.org/oai2"
-    BUCKET_NAME = "atomiklabs-infra-config-bucket"
+    BUCKET_NAME = "dev-atomiklabs-data-bucket"
     DB_CREDENTIALS_SECRET_ARN = "arn:aws:secretsmanager:us-east-1:758145997264:secret:dev/database-credentials-TuF8OS"
     DATABASE = "atomiklabs_dev_database"
     SUMMARY_SET = "cs"

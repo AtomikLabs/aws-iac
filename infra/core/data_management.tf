@@ -1,6 +1,7 @@
 resource "aws_s3_bucket" "atomiklabs_data_bucket" {
   bucket = "${local.environment}-${local.name}-data-bucket"
   
+  
   tags = local.tags
 }
 

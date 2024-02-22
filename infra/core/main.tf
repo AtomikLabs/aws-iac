@@ -16,13 +16,14 @@ locals {
   # **********************************************************
   # * AWS ACCOUNT                                            *
   # **********************************************************
-  account_id = data.aws_caller_identity.current.account_id
-  partition  = data.aws_partition.current.partition
+  account_id                = data.aws_caller_identity.current.account_id
+  aws_region                = var.aws_region
+  partition                 = data.aws_partition.current.partition
   
   # **********************************************************
   # * INFRASTRUCTURE CONFIGURATION                           *
   # **********************************************************
-  aws_region                      = var.aws_region
+  alert_email                     = var.alert_email
   backend_dynamodb_table          = var.backend_dynamodb_table
   environment                     = var.environment
   iam_user_name                   = var.iam_user_name
@@ -46,6 +47,13 @@ locals {
   fetch_daily_summaries_name              = var.fetch_daily_summaries_name
   fetch_daily_summaries_version           = var.fetch_daily_summaries_version
   max_daily_summary_fetch_attempts        = 10
+
+  # **********************************************************
+  # * ETL CONFIGURATION                                      *
+  # **********************************************************
+
+  etl_key_prefix                    = var.etl_key_prefix
+  AWSGlueServiceRoleARN             = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
 
   # **********************************************************
   # * METADATA CONFIGURATION                                 *

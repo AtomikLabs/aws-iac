@@ -1,12 +1,9 @@
-variable "arxiv_base_url" {
-  description = "arXiv base URL"
+# **********************************************************
+# * Core Config                                            *
+# **********************************************************
+variable "alert_email"  {
+  description = "Email to receive alerts"
   type        = string
-}
-
-variable "arxiv_summary_set" {
-  description = "arXiv summary set to fetch"
-  type        = string
-  default     = "cs"
 }
 
 variable "aws_region" {
@@ -20,25 +17,10 @@ variable "backend_dynamodb_table" {
   type        = string
 }
 
-variable "data_ingestion_metadata_key_prefix" {
-  description = "Prefix for the data ingestion metadata"
-  type        = string
-}
-
 variable "environment" {
   description = "Environment"
   type        = string
   default     = "dev"
-}
-
-variable "fetch_daily_summaries_name" {
-  description = "Fetch daily summaries service name"
-  type        = string
-}
-
-variable "fetch_daily_summaries_version" {
-  description = "Fetch daily summaries service version"
-  type        = string
 }
 
 variable "iam_user_name" {
@@ -73,7 +55,45 @@ variable "repo" {
   type        = string
 }
 
+# **********************************************************
+# * Data Ingestion                                         *
+# **********************************************************
+variable "arxiv_base_url" {
+  description = "arXiv base URL"
+  type        = string
+}
+
+variable "arxiv_summary_set" {
+  description = "arXiv summary set to fetch"
+  type        = string
+  default     = "cs"
+}
+
 variable "data_ingestion_key_prefix" {
   description = "Prefix for the data ingestion"
+  type        = string
+}
+
+variable "data_ingestion_metadata_key_prefix" {
+  description = "Prefix for the data ingestion metadata"
+  type        = string
+}
+
+variable "fetch_daily_summaries_name" {
+  description = "Fetch daily summaries service name"
+  type        = string
+}
+
+variable "fetch_daily_summaries_version" {
+  description = "Fetch daily summaries service version"
+  type        = string
+}
+
+# **********************************************************
+# * ETL                                                    *
+# **********************************************************
+
+variable "etl_key_prefix" {
+  description = "Prefix for the ETL"
   type        = string
 }
