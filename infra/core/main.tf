@@ -66,7 +66,9 @@ locals {
 
   bastion_host_key_pair_name        = var.bastion_host_key_pair_name
   home_ip                           = "${var.home_ip}/32"
-  
+  vpc_cidr                         = "10.0.0.0/16"
+  public_subnet_cidrs              = ["10.0.1.0/24", "10.0.2.0/24"]
+  private_subnet_cidrs             = ["10.0.3.0/24", "10.0.4.0/24"]
   tags = {
     Blueprint   = local.name
     GithubRepo  = local.repo
