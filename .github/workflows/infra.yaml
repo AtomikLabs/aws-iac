@@ -146,6 +146,7 @@ jobs:
           TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
           TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
           TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
+          TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
@@ -169,6 +170,7 @@ jobs:
           TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
           TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
           TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
+          TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
