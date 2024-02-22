@@ -106,7 +106,7 @@ resource "aws_sns_topic_subscription" "email_subscription" {
 
 resource "aws_cloudwatch_log_metric_filter" "glue_job_failure_filter" {
   name           = "${local.environment}-glue-job-failure-filter"
-  log_group_name = "/aws-glue/jobs"
+  log_group_name = aws_cloudwatch_log_group.glue_jobs_log_group.name
   pattern        = "\"Job run failed\""
 
   metric_transformation {
