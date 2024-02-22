@@ -102,7 +102,7 @@ module "networking" {
   source                = "./networking"
   
   app_name              = local.name
-  availability_zones    = local.availability_zones
+  availability_zones    = ["us-east-1a", "us-east-1b"]
   aws_region            = local.aws_region
   environment           = local.environment
   private_subnet_cidrs  = local.private_subnet_cidrs
