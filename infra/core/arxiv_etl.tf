@@ -84,6 +84,11 @@ resource "aws_iam_policy" "glue_cloudwatch_policy" {
   })
 }
 
+resource "aws_cloudwatch_log_group" "glue_jobs_log_group" {
+  name              = "/aws-glue/jobs/logs-v2"
+  retention_in_days = 90
+}
+
 resource "aws_iam_role_policy_attachment" "glue_cloudwatch_policy_attach" {
   role       = aws_iam_role.glue_service_role.name
   policy_arn = aws_iam_policy.glue_cloudwatch_policy.arn
