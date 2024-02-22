@@ -1,12 +1,12 @@
 # **********************************************************
 # * AWS Glue Job                                           *
 # **********************************************************
-resource "aws_glue_job" "arxiv_to_parquet" {
+resource "aws_glue_job" "arxiv_xml_to_parquet" {
     name = "${local.environment}-arxiv-to-parquet"
     role_arn = aws_iam_role.glue_service_role.arn
     command {
-        script_location="s3://${aws_s3_bucket.atomiklabs_data_bucket.bucket}/${local.etl_key_prefix}/scripts/arxiv_to_parquet.py"
-        name = "arxiv_to_parquet"
+        script_location="s3://${aws_s3_bucket.atomiklabs_data_bucket.bucket}/${local.etl_key_prefix}/scripts/arxiv_xml_to_parquet.py"
+        name = "arxiv_xml_to_parquet"
         python_version = "3"
     }
     default_arguments = {
