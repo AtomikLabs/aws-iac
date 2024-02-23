@@ -1,24 +1,4 @@
 # **********************************************************
-# * GENERAL                                                *
-# **********************************************************
-resource "aws_iam_role" "fetch_daily_summaries_lambda_execution_role" {
-  name = "${local.environment}-${local.fetch_daily_summaries_name}-lambda-execution-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      },
-    ]
-  })
-}
-
-# **********************************************************
 # * TRIGGER                                                *
 # **********************************************************
 resource "aws_cloudwatch_event_rule" "fetch_daily_summaries" {
@@ -33,43 +13,12 @@ resource "aws_cloudwatch_event_target" "fetch_daily_summaries_target" {
   arn       = aws_lambda_function.fetch_daily_summaries.arn
 }
 
-resource "aws_iam_policy" "eventbridge_policy" {
-  name        = "${local.environment}-event_bridge_policy"
-  path        = "/"
-  description = "Policy to allow triggering lambdas from eventbridge"
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = "lambda:InvokeFunction",
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role" "eventbridge_role" {
-  name = "${local.environment}-event_bridge_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "events.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
-  name       = "${local.environment}-event_bridge_policy_attachment"
-  roles      = [aws_iam_role.eventbridge_role.name]
-  policy_arn = aws_iam_policy.eventbridge_policy.arn
+resource "aws_lambda_permission" "allow_eventbridge_to_invoke_fetch_daily_summaries" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.fetch_daily_summaries.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.fetch_daily_summaries.arn
 }
 
 # **********************************************************
@@ -82,6 +31,10 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
   timeout       = 900
   memory_size   = 128
+  vpc_config {
+    subnet_ids         = [aws_subnet.private[0].id, aws_subnet.private[1].id]
+    security_group_ids = [aws_security_group.lambda_sg.id]
+  }
 
   environment {
     variables = {
@@ -102,8 +55,30 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   }
 }
 
-resource "aws_iam_policy" "basic_lambda_s3_access" {
-  name        = "${local.environment}-fetch-daily-summaries-s3-access"
+resource "aws_iam_role" "fetch_daily_summaries_lambda_execution_role" {
+  name = "${local.environment}-${local.fetch_daily_summaries_name}-lambda-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_basic_execution" {
+  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
+  policy_arn = local.AWSBasicExecutionRoleARN
+}
+
+resource "aws_iam_policy" "fetch_daily_summaries_lambda_s3_access" {
+  name        = "${local.environment}-fetch-daily-summaries-lambda-s3-access"
   description = "Allow Lambda to put objects in S3"
 
   policy = jsonencode({
@@ -135,25 +110,17 @@ resource "aws_iam_policy" "basic_lambda_s3_access" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
+resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_s3_access_attachment" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
-  policy_arn = local.AWSBasicExecutionRoleARN
+  policy_arn = aws_iam_policy.fetch_daily_summaries_lambda_s3_access.arn
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_s3_access_attachment" {
-  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
-  policy_arn = aws_iam_policy.basic_lambda_s3_access.arn
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_glue_policy_attach" {
+resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_glue_policy_attach" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
   policy_arn = aws_iam_policy.lambda_glue_policy.arn
 }
 
-resource "aws_lambda_permission" "allow_eventbridge_to_invoke_lambda" {
-  statement_id  = "AllowExecutionFromEventBridge"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.fetch_daily_summaries.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.fetch_daily_summaries.arn
+resource "aws_iam_role_policy_attachment" "lambda_vpc_access_attachment" {
+  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
+  policy_arn = local.AWSLambdaVPCAccessExecutionRole
 }

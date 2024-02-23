@@ -118,8 +118,5 @@ resource "aws_security_group" "rabbitmq_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name        = "${local.environment}-rabbitmq-sg"
-    Environment = local.environment
-  }
+  tags = local.tags
 }
