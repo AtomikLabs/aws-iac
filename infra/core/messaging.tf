@@ -20,7 +20,7 @@ resource "aws_instance" "rabbitmq" {
             curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key | sudo gpg --dearmor | sudo tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null
 
             ## Add apt repositories maintained by Team RabbitMQ
-            sudo tee /etc/apt/sources.list.d/rabbitmq.list <<EOF
+            sudo tee /etc/apt/sources.list.d/rabbitmq.list <<EOF_INNER
             ## Provides modern Erlang/OTP releases
             ##
             deb [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.novemberain.com/rabbitmq/rabbitmq-erlang/deb/ubuntu jammy main
@@ -38,7 +38,7 @@ resource "aws_instance" "rabbitmq" {
             # another mirror for redundancy
             deb [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.novemberain.com/rabbitmq/rabbitmq-server/deb/ubuntu jammy main
             deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.novemberain.com/rabbitmq/rabbitmq-server/deb/ubuntu jammy main
-            
+            EOF_INNER
             ## Update package indices
             sudo apt-get update -y
 
