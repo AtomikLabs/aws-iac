@@ -76,6 +76,20 @@ resource "aws_security_group" "rabbitmq_sg" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    security_groups = [aws_security_group.bastion_sg.id]
+  }
+
+  ingress {
+    from_port   = 4369
+    to_port     = 4369
+    protocol    = "tcp"
+    security_groups = [aws_security_group.rabbitmq_sg.id]
+  }
+
+  ingress {
     from_port   = 5672
     to_port     = 5672
     protocol    = "tcp"
@@ -86,15 +100,16 @@ resource "aws_security_group" "rabbitmq_sg" {
     from_port   = 15672
     to_port     = 15672
     protocol    = "tcp"
-    security_groups = [aws_security_group.bastion_sg.id]
+    security_groups = [aws_security_group.rabbitmq_sg.id]
   }
 
   ingress {
-    from_port   = 22
-    to_port     = 22
+    from_port   = 25672
+    to_port     = 25672
     protocol    = "tcp"
-    security_groups = [aws_security_group.bastion_sg.id]
+    security_groups = [aws_security_group.rabbitmq_sg.id]
   }
+
 
   egress {
     from_port   = 0
