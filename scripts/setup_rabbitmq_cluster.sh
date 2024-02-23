@@ -34,7 +34,7 @@ echo "Joining the secondary node to the cluster..."
 execute_via_bastion $SECONDARY_NODE_IP <<EOF
 sudo rabbitmqctl stop_app
 sudo rabbitmqctl reset
-sudo rabbitmqctl join_cluster rabbit@ip-${PRIMARY_NODE_IP}
+sudo rabbitmqctl join_cluster rabbit@rabbit1
 sudo rabbitmqctl start_app
 EOF
 
