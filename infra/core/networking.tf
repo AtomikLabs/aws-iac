@@ -52,6 +52,35 @@ resource "aws_route" "internet_access" {
   gateway_id             = aws_internet_gateway.gw.id
 }
 
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = element(aws_subnet.public.*.id, 0)
+  tags = {
+    Name        = "${local.environment}-nat-gw"
+    Environment = local.environment
+  }
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+  tags = {
+    Name        = "${local.environment}-private-rt"
+    Environment = local.environment
+  }
+}
+
+resource "aws_route" "nat_gateway" {
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat.id
+}
+
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private.*.id)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+
 resource "aws_route_table_association" "public" {
   count          = length(aws_subnet.public.*.id)
   subnet_id      = aws_subnet.public[count.index].id
@@ -148,9 +177,9 @@ resource "aws_security_group" "bastion_sg" {
     Environment = local.environment
   }
 }
-/* TODO: Reactivate when required
+
 resource "aws_instance" "bastion_host" {
-  ami           = "ami-0440d3b780d96b29d"
+  ami           = "ami-0440d3b780d96b29d" # aws-linux-2
   instance_type = "t2.micro"
   subnet_id     = element(aws_subnet.public.*.id, 0)
   key_name      = "${local.environment}-${local.bastion_host_key_pair_name}"
@@ -164,4 +193,3 @@ resource "aws_instance" "bastion_host" {
     Environment = local.environment
   }
 }
-*/

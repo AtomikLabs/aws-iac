@@ -112,3 +112,16 @@ variable "bastion_host_key_pair_name" {
   description = "Bastion host key pair name"
   type        = string
 }
+
+# **********************************************************
+# * Messaging                                              *
+# **********************************************************
+variable "rabbitmqctl_username" {
+  description = "RabbitMQ control username"
+  type        = string
+}
+
+variable "rabbitmqctl_password" {
+  description = "RabbitMQ control password"
+  type        = string
+}
