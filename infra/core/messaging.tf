@@ -8,8 +8,10 @@ resource "aws_instance" "rabbitmq" {
 
   user_data = <<-EOF
               #!/bin/bash
-              sudo apt-get update
-              sudo apt-get install -y rabbitmq-server
+              sudo yum update -y
+              sudo yum install -y erlang
+              sudo rpm --import https://www.rabbitmq.com/rabbitmq-release-signing-key.asc
+              sudo yum install -y https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.8.9/rabbitmq-server-3.8.9-1.el7.noarch.rpm
               sudo systemctl enable rabbitmq-server
               sudo systemctl start rabbitmq-server
               sudo rabbitmq-plugins enable rabbitmq_management
