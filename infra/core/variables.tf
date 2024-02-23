@@ -15,6 +15,7 @@ variable "aws_region" {
 variable "backend_dynamodb_table" {
   description = "DynamoDB table name for Terraform state"
   type        = string
+  
 }
 
 variable "environment" {
