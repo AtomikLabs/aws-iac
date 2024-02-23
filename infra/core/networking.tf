@@ -65,30 +65,7 @@ resource "aws_eip" "nat" {
   }
 }
 
-resource "aws_security_group" "rabbitmq_sg" {
-  name        = "${local.environment}-rabbitmq-sg"
-  description = "Security group for RabbitMQ"
-  vpc_id      = aws_vpc.main.id
 
-  ingress {
-    from_port   = 5672
-    to_port     = 5672
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name        = "${local.environment}-rabbitmq-sg"
-    Environment = local.environment
-  }
-}
 
 resource "aws_security_group" "rds_sg" {
   name        = "${local.environment}-rds-sg"
@@ -171,7 +148,7 @@ resource "aws_security_group" "bastion_sg" {
     Environment = local.environment
   }
 }
-
+/* TODO: Reactivate when required
 resource "aws_instance" "bastion_host" {
   ami           = "ami-0440d3b780d96b29d"
   instance_type = "t2.micro"
@@ -187,3 +164,4 @@ resource "aws_instance" "bastion_host" {
     Environment = local.environment
   }
 }
+*/
