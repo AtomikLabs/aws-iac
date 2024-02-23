@@ -26,6 +26,6 @@
     { "data_ingestion_metadata_key_prefix": "data_management/metadata/data_ingestion" },
   "networking":
     {
-      "bastion_host_key_pair_name": "dev-atomiklabs-bastion-keypair"
+      "bastion_host_key_pair_name": "atomiklabs-bastion-keypair"
     }
 }
