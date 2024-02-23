@@ -30,7 +30,7 @@ resource "aws_subnet" "private" {
   count = 2
   vpc_id     = aws_vpc.main.id
   cidr_block = count.index == 0 ? "10.0.3.0/24" : "10.0.4.0/24"
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
   availability_zone       = element(data.aws_availability_zones.available.names, count.index)
   tags = {
     Name        = "${local.environment}-private-${count.index + 1}"
@@ -179,7 +179,7 @@ resource "aws_security_group" "bastion_sg" {
 }
 
 resource "aws_instance" "bastion_host" {
-  ami           = "ami-0440d3b780d96b29d"
+  ami           = "ami-0440d3b780d96b29d" # aws-linux-2
   instance_type = "t2.micro"
   subnet_id     = element(aws_subnet.public.*.id, 0)
   key_name      = "${local.environment}-${local.bastion_host_key_pair_name}"
