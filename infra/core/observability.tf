@@ -5,7 +5,7 @@ resource "aws_instance" "observer" {
   key_name = "${local.environment}-${local.bastion_host_key_pair_name}"
   subnet_id = aws_subnet.private[0].id
   tags = {
-    Name = "observability"
+    Name = "${local.environment}-observability"
     Environment = local.environment
   }
 }

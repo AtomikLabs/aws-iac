@@ -65,7 +65,7 @@ resource "aws_instance" "rabbitmq" {
 EOF
 
   tags = {
-    Name = "RabbitMQ-${count.index + 1}"
+    Name = "${local.environment}-RabbitMQ-${count.index + 1}"
     Environment = local.environment
   }
 }
