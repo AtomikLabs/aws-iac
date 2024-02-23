@@ -86,7 +86,7 @@ resource "aws_security_group" "rabbitmq_sg" {
     from_port   = 4369
     to_port     = 4369
     protocol    = "tcp"
-    security_groups = [aws_security_group.rabbitmq_sg.id]
+    self = true
   }
 
   ingress {
@@ -100,14 +100,14 @@ resource "aws_security_group" "rabbitmq_sg" {
     from_port   = 15672
     to_port     = 15672
     protocol    = "tcp"
-    security_groups = [aws_security_group.rabbitmq_sg.id]
+    self = true
   }
 
   ingress {
     from_port   = 25672
     to_port     = 25672
     protocol    = "tcp"
-    security_groups = [aws_security_group.rabbitmq_sg.id]
+    self = true
   }
 
 
