@@ -61,7 +61,7 @@ resource "aws_instance" "rabbitmq" {
                 sudo rabbitmqctl add_user ${local.rabbitmqctl_username} ${local.rabbitmqctl_password}
                 sudo rabbitmqctl set_user_tags ${local.rabbitmqctl_username} administrator
                 sudo rabbitmqctl set_permissions -p / ${local.rabbitmqctl_username} ".*" ".*" ".*"
-            } > /var/log/user-data.log 2>&1
+            } >> /var/log/user-data.log 2>&1
                 EOF
 
   tags = {

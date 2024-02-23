@@ -25,7 +25,7 @@ resource "aws_subnet" "public" {
     Environment = local.environment
   }
 }
-# TODO: Remove public IP from private subnet for production and access through bastion host
+
 resource "aws_subnet" "private" {
   count = 2
   vpc_id     = aws_vpc.main.id
