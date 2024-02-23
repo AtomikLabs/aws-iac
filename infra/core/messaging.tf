@@ -41,7 +41,6 @@ resource "aws_security_group" "rabbitmq_sg" {
     from_port   = 15672
     to_port     = 15672
     protocol    = "tcp"
-    cidr_blocks = [local.home_ip]
     security_groups = [aws_security_group.bastion_sg.id]
   }
 
