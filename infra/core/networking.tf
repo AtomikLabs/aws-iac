@@ -148,7 +148,7 @@ resource "aws_security_group" "bastion_sg" {
     Environment = local.environment
   }
 }
-
+/* TODO: Reactivate when required
 resource "aws_instance" "bastion_host" {
   ami           = "ami-0440d3b780d96b29d"
   instance_type = "t2.micro"
@@ -164,3 +164,4 @@ resource "aws_instance" "bastion_host" {
     Environment = local.environment
   }
 }
+*/
