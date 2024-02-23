@@ -66,6 +66,12 @@ locals {
 
   bastion_host_key_pair_name        = var.bastion_host_key_pair_name
   home_ip                           = "${var.home_ip}/32"
+
+  # **********************************************************
+  # * MESSAGING CONFIGURATION                                *
+  # **********************************************************
+  rabbitmqctl_username              = var.rabbitmqctl_username
+  rabbitmqctl_password              = var.rabbitmqctl_password
   
   tags = {
     Blueprint   = local.name

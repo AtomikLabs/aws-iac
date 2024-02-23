@@ -25,12 +25,12 @@ resource "aws_subnet" "public" {
     Environment = local.environment
   }
 }
-
+# TODO: Remove public IP from private subnet for production and access through bastion host
 resource "aws_subnet" "private" {
   count = 2
   vpc_id     = aws_vpc.main.id
   cidr_block = count.index == 0 ? "10.0.3.0/24" : "10.0.4.0/24"
-  map_public_ip_on_launch = false
+  map_public_ip_on_launch = true
   availability_zone       = element(data.aws_availability_zones.available.names, count.index)
   tags = {
     Name        = "${local.environment}-private-${count.index + 1}"
@@ -50,6 +50,35 @@ resource "aws_route" "internet_access" {
   route_table_id         = aws_route_table.public.id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.gw.id
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = element(aws_subnet.public.*.id, 0)
+  tags = {
+    Name        = "${local.environment}-nat-gw"
+    Environment = local.environment
+  }
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+  tags = {
+    Name        = "${local.environment}-private-rt"
+    Environment = local.environment
+  }
+}
+
+resource "aws_route" "nat_gateway" {
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat.id
+}
+
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private.*.id)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
 }
 
 resource "aws_route_table_association" "public" {
@@ -148,7 +177,7 @@ resource "aws_security_group" "bastion_sg" {
     Environment = local.environment
   }
 }
-/* TODO: Reactivate when required
+
 resource "aws_instance" "bastion_host" {
   ami           = "ami-0440d3b780d96b29d"
   instance_type = "t2.micro"
@@ -164,4 +193,3 @@ resource "aws_instance" "bastion_host" {
     Environment = local.environment
   }
 }
-*/

@@ -60,6 +60,8 @@ jobs:
           echo "::set-output name=env_file::$env_file"
           iam_user_name=$(jq -r '.iam_user_name' $env_file)
           echo "IAM_USER_NAME=$iam_user_name" >> $GITHUB_ENV
+          echo "RABBITMQCTL_USERNAME=${{ secrets.RABBITMQCTL_USERNAME }}" >> $GITHUB_ENV
+          echo "RABBITMQCTL_PASSWORD=${{ secrets.RABBITMQCTL_PASSWORD }}" >> $GITHUB_ENV
 
       - name: Set AWS Credentials Based on Environment
         run: |
@@ -152,6 +154,8 @@ jobs:
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
+          TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
+          TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
           TF_VAR_repo: ${{ env.REPO }}
 
       - name: Apply Terraform
@@ -177,6 +181,8 @@ jobs:
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
+          TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
+          TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
           TF_VAR_repo: ${{ env.REPO }}
 
       - name: Save Terraform Outputs

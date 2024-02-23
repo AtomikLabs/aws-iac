@@ -12,6 +12,11 @@ resource "aws_instance" "rabbitmq" {
               sudo apt-get install -y rabbitmq-server
               sudo systemctl enable rabbitmq-server
               sudo systemctl start rabbitmq-server
+              sudo rabbitmq-plugins enable rabbitmq_management
+              sleep 15
+              sudo rabbitmqctl add_user ${local.rabbitmqctl_username} ${local.rabbitmqctl_password}
+              sudo rabbitmqctl set_user_tags ${local.rabbitmqctl_username} administrator
+              sudo rabbitmqctl set_permissions -p / ${local.rabbitmqctl_username} ".*" ".*" ".*"
               EOF
 
   tags = {
@@ -30,6 +35,14 @@ resource "aws_security_group" "rabbitmq_sg" {
     to_port     = 5672
     protocol    = "tcp"
     cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  ingress {
+    from_port   = 15672
+    to_port     = 15672
+    protocol    = "tcp"
+    cidr_blocks = [local.home_ip]
+    security_groups = [aws_security_group.bastion_sg.id]
   }
 
   egress {
