@@ -98,3 +98,17 @@ variable "etl_key_prefix" {
   description = "Prefix for the ETL"
   type        = string
 }
+
+# **********************************************************
+# * Networking                                             *
+# **********************************************************
+
+variable "home_ip" {
+  description = "Home IP"
+  type        = string
+}
+
+variable "bastion_host_key_pair_name" {
+  description = "Bastion host key pair name"
+  type        = string
+}

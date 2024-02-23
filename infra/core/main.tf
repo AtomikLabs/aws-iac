@@ -59,6 +59,13 @@ locals {
   # * METADATA CONFIGURATION                                 *
   # **********************************************************
   data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
+
+  # **********************************************************
+  # * NETWORKING CONFIGURATION                               *
+  # **********************************************************
+
+  bastion_host_key_pair_name        = var.bastion_host_key_pair_name
+  home_ip                           = "${var.home_ip}/32"
   
   tags = {
     Blueprint   = local.name
