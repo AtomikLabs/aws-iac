@@ -21,7 +21,7 @@ def ip_addresses():
 def expected_scrape_configs():
     return [
         "- job_name: 'node_exporter_192_168_1_1'\n    static_configs:\n      - targets: ['192.168.1.1:9100']",
-        "- job_name: 'node_exporter_192_168_1_2'\n    static_configs:\n      - targets: ['192.168.1.2:9100']"
+        "- job_name: 'node_exporter_192_168_1_2'\n    static_configs:\n      - targets: ['192.168.1.2:9100']",
     ]
 
 
@@ -58,10 +58,15 @@ def test_save_prometheus_config(args_with_ips):
 
 
 def test_run_calls_correct_methods_with_expected_arguments(args_with_ips, ip_addresses):
-    with patch("infra.observability.prometheus.src.generate_prometheus_config.PrometheusConfigGenerator.generate_scrape_configs", autospec=True) as mock_generate_scrape_configs, \
-         patch("infra.observability.prometheus.src.generate_prometheus_config.PrometheusConfigGenerator.save_prometheus_config", autospec=True) as mock_save, \
-         patch("builtins.open", mock_open(read_data=json.dumps({})), create=True):
-
+    with patch(
+        "infra.observability.prometheus.src.generate_prometheus_config.PrometheusConfigGenerator.generate_scrape_configs",
+        autospec=True,
+    ) as mock_generate_scrape_configs, patch(
+        "infra.observability.prometheus.src.generate_prometheus_config.PrometheusConfigGenerator.save_prometheus_config",
+        autospec=True,
+    ) as mock_save, patch(
+        "builtins.open", mock_open(read_data=json.dumps({})), create=True
+    ):
         generator = PrometheusConfigGenerator(args_with_ips)
         generator.run()
 

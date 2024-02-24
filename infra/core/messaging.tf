@@ -100,7 +100,7 @@ resource "aws_security_group" "rabbitmq_sg" {
     from_port   = 9100
     to_port     = 9100
     protocol    = "tcp"
-    security_groups = [aws_security_group.observer_sg.id]
+    cidr_blocks = [aws_subnet.private[*].cidr_block]
   }
 
   ingress {
