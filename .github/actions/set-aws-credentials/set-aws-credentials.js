@@ -7,7 +7,7 @@ permittedEnvironments = ['prod', 'stage', 'dev'];
 function setAwsCredentials() {
   console.log('Setting AWS credentials...');
   try {
-    const environmentName = core.getInput('AWS_REGION');
+    const environmentName = core.getInput('ENVIRONMENT_NAME');
     const DEV_AWS_ACCESS_KEY_ID = core.getInput('DEV_AWS_ACCESS_KEY_ID');
     const DEV_AWS_SECRET_ACCESS_KEY = core.getInput('DEV_AWS_SECRET_ACCESS_KEY');
     const PROD_AWS_ACCESS_KEY_ID = core.getInput('PROD_AWS_ACCESS_KEY_ID');

@@ -1,9 +1,6 @@
 name: "Set AWS Credentials"
 description: "Sets AWS credentials based on the provided environment name."
 inputs:
-  AWS_REGION:
-    description: "The AWS region to use."
-    required: true
   DEV_AWS_ACCESS_KEY_ID:
     description: "The AWS access key ID for the development environment."
     required: true
