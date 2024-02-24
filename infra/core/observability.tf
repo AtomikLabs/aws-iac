@@ -4,6 +4,20 @@ resource "aws_instance" "observer" {
   instance_type = "t2.small"
   key_name = "${local.environment}-${local.bastion_host_key_pair_name}"
   subnet_id = aws_subnet.private[0].id
+  user_data = <<-EOF
+              #!/bin/bash
+              # Update the instance
+              apt-get update && apt-get upgrade -y
+              # Install Docker
+              apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+              add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+              apt-get update
+              apt-get install -y docker-ce
+              # Install Docker Compose
+              curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              chmod +x /usr/local/bin/docker-compose
+              EOF
   tags = {
     Name = "${local.environment}-observability"
     Environment = local.environment

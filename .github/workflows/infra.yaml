@@ -16,7 +16,6 @@ on:
     paths:
       - "infra/**"
       - ".github/workflows/infra.yaml"
-  workflow_dispatch:
 
 jobs:
   core_infra:
@@ -272,22 +271,39 @@ jobs:
       - name: Get bastion host key pair
         run: |
           echo "Getting bastion host key pair"
+          aws secretsmanager get-secret-value --secret-id $ENV_NAME/bastion-host-private-key --region $AWS_REGION --query SecretString --output text > ./temp/bastion-host-private-key.pem
 
-      - name: Check Docker is installed on the ec2 instance
+      - name: Upload Prometheus Config and Docker-compose file to observer through bastion host
         run: |
-          echo "Checking if Docker is installed on the ec2 instance"
-
-      - name: Upload Prometheus Config and Docker-compose file to ec2 instance
-        run: |
-          echo "Uploading Prometheus Config to ec2 instance"
+          echo "Uploading Docker-Compose and Prometheus Config to EC2 instance"
+          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
+          OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
+          BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
+          DOCKER_FILE_PATH="./infra/observability/docker-compose.yml"
+          TARGET_DOCKER_FILE_PATH="/etc/observability/docker-compose.yml"
+          PROMETHEUS_CONFIG_PATH="./temp/prometheus.yml"
+          TARGET_PROMETHEUS_CONFIG_PATH="/etc/prometheus/prometheus.yml"
+          chmod 600 $BASTION_KEY_PATH
+          scp -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP $DOCKER_FILE_PATH ubuntu@$OBSERVER_IP:$TARGET_DOCKER_FILE_PATH
+          scp -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP $PROMETHEUS_CONFIG_PATH ubuntu@$OBSERVER_IP:$TARGET_PROMETHEUS_CONFIG_PATH
 
       - name: Docker compose up
         run: |
-          echo "Running docker-compose up on ec2 instance"
+          echo "Running docker-compose up on EC2 instance"
+          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
+          OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
+          BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
+          chmod 600 $BASTION_KEY_PATH
+          ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP ubuntu@$OBSERVER_IP "sudo docker-compose -f /etc/observability/docker-compose.yml up -d"
 
-      - name: Reload prometheus
+      - name: Reload Prometheus via HTTP
         run: |
-          echo "Reloading prometheus"
+          echo "Reloading Prometheus via HTTP"
+          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
+          OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
+          BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
+          chmod 600 $BASTION_KEY_PATH
+          ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP ubuntu@$OBSERVER_IP "curl -X POST http://localhost:9090/-/reload"
 
-TODO: Add prometheus Node Exporters to ec2 instances, including 9090 comms
-TODO: prometheus config script tests
+#TODO: Add prometheus Node Exporters to ec2 instances, including 9090 comms
+
