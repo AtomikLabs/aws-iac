@@ -5,6 +5,7 @@ const github = require('@actions/github');
 permittedEnvironments = ['prod', 'stage', 'dev'];
 
 function setAwsCredentials() {
+  console.log('Setting AWS credentials...');
   try {
     const environmentName = core.getInput('environment_name');
     const awsRegion = core.getInput('aws_region');
