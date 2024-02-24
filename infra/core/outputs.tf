@@ -52,3 +52,23 @@ output "aws_lambda_function_fetch_daily_summaries_arn" {
   value       = aws_lambda_function.fetch_daily_summaries.arn
   description = "The Amazon Resource Name (ARN) that identifies the fetch daily summaries Lambda function."
 }
+
+output "aws_instance_bastion_public_ip" {
+  value       = aws_instance.bastion_host.public_ip
+  description = "The public IP address of the instance."
+}
+
+output "aws_instance_bastion_private_ip" {
+  value       = aws_instance.bastion_host.private_ip
+  description = "The private IP address of the instance."
+}
+
+output "aws_instance_rabbitmq_private_ips" {
+  value       = aws_instance.rabbitmq[*].private_ip
+  description = "The private IP addresses of the instances."
+}
+
+output "aws_instance_observer_private_ip" {
+  value       = aws_instance.observer.private_ip
+  description = "The private IP address of the instance."
+}
