@@ -10,6 +10,9 @@ inputs:
   DEV_AWS_SECRET_ACCESS_KEY:
     description: "The AWS secret access key for the development environment."
     required: true
+  ENVIRONMENT_NAME:
+    description: "The name of the environment to set the AWS credentials for."
+    required: true
   PROD_AWS_ACCESS_KEY_ID:
     description: "The AWS access key ID for the production environment."
     required: true
