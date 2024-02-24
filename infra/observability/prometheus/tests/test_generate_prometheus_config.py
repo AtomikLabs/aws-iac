@@ -8,90 +8,63 @@ from infra.observability.prometheus.src.generate_prometheus_config import Promet
 
 
 @pytest.fixture
-def args():
-    return ["./dummy_outputs.json", "./dummy_prometheus.yml"]
+def args_with_ips():
+    return ["./dummy_outputs.json", "./dummy_prometheus.yml", "192.168.1.1", "192.168.1.2"]
 
 
 @pytest.fixture
-def outputs():
-    return {
-        "aws_instance_observer_private_ip": {"value": "192.168.0.1"},
-        "aws_instance_rabbitmq_private_ips": {"value": ["192.168.0.2", "192.168.0.3"]},
-    }
+def ip_addresses():
+    return ["192.168.1.1", "192.168.1.2"]
 
 
 @pytest.fixture
-def observer_config():
-    return """
-    - job_name: 'observer'
-        static_configs:
-        - targets: ['192.168.0.1:9100']"""
-
-
-@pytest.fixture
-def rabbitmq_config():
+def expected_scrape_configs():
     return [
-        """
-    - job_name: 'rabbitmq_192.168.0.2'
-        static_configs:
-        - targets: ['192.168.0.2:9090']""",
-        """
-    - job_name: 'rabbitmq_192.168.0.3'
-        static_configs:
-        - targets: ['192.168.0.3:9090']""",
+        "- job_name: 'node_exporter_192_168_1_1'\n    static_configs:\n      - targets: ['192.168.1.1:9100']",
+        "- job_name: 'node_exporter_192_168_1_2'\n    static_configs:\n      - targets: ['192.168.1.2:9100']"
     ]
 
 
-def test_parse_arguments(args):
-    with patch("sys.argv", ["program"] + args):
+def test_parse_arguments_with_ips(args_with_ips):
+    with patch("sys.argv", ["program"] + args_with_ips):
         generator = PrometheusConfigGenerator(sys.argv[1:])
-        assert generator.args.outputs_file == args[0]
-        assert generator.args.prometheus_config_file == args[1]
+        assert generator.args.outputs_file == args_with_ips[0]
+        assert generator.args.prometheus_config_file == args_with_ips[1]
+        assert generator.args.IPs == args_with_ips[2:]
 
 
-def test_load_outputs(args, outputs):
-    with patch("builtins.open", mock_open(read_data=json.dumps(outputs)), create=True):
-        generator = PrometheusConfigGenerator(args)
-        result = generator.load_outputs(args[0])
-        assert result == outputs
+def test_generate_scrape_configs(ip_addresses, expected_scrape_configs):
+    generator = PrometheusConfigGenerator(["", "", *ip_addresses])
+    result = generator.generate_scrape_configs(ip_addresses)
+    for expected, actual in zip(expected_scrape_configs, result):
+        assert expected == actual
 
 
-def test_generate_observer_scrape_config(outputs, observer_config):
+def test_generate_prometheus_config(expected_scrape_configs):
     generator = PrometheusConfigGenerator(["", ""])
-    result = generator.generate_observer_scrape_config(outputs)
-    assert observer_config.strip() in result.strip()
-
-
-def test_generate_rabbitmq_scrape_configs(outputs, rabbitmq_config):
-    generator = PrometheusConfigGenerator(["", ""])
-    result = generator.generate_rabbitmq_scrape_configs(outputs)
-    result_string = "".join(result).strip()
-    for config_block in rabbitmq_config:
-        assert config_block.strip() in result_string
-
-
-def test_generate_prometheus_config(observer_config, rabbitmq_config):
-    generator = PrometheusConfigGenerator(["", ""])
-    scrape_configs = [observer_config.strip()] + [config.strip() for config in rabbitmq_config]
-    config = generator.generate_prometheus_config(scrape_configs)
+    config = generator.generate_prometheus_config(expected_scrape_configs)
     assert "global:" in config
-    for item in scrape_configs:
+    for item in expected_scrape_configs:
         assert item in config
 
 
-def test_save_prometheus_config(args):
+def test_save_prometheus_config(args_with_ips):
     config_content = "test config"
     with patch("builtins.open", mock_open(), create=True) as mocked_file:
-        generator = PrometheusConfigGenerator(args)
-        generator.save_prometheus_config(config_content, args[1])
-        mocked_file.assert_called_once_with(args[1], "w")
+        generator = PrometheusConfigGenerator(args_with_ips)
+        generator.save_prometheus_config(config_content, args_with_ips[1])
+        mocked_file.assert_called_once_with(args_with_ips[1], "w")
         mocked_file().write.assert_called_once_with(config_content)
 
 
-def test_run(args, outputs):
-    with patch("builtins.open", mock_open(read_data=json.dumps(outputs)), create=True), patch.object(
-        PrometheusConfigGenerator, "save_prometheus_config", autospec=True
-    ) as mock_save:
-        generator = PrometheusConfigGenerator(args)
+def test_run_calls_correct_methods_with_expected_arguments(args_with_ips, ip_addresses):
+    with patch("infra.observability.prometheus.src.generate_prometheus_config.PrometheusConfigGenerator.generate_scrape_configs", autospec=True) as mock_generate_scrape_configs, \
+         patch("infra.observability.prometheus.src.generate_prometheus_config.PrometheusConfigGenerator.save_prometheus_config", autospec=True) as mock_save, \
+         patch("builtins.open", mock_open(read_data=json.dumps({})), create=True):
+
+        generator = PrometheusConfigGenerator(args_with_ips)
         generator.run()
-        assert mock_save.call_count == 1
+
+        mock_generate_scrape_configs.assert_called_once_with(generator, ip_addresses)
+
+        mock_save.assert_called()

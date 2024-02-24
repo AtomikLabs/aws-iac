@@ -265,7 +265,13 @@ jobs:
 
       - name: Generate Prometheus Config
         run: |
-          python ./infra/observability/prometheus/src/generate_prometheus_config.py ./temp/terraform_outputs.json ./temp/prometheus.yml
+          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
+          PROMETHEUS_IP=$(jq -r '.aws_instance_prometheus_private_ip.value' ./temp/terraform_outputs.json)
+          RABBITMQ_IPS=$(jq -r '.aws_instance_rabbitmq_private_ips.value[]' ./temp/terraform_outputs.json | paste -sd "," -)
+          ALL_IPS="$PROMETHEUS_IP,$RABBITMQ_IPS,$BASTION_IP"
+          python ./infra/observability/prometheus/src/generate_prometheus_config.py ./temp/terraform_outputs.json ./temp/prometheus.yml "$ALL_IPS"
+          # persist promethus config to infra config bucket /prometheus
+          aws s3 cp ./temp/prometheus.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/prometheus/prometheus.yml
 
       - name: Get bastion host key pair
         run: |
@@ -304,4 +310,15 @@ jobs:
           chmod 600 $BASTION_KEY_PATH
           ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP ubuntu@$OBSERVER_IP "curl -X POST http://localhost:9090/-/reload"
 
+      - name: Install Node Exporter on EC2 Instances
+        run: |
+          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
+          INSTANCE_IPS=($(jq -r '.aws_instance_prometheus_private_ip.value, .aws_instance_rabbitmq_private_ips.value[], .aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json))
+          BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
+          chmod 600 $BASTION_KEY_PATH
+          for IP in "${INSTANCE_IPS[@]}"; do
+            ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP ubuntu@$IP "wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz && tar xvfz node_exporter-1.7.0.linux-amd64.tar.gz && nohup ./node_exporter-1.7.0.linux-amd64/node_exporter &"
+          done
+        env:
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 #TODO: Add prometheus Node Exporters to ec2 instances, including 9090 comms
