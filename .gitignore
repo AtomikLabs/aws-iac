@@ -174,3 +174,7 @@ show_notes/
 # Terraform
 **/.terraform/
 .terraform.lock.hcl
+
+# Node
+node_modules/
+coverage/
