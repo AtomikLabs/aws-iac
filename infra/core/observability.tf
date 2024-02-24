@@ -1,6 +1,5 @@
 resource "aws_instance" "observer" {
   ami = "ami-0c7217cdde317cfec" # ubuntu
-  count = 1
   instance_type = "t2.small"
   key_name = "${local.environment}-${local.bastion_host_key_pair_name}"
   subnet_id = aws_subnet.private[0].id
