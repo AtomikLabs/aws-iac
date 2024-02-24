@@ -51,36 +51,16 @@ jobs:
           echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
           env_file="infra/core/environments/env.$ENV_NAME.json"
           echo "ENV_FILE=$env_file" >> $GITHUB_ENV
-          echo "::set-output name=env_file::$env_file"
           iam_user_name=$(jq -r '.iam_user_name' $env_file)
           echo "IAM_USER_NAME=$iam_user_name" >> $GITHUB_ENV
           echo "RABBITMQCTL_USERNAME=${{ secrets.RABBITMQCTL_USERNAME }}" >> $GITHUB_ENV
           echo "RABBITMQCTL_PASSWORD=${{ secrets.RABBITMQCTL_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Set AWS Credentials Based on Environment
-        id: set-aws-credentials
-        run: |
-          if [ "$ENV_NAME" == "prod" ]; then
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          elif [ "$ENV_NAME" == "stage" ]; then
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          elif [ "$ENV_NAME" == "dev" ]; then
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          else
-            echo "Invalid environment name: $ENV_NAME"
-            exit 1
-          fi
-
-      - name: Configure AWS credentials
-        id: configure-aws-credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Set AWS Credentials
+        uses: ./.github/actions/set-aws-credentials
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          environment_name: ${{ env.ENV_NAME }}
+          aws_region: ${{ env.AWS_REGION }}
 
       - name: Ensure S3 bucket exists
         id: ensure-s3-bucket-exists
