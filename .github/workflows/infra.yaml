@@ -61,6 +61,9 @@ jobs:
           echo "RABBITMQCTL_USERNAME=${{ secrets.RABBITMQCTL_USERNAME }}" >> $GITHUB_ENV
           echo "RABBITMQCTL_PASSWORD=${{ secrets.RABBITMQCTL_PASSWORD }}" >> $GITHUB_ENV
 
+      - name: Echo env var
+        run: echo ${{ env.ENV_NAME }}
+
       - name: Install node and npm
         uses: actions/setup-node@v2
         with:
