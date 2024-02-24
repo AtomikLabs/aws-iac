@@ -76,8 +76,14 @@ jobs:
       - name: Set AWS Credentials
         uses: ./.github/actions/set-aws-credentials
         with:
-          environment_name: ${{ env.ENV_NAME }}
-          aws_region: ${{ env.AWS_REGION }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
+          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
 
       - name: Ensure S3 bucket exists
         run: |
