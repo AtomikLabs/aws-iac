@@ -108,6 +108,13 @@ resource "aws_security_group" "rds_sg" {
     security_groups = [aws_security_group.rabbitmq_sg.id, aws_security_group.web_sg.id, aws_security_group.bastion_sg.id]
   }
 
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    security_groups = [aws_subnet.private[*].id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -140,6 +147,13 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    security_groups = [aws_subnet.private[*].id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -169,7 +183,7 @@ resource "aws_security_group" "bastion_sg" {
     from_port   = 9100
     to_port     = 9100
     protocol    = "tcp"
-    security_groups = [aws_security_group.observer_sg.id]
+    security_groups = [aws_subnet.private[*].id]
   }
 
   egress {
