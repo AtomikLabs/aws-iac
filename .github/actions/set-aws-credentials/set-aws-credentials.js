@@ -41,3 +41,4 @@ function setAwsCredentials() {
 }
 
 module.exports = { setAwsCredentials };
+setAwsCredentials();
