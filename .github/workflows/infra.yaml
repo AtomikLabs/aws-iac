@@ -61,6 +61,15 @@ jobs:
           echo "RABBITMQCTL_USERNAME=${{ secrets.RABBITMQCTL_USERNAME }}" >> $GITHUB_ENV
           echo "RABBITMQCTL_PASSWORD=${{ secrets.RABBITMQCTL_PASSWORD }}" >> $GITHUB_ENV
 
+      - name: Install node and npm
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Install NPM Dependencies
+        run: |
+          npm install
+
       - name: Set AWS Credentials
         uses: ./.github/actions/set-aws-credentials
         with:
