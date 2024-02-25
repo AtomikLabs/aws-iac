@@ -3,7 +3,7 @@ resource "aws_instance" "observer" {
   instance_type = "t2.small"
   key_name = "${local.environment}-${local.bastion_host_key_pair_name}"
   subnet_id = aws_subnet.private[0].id
-  user_data = file("../../infra/observability/prometheus/src/init-instance.sh")
+  user_data = file("../../infra/observability/src/init-instance.sh")
   iam_instance_profile = aws_iam_instance_profile.observer_profile.name
   tags = {
     Name = "${local.environment}-observability"

@@ -2,11 +2,11 @@ services:
   prometheus:
     image: prom/prometheus:v2.50.0
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./prometheus/data:/prometheus
+      - /etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /var/lib/prometheus/data:/var/lib/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.path=/var/lib/prometheus'
       - '--web.enable-lifecycle'
     ports:
       - "9090:9090"
@@ -14,11 +14,12 @@ services:
   thanos-sidecar:
     image: quay.io/thanos/thanos:v0.34.1
     volumes:
-      - ./prometheus/data:/prometheus
+      - /var/lib/prometheus/data:/var/lib/prometheus
+      - /etc/thanos/bucket_config.yml:/etc/thanos/bucket_config.yml
     command:
       - sidecar
       - '--prometheus.url=http://prometheus:9090'
-      - '--tsdb.path=/prometheus'
+      - '--tsdb.path=/var/lib/prometheus'
       - '--objstore.config-file=/etc/thanos/bucket_config.yml'
     depends_on:
       - prometheus
