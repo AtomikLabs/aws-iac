@@ -9,7 +9,7 @@ fi
 PRIMARY_NODE_IP=$1
 SECONDARY_NODE_IP=$2
 BASTION_KEY_PATH=$3
-BASTION_USER="ec2-user"
+BASTION_USER="ubuntu"
 BASTION_IP="54.147.241.179"
 
 # Function to execute a command on a node via the bastion

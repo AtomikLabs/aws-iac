@@ -289,8 +289,8 @@ jobs:
           PROMETHEUS_CONFIG_PATH="./temp/prometheus.yml"
           TARGET_PROMETHEUS_CONFIG_PATH="/etc/prometheus/prometheus.yml"
           chmod 600 $BASTION_KEY_PATH
-          scp -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP $DOCKER_FILE_PATH ubuntu@$OBSERVER_IP:$TARGET_DOCKER_FILE_PATH
-          scp -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP $PROMETHEUS_CONFIG_PATH ubuntu@$OBSERVER_IP:$TARGET_PROMETHEUS_CONFIG_PATH
+          scp -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP $DOCKER_FILE_PATH ubuntu@$OBSERVER_IP:$TARGET_DOCKER_FILE_PATH
+          scp -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP $PROMETHEUS_CONFIG_PATH ubuntu@$OBSERVER_IP:$TARGET_PROMETHEUS_CONFIG_PATH
 
       - name: Docker compose up
         run: |
@@ -299,7 +299,7 @@ jobs:
           OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
           BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
           chmod 600 $BASTION_KEY_PATH
-          ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP ubuntu@$OBSERVER_IP "sudo docker-compose -f /etc/observability/docker-compose.yml up -d"
+          ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP ubuntu@$OBSERVER_IP "sudo docker-compose -f /etc/observability/docker-compose.yml up -d"
 
       - name: Reload Prometheus via HTTP
         run: |
@@ -308,7 +308,7 @@ jobs:
           OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
           BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
           chmod 600 $BASTION_KEY_PATH
-          ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP ubuntu@$OBSERVER_IP "curl -X POST http://localhost:9090/-/reload"
+          ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP ubuntu@$OBSERVER_IP "curl -X POST http://localhost:9090/-/reload"
 
       - name: Install Node Exporter on EC2 Instances
         run: |
@@ -317,8 +317,7 @@ jobs:
           BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
           chmod 600 $BASTION_KEY_PATH
           for IP in "${INSTANCE_IPS[@]}"; do
-            ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ec2-user@$BASTION_IP ubuntu@$IP "wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz && tar xvfz node_exporter-1.7.0.linux-amd64.tar.gz && nohup ./node_exporter-1.7.0.linux-amd64/node_exporter &"
+            ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP ubuntu@$IP "wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz && tar xvfz node_exporter-1.7.0.linux-amd64.tar.gz && nohup ./node_exporter-1.7.0.linux-amd64/node_exporter &"
           done
         env:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
-#TODO: Add prometheus Node Exporters to ec2 instances, including 9090 comms
