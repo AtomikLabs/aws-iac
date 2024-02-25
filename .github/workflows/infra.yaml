@@ -87,12 +87,12 @@ jobs:
 
       - name: Ensure S3 bucket exists
         run: |
-          if ! aws s3 ls "s3://atomiklabs-infra-config-bucket" 2>&1 | grep -q 'NoSuchBucket'; then
+          if ! aws s3 ls "s3://${INFRA_CONFIG_BUCKET}" 2>&1 | grep -q 'NoSuchBucket'; then
             echo "Bucket exists."
           else
             echo "Bucket does not exist. Creating bucket..."
-            aws s3 mb "s3://atomiklabs-infra-config-bucket"
-            aws s3api put-bucket-versioning --bucket atomiklabs-infra-config-bucket --versioning-configuration Status=Enabled
+            aws s3 mb "s3://${INFRA_CONFIG_BUCKET}"
+            aws s3api put-bucket-versioning --bucket ${INFRA_CONFIG_BUCKET} --versioning-configuration Status=Enabled
           fi
 
       - name: Ensure DynamoDB table exists
@@ -274,7 +274,7 @@ jobs:
           ALL_IPS="$PROMETHEUS_IP,$RABBITMQ_IPS,$BASTION_IP"
           python ./infra/observability/prometheus/src/generate_prometheus_config.py ./temp/terraform_outputs.json ./temp/prometheus.yml "$ALL_IPS"
           # persist promethus config to infra config bucket /prometheus
-          aws s3 cp ./temp/prometheus.yml s3://prometheus/prometheus.yml
+          aws s3 cp ./temp/prometheus.yml s3://${INFRA_CONFIG_BUCKET}/prometheus/prometheus.yml
 
       - name: Copy Prometheus config to EC2 instance
         run: |
@@ -282,7 +282,7 @@ jobs:
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters commands=["aws s3 cp s3://prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
+            --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
             --region $${{ env.AWS_REGION }}
 
       - name: Run Docker Compose Up on EC2 Instance
