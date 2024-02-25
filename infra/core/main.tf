@@ -37,8 +37,9 @@ locals {
   # **********************************************************
   # * SERVICES CONFIGURATION                                 *
   # **********************************************************
-  AWSBasicExecutionRoleARN        = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  AWSLambdaVPCAccessExecutionRole = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+  AWSBasicExecutionRoleARN          = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  AWSLambdaVPCAccessExecutionRole   = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+  AmazonSSMManagedInstanceCoreARN   = "arn:aws:iam::aws:policy/service-role/AmazonSSMManagedInstanceCore"
   
   # **********************************************************
   # * DATA INGESTION CONFIGURATION                           *

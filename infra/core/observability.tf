@@ -104,3 +104,8 @@ resource "aws_iam_role_policy_attachment" "observer_role_s3_infra_bucket" {
   role       = aws_iam_role.observer_role.name
   policy_arn = aws_iam_policy.s3_infra_config_bucket_access.arn
 }
+
+resource "aws_iam_role_policy_attachment" "observer_role_ssm_managed_instance" {
+  role       = aws_iam_role.observer_role.name
+  policy_arn = local.AmazonSSMManagedInstanceCoreARN
+}
