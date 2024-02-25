@@ -283,6 +283,12 @@ jobs:
         run: |
           echo "RUNNER_IP=$(curl https://ipinfo.io/ip)" >> $GITHUB_ENV
 
+      - name: Add bastion host to known_hosts
+        run: |
+          echo "Adding bastion host SSH key to known_hosts"
+          BASTION_HOST=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
+          ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
+
       - name: Allow SSH access from GitHub Actions runner
         run: |
           echo "Allowing SSH access from GitHub Actions runner"
