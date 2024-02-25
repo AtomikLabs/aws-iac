@@ -110,3 +110,24 @@ resource "aws_iam_policy" "s3_infra_config_bucket_access" {
     ],
   })
 }
+
+resource "aws_iam_role" "ssm_managed_instance_role" {
+  name = "ssm-managed-instance-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_managed_instance_role_attachment" {
+  role       = aws_iam_role.ssm_managed_instance_role.name
+  policy_arn = local.AmazonSSMManagedInstanceCoreARN
+}
