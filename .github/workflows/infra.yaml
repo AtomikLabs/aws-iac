@@ -300,8 +300,6 @@ jobs:
               --region ${{ env.AWS_REGION }}
           done
 
-          mkdir /var/lib/prometheus
-
       - name: Generate Thanos bucket_config
         run: |
           PROMETHEUS_IP=$(jq -r '.aws_instance_prometheus_private_ip.value' ./temp/terraform_outputs.json)
