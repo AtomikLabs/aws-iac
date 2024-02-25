@@ -1,7 +1,7 @@
 #!/bin/bash
 {
 # Update the instance
-apt-get update && apt-get upgrade -y
+yum update -y
 
 # Install Node Exporter
 useradd -rs /bin/false node_exporter
@@ -11,7 +11,7 @@ tar xvfz node_exporter-1.7.0.linux-amd64.tar.gz
 cp node_exporter-1.7.0.linux-amd64/node_exporter /usr/local/bin
 chown root:root /usr/local/bin/node_exporter
 chmod 755 /usr/local/bin/node_exporter
-rm node_exporter-1.7.0.linux-amd64.tar.gz
+rm -f node_exporter-1.7.0.linux-amd64.tar.gz
 
 # Create a systemd service file for Node Exporter
 cat <<EOT > /etc/systemd/system/node_exporter.service

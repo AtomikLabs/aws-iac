@@ -1,6 +1,6 @@
 resource "aws_instance" "rabbitmq" {
   count                     = 2
-  ami                       = "ami-0c7217cdde317cfec" #ubuntu
+  ami                       = "ami-0440d3b780d96b29d" #ec2
   instance_type             = "t2.micro"
   subnet_id                 = aws_subnet.private[count.index].id
   key_name                  = "${local.environment}-${local.bastion_host_key_pair_name}"

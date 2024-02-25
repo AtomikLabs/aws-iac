@@ -198,7 +198,7 @@ resource "aws_security_group" "bastion_sg" {
 }
 
 resource "aws_instance" "bastion_host" {
-  ami                   = "ami-0c7217cdde317cfec" # ubuntu
+  ami                   = "ami-0440d3b780d96b29d" # ec2
   instance_type         = "t2.micro"
   subnet_id             = element(aws_subnet.public.*.id, 0)
   key_name              = "${local.environment}-${local.bastion_host_key_pair_name}"
