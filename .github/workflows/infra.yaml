@@ -303,11 +303,11 @@ jobs:
       - name: Generate Thanos bucket_config
         run: |
           PROMETHEUS_IP=$(jq -r '.aws_instance_prometheus_private_ip.value' ./temp/terraform_outputs.json)
-          python ./infra/observability/thanos/src/generate_thanos_bucket_config.py ${INFRA_CONFIG_BUCKET} ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY}
+          python ./infra/observability/thanos/src/generate_thanos_bucket_config.py ${INFRA_CONFIG_BUCKET} ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} ./temp/bucket_config.yaml
 
       - name: Upload Thanos bucket_config to S3
         run: |
-          aws s3 cp .bucket_config.yaml s3://${INFRA_CONFIG_BUCKET}/thanos/bucket_config.yaml
+          aws s3 cp ./temp/bucket_config.yaml s3://${INFRA_CONFIG_BUCKET}/thanos/bucket_config.yaml
 
       - name: Add Thanos bucket_config to Observer
         run: |

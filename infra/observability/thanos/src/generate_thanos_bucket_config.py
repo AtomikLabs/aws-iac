@@ -7,7 +7,7 @@ class ThanosBucketConfigGenerator:
     """
     Generates a Thanos bucket configuration file."""
 
-    def __init__(self, bucket_name, access_key, secret_key):
+    def __init__(self, bucket_name, access_key, secret_key, output_file="bucket_config.yml"):
         if not bucket_name:
             raise ValueError("Bucket name cannot be empty.")
         if not access_key:
@@ -17,6 +17,7 @@ class ThanosBucketConfigGenerator:
         self.bucket_name = bucket_name
         self.access_key = access_key
         self.secret_key = secret_key
+        self.output_file = output_file
 
     def generate_config_dict(self) -> dict:
         """
@@ -78,9 +79,9 @@ def main(args) -> None:
         print("Usage: <bucket_name> <access_key> <secret_key>")
         sys.exit(1)
 
-    bucket_name, access_key, secret_key = args
+    bucket_name, access_key, secret_key, output_file = args
     config_generator = ThanosBucketConfigGenerator(bucket_name, access_key, secret_key)
-    config_generator.save_to_file()
+    config_generator.save_to_file(output_file)
 
 
 if __name__ == "__main__":
