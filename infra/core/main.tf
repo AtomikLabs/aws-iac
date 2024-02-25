@@ -39,7 +39,7 @@ locals {
   # **********************************************************
   AWSBasicExecutionRoleARN          = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   AWSLambdaVPCAccessExecutionRole   = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-  AmazonSSMManagedInstanceCoreARN   = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  AmazonSSMManagedInstanceCoreARN   = "arn:aws:iam::aws:policy/AmazonSSMManagedEC2InstanceDefaultPolicy"
   
   # **********************************************************
   # * DATA INGESTION CONFIGURATION                           *
@@ -125,9 +125,4 @@ resource "aws_iam_role" "ssm_managed_instance_role" {
       }
     ]
   })
-}
-
-resource "aws_iam_role_policy_attachment" "ssm_managed_instance_role_attachment" {
-  role       = aws_iam_role.ssm_managed_instance_role.name
-  policy_arn = local.AmazonSSMManagedInstanceCoreARN
 }
