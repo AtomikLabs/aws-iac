@@ -278,16 +278,47 @@ jobs:
 
       - name: Copy Prometheus config to EC2 instance
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=Running" --query "Reservations[*].Instances[*].InstanceId" --output text)
-          aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
-            --region ${{ env.AWS_REGION }}
+          OBSERVER_INSTANCE_IDS=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=dev-observability" "Name=instance-state-name,Values=running" \
+            --query "Reservations[*].Instances[*].InstanceId" --output text)
+          echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
+          # Check if INSTANCE_IDS is empty
+          if [ -z "$INSTANCE_IDS" ]; then
+            echo "No instances found matching the criteria."
+            exit 1
+          fi
 
+          # Convert INSTANCE_IDS into an array
+          IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$INSTANCE_IDS"
+
+          # Iterate over OBSERVER_INSTANCE_ID_ARRAY and execute aws ssm send-command for each instance
+          for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
+            aws ssm send-command \
+              --instance-ids "$ID" \
+              --document-name "AWS-RunShellScript" \
+              --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/${INFRA_CONFIG_PREFIX}/prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
+              --region ${{env.AWS_REGION}}
+          done
       - name: Run Docker Compose Up on EC2 Instance
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=Running" --query "Reservations[*].Instances[*].InstanceId" --output text)
+          # Check if OBSERVER_INSTANCE_IDS is empty
+          if [ -z "${{env.OBSERVER_INSTANCE_IDS}}" ]; then
+            echo "No instances found matching the criteria."
+            exit 1
+          fi
+
+          # Convert OBSERVER_INSTANCE_IDS into an array
+          IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "${{ env.OBSERVER_INSTANCE_IDS }}"
+
+          # Iterate over OBSERVER_INSTANCE_ID_ARRAY and execute aws ssm send-command for each instance
+          for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
+            aws ssm send-command \
+              --instance-ids "$ID" \
+              --document-name "AWS-RunShellScript" \
+              --parameters commands=["sudo docker-compose -f /etc/observability/docker-compose.yml up -d"] \
+              --region ${{ env.AWS_REGION }}
+          done
+
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
