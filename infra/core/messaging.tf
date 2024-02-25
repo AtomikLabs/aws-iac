@@ -6,6 +6,7 @@ resource "aws_instance" "rabbitmq" {
   key_name                  = "${local.environment}-${local.bastion_host_key_pair_name}"
   vpc_security_group_ids    = [aws_security_group.rabbitmq_sg.id]
   user_data                 = file("../../infra/core/messaging/src/init-instance.sh")
+  iam_instance_profile      = aws_iam_instance_profile.rabbitmq_profile.name
   tags = {
     Name = "${local.environment}-RabbitMQ-${count.index + 1}"
     Environment = local.environment
