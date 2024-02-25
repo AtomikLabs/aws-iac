@@ -8,6 +8,9 @@ resource "aws_instance" "observer" {
     Name = "${local.environment}-observability"
     Environment = local.environment
   }
+  vpc_security_group_ids = [
+    aws_security_group.observer_sg.id
+  ]
 }
 
 resource "aws_security_group" "observer_sg" {
