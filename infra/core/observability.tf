@@ -50,14 +50,14 @@ resource "aws_security_group" "observer_sg" {
   }
 
   ingress {
-    from_port   = 3000 # Grafana
+    from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
     security_groups = []
   }
   
   ingress {
-    from_port   = 3100 # Loki
+    from_port   = 3100
     to_port     = 3100
     protocol    = "tcp"
     security_groups = [
@@ -70,10 +70,17 @@ resource "aws_security_group" "observer_sg" {
   }
 
   ingress {
-    from_port   = 9090 # Prometheus
+    from_port   = 9090
     to_port     = 9090
     protocol    = "tcp"
     security_groups = []
+  }
+
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    security_groups = [for subnet in aws_subnet.private : subnet.cidr_block]
   }
 
   egress {
