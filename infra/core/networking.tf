@@ -245,3 +245,8 @@ resource "aws_iam_instance_profile" "bastion_host_profile" {
   name = "${local.environment}-bastion-host-profile"
   role = aws_iam_role.bastion_host_role.name
 }
+
+resource "aws_iam_role_policy_attachment" "bastion_role_ssm_policy_for_instances" {
+  role       = aws_iam_role.bastion_host_role.name
+  policy_arn = aws_iam_policy.ssm_policy_for_instances.arn
+}

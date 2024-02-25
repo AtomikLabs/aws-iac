@@ -115,3 +115,8 @@ resource "aws_iam_role_policy_attachment" "observer_role_ssm_managed_instance" {
   role       = aws_iam_role.observer_role.name
   policy_arn = local.AmazonSSMManagedInstanceCoreARN
 }
+
+resource "aws_iam_role_policy_attachment" "observer_role_ssm_policy_for_instances" {
+  role       = aws_iam_role.observer_role.name
+  policy_arn = aws_iam_policy.ssm_policy_for_instances.arn
+}

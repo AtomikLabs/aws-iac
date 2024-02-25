@@ -43,6 +43,11 @@ resource "aws_iam_role_policy_attachment" "rabbitmq_role_ssm_managed_instance" {
   role       = aws_iam_role.rabbitmq_role.name
   policy_arn = local.AmazonSSMManagedInstanceCoreARN
 }
+resource "aws_iam_role_policy_attachment" "rabbitmq_role_ssm_policy_for_instances" {
+  role       = aws_iam_role.rabbitmq_role.name
+  policy_arn = aws_iam_policy.ssm_policy_for_instances.arn
+}
+
 
 resource "aws_security_group" "rabbitmq_sg" {
   name        = "${local.environment}-rabbitmq-sg"

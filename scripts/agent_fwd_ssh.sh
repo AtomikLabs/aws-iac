@@ -11,4 +11,4 @@ USER_IP=$2
 eval $(ssh-agent -s)
 ssh-add $PEM_KEY
 echo "Key added to ssh-agent."
-ssh -A ubuntu@$USER_IP
+ssh -A ec2-user@$USER_IP
