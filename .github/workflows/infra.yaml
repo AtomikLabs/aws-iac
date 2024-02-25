@@ -285,7 +285,10 @@ jobs:
 
       - name: Add bastion host to known_hosts
         run: |
-          echo "Adding bastion host SSH key to known_hosts"
+          mkdir -p ~/.ssh
+          touch ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          chmod 644 ~/.ssh/known_hosts
           BASTION_HOST=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
           ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
 
