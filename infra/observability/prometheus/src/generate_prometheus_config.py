@@ -28,12 +28,10 @@ class PrometheusConfigGenerator:
         Raises:
             ValueError: If no arguments are provided.
         """
-        if not arguments:
-            raise ValueError("No arguments provided.")
         parser = argparse.ArgumentParser(description="Generate Prometheus configuration from command line inputs.")
         parser.add_argument("outputs_file", help="The JSON file containing Terraform outputs.")
         parser.add_argument("prometheus_config_file", help="The output file for the Prometheus configuration.")
-        parser.add_argument("IPs", help="The IP addresses of instances to be scraped by Prometheus.", nargs="*")
+        parser.add_argument("--ips", nargs="+", help="The IP addresses of instances to be scraped by Prometheus.", required=True)
         return parser.parse_args(arguments)
 
     def load_outputs(self, file_path: str) -> dict:
@@ -70,19 +68,17 @@ class PrometheusConfigGenerator:
 
         Returns:
             A list of Prometheus scrape configurations.
-
-        Raises:
-            ValueError: If the IP addresses list is empty.
         """
         if not ip_addresses:
             raise ValueError("IP addresses list cannot be empty.")
         scrape_configs = []
         for ip in ip_addresses:
-            config = f"""
+            if ip.lower() != 'null':  # Filter out 'null' or invalid entries
+                config = f"""
   - job_name: 'node_exporter_{ip.replace('.', '_')}'
     static_configs:
       - targets: ['{ip}:9100']"""
-            scrape_configs.append(config.strip())
+                scrape_configs.append(config.strip())
         return scrape_configs
 
     def generate_prometheus_config(self, scrape_configs: list) -> str:
@@ -94,16 +90,14 @@ class PrometheusConfigGenerator:
 
         Returns:
             A string containing the complete Prometheus configuration.
-
-        Raises:
-            ValueError: If the scrape configurations list is empty.
         """
         if not scrape_configs:
             raise ValueError("Scrape configurations cannot be empty.")
         return f"""global:
   scrape_interval: 15s
   evaluation_interval: 15s
-scrape_configs:{"".join(scrape_configs)}
+scrape_configs:
+{"".join(scrape_configs)}
 """
 
     def save_prometheus_config(self, config: str, file_path: str) -> None:
@@ -116,41 +110,24 @@ scrape_configs:{"".join(scrape_configs)}
 
         Raises:
             ValueError: If the configuration content or file path is empty.
-            IOError: If the file cannot be written to.
         """
         if not config:
             raise ValueError("Configuration content cannot be empty.")
         if not file_path:
             raise ValueError("Configuration file path cannot be empty.")
-        try:
-            with open(file_path, "w") as file:
-                file.write(config)
-        except IOError as e:
-            raise IOError(f"Failed to write to file {file_path}: {e}")
+        with open(file_path, "w") as file:
+            file.write(config)
 
     def run(self) -> None:
         """
         Executes the configuration generator process.
-
-        Raises:
-            TypeError: If the 'args' attribute is not an argparse.Namespace.
-            ValueError: If the 'outputs_file' or 'prometheus_config_file' is empty.
         """
-        if not isinstance(self.args, argparse.Namespace):
-            raise TypeError("Expected 'args' to be an argparse.Namespace.")
-        if not self.args.outputs_file or not self.args.prometheus_config_file:
-            raise ValueError("File paths cannot be empty.")
-
-        ip_addresses = self.args.IPs
+        ip_addresses = self.args.ips
         scrape_configs = self.generate_scrape_configs(ip_addresses)
         prometheus_config = self.generate_prometheus_config(scrape_configs)
         self.save_prometheus_config(prometheus_config, self.args.prometheus_config_file)
 
 
 if __name__ == "__main__":
-    try:
-        generator = PrometheusConfigGenerator(sys.argv[1:])
-        generator.run()
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    generator = PrometheusConfigGenerator(sys.argv[1:])
+    generator.run()

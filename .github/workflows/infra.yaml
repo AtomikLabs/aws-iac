@@ -268,13 +268,13 @@ jobs:
 
       - name: Generate Prometheus Config
         run: |
-          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
-          PROMETHEUS_IP=$(jq -r '.aws_instance_prometheus_private_ip.value' ./temp/terraform_outputs.json)
+          OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
           RABBITMQ_IPS=$(jq -r '.aws_instance_rabbitmq_private_ips.value[]' ./temp/terraform_outputs.json | paste -sd "," -)
-          ALL_IPS="$PROMETHEUS_IP,$RABBITMQ_IPS,$BASTION_IP"
-          python ./infra/observability/prometheus/src/generate_prometheus_config.py ./temp/terraform_outputs.json ./temp/prometheus.yml "$ALL_IPS"
-          # persist promethus config to infra config bucket /prometheus
-          aws s3 cp ./temp/prometheus.yml s3://${INFRA_CONFIG_BUCKET}/prometheus/prometheus.yml
+          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
+          ALL_IPS="$OBSERVER_IP,$RABBITMQ_IPS,$BASTION_IP"
+          echo "Generating Prometheus config with IPs: $ALL_IPS"
+          python ./infra/observability/prometheus/src/generate_prometheus_config.py ./temp/terraform_outputs.json ./temp/prometheus.yml --ips $ALL_IPS
+          aws s3 cp ./temp/prometheus.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/prometheus/prometheus.yml
 
       - name: Copy Prometheus config to EC2 instance and create dirs
         run: |
@@ -282,21 +282,19 @@ jobs:
             --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
             --query "Reservations[*].Instances[*].InstanceId" --output text)
           echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
-          # Check if OBSERVER_INSTANCE_IDS is empty
+
           if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
             echo "No instances found matching the criteria."
             exit 1
           fi
 
-          # Convert OBSERVER_INSTANCE_IDS into an array
           IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
 
-          # Iterate over OBSERVER_INSTANCE_ID_ARRAY and execute aws ssm send-command for each instance
           for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
             aws ssm send-command \
               --instance-ids "$ID" \
               --document-name "AWS-RunShellScript" \
-              --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/prometheus/prometheus.yml /etc/prometheus/prometheus.yml"] \
+              --parameters commands=["aws s3 cp s3://${{ env.INFRA_CONFIG_BUCKET }}/prometheus/prometheus.yml /etc/prometheus/prometheus.yml"] \
               --region ${{ env.AWS_REGION }}
           done
 
@@ -307,7 +305,7 @@ jobs:
 
       - name: Upload Thanos bucket_config to S3
         run: |
-          aws s3 cp ./temp/bucket_config.yaml s3://${INFRA_CONFIG_BUCKET}/thanos/bucket_config.yaml
+          aws s3 cp ./temp/bucket_config.yaml s3://${{ env.INFRA_CONFIG_BUCKET }}/thanos/bucket_config.yaml
 
       - name: Add Thanos bucket_config to Observer
         run: |
@@ -315,27 +313,25 @@ jobs:
             --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
             --query "Reservations[*].Instances[*].InstanceId" --output text)
           echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
-          # Check if OBSERVER_INSTANCE_IDS is empty
+
           if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
             echo "No instances found matching the criteria."
             exit 1
           fi
 
-          # Convert OBSERVER_INSTANCE_IDS into an array
           IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
 
-          # Iterate over OBSERVER_INSTANCE_ID_ARRAY and execute aws ssm send-command for each instance
           for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
             aws ssm send-command \
               --instance-ids "$ID" \
               --document-name "AWS-RunShellScript" \
-              --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/thanos/bucket_config.yaml /etc/thanos/bucket_config.yaml"] \
+              --parameters commands=["aws s3 cp s3://${{ env.INFRA_CONFIG_BUCKET }}/thanos/bucket_config.yaml /etc/thanos/bucket_config.yaml"] \
               --region ${{ env.AWS_REGION }}
           done
 
       - name: Upload Docker Compose File to S3
         run: |
-          aws s3 cp ./infra/observability/docker-compose.yml s3://${INFRA_CONFIG_BUCKET}/observability/docker-compose.yml
+          aws s3 cp ./infra/observability/docker-compose.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/observability/docker-compose.yml
 
       - name: Add Docker Compose to Observer
         run: |
@@ -343,36 +339,31 @@ jobs:
             --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
             --query "Reservations[*].Instances[*].InstanceId" --output text)
           echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
-          # Check if OBSERVER_INSTANCE_IDS is empty
+
           if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
             echo "No instances found matching the criteria."
             exit 1
           fi
 
-          # Convert OBSERVER_INSTANCE_IDS into an array
           IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
 
-          # Iterate over OBSERVER_INSTANCE_ID_ARRAY and execute aws ssm send-command for each instance
           for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
             aws ssm send-command \
               --instance-ids "$ID" \
               --document-name "AWS-RunShellScript" \
-              --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/observability/docker-compose.yml /etc/observability/docker-compose.yml"] \
+              --parameters commands=["aws s3 cp s3://${{ env.INFRA_CONFIG_BUCKET }}/observability/docker-compose.yml /etc/observability/docker-compose.yml"] \
               --region ${{ env.AWS_REGION }}
           done
 
       - name: Run Docker Compose Up on EC2 Instance
         run: |
-          # Check if OBSERVER_INSTANCE_IDS is empty
           if [ -z "${{ env.OBSERVER_INSTANCE_IDS }}" ]; then
             echo "No instances found matching the criteria."
             exit 1
           fi
 
-          # Convert OBSERVER_INSTANCE_IDS into an array
           IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "${{ env.OBSERVER_INSTANCE_IDS }}"
 
-          # Iterate over OBSERVER_INSTANCE_ID_ARRAY and execute aws ssm send-command for each instance
           for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
             aws ssm send-command \
               --instance-ids "$ID" \
@@ -387,16 +378,14 @@ jobs:
              --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
              --query "Reservations[*].Instances[*].InstanceId" --output text)
            echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
-           # Check if OBSERVER_INSTANCE_IDS is empty
+
            if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
              echo "No instances found matching the criteria."
              exit 1
            fi
 
-           # Convert OBSERVER_INSTANCE_IDS into an array
            IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
 
-           # Iterate over OBSERVER_INSTANCE_ID_ARRAY and execute aws ssm send-command for each instance
            for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
              aws ssm send-command \
                --instance-ids "$ID" \
