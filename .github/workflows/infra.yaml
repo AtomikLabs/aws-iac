@@ -274,7 +274,7 @@ jobs:
           ALL_IPS="$PROMETHEUS_IP,$RABBITMQ_IPS,$BASTION_IP"
           python ./infra/observability/prometheus/src/generate_prometheus_config.py ./temp/terraform_outputs.json ./temp/prometheus.yml "$ALL_IPS"
           # persist promethus config to infra config bucket /prometheus
-          aws s3 cp ./temp/prometheus.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/prometheus/prometheus.yml
+          aws s3 cp ./temp/prometheus.yml s3://prometheus/prometheus.yml
 
       - name: Copy Prometheus config to EC2 instance
         run: |
@@ -282,8 +282,8 @@ jobs:
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters commands=["aws s3 cp s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
-            --region $AWS_REGION
+            --parameters commands=["aws s3 cp s3://prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
+            --region $${{ env.AWS_REGION }}
 
       - name: Run Docker Compose Up on EC2 Instance
         run: |
@@ -292,7 +292,7 @@ jobs:
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --parameters commands=["sudo docker-compose -f /etc/observability/docker-compose.yml up -d"] \
-            --region $AWS_REGION
+            --region ${{ env.AWS_REGION }}
 
       - name: Reload Prometheus via HTTP
         run: |
@@ -301,4 +301,4 @@ jobs:
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --parameters commands=["curl -X POST http://localhost:9090/-/reload"] \
-            --region $AWS_REGION
+            --region ${{ env.AWS_REGION }}
