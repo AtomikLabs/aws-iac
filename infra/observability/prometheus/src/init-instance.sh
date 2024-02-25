@@ -8,9 +8,17 @@ yum install -y docker
 systemctl start docker
 systemctl enable docker
 
+# Python 3.7
+sudo amazon-linux-extras install python3.7 -y
+
+curl -O https://bootstrap.pypa.io/get-pip.py
+python3 get-pip.py
+
 # Install Docker Compose
 curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
+
+pip3 install docker-compose
 
 # Install Node Exporter
 useradd -rs /bin/false node_exporter
