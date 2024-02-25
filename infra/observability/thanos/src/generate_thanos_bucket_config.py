@@ -75,7 +75,7 @@ def main(args) -> None:
     """
     Executes the configuration generation process.
     """
-    if len(args) != 3:
+    if len(args) != 4:
         print("Usage: <bucket_name> <access_key> <secret_key>")
         sys.exit(1)
 

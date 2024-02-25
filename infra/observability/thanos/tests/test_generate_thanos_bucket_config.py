@@ -8,7 +8,7 @@ from infra.observability.thanos.src.generate_thanos_bucket_config import ThanosB
 
 @pytest.fixture
 def generator_args():
-    return ["test-bucket", "test-access-key", "test-secret-key"]
+    return ["test-bucket", "test-access-key", "test-secret-key", "./temp/bucket_config.yml"]
 
 
 @pytest.fixture
