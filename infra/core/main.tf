@@ -37,9 +37,10 @@ locals {
   # **********************************************************
   # * SERVICES CONFIGURATION                                 *
   # **********************************************************
-  AWSBasicExecutionRoleARN          = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  AWSLambdaVPCAccessExecutionRole   = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-  AmazonSSMManagedInstanceCoreARN   = "arn:aws:iam::aws:policy/AmazonSSMManagedEC2InstanceDefaultPolicy"
+  AWSBasicExecutionRoleARN                  = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  AWSLambdaVPCAccessExecutionRole           = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+  AmazonSSMManagedInstanceCoreARN           = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  AmazonSSMManagedEC2InstanceDefaultPolicy  = "arn:aws:iam::aws:policy/AmazonSSMManagedEC2InstanceDefaultPolicy"
   
   # **********************************************************
   # * DATA INGESTION CONFIGURATION                           *
@@ -125,4 +126,27 @@ resource "aws_iam_role" "ssm_managed_instance_role" {
       }
     ]
   })
+}
+
+resource "aws_iam_policy" "ssm_manager" {
+  name        = "ssm-manager"
+  description = "Allow SSM to manage instances"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "ssm:*"
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      },
+    ],
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_managed_instance_role_ssm_manager" {
+  role       = aws_iam_role.ssm_managed_instance_role.name
+  policy_arn = aws_iam_policy.ssm_manager.arn
 }
