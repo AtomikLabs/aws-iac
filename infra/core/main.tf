@@ -39,7 +39,7 @@ locals {
   # **********************************************************
   AWSBasicExecutionRoleARN          = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   AWSLambdaVPCAccessExecutionRole   = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-  AmazonSSMManagedInstanceCoreARN   = "arn:aws:iam::aws:policy/service-role/AmazonSSMManagedInstanceCore"
+  AmazonSSMManagedInstanceCoreARN   = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   
   # **********************************************************
   # * DATA INGESTION CONFIGURATION                           *
