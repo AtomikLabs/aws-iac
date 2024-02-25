@@ -35,7 +35,7 @@ resource "aws_iam_role_policy_attachment" "rabbitmq_role_s3_infra_bucket" {
 
 resource "aws_iam_role_policy_attachment" "rabbitmq_role_ssm_managed_instance" {
   role       = aws_iam_role.rabbitmq_role.name
-  policy_arn = local.AmazonSSMManagedEC2InstanceDefaultPolicy
+  policy_arn = local.AmazonSSMManagedInstanceCoreARN
 }
 
 resource "aws_security_group" "rabbitmq_sg" {

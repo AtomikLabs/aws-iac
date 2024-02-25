@@ -237,5 +237,5 @@ resource "aws_iam_role_policy_attachment" "bastion_host_role_s3_infra_bucket" {
 
 resource "aws_iam_role_policy_attachment" "bastion_role_ssm_managed_instance" {
   role       = aws_iam_role.bastion_host_role.name
-  policy_arn = local.AmazonSSMManagedEC2InstanceDefaultPolicy
+  policy_arn = local.AmazonSSMManagedInstanceCoreARN
 }

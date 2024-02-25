@@ -338,3 +338,15 @@ jobs:
               --parameters commands=["curl -X POST http://localhost:9090/-/reload"] \
               --region ${{ env.AWS_REGION }}
           done
+
+            aws ssm send-command \
+              --instance-ids "i-0723c9dc4676e834f" \
+              --document-name "AWS-RunShellScript" \
+              --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/${INFRA_CONFIG_PREFIX}/prometheus/prometheus.yml ~/prometheus.yml"] \
+              --region us-east-1
+
+            aws ssm send-command \
+              --instance-ids "$ID" \
+              --document-name "AWS-RunShellScript" \
+              --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/${INFRA_CONFIG_PREFIX}/prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
+              --region ${{env.AWS_REGION}}
