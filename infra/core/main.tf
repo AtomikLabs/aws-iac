@@ -28,6 +28,7 @@ locals {
   environment                     = var.environment
   iam_user_name                   = var.iam_user_name
   infra_config_bucket             = var.infra_config_bucket
+  infra_config_bucket_arn         = var.infra_config_bucket_arn
   infra_config_prefix             = var.infra_config_prefix
   name                            = var.name
   outputs_prefix                  = var.outputs_prefix
@@ -81,4 +82,30 @@ locals {
     Region      = local.aws_region
     Application = local.name
   }
+}
+
+resource "aws_iam_policy" "s3_infra_config_bucket_access" {
+  name        = "${local.environment}-s3-infra-config-bucket-access"
+  description = "Allow access to the infra config bucket"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:PutObjectAcl"
+        ]
+        Effect   = "Allow"
+        Resource = "${local.infra_config_bucket_arn}/*"
+      },
+      {
+        Action   = "s3:ListBucket"
+        Effect   = "Allow"
+        Resource = "${local.infra_config_bucket_arn}"
+      },
+    ],
+  })
 }

@@ -40,6 +40,7 @@ jobs:
           echo "FETCH_DAILY_SUMMARIES_NAME=$(jq -r '.data_ingestion.fetch_daily_summaries_name' "$config_file")" >> $GITHUB_ENV
           echo "FETCH_DAILY_SUMMARIES_VERSION=$(jq -r '.data_ingestion.fetch_daily_summaries_version' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
+          echo "INFRA_CONFIG_BUCKET_ARN=$(jq -r '.infra.infra_config_bucket_arn' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
           echo "BACKEND_DYNAMODB_TABLE=$(jq -r '.infra.backend_dynamodb_table' "$config_file")" >> $GITHUB_ENV
           echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
@@ -150,6 +151,7 @@ jobs:
           TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
+          TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
@@ -177,6 +179,7 @@ jobs:
           TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
+          TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
@@ -273,86 +276,29 @@ jobs:
           # persist promethus config to infra config bucket /prometheus
           aws s3 cp ./temp/prometheus.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/prometheus/prometheus.yml
 
-      - name: Get bastion host key pair
+      - name: Copy Prometheus config to EC2 instance
         run: |
-          echo "Getting bastion host key pair"
-          aws secretsmanager get-secret-value --secret-id $ENV_NAME/bastion-host-private-key --region $AWS_REGION --query SecretString --output text > ./temp/bastion-host-private-key.pem
+          INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].InstanceId" --output text)
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands=["aws s3 cp s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
+            --region $AWS_REGION
 
-      - name: Get GitHub Actions runner public IP
-        id: runner-ip
+      - name: Run Docker Compose Up on EC2 Instance
         run: |
-          echo "RUNNER_IP=$(curl https://ipinfo.io/ip)" >> $GITHUB_ENV
-
-      - name: Add bastion host to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          touch ~/.ssh/known_hosts
-          chmod 700 ~/.ssh
-          chmod 644 ~/.ssh/known_hosts
-          BASTION_HOST=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
-          ssh-keyscan -H $BASTION_HOST >> ~/.ssh/known_hosts
-
-      - name: Allow SSH access from GitHub Actions runner
-        run: |
-          echo "Allowing SSH access from GitHub Actions runner"
-          BASTION_SECURITY_GROUP_ID=$(jq -r '.aws_security_group_bastion_sg_id.value' ./temp/terraform_outputs.json)
-          aws ec2 authorize-security-group-ingress --group-id $BASTION_SECURITY_GROUP_ID  --protocol tcp --port 22 --cidr ${RUNNER_IP}/32 --region $AWS_REGION
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-
-      - name: Upload Prometheus Config and Docker-compose file to observer through bastion host
-        run: |
-          echo "Uploading Docker-Compose and Prometheus Config to EC2 instance"
-          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
-          OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
-          BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
-          DOCKER_FILE_PATH="./infra/observability/docker-compose.yml"
-          TARGET_DOCKER_FILE_PATH="/etc/observability/docker-compose.yml"
-          PROMETHEUS_CONFIG_PATH="./temp/prometheus.yml"
-          TARGET_PROMETHEUS_CONFIG_PATH="/etc/prometheus/prometheus.yml"
-          chmod 600 $BASTION_KEY_PATH
-          scp -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP $DOCKER_FILE_PATH ubuntu@$OBSERVER_IP:$TARGET_DOCKER_FILE_PATH
-          scp -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP $PROMETHEUS_CONFIG_PATH ubuntu@$OBSERVER_IP:$TARGET_PROMETHEUS_CONFIG_PATH
-
-      - name: Docker compose up
-        run: |
-          echo "Running docker-compose up on EC2 instance"
-          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
-          OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
-          BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
-          chmod 600 $BASTION_KEY_PATH
-          ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP ubuntu@$OBSERVER_IP "sudo docker-compose -f /etc/observability/docker-compose.yml up -d"
+          INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].InstanceId" --output text)
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands=["sudo docker-compose -f /etc/observability/docker-compose.yml up -d"] \
+            --region $AWS_REGION
 
       - name: Reload Prometheus via HTTP
         run: |
-          echo "Reloading Prometheus via HTTP"
-          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
-          OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
-          BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
-          chmod 600 $BASTION_KEY_PATH
-          ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP ubuntu@$OBSERVER_IP "curl -X POST http://localhost:9090/-/reload"
-
-      - name: Install Node Exporter on EC2 Instances
-        run: |
-          BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
-          INSTANCE_IPS=($(jq -r '.aws_instance_prometheus_private_ip.value, .aws_instance_rabbitmq_private_ips.value[], .aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json))
-          BASTION_KEY_PATH="./temp/bastion-host-private-key.pem"
-          chmod 600 $BASTION_KEY_PATH
-          for IP in "${INSTANCE_IPS[@]}"; do
-            ssh -o "StrictHostKeyChecking=no" -i $BASTION_KEY_PATH -J ubuntu@$BASTION_IP ubuntu@$IP "wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz && tar xvfz node_exporter-1.7.0.linux-amd64.tar.gz && nohup ./node_exporter-1.7.0.linux-amd64/node_exporter &"
-          done
-        env:
-          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
-
-      - name: Remove SSH access from GitHub Actions runner
-        if: always()
-        run: |
-          echo "Removing SSH access from GitHub Actions runner"
-          BASTION_SECURITY_GROUP_ID=$(jq -r '.aws_security_group_bastion_sg_id.value' ./temp/terraform_outputs.json)
-          aws ec2 revoke-security-group-ingress --group-id $BASTION_SECURITY_GROUP_ID  --protocol tcp --port 22 --cidr ${RUNNER_IP}/32 --region $AWS_REGION
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
+          INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].InstanceId" --output text)
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands=["curl -X POST http://localhost:9090/-/reload"] \
+            --region $AWS_REGION

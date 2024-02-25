@@ -35,6 +35,11 @@ variable "infra_config_bucket" {
   type        = string
 }
 
+variable "infra_config_bucket_arn" {
+  description = "S3 bucket ARN to store the infra config"
+  type        = string
+}
+
 variable "infra_config_prefix" {
   description = "Prefix for the infra config"
   type        = string

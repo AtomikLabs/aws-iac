@@ -94,8 +94,6 @@ resource "aws_eip" "nat" {
   }
 }
 
-
-
 resource "aws_security_group" "rds_sg" {
   name        = "${local.environment}-rds-sg"
   description = "Security group for RDS (Postgres)"
@@ -204,6 +202,7 @@ resource "aws_instance" "bastion_host" {
   instance_type = "t2.micro"
   subnet_id     = element(aws_subnet.public.*.id, 0)
   key_name      = "${local.environment}-${local.bastion_host_key_pair_name}"
+  user_data     = file("infra/core/networking/src/init-instance.sh")
 
   vpc_security_group_ids = [
     aws_security_group.bastion_sg.id,
@@ -213,4 +212,25 @@ resource "aws_instance" "bastion_host" {
     Name        = "${local.environment}-bastion-host"
     Environment = local.environment
   }
+}
+
+resource "aws_iam_role" "bastion_host_role" {
+  name = "${local.environment}-bastion-host-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_olicy_attachment" "bastion_host_role_s3_infra_bucket" {
+  role       = aws_iam_role.bastion_host_role.name
+  policy_arn = aws_iam_policy.s3_infra_config_bucket_access.arn
 }
