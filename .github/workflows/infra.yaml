@@ -283,7 +283,7 @@ jobs:
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
-            --region $${{ env.AWS_REGION }}
+            --region ${{ env.AWS_REGION }}
 
       - name: Run Docker Compose Up on EC2 Instance
         run: |
