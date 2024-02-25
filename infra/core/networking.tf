@@ -198,11 +198,12 @@ resource "aws_security_group" "bastion_sg" {
 }
 
 resource "aws_instance" "bastion_host" {
-  ami           = "ami-0c7217cdde317cfec" # ubuntu
-  instance_type = "t2.micro"
-  subnet_id     = element(aws_subnet.public.*.id, 0)
-  key_name      = "${local.environment}-${local.bastion_host_key_pair_name}"
-  user_data     = file("../../infra/core/networking/src/init-instance.sh")
+  ami                   = "ami-0c7217cdde317cfec" # ubuntu
+  instance_type         = "t2.micro"
+  subnet_id             = element(aws_subnet.public.*.id, 0)
+  key_name              = "${local.environment}-${local.bastion_host_key_pair_name}"
+  user_data             = file("../../infra/core/networking/src/init-instance.sh")
+  iam_instance_profile  = aws_iam_instance_profile.bastion_host_profile.name
 
   vpc_security_group_ids = [
     aws_security_group.bastion_sg.id,
@@ -238,4 +239,9 @@ resource "aws_iam_role_policy_attachment" "bastion_host_role_s3_infra_bucket" {
 resource "aws_iam_role_policy_attachment" "bastion_role_ssm_managed_instance" {
   role       = aws_iam_role.bastion_host_role.name
   policy_arn = local.AmazonSSMManagedInstanceCoreARN
+}
+
+resource "aws_iam_instance_profile" "bastion_host_profile" {
+  name = "${local.environment}-bastion-host-profile"
+  role = aws_iam_role.bastion_host_role.name
 }

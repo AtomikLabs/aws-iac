@@ -100,6 +100,11 @@ resource "aws_iam_role" "observer_role" {
   })
 }
 
+resource "aws_iam_instance_profile" "observer_profile" {
+  name = "${local.environment}-observer-profile"
+  role = aws_iam_role.observer_role.name
+}
+
 resource "aws_iam_role_policy_attachment" "observer_role_s3_infra_bucket" {
   role       = aws_iam_role.observer_role.name
   policy_arn = aws_iam_policy.s3_infra_config_bucket_access.arn

@@ -28,6 +28,11 @@ resource "aws_iam_role" "rabbitmq_role" {
   })
 }
 
+resource "aws_iam_instance_profile" "rabbitmq_profile" {
+  name = "${local.environment}-rabbitmq-profile"
+  role = aws_iam_role.rabbitmq_role.name
+}
+
 resource "aws_iam_role_policy_attachment" "rabbitmq_role_s3_infra_bucket" {
   role       = aws_iam_role.rabbitmq_role.name
   policy_arn = aws_iam_policy.s3_infra_config_bucket_access.arn

@@ -348,5 +348,5 @@ jobs:
             aws ssm send-command \
               --instance-ids "$ID" \
               --document-name "AWS-RunShellScript" \
-              --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/${INFRA_CONFIG_PREFIX}/prometheus/prometheus.yml /etc/observability/prometheus/prometheus.yml"] \
+              --parameters commands=["aws s3 cp s3://${INFRA_CONFIG_BUCKET}/${INFRA_CONFIG_PREFIX}/prometheus/prometheus.yml ~/prometheus.yml"] \
               --region ${{env.AWS_REGION}}
