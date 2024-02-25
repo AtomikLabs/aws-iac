@@ -80,7 +80,7 @@ resource "aws_security_group" "observer_sg" {
     from_port   = 9100
     to_port     = 9100
     protocol    = "tcp"
-    security_groups = [for subnet in aws_subnet.private : subnet.cidr_block]
+    cidr_blocks = [for subnet in aws_subnet.private : subnet.cidr_block]
   }
 
   egress {
