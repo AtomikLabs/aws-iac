@@ -183,7 +183,7 @@ jobs:
           TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
           TF_VAR_repo: ${{ env.REPO }}
 
-      - name: Save Terraform Outputs
+      - name: Save Terraform OutputS
         run: |
           terraform output -json > terraform_outputs.json
           aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}.json
@@ -193,7 +193,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: terraform_outputs
-          path: terraform_outputs.json
+          path: ./infra/core/terraform_outputs.json
 
   observability:
     needs: core_infra
