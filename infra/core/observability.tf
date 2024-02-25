@@ -3,7 +3,7 @@ resource "aws_instance" "observer" {
   instance_type = "t2.small"
   key_name = "${local.environment}-${local.bastion_host_key_pair_name}"
   subnet_id = aws_subnet.private[0].id
-  user_data = file("infra/observability/prometheus/src/init-instance.sh")
+  user_data = file("../../infra/observability/prometheus/src/init-instance.sh")
   tags = {
     Name = "${local.environment}-observability"
     Environment = local.environment
@@ -97,7 +97,7 @@ resource "aws_iam_role" "observer_role" {
   })
 }
 
-resource "aws_iam_role_olicy_attachment" "observer_role_s3_infra_bucket" {
+resource "aws_iam_role_policy_attachment" "observer_role_s3_infra_bucket" {
   role       = aws_iam_role.observer_role.name
   policy_arn = aws_iam_policy.s3_infra_config_bucket_access.arn
 }

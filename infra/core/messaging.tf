@@ -5,7 +5,7 @@ resource "aws_instance" "rabbitmq" {
   subnet_id                 = aws_subnet.private[count.index].id
   key_name                  = "${local.environment}-${local.bastion_host_key_pair_name}"
   vpc_security_group_ids    = [aws_security_group.rabbitmq_sg.id]
-  user_data                 = file("infra/core/messaging/src/init-instance.sh")
+  user_data                 = file("../../infra/core/messaging/src/init-instance.sh")
   tags = {
     Name = "${local.environment}-RabbitMQ-${count.index + 1}"
     Environment = local.environment
@@ -28,7 +28,7 @@ resource "aws_iam_role" "rabbitmq_role" {
   })
 }
 
-resource "aws_iam_role_olicy_attachment" "rabbitmq_role_s3_infra_bucket" {
+resource "aws_iam_role_policy_attachment" "rabbitmq_role_s3_infra_bucket" {
   role       = aws_iam_role.rabbitmq_role.name
   policy_arn = aws_iam_policy.s3_infra_config_bucket_access.arn
 }
