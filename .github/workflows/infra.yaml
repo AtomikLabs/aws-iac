@@ -278,6 +278,21 @@ jobs:
           echo "Getting bastion host key pair"
           aws secretsmanager get-secret-value --secret-id $ENV_NAME/bastion-host-private-key --region $AWS_REGION --query SecretString --output text > ./temp/bastion-host-private-key.pem
 
+      - name: Get GitHub Actions runner public IP
+        id: runner-ip
+        run: |
+          echo "RUNNER_IP=$(curl https://ipinfo.io/ip)" >> $GITHUB_ENV
+
+      - name: Allow SSH access from GitHub Actions runner
+        run: |
+          echo "Allowing SSH access from GitHub Actions runner"
+          BASTION_SECURITY_GROUP_ID=$(jq -r '.aws_security_group_bastion_sg_id.value' ./temp/terraform_outputs.json)
+          aws ec2 authorize-security-group-ingress --group-id $BASTION_SECURITY_GROUP_ID  --protocol tcp --port 22 --cidr ${RUNNER_IP}/32 --region $AWS_REGION
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+
       - name: Upload Prometheus Config and Docker-compose file to observer through bastion host
         run: |
           echo "Uploading Docker-Compose and Prometheus Config to EC2 instance"
@@ -321,3 +336,14 @@ jobs:
           done
         env:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+
+      - name: Remove SSH access from GitHub Actions runner
+        if: always()
+        run: |
+          echo "Removing SSH access from GitHub Actions runner"
+          BASTION_SECURITY_GROUP_ID=$(jq -r '.aws_security_group_bastion_sg_id.value' ./temp/terraform_outputs.json)
+          aws ec2 revoke-security-group-ingress --group-id $BASTION_SECURITY_GROUP_ID  --protocol tcp --port 22 --cidr ${RUNNER_IP}/32 --region $AWS_REGION
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
