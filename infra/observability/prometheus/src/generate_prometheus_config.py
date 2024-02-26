@@ -13,7 +13,15 @@ class PrometheusConfigGenerator:
         Initializes the PrometheusConfigGenerator with command line arguments.
         """
         self.args = self.parse_arguments(arguments)
-
+        with open('./.atomiklabs.json', 'r') as file:
+            data = json.load(file)
+            self._scrape_interval = data['observability']['prometheus']['scrape_interval']
+            self._evaluation_interval = data['observability']['prometheus']['evaluation_interval']
+            if not self._scrape_interval:
+                raise ValueError("Scrape interval cannot be empty. Check the .atomiklabs.json file.")
+            if not self._evaluation_interval:
+                raise ValueError("Evaluation interval cannot be empty. Check the .atomiklabs.json file")
+            
     @staticmethod
     def parse_arguments(arguments) -> argparse.Namespace:
         """
@@ -73,12 +81,12 @@ class PrometheusConfigGenerator:
             raise ValueError("IP addresses list cannot be empty.")
         scrape_configs = []
         for ip in ip_addresses:
-            if ip.lower() != 'null':  # Filter out 'null' or invalid entries
+            if ip.lower() != 'null':
                 config = f"""
   - job_name: 'node_exporter_{ip.replace('.', '_')}'
-    static_configs:
-      - targets: ['{ip}:9100']"""
-                scrape_configs.append(config.strip())
+  static_configs:
+    - targets: ['{ip}:9100']"""
+                scrape_configs.append(config.strip() + "\n")
         return scrape_configs
 
     def generate_prometheus_config(self, scrape_configs: list) -> str:
@@ -94,8 +102,8 @@ class PrometheusConfigGenerator:
         if not scrape_configs:
             raise ValueError("Scrape configurations cannot be empty.")
         return f"""global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+  scrape_interval: {self._scrape_interval}
+  evaluation_interval: {self._evaluation_interval}
 scrape_configs:
 {"".join(scrape_configs)}
 """

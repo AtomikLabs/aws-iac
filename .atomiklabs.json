@@ -28,5 +28,13 @@
   "networking":
     {
       "bastion_host_key_pair_name": "atomiklabs-bastion-keypair"
+    },
+  "observability":
+    {
+      "prometheus":
+      {
+        "evaluation_interval": "30s",
+        "scrape_interval": "30s"
+      }
     }
 }

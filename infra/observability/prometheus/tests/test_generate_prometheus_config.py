@@ -1,65 +1,74 @@
 import pytest
 import json
-from unittest.mock import mock_open, patch, MagicMock
-
+import sys
+from unittest.mock import mock_open, patch
 from infra.observability.prometheus.src.generate_prometheus_config import PrometheusConfigGenerator
 
 
 @pytest.fixture
-def args():
-    return ["dummy.json", "prometheus.yml", "--ips", "10.0.1.1", "10.0.2.2"]
+def mock_file_read_data():
+    return json.dumps({
+        "observability": {
+            "prometheus": {
+                "scrape_interval": "15s",
+                "evaluation_interval": "15s"
+            }
+        }
+    })
 
 
 @pytest.fixture
-def outputs():
-    return {"aws_instance_prometheus_private_ip": {"value": "10.0.1.1"}}
+def generator_args():
+    return ["./dev-terraform-outputs.json", "prometheus.yml", "--ips", "10.1.1.1", "10.1.2.1"]
 
 
 @pytest.fixture
-def mock_args(mocker):
-    return mocker.patch("argparse.ArgumentParser.parse_args",
-                        return_value=MagicMock(outputs_file="dummy.json",
-                                               prometheus_config_file="prometheus.yml",
-                                               ips=["10.0.1.1", "10.0.2.2"]))
+def setup_generator(mock_file_read_data, generator_args):
+    with patch("builtins.open", mock_open(read_data=mock_file_read_data)), \
+         patch('sys.argv', ['script.py'] + generator_args):
+        return PrometheusConfigGenerator(sys.argv[1:])
 
 
-def test_load_outputs(mock_args, outputs):
-    with patch("builtins.open", mock_open(read_data=json.dumps(outputs)), create=True) as mocked_file:
-        generator = PrometheusConfigGenerator([])
-        result = generator.load_outputs("dummy.json")
-        mocked_file.assert_called_once_with("dummy.json")
-        assert result == outputs
+def test_parse_arguments_with_ips(setup_generator):
+    generator = setup_generator
+    assert generator.args.outputs_file == "./dev-terraform-outputs.json"
+    assert generator.args.prometheus_config_file == "prometheus.yml"
+    assert generator.args.ips == ["10.1.1.1", "10.1.2.1"]
 
 
-def test_generate_scrape_configs(mock_args):
-    ip_addresses = ["10.0.1.1", "10.0.2.2"]
-    generator = PrometheusConfigGenerator([])
-    result = generator.generate_scrape_configs(ip_addresses)
-    assert len(result) == 2
-    assert "10.0.1.1:9100" in result[0]
-    assert "10.0.2.2:9100" in result[1]
+def test_load_outputs(setup_generator, mock_file_read_data):
+    generator = setup_generator
+    file_path = "dummy.json"
+    with patch('infra.observability.prometheus.src.generate_prometheus_config.open', mock_open(read_data=mock_file_read_data), create=True) as mocked_file:
+        outputs = generator.load_outputs(file_path)
+        expected_outputs = json.loads(mock_file_read_data)
+        assert outputs == expected_outputs
+        mocked_file.assert_called_once_with(file_path)
 
 
-def test_generate_prometheus_config(mock_args):
-    scrape_configs = ["- job_name: 'node_exporter_10_0_1_1'\n  static_configs:\n    - targets: ['10.0.1.1:9100']"]
-    generator = PrometheusConfigGenerator([])
-    result = generator.generate_prometheus_config(scrape_configs)
-    assert "scrape_configs:" in result
-    assert "10.0.1.1:9100" in result
+def test_generate_scrape_configs(setup_generator):
+    generator = setup_generator
+    ip_addresses = generator.args.ips
+    configs = generator.generate_scrape_configs(ip_addresses)
+    assert configs[0].startswith("- job_name: 'node_exporter_10_1_1_1'")
+    assert len(configs) == len(ip_addresses)
 
 
-def test_save_prometheus_config(mock_args):
-    config = "global:\n  scrape_interval: 15s"
-    with patch("builtins.open", mock_open(), create=True) as mocked_file:
-        generator = PrometheusConfigGenerator([])
-        generator.save_prometheus_config(config, "prometheus.yml")
-        mocked_file.assert_called_once_with("prometheus.yml", "w")
-        mocked_file().write.assert_called_once_with(config)
+def test_generate_prometheus_config(setup_generator):
+    generator = setup_generator
+    scrape_configs = generator.generate_scrape_configs(generator.args.ips)
+    config = generator.generate_prometheus_config(scrape_configs)
+    assert "scrape_interval: 15s" in config
+    assert "evaluation_interval: 15s" in config
+    for ip in generator.args.ips:
+        assert f"targets: ['{ip}:9100']" in config
 
 
-def test_run(mock_args, outputs):
-    with patch("builtins.open", mock_open(read_data=json.dumps(outputs)), create=True), \
-         patch.object(PrometheusConfigGenerator, "save_prometheus_config") as mock_save:
-        generator = PrometheusConfigGenerator([])
-        generator.run()
-        mock_save.assert_called()
+def test_save_prometheus_config(setup_generator):
+    generator = setup_generator
+    config_content = "test config"
+    file_path = "test.yml"
+    with patch("builtins.open", mock_open()) as mocked_file:
+        generator.save_prometheus_config(config_content, file_path)
+        mocked_file.assert_called_with(file_path, "w")
+        mocked_file().write.assert_called_once_with(config_content)

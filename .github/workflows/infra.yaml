@@ -271,7 +271,7 @@ jobs:
           OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
           RABBITMQ_IPS=$(jq -r '.aws_instance_rabbitmq_private_ips.value[]' ./temp/terraform_outputs.json | paste -sd "," -)
           BASTION_IP=$(jq -r '.aws_instance_bastion_public_ip.value' ./temp/terraform_outputs.json)
-          ALL_IPS="$OBSERVER_IP,$RABBITMQ_IPS,$BASTION_IP"
+          ALL_IPS="$OBSERVER_IP $RABBITMQ_IPS $BASTION_IP"
           echo "Generating Prometheus config with IPs: $ALL_IPS"
           python ./infra/observability/prometheus/src/generate_prometheus_config.py ./temp/terraform_outputs.json ./temp/prometheus.yml --ips $ALL_IPS
           aws s3 cp ./temp/prometheus.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/prometheus/prometheus.yml
