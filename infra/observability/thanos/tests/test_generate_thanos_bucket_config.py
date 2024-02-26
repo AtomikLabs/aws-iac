@@ -26,7 +26,6 @@ def test_generate_config_dict(generator, generator_args):
             "secret_key": generator_args[2],
             "insecure": False,
             "signature_version2": False,
-            "encrypt_sse": False,
             "put_user_metadata": {},
             "http_config": {
                 "idle_conn_timeout": "90s",

@@ -22,7 +22,9 @@ sudo chmod +x /usr/local/bin/docker-compose
 sudo mkdir /etc/prometheus
 sudo mkdir /etc/observability
 sudo mkdir -p /var/lib/prometheus/data
+sudo chown nobody:nogroup /etc/observability
 sudo mkdir -p /var/lib/thanos/data
+sudo chown -R 1001:1001 /var/lib/thanos
 
 # Install Node Exporter
 useradd -rs /bin/false node_exporter

@@ -41,7 +41,6 @@ class ThanosBucketConfigGenerator:
                 "secret_key": self.secret_key,
                 "insecure": False,
                 "signature_version2": False,
-                "encrypt_sse": False,
                 "put_user_metadata": {},
                 "http_config": {
                     "idle_conn_timeout": "90s",
