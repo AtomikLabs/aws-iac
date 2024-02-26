@@ -104,6 +104,8 @@ class PrometheusConfigGenerator:
         if not scrape_configs:
             raise ValueError("Scrape configurations cannot be empty.")
         return f"""global:
+  external_labels:
+    prometheus: 'prometheus_one'
   scrape_interval: {self._scrape_interval}
   evaluation_interval: {self._evaluation_interval}
 scrape_configs:

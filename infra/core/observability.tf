@@ -64,7 +64,7 @@ resource "aws_security_group" "observer_sg" {
     from_port   = 9090
     to_port     = 9090
     protocol    = "tcp"
-    security_groups = []
+    security_groups = [aws_security_group.bastion_sg.id]
   }
 
   ingress {
