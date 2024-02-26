@@ -276,7 +276,7 @@ jobs:
           python ./infra/observability/prometheus/src/generate_prometheus_config.py ./temp/terraform_outputs.json ./temp/prometheus.yml --ips $ALL_IPS
           aws s3 cp ./temp/prometheus.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/prometheus/prometheus.yml
 
-      - name: Copy Prometheus config to EC2 instance and create dirs
+      - name: Copy Prometheus config to EC2 instance and trigger reload
         run: |
           OBSERVER_INSTANCE_IDS=$(aws ec2 describe-instances \
             --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
@@ -377,19 +377,19 @@ jobs:
           OBSERVER_INSTANCE_IDS=$(aws ec2 describe-instances \
              --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
              --query "Reservations[*].Instances[*].InstanceId" --output text)
-           echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
+          echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
 
-           if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
-             echo "No instances found matching the criteria."
-             exit 1
-           fi
+          if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
+            echo "No instances found matching the criteria."
+            exit 1
+          fi
 
-           IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
+          IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
 
-           for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
-             aws ssm send-command \
-               --instance-ids "$ID" \
-               --document-name "AWS-RunShellScript" \
-               --parameters 'commands=["curl -X POST http://localhost:9090/-/reload"]' \
-               --region ${{ env.AWS_REGION }}
-           done
+          for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
+            aws ssm send-command \
+              --instance-ids "$ID" \
+              --document-name "AWS-RunShellScript" \
+              --parameters commands=["curl -X POST http://localhost:9090/-/reload"] \
+              --region "$AWS_REGION"
+          done
