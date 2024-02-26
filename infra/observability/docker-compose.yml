@@ -15,12 +15,12 @@ services:
     image: quay.io/thanos/thanos:v0.34.1
     volumes:
       - /var/lib/prometheus/data:/var/lib/prometheus
-      - /etc/thanos/bucket_config.yml:/etc/thanos/bucket_config.yml
+      - /etc/thanos/bucket_config.yaml:/etc/thanos/bucket_config.yaml
     command:
       - sidecar
       - '--prometheus.url=http://prometheus:9090'
       - '--tsdb.path=/var/lib/prometheus'
-      - '--objstore.config-file=/etc/thanos/bucket_config.yml'
+      - '--objstore.config-file=/etc/thanos/bucket_config.yaml'
     depends_on:
       - prometheus
     ports:
