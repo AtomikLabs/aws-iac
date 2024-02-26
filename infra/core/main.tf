@@ -28,6 +28,7 @@ locals {
   environment                     = var.environment
   iam_user_name                   = var.iam_user_name
   infra_config_bucket             = var.infra_config_bucket
+  infra_config_bucket_arn         = var.infra_config_bucket_arn
   infra_config_prefix             = var.infra_config_prefix
   name                            = var.name
   outputs_prefix                  = var.outputs_prefix
@@ -36,8 +37,10 @@ locals {
   # **********************************************************
   # * SERVICES CONFIGURATION                                 *
   # **********************************************************
-  AWSBasicExecutionRoleARN        = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  AWSLambdaVPCAccessExecutionRole = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+  AWSBasicExecutionRoleARN                  = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  AWSLambdaVPCAccessExecutionRole           = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+  AmazonSSMManagedInstanceCoreARN           = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  AmazonSSMManagedEC2InstanceDefaultPolicy  = "arn:aws:iam::aws:policy/AmazonSSMManagedEC2InstanceDefaultPolicy"
   
   # **********************************************************
   # * DATA INGESTION CONFIGURATION                           *
@@ -81,4 +84,102 @@ locals {
     Region      = local.aws_region
     Application = local.name
   }
+}
+
+resource "aws_iam_policy" "s3_infra_config_bucket_access" {
+  name        = "${local.environment}-s3-infra-config-bucket-access"
+  description = "Allow access to the infra config bucket"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:PutObjectAcl"
+        ]
+        Effect   = "Allow"
+        Resource = "${local.infra_config_bucket_arn}/*"
+      },
+      {
+        Action   = "s3:ListBucket"
+        Effect   = "Allow"
+        Resource = "${local.infra_config_bucket_arn}"
+      },
+    ],
+  })
+}
+
+resource "aws_iam_role" "ssm_managed_instance_role" {
+  name = "ssm-managed-instance-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "ssm_manager" {
+  name        = "ssm-manager"
+  description = "Allow SSM to manage instances"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "ssm:*"
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      },
+    ],
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_managed_instance_role_ssm_manager" {
+  role       = aws_iam_role.ssm_managed_instance_role.name
+  policy_arn = aws_iam_policy.ssm_manager.arn
+}
+
+resource "aws_iam_policy" "ssm_policy_for_instances" {
+  name        = "ssm-policy-for-instances"
+  description = "Allow SSM to manage instances"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "ssm:UpdateInstanceInformation",
+          "ssm:ListInstanceAssociations",
+          "ssm:DescribeInstanceInformation",
+          "ssm:SendCommand",
+          "ssm:ListCommands",
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations",
+          "ssm:CancelCommand",
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations",
+          "ssm:CancelCommand",
+          "ssm:ListCommands",
+          "ssm:SendCommand",
+          "ssm:DescribeInstanceInformation",
+          "ssm:ListInstanceAssociations",
+          "ssm:UpdateInstanceInformation"
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      },
+    ],
+  })
 }

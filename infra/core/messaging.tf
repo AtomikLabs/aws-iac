@@ -1,74 +1,53 @@
 resource "aws_instance" "rabbitmq" {
   count                     = 2
-  ami                       = "ami-0c7217cdde317cfec" #ubuntu
+  ami                       = "ami-0440d3b780d96b29d" #ec2
   instance_type             = "t2.micro"
   subnet_id                 = aws_subnet.private[count.index].id
   key_name                  = "${local.environment}-${local.bastion_host_key_pair_name}"
   vpc_security_group_ids    = [aws_security_group.rabbitmq_sg.id]
-
-  user_data = <<-EOF
-            #!/bin/sh
-            {
-            echo "Starting RabbitMQ installation"
-            sudo apt-get install curl gnupg apt-transport-https -y
-
-            ## Team RabbitMQ's main signing key
-            curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" | sudo gpg --dearmor | sudo tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
-            ## Community mirror of Cloudsmith: modern Erlang repository
-            curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key | sudo gpg --dearmor | sudo tee /usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null
-            ## Community mirror of Cloudsmith: RabbitMQ repository
-            curl -1sLf https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key | sudo gpg --dearmor | sudo tee /usr/share/keyrings/rabbitmq.9F4587F226208342.gpg > /dev/null
-
-            ## Add apt repositories maintained by Team RabbitMQ
-            sudo tee /etc/apt/sources.list.d/rabbitmq.list <<EOF_INNER
-            ## Provides modern Erlang/OTP releases
-            ##
-            deb [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.novemberain.com/rabbitmq/rabbitmq-erlang/deb/ubuntu jammy main
-            deb-src [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa1.novemberain.com/rabbitmq/rabbitmq-erlang/deb/ubuntu jammy main
-
-            # another mirror for redundancy
-            deb [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa2.novemberain.com/rabbitmq/rabbitmq-erlang/deb/ubuntu jammy main
-            deb-src [signed-by=/usr/share/keyrings/rabbitmq.E495BB49CC4BBE5B.gpg] https://ppa2.novemberain.com/rabbitmq/rabbitmq-erlang/deb/ubuntu jammy main
-
-            ## Provides RabbitMQ
-            ##
-            deb [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa1.novemberain.com/rabbitmq/rabbitmq-server/deb/ubuntu jammy main
-            deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa1.novemberain.com/rabbitmq/rabbitmq-server/deb/ubuntu jammy main
-
-            # another mirror for redundancy
-            deb [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.novemberain.com/rabbitmq/rabbitmq-server/deb/ubuntu jammy main
-            deb-src [signed-by=/usr/share/keyrings/rabbitmq.9F4587F226208342.gpg] https://ppa2.novemberain.com/rabbitmq/rabbitmq-server/deb/ubuntu jammy main
-            EOF_INNER
-            ## Update package indices
-            sudo apt-get update -y
-
-            ## Install Erlang packages
-            sudo apt-get install -y erlang-base \
-            erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
-            erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
-            erlang-runtime-tools erlang-snmp erlang-ssl \
-            erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
-
-            ## Install rabbitmq-server and its dependencies
-            sudo apt-get install rabbitmq-server -y --fix-missing
-
-            # Start the RabbitMQ server
-            sudo systemctl enable rabbitmq-server
-            sudo systemctl start rabbitmq-server
-            sudo rabbitmq-plugins enable rabbitmq_management
-
-            sleep 15
-            sudo rabbitmqctl add_user ${local.rabbitmqctl_username} ${local.rabbitmqctl_password}
-            sudo rabbitmqctl set_user_tags ${local.rabbitmqctl_username} administrator
-            sudo rabbitmqctl set_permissions -p / ${local.rabbitmqctl_username} ".*" ".*" ".*"
-            } >> /var/log/user-data.log 2>&1
-EOF
-
+  user_data                 = file("../../infra/core/messaging/src/init-instance.sh")
+  iam_instance_profile      = aws_iam_instance_profile.rabbitmq_profile.name
   tags = {
     Name = "${local.environment}-RabbitMQ-${count.index + 1}"
     Environment = local.environment
   }
 }
+
+resource "aws_iam_role" "rabbitmq_role" {
+  name = "${local.environment}-rabbitmq-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "rabbitmq_profile" {
+  name = "${local.environment}-rabbitmq-profile"
+  role = aws_iam_role.rabbitmq_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "rabbitmq_role_s3_infra_bucket" {
+  role       = aws_iam_role.rabbitmq_role.name
+  policy_arn = aws_iam_policy.s3_infra_config_bucket_access.arn
+}
+
+resource "aws_iam_role_policy_attachment" "rabbitmq_role_ssm_managed_instance" {
+  role       = aws_iam_role.rabbitmq_role.name
+  policy_arn = local.AmazonSSMManagedInstanceCoreARN
+}
+resource "aws_iam_role_policy_attachment" "rabbitmq_role_ssm_policy_for_instances" {
+  role       = aws_iam_role.rabbitmq_role.name
+  policy_arn = aws_iam_policy.ssm_policy_for_instances.arn
+}
+
 
 resource "aws_security_group" "rabbitmq_sg" {
   name        = "${local.environment}-rabbitmq-sg"
@@ -94,6 +73,13 @@ resource "aws_security_group" "rabbitmq_sg" {
     to_port     = 5672
     protocol    = "tcp"
     cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    cidr_blocks = [for subnet in aws_subnet.private : subnet.cidr_block]
   }
 
   ingress {

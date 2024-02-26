@@ -1,40 +1,74 @@
+jest.mock('@actions/core');
+const source_path = '../set-aws-credentials';
+const { it } = require('@jest/globals');
+const { setAwsCredentials } = require(source_path);
+
 const core = require('@actions/core');
-const { setAwsCredentials } = require('../set-aws-credentials');
 
-process.env.PROD_AWS_ACCESS_KEY_ID = 'prodAccessKeyId';
-process.env.PROD_AWS_SECRET_ACCESS_KEY = 'prodSecretAccessKey';
-process.env.STAGE_AWS_ACCESS_KEY_ID = 'stageAccessKeyId';
-process.env.STAGE_AWS_SECRET_ACCESS_KEY = 'stageSecretAccessKey';
-process.env.DEV_AWS_ACCESS_KEY_ID = 'devAccessKeyId';
-process.env.DEV_AWS_SECRET_ACCESS_KEY = 'devSecretAccessKey';
-
-describe('Set AWS Credentials', () => {
+describe('setAwsCredentials', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    core.getInput.mockImplementation((name) => {
+      switch (name) {
+        case 'ENVIRONMENT_NAME':
+          return process.env['INPUT_ENVIRONMENT_NAME'];
+        case 'DEV_AWS_ACCESS_KEY_ID':
+          return 'devAccessKeyId';
+        case 'DEV_AWS_SECRET_ACCESS_KEY':
+          return 'devSecretAccessKey';
+        case 'PROD_AWS_ACCESS_KEY_ID':
+          return 'prodAccessKeyId';
+        case 'PROD_AWS_SECRET_ACCESS_KEY':
+          return 'prodSecretAccessKey';
+        case 'STAGE_AWS_ACCESS_KEY_ID':
+          return 'stageAccessKeyId';
+        case 'STAGE_AWS_SECRET_ACCESS_KEY':
+          return 'stageSecretAccessKey';
+        default:
+          return '';
+      }
+    });
   });
 
-  test('sets production credentials correctly', () => {
-    core.getInput.mockReturnValueOnce('prod');
+  it('should set AWS credentials for dev environment', () => {
+    process.env['INPUT_ENVIRONMENT_NAME'] = 'dev';
+
     setAwsCredentials();
-    expect(core.exportVariable).toHaveBeenCalledWith('AWS_ACCESS_KEY_ID', 'prodAccessKeyId');
-    expect(core.exportVariable).toHaveBeenCalledWith('AWS_SECRET_ACCESS_KEY', 'prodSecretAccessKey');
+
+    expect(core.setSecret).toHaveBeenCalledWith('devAccessKeyId');
+    expect(core.setSecret).toHaveBeenCalledWith('devSecretAccessKey');
+    expect(core.exportVariable).toHaveBeenCalledWith('AWS_ACCESS_KEY_ID', 'devAccessKeyId');
+    expect(core.exportVariable).toHaveBeenCalledWith('AWS_SECRET_ACCESS_KEY', 'devSecretAccessKey');
+  });
+
+  it('should set AWS credentials for prod environment', () => {
+    process.env['INPUT_ENVIRONMENT_NAME'] = 'prod';
+
+    setAwsCredentials();
+
     expect(core.setSecret).toHaveBeenCalledWith('prodAccessKeyId');
     expect(core.setSecret).toHaveBeenCalledWith('prodSecretAccessKey');
+    expect(core.exportVariable).toHaveBeenCalledWith('AWS_ACCESS_KEY_ID', 'prodAccessKeyId');
+    expect(core.exportVariable).toHaveBeenCalledWith('AWS_SECRET_ACCESS_KEY', 'prodSecretAccessKey');
   });
 
-  test('sets stage credentials correctly', () => {
-    core.getInput.mockReturnValueOnce('stage');
+  it('should set AWS credentials for stage environment', () => {
+    process.env['INPUT_ENVIRONMENT_NAME'] = 'stage';
+
     setAwsCredentials();
+
+    expect(core.setSecret).toHaveBeenCalledWith('stageAccessKeyId');
+    expect(core.setSecret).toHaveBeenCalledWith('stageSecretAccessKey');
+    expect(core.exportVariable).toHaveBeenCalledWith('AWS_ACCESS_KEY_ID', 'stageAccessKeyId');
+    expect(core.exportVariable).toHaveBeenCalledWith('AWS_SECRET_ACCESS_KEY', 'stageSecretAccessKey');
   });
 
-  test('sets development credentials correctly', () => {
-    core.getInput.mockReturnValueOnce('dev');
-    setAwsCredentials();
-  });
+  it('should set core.setFailed when environment name is not supported', () => {
+    process.env['INPUT_ENVIRONMENT_NAME'] = 'unsupported';
 
-  test('throws error on unsupported environment', () => {
-    core.getInput.mockReturnValueOnce('unsupported');
     setAwsCredentials();
+
     expect(core.setFailed).toHaveBeenCalledWith('Unsupported environment name: unsupported');
   });
 });

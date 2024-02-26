@@ -1,13 +1,17 @@
 resource "aws_instance" "observer" {
-  ami = "ami-0c7217cdde317cfec" # ubuntu
-  count = 1
+  ami = "ami-0440d3b780d96b29d" # ec2
   instance_type = "t2.small"
   key_name = "${local.environment}-${local.bastion_host_key_pair_name}"
   subnet_id = aws_subnet.private[0].id
+  user_data = file("../../infra/observability/src/init-instance.sh")
+  iam_instance_profile = aws_iam_instance_profile.observer_profile.name
   tags = {
     Name = "${local.environment}-observability"
     Environment = local.environment
   }
+  vpc_security_group_ids = [
+    aws_security_group.observer_sg.id
+  ]
 }
 
 resource "aws_security_group" "observer_sg" {
@@ -37,14 +41,14 @@ resource "aws_security_group" "observer_sg" {
   }
 
   ingress {
-    from_port   = 3000 # Grafana
+    from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
     security_groups = []
   }
   
   ingress {
-    from_port   = 3100 # Loki
+    from_port   = 3100
     to_port     = 3100
     protocol    = "tcp"
     security_groups = [
@@ -57,10 +61,17 @@ resource "aws_security_group" "observer_sg" {
   }
 
   ingress {
-    from_port   = 9090 # Prometheus
+    from_port   = 9090
     to_port     = 9090
     protocol    = "tcp"
-    security_groups = []
+    security_groups = [aws_security_group.bastion_sg.id]
+  }
+
+  ingress {
+    from_port   = 9100
+    to_port     = 9100
+    protocol    = "tcp"
+    cidr_blocks = [for subnet in aws_subnet.private : subnet.cidr_block]
   }
 
   egress {
@@ -71,4 +82,41 @@ resource "aws_security_group" "observer_sg" {
   }
 
   tags = local.tags
+}
+
+resource "aws_iam_role" "observer_role" {
+  name = "${local.environment}-observer-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "observer_profile" {
+  name = "${local.environment}-observer-profile"
+  role = aws_iam_role.observer_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "observer_role_s3_infra_bucket" {
+  role       = aws_iam_role.observer_role.name
+  policy_arn = aws_iam_policy.s3_infra_config_bucket_access.arn
+}
+
+resource "aws_iam_role_policy_attachment" "observer_role_ssm_managed_instance" {
+  role       = aws_iam_role.observer_role.name
+  policy_arn = local.AmazonSSMManagedInstanceCoreARN
+}
+
+resource "aws_iam_role_policy_attachment" "observer_role_ssm_policy_for_instances" {
+  role       = aws_iam_role.observer_role.name
+  policy_arn = aws_iam_policy.ssm_policy_for_instances.arn
 }

@@ -45,4 +45,8 @@ function setAwsCredentials() {
   }
 }
 
-setAwsCredentials();
+if (require.main === module) {
+  setAwsCredentials();
+}
+
+module.exports = { setAwsCredentials };

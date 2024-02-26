@@ -35,6 +35,7 @@ jobs:
           echo "FETCH_DAILY_SUMMARIES_NAME=$(jq -r '.data_ingestion.fetch_daily_summaries_name' "$config_file")" >> $GITHUB_ENV
           echo "FETCH_DAILY_SUMMARIES_VERSION=$(jq -r '.data_ingestion.fetch_daily_summaries_version' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
+          echo "INFRA_CONFIG_BUCKET_ARN=$(jq -r '.infra.infra_config_bucket_arn' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
           echo "BACKEND_DYNAMODB_TABLE=$(jq -r '.infra.backend_dynamodb_table' "$config_file")" >> $GITHUB_ENV
           echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
@@ -187,6 +188,7 @@ jobs:
           TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
+          TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
@@ -215,6 +217,7 @@ jobs:
           TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
+          TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}s
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}

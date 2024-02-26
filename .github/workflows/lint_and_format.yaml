@@ -3,7 +3,7 @@ name: Python Lint ad
 on:
   pull_request:
     paths:
-      - '**/*.py'
+      - "**/*.py"
 
 jobs:
   lint:
@@ -21,7 +21,7 @@ jobs:
           pip install flake8 black isort
 
       - name: Check Formatting with black
-        run: black . --check
+        run: black **/*.py --check
 
       - name: Run flake8 Linting
         run: flake8 . --count --show-source --statistics
