@@ -331,7 +331,7 @@ jobs:
 
       - name: Upload Docker Compose File to S3
         run: |
-          aws s3 cp ./infra/observability/docker-compose.aml s3://${{ env.INFRA_CONFIG_BUCKET }}/observability/docker-compose.ymal
+          aws s3 cp ./infra/observability/docker-compose.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/observability/docker-compose.yml
 
       - name: Add Docker Compose to Observer
         run: |
