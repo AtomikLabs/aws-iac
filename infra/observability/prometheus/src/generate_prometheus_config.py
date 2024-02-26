@@ -13,15 +13,15 @@ class PrometheusConfigGenerator:
         Initializes the PrometheusConfigGenerator with command line arguments.
         """
         self.args = self.parse_arguments(arguments)
-        with open('./.atomiklabs.json', 'r') as file:
+        with open("./.atomiklabs.json", "r") as file:
             data = json.load(file)
-            self._scrape_interval = data['observability']['prometheus']['scrape_interval']
-            self._evaluation_interval = data['observability']['prometheus']['evaluation_interval']
+            self._scrape_interval = data["observability"]["prometheus"]["scrape_interval"]
+            self._evaluation_interval = data["observability"]["prometheus"]["evaluation_interval"]
             if not self._scrape_interval:
                 raise ValueError("Scrape interval cannot be empty. Check the .atomiklabs.json file.")
             if not self._evaluation_interval:
                 raise ValueError("Evaluation interval cannot be empty. Check the .atomiklabs.json file")
-            
+
     @staticmethod
     def parse_arguments(arguments) -> argparse.Namespace:
         """
@@ -39,7 +39,9 @@ class PrometheusConfigGenerator:
         parser = argparse.ArgumentParser(description="Generate Prometheus configuration from command line inputs.")
         parser.add_argument("outputs_file", help="The JSON file containing Terraform outputs.")
         parser.add_argument("prometheus_config_file", help="The output file for the Prometheus configuration.")
-        parser.add_argument("--ips", nargs="+", help="The IP addresses of instances to be scraped by Prometheus.", required=True)
+        parser.add_argument(
+            "--ips", nargs="+", help="The IP addresses of instances to be scraped by Prometheus.", required=True
+        )
         return parser.parse_args(arguments)
 
     def load_outputs(self, file_path: str) -> dict:
@@ -81,7 +83,7 @@ class PrometheusConfigGenerator:
             raise ValueError("IP addresses list cannot be empty.")
         scrape_configs = []
         for ip in ip_addresses:
-            if ip.lower() != 'null':
+            if ip.lower() != "null":
                 config = f"""
   - job_name: 'node_exporter_{ip.replace('.', '_')}'
   static_configs:

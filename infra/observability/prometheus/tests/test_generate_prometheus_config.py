@@ -1,20 +1,15 @@
-import pytest
 import json
 import sys
 from unittest.mock import mock_open, patch
+
+import pytest
+
 from infra.observability.prometheus.src.generate_prometheus_config import PrometheusConfigGenerator
 
 
 @pytest.fixture
 def mock_file_read_data():
-    return json.dumps({
-        "observability": {
-            "prometheus": {
-                "scrape_interval": "15s",
-                "evaluation_interval": "15s"
-            }
-        }
-    })
+    return json.dumps({"observability": {"prometheus": {"scrape_interval": "15s", "evaluation_interval": "15s"}}})
 
 
 @pytest.fixture
@@ -24,8 +19,9 @@ def generator_args():
 
 @pytest.fixture
 def setup_generator(mock_file_read_data, generator_args):
-    with patch("builtins.open", mock_open(read_data=mock_file_read_data)), \
-         patch('sys.argv', ['script.py'] + generator_args):
+    with patch("builtins.open", mock_open(read_data=mock_file_read_data)), patch(
+        "sys.argv", ["script.py"] + generator_args
+    ):
         return PrometheusConfigGenerator(sys.argv[1:])
 
 
@@ -39,7 +35,11 @@ def test_parse_arguments_with_ips(setup_generator):
 def test_load_outputs(setup_generator, mock_file_read_data):
     generator = setup_generator
     file_path = "dummy.json"
-    with patch('infra.observability.prometheus.src.generate_prometheus_config.open', mock_open(read_data=mock_file_read_data), create=True) as mocked_file:
+    with patch(
+        "infra.observability.prometheus.src.generate_prometheus_config.open",
+        mock_open(read_data=mock_file_read_data),
+        create=True,
+    ) as mocked_file:
         outputs = generator.load_outputs(file_path)
         expected_outputs = json.loads(mock_file_read_data)
         assert outputs == expected_outputs
