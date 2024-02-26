@@ -2,8 +2,8 @@ services:
   prometheus:
     image: prom/prometheus:v2.50.0
     volumes:
-      - /etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - /var/lib/prometheus/data:/var/lib/prometheus
+      - prometheus_config:/etc/prometheus
+      - prometheus_data:/var/lib/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/var/lib/prometheus'
@@ -14,8 +14,8 @@ services:
   thanos-sidecar:
     image: quay.io/thanos/thanos:v0.34.1
     volumes:
-      - /var/lib/prometheus/data:/var/lib/prometheus
-      - /etc/thanos/bucket_config.yaml:/etc/thanos/bucket_config.yaml
+      - prometheus_data:/var/lib/prometheus
+      - thanos_config:/etc/thanos
     command:
       - sidecar
       - '--prometheus.url=http://prometheus:9090'

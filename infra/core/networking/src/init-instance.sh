@@ -1,9 +1,7 @@
 #!/bin/bash
 {
-# Update the instance
 yum update -y
 
-# Install Node Exporter
 useradd -rs /bin/false node_exporter
 cd /tmp
 wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
@@ -13,7 +11,6 @@ chown root:root /usr/local/bin/node_exporter
 chmod 755 /usr/local/bin/node_exporter
 rm -f node_exporter-1.7.0.linux-amd64.tar.gz
 
-# Create a systemd service file for Node Exporter
 cat <<EOT | sudo tee /etc/systemd/system/node_exporter.service > /dev/null
 [Unit]
 Description=Prometheus Node Exporter
@@ -30,7 +27,6 @@ ExecStart=/usr/local/bin/node_exporter
 WantedBy=multi-user.target
 EOT
 
-# Enable and start Node Exporter
 sudo systemctl daemon-reload
 sudo systemctl enable node_exporter.service
 sudo systemctl start node_exporter.service

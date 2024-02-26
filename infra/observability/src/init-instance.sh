@@ -1,24 +1,19 @@
 #!/bin/bash
 {
-# Update the instance
 yum update -y
 
-# Install Docker
 yum install -y docker
 systemctl start docker
 systemctl enable docker
 
-# Python 3.7
 sudo amazon-linux-extras install python3.7 -y
 
 curl -O https://bootstrap.pypa.io/get-pip.py
 python3 get-pip.py
 
-# Install Docker Compose
 sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
-# Create Observability dirs
 sudo mkdir /etc/prometheus
 sudo mkdir /etc/observability
 sudo mkdir -p /var/lib/prometheus/data
@@ -26,7 +21,6 @@ sudo chown nobody:nogroup /etc/observability
 sudo mkdir -p /var/lib/thanos/data
 sudo chown -R 1001:1001 /var/lib/thanos
 
-# Install Node Exporter
 useradd -rs /bin/false node_exporter
 cd /tmp
 wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
@@ -36,7 +30,6 @@ chown root:root /usr/local/bin/node_exporter
 chmod 755 /usr/local/bin/node_exporter
 rm -f node_exporter-1.7.0.linux-amd64.tar.gz
 
-# Create a systemd service file for Node Exporter
 cat <<EOT | sudo tee /etc/systemd/system/node_exporter.service > /dev/null
 [Unit]
 Description=Prometheus Node Exporter
