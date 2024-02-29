@@ -2,14 +2,22 @@
 {
 echo "Starting RabbitMQ installation"
 
-sudo yum install -y wget
-wget https://packages.erlang-solutions.com/erlang-solutions-2.0-1.noarch.rpm
-sudo rpm -Uvh erlang-solutions-2.0-1.noarch.rpm
-sudo yum install -y erlang
+# erlang deps
+sudo yum groupinstall "Development Tools" -y 
+sudo yum install ncurses-devel openssl-devel -y 
 
-wget https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.8.9/rabbitmq-server-3.8.9-1.el7.noarch.rpm
+# erlang
+wget https://github.com/erlang/otp/releases/download/OTP-26.2.2/otp_src_26.2.2.tar.gz
+tar -zxvf otp_src_26.2.2.tar.gz
+rm -f otp_src_26.2.2.tar.gz
+cd otp_src_26.2.2/
+./configure
+make
+sudo make install
+
+wget https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.13.0/rabbitmq-server-3.13.0-1.el8.noarch.rpm
 sudo rpm --import https://www.rabbitmq.com/rabbitmq-signing-key-public.asc
-sudo rpm -Uvh rabbitmq-server-3.8.9-1.el7.noarch.rpm
+sudo rpm -Uvh rabbitmq-server-3.13.0-1.el8.noarch.rpm
 
 sudo systemctl enable rabbitmq-server
 sudo systemctl start rabbitmq-server
