@@ -5,13 +5,13 @@ on:
     branches:
       - prod
       - stage
-      #- dev
+      - dev
     paths:
-      - "services/fetch_daily_summaries/**"
+      - "services/prototype/**"
   workflow_dispatch:
 
 jobs:
-  fetch_daily_summaries:
+  prototype:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -32,8 +32,8 @@ jobs:
           echo "BASTION_HOST_KEY_PAIR_NAME=$(jq -r '.networking.bastion_host_key_pair_name' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_KEY_PREFIX=$(jq -r '.data_ingestion.data_ingestion_key_prefix' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_METADATA_KEY_PREFIX=$(jq -r '.metadata.data_ingestion_metadata_key_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "FETCH_DAILY_SUMMARIES_NAME=$(jq -r '.data_ingestion.fetch_daily_summaries_name' "$config_file")" >> $GITHUB_ENV
-          echo "FETCH_DAILY_SUMMARIES_VERSION=$(jq -r '.data_ingestion.fetch_daily_summaries_version' "$config_file")" >> $GITHUB_ENV
+          echo "prototype_NAME=$(jq -r '.data_ingestion.prototype_name' "$config_file")" >> $GITHUB_ENV
+          echo "prototype_VERSION=$(jq -r '.data_ingestion.prototype_version' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET_ARN=$(jq -r '.infra.infra_config_bucket_arn' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
@@ -108,7 +108,7 @@ jobs:
         run: |
           terraform_outputs_path="s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}.json"
           aws s3 cp $terraform_outputs_path ./terraform_outputs.json
-          echo "FETCH_DAILY_SUMMARIES_ARN=$(jq -r '.aws_lambda_function_fetch_daily_summaries_arn.value' ./terraform_outputs.json)" >> $GITHUB_ENV
+          echo "prototype_ARN=$(jq -r '.aws_lambda_function_prototype_arn.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "ECR_REPO_URL=$(jq -r '.aws_ecr_repository_repository_url.value' ./terraform_outputs.json)" >> $GITHUB_ENV
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
@@ -116,7 +116,7 @@ jobs:
       - name: Check if Image Version Already Exists
         id: check-version
         run: |
-          image_tag="${{ env.ENV_NAME }}-${{ env.FETCH_DAILY_SUMMARIES_NAME }}-${{ env.FETCH_DAILY_SUMMARIES_VERSION }}"
+          image_tag="${{ env.ENV_NAME }}-${{ env.prototype_NAME }}-${{ env.prototype_VERSION }}"
           set +e  # Disable exit on error
           image_exists=$(aws ecr describe-images --repository-name ${{ env.ENV_NAME }}-repository --image-ids imageTag=${image_tag} --region ${{ env.AWS_REGION }} 2>&1)
           result=$?
@@ -133,32 +133,32 @@ jobs:
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
           REPO: ${{ env.REPO }}
-          FETCH_DAILY_SUMMARIES_NAME: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
-          FETCH_DAILY_SUMMARIES_VERSION: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
+          prototype_NAME: ${{ env.prototype_NAME }}
+          prototype_VERSION: ${{ env.prototype_VERSION }}
 
       - name: Build, Tag and Push Fetch Daily Summaries Image
         id: build-tag-push-fetch-daily-summaries
         run: |
           aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin 758145997264.dkr.ecr.us-east-1.amazonaws.com
-          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}
-          docker build -t ${image_name} -f services/fetch_daily_summaries/Dockerfile .
+          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${prototype_NAME}-${prototype_VERSION}
+          docker build -t ${image_name} -f services/prototype/Dockerfile .
           docker push ${image_name}
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
-          FETCH_DAILY_SUMMARIES_NAME: ${{ env.FETCH_DAILY_SUMMARIES_NAME}}
-          FETCH_DAILY_SUMMARIES_VERSION: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
+          prototype_NAME: ${{ env.prototype_NAME}}
+          prototype_VERSION: ${{ env.prototype_VERSION }}
 
       - name: Update Fetch Daily Summaries Lambda Function
         id: update-fetch-daily-summaries
         run: |
-          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${FETCH_DAILY_SUMMARIES_NAME}-${FETCH_DAILY_SUMMARIES_VERSION}
-          aws lambda update-function-code --function-name ${{ env.FETCH_DAILY_SUMMARIES_ARN }} --image-uri ${image_name}
+          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${prototype_NAME}-${prototype_VERSION}
+          aws lambda update-function-code --function-name ${{ env.prototype_ARN }} --image-uri ${image_name}
         env:
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
-          FETCH_DAILY_SUMMARIES_ARN: ${{ env.FETCH_DAILY_SUMMARIES_ARN }}
-          FETCH_DAILY_SUMMARIES_NAME: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
-          FETCH_DAILY_SUMMARIES_VERSION: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
+          prototype_ARN: ${{ env.prototype_ARN }}
+          prototype_NAME: ${{ env.prototype_NAME }}
+          prototype_VERSION: ${{ env.prototype_VERSION }}
 
       - name: Validate Terraform
         run: terraform validate
@@ -179,12 +179,13 @@ jobs:
           TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
           TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
-          TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
-          TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
+          TF_VAR_prototype_name: ${{ env.prototype_NAME }}
+          TF_VAR_prototype_version: ${{ env.prototype_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
           TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
@@ -208,12 +209,13 @@ jobs:
           TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
           TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
-          TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
-          TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
+          TF_VAR_prototype_name: ${{ env.prototype_NAME }}
+          TF_VAR_prototype_version: ${{ env.prototype_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}s
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
           TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
@@ -223,5 +225,5 @@ jobs:
         id: save-terraform-outputs
         run: |
           terraform output -json > terraform_outputs.json
-          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}-{{ env.FETCH_DAILY_SUMMARIES_NAME }}.json
+          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}-{{ env.PROTOTYPE_NAME }}.json
         working-directory: ./infra/core

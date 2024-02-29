@@ -17,7 +17,8 @@
       "data_ingestion_key_prefix": "raw_data/data_ingestion",
       "fetch_daily_summaries_name": "fetch_daily_summaries",
       "fetch_daily_summaries_version": "v0.2.13",
-      "arxiv_summary_sets": ["cs"]
+      "arxiv_summary_sets": ["cs"],
+      "fetch_daily_summaries_max_attempts": 10
     },
   "etl":
     {
@@ -36,5 +37,14 @@
         "evaluation_interval": "30s",
         "scrape_interval": "30s"
       }
+    },
+  "prototype":
+    {
+      "arxiv_base_url": "http://export.arxiv.org/oai2",
+      "arxiv_summary_set": "cs",
+      "data_ingestion_key_prefix": "raw_data/data_ingestion",
+      "prototype_name": "prototype",
+      "prototype_version": "v0.0.1",
+      "prototype_max_attempts": 10
     }
 }

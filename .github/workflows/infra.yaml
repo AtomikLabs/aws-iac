@@ -5,13 +5,13 @@ on:
     branches:
       - main
       - stage
-      - dev
+      #- dev
     paths:
       - "infra/**"
       - ".github/workflows/infra.yaml"
   pull_request:
     branches:
-      - dev
+      #- dev
       - test
     paths:
       - "infra/**"
@@ -47,20 +47,10 @@ jobs:
           echo "REPO=$(jq -r '.infra.repo' "$config_file")" >> $GITHUB_ENV
 
       - name: Load Environment Variables
-        id: load-env-vars
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            ENV_NAME=$(echo "${{ github.base_ref }}" | tr '/' '-')
-          else
-            ENV_NAME=$(echo "${{ github.ref_name }}" | tr '/' '-')
-          fi
-          echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
-          env_file="infra/core/environments/env.$ENV_NAME.json"
-          echo "ENV_FILE=$env_file" >> $GITHUB_ENV
-          iam_user_name=$(jq -r '.iam_user_name' $env_file)
-          echo "IAM_USER_NAME=$iam_user_name" >> $GITHUB_ENV
-          echo "RABBITMQCTL_USERNAME=${{ secrets.RABBITMQCTL_USERNAME }}" >> $GITHUB_ENV
-          echo "RABBITMQCTL_PASSWORD=${{ secrets.RABBITMQCTL_PASSWORD }}" >> $GITHUB_ENV
+        uses: ./.github/actions/load-env-variables
+
+      - name: Set RabbitMQ Credentials
+        uses: ./.github/actions/set-rabbitmq-credentials
 
       - name: Echo env var
         run: echo ${{ env.ENV_NAME }}
