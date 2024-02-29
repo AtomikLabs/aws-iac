@@ -41,6 +41,15 @@ jobs:
           echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
           echo "REPO=$(jq -r '.infra.repo' "$config_file")" >> $GITHUB_ENV
 
+      - name: Install node and npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install NPM Dependencies
+        run: |
+          npm install
+
       - name: Load Environment Variables
         uses: ./.github/actions/load-env-variables
 
