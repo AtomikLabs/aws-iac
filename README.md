@@ -1,4 +1,6 @@
 [![Infrastructure CI/CD](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml)
+[![Tests](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml)
+[![Lint and Format](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml)
 
 Overview of AtomikLabs
 =======================
