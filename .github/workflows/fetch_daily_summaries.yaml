@@ -1,4 +1,4 @@
-name: AtomikLabs Services CI/CD
+name: Fetch Daily Summaries CI/CD
 
 on:
   push:
