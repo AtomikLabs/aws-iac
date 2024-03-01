@@ -1,3 +1,5 @@
+[![Infrastructure CI/CD](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml)
+
 Overview of AtomikLabs
 =======================
 
