@@ -1,4 +1,4 @@
-name: AtomikLabs Infrastructure CI/CD
+name: Infrastructure CI/CD
 
 on:
   push:
