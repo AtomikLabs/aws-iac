@@ -35,6 +35,12 @@ locals {
   repo                            = var.repo
   
   # **********************************************************
+  # * INTEGRATIONS CONFIGURATION                             *
+  # **********************************************************
+
+  openai_api_key                  = var.openai_api_key
+
+  # **********************************************************
   # * SERVICES CONFIGURATION                                 *
   # **********************************************************
   AWSBasicExecutionRoleARN                  = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
@@ -50,7 +56,15 @@ locals {
   data_ingestion_key_prefix               = var.data_ingestion_key_prefix
   fetch_daily_summaries_name              = var.fetch_daily_summaries_name
   fetch_daily_summaries_version           = var.fetch_daily_summaries_version
-  max_daily_summary_fetch_attempts        = 10
+  max_daily_summary_fetch_attempts        = var.fetch_daily_summaries_max_attempts
+
+  # **********************************************************
+  # * PROTOTYPE CONFIGURATION                                *
+  # **********************************************************
+
+  prototype_name                          = var.prototype_name
+  prototype_version                       = var.prototype_version
+  max_daily_prototype_attempts            = var.prototype_max_attempts
 
   # **********************************************************
   # * ETL CONFIGURATION                                      *

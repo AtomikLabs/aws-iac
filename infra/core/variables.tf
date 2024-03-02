@@ -95,12 +95,48 @@ variable "fetch_daily_summaries_version" {
   type        = string
 }
 
+variable "fetch_daily_summaries_max_attempts" {
+  description = "Max daily summaries fetch attempts"
+  type        = number
+  default     = 10
+}
+
+# **********************************************************
+# * Prototype                                              *
+# **********************************************************
+
+variable "prototype_name" {
+  description = "Prototype name"
+  type        = string
+}
+
+variable "prototype_version" {
+  description = "Prototype version"
+  type        = string
+}
+
+variable "prototype_max_attempts" {
+  description = "Max daily summaries fetch attempts"
+  type        = number
+  default     = 10
+}
+
+
 # **********************************************************
 # * ETL                                                    *
 # **********************************************************
 
 variable "etl_key_prefix" {
   description = "Prefix for the ETL"
+  type        = string
+}
+
+# **********************************************************
+# * INTEGRATIONS CONFIGURATION                             *
+# **********************************************************
+
+variable "openai_api_key" {
+  description = "OpenAI API key"
   type        = string
 }
 

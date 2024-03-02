@@ -78,7 +78,7 @@ resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_basic_ex
 }
 
 resource "aws_iam_policy" "fetch_daily_summaries_lambda_s3_access" {
-  name        = "${local.environment}-fetch-daily-summaries-lambda-s3-access"
+  name        = "${local.environment}-${local.fetch_daily_summaries_name}-lambda-s3-access"
   description = "Allow Lambda to put objects in S3"
 
   policy = jsonencode({
