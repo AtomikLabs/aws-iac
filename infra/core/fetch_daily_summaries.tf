@@ -120,7 +120,7 @@ resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_glue_pol
   policy_arn = aws_iam_policy.lambda_glue_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_vpc_access_attachment" {
+resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_vpc_access_attachment" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
   policy_arn = local.AWSLambdaVPCAccessExecutionRole
 }
