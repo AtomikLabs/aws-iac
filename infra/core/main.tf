@@ -60,6 +60,7 @@ locals {
 module "networking" {
   source = "./networking"
 
-  environment   = local.environment
-  home_ip       = var.home_ip
+  availability_zone_available_names = data.aws_availability_zones.available.names
+  environment                       = local.environment
+  home_ip                           = var.home_ip
 }

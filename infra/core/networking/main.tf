@@ -1,4 +1,5 @@
 locals {
+  availability_zones_available_names = var.availability_zone_available_names
   environment     = var.environment
   home_ip         = "${var.home_ip}/32"
 }
@@ -24,7 +25,7 @@ resource "aws_subnet" "public" {
   vpc_id     = aws_vpc.main.id
   cidr_block = count.index == 0 ? "10.0.1.0/24" : "10.0.2.0/24"
   map_public_ip_on_launch = true
-  availability_zone       = element(data.aws_availability_zones.available.names, count.index)
+  availability_zone       = element(local.availability_zones_available_names, count.index)
   tags = {
     Name        = "${local.environment}-public-${count.index + 1}"
     Environment = local.environment
@@ -36,7 +37,7 @@ resource "aws_subnet" "private" {
   vpc_id     = aws_vpc.main.id
   cidr_block = count.index == 0 ? "10.0.3.0/24" : "10.0.4.0/24"
   map_public_ip_on_launch = false
-  availability_zone       = element(data.aws_availability_zones.available.names, count.index)
+  availability_zone       = element(local.availability_zones_available_names, count.index)
   tags = {
     Name        = "${local.environment}-private-${count.index + 1}"
     Environment = local.environment
