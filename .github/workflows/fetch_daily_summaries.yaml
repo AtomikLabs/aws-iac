@@ -53,9 +53,6 @@ jobs:
       - name: Load Environment Variables
         uses: ./.github/actions/load-env-variables
 
-      - name: Set RabbitMQ Credentials
-        uses: ./.github/actions/set-rabbitmq-credentials
-
       - name: Set AWS Credentials
         uses: ./.github/actions/set-aws-credentials
         with:
