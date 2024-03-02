@@ -5,17 +5,18 @@ on:
     branches:
       - main
       - stage
-      #- dev
+      - dev
     paths:
       - "infra/**"
       - ".github/workflows/infra.yaml"
   pull_request:
     branches:
-      #- dev
+      - dev
       - test
     paths:
       - "infra/**"
       - ".github/workflows/infra.yaml"
+      - ".github/actions/**"
   workflow_dispatch:
 
 jobs:
