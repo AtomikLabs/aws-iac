@@ -1,4 +1,4 @@
-name: Python Lint ad
+name: Lint and Format
 
 on:
   pull_request:
