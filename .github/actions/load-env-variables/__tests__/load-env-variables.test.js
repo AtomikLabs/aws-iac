@@ -1,7 +1,7 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 const fs = require('fs');
-const { loadEnvironmentVariables } = require('../load-env-variables');
+const { loadEnvironmentVariables } = require('../load-env-variables.js');
 
 jest.mock('@actions/core');
 jest.mock('@actions/github');
