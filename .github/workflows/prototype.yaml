@@ -5,7 +5,7 @@ on:
     branches:
       - prod
       - stage
-      - dev
+      #- dev
     paths:
       - "services/prototype/**"
   workflow_dispatch:
@@ -29,16 +29,18 @@ jobs:
           echo "ARXIV_BASE_URL=$(jq -r '.data_ingestion.arxiv_base_url' "$config_file")" >> $GITHUB_ENV
           echo "ARXIV_SUMMARY_SET=$(jq -r '.data_ingestion.arxiv_summary_set' "$config_file")" >> $GITHUB_ENV
           echo "AWS_REGION=$(jq -r '.infra.terraform_aws_region' "$config_file")" >> $GITHUB_ENV
+          echo "BACKEND_DYNAMODB_TABLE=$(jq -r '.infra.backend_dynamodb_table' "$config_file")" >> $GITHUB_ENV
           echo "BASTION_HOST_KEY_PAIR_NAME=$(jq -r '.networking.bastion_host_key_pair_name' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_KEY_PREFIX=$(jq -r '.data_ingestion.data_ingestion_key_prefix' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_METADATA_KEY_PREFIX=$(jq -r '.metadata.data_ingestion_metadata_key_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "prototype_NAME=$(jq -r '.data_ingestion.prototype_name' "$config_file")" >> $GITHUB_ENV
-          echo "prototype_VERSION=$(jq -r '.data_ingestion.prototype_version' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET_ARN=$(jq -r '.infra.infra_config_bucket_arn' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "BACKEND_DYNAMODB_TABLE=$(jq -r '.infra.backend_dynamodb_table' "$config_file")" >> $GITHUB_ENV
           echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
+          echo "PROTOTYPE_ARN=$(jq -r '.prototype.prototype_arn' "$config_file")" >> $GITHUB_ENV
+          echo "PROTOTYPE_MAX_ATTEMPTS=$(jq -r '.prototype.prototype_max_attempts' "$config_file")" >> $GITHUB_ENV
+          echo "PROTOTYPE_NAME=$(jq -r '.prototype.prototype_name' "$config_file")" >> $GITHUB_ENV
+          echo "PROTOTYPE_VERSION=$(jq -r '.prototype.prototype_version' "$config_file")" >> $GITHUB_ENV
           echo "REPO=$(jq -r '.infra.repo' "$config_file")" >> $GITHUB_ENV
 
       - name: Install node and npm
@@ -114,7 +116,7 @@ jobs:
         run: |
           terraform_outputs_path="s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}.json"
           aws s3 cp $terraform_outputs_path ./terraform_outputs.json
-          echo "prototype_ARN=$(jq -r '.aws_lambda_function_prototype_arn.value' ./terraform_outputs.json)" >> $GITHUB_ENV
+          echo "PROTOTYPE_ARN=$(jq -r '.aws_lambda_function_prototype_arn.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "ECR_REPO_URL=$(jq -r '.aws_ecr_repository_repository_url.value' ./terraform_outputs.json)" >> $GITHUB_ENV
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
@@ -122,7 +124,7 @@ jobs:
       - name: Check if Image Version Already Exists
         id: check-version
         run: |
-          image_tag="${{ env.ENV_NAME }}-${{ env.prototype_NAME }}-${{ env.prototype_VERSION }}"
+          image_tag="${{ env.ENV_NAME }}-${{ env.PROTOTYPE_NAME }}-${{ env.PROTOTYPE_VERSION }}"
           set +e  # Disable exit on error
           image_exists=$(aws ecr describe-images --repository-name ${{ env.ENV_NAME }}-repository --image-ids imageTag=${image_tag} --region ${{ env.AWS_REGION }} 2>&1)
           result=$?
@@ -139,32 +141,32 @@ jobs:
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
           REPO: ${{ env.REPO }}
-          prototype_NAME: ${{ env.prototype_NAME }}
-          prototype_VERSION: ${{ env.prototype_VERSION }}
+          PROTOTYPE_NAME: ${{ env.PROTOTYPE_NAME }}
+          PROTOTYPE_VERSION: ${{ env.PROTOTYPE_VERSION }}
 
-      - name: Build, Tag and Push Fetch Daily Summaries Image
-        id: build-tag-push-fetch-daily-summaries
+      - name: Build, Tag and Push Prototype Image
+        id: build-tag-push-prototype
         run: |
           aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin 758145997264.dkr.ecr.us-east-1.amazonaws.com
-          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${prototype_NAME}-${prototype_VERSION}
+          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${PROTOTYPE_NAME}-${PROTOTYPE_VERSION}
           docker build -t ${image_name} -f services/prototype/Dockerfile .
           docker push ${image_name}
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
-          prototype_NAME: ${{ env.prototype_NAME}}
-          prototype_VERSION: ${{ env.prototype_VERSION }}
+          PROTOTYPE_NAME: ${{ env.PROTOTYPE_NAME}}
+          PROTOTYPE_VERSION: ${{ env.PROTOTYPE_VERSION }}
 
-      - name: Update Fetch Daily Summaries Lambda Function
-        id: update-fetch-daily-summaries
+      - name: Update Prototype Lambda Function
+        id: update-prototype
         run: |
-          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${prototype_NAME}-${prototype_VERSION}
-          aws lambda update-function-code --function-name ${{ env.prototype_ARN }} --image-uri ${image_name}
+          image_name=$ECR_REPO_URL:${{ env.ENV_NAME }}-${PROTOTYPE_NAME}-${PROTOTYPE_VERSION}
+          aws lambda update-function-code --function-name ${{ env.PROTOTYPE_ARN }} --image-uri ${image_name}
         env:
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
-          prototype_ARN: ${{ env.prototype_ARN }}
-          prototype_NAME: ${{ env.prototype_NAME }}
-          prototype_VERSION: ${{ env.prototype_VERSION }}
+          PROTOTYPE_ARN: ${{ env.PROTOTYPE_ARN }}
+          PROTOTYPE_NAME: ${{ env.PROTOTYPE_NAME }}
+          PROTOTYPE_VERSION: ${{ env.PROTOTYPE_VERSION }}
 
       - name: Validate Terraform
         run: terraform validate
@@ -185,8 +187,9 @@ jobs:
           TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
           TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
-          TF_VAR_prototype_name: ${{ env.prototype_NAME }}
-          TF_VAR_prototype_version: ${{ env.prototype_VERSION }}
+          TF_VAR_prototype_max_attempts: ${{ env.PROTOTYPE_MAX_ATTEMPTS }}
+          TF_VAR_prototype_name: ${{ env.PROTOTYPE_NAME }}
+          TF_VAR_prototype_version: ${{ env.PROTOTYPE_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
@@ -214,9 +217,10 @@ jobs:
           TF_VAR_bastion_host_key_pair_name: ${{ env.BASTION_HOST_KEY_PAIR_NAME }}
           TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
+          TF_VAR_prototype_max_attempts: ${{ env.PROTOTYPE_MAX_ATTEMPTS }}
           TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
-          TF_VAR_prototype_name: ${{ env.prototype_NAME }}
-          TF_VAR_prototype_version: ${{ env.prototype_VERSION }}
+          TF_VAR_prototype_name: ${{ env.PROTOTYPE_NAME }}
+          TF_VAR_prototype_version: ${{ env.PROTOTYPE_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}s
