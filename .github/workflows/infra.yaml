@@ -48,15 +48,6 @@ jobs:
           echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
           echo "REPO=$(jq -r '.infra.repo' "$config_file")" >> $GITHUB_ENV
 
-      - name: Load Environment Variables
-        uses: ./.github/actions/load-env-variables
-
-      - name: Set RabbitMQ Credentials
-        uses: ./.github/actions/set-rabbitmq-credentials
-
-      - name: Echo env var
-        run: echo ${{ env.ENV_NAME }}
-
       - name: Install node and npm
         uses: actions/setup-node@v4
         with:
@@ -65,6 +56,15 @@ jobs:
       - name: Install NPM Dependencies
         run: |
           npm install
+
+      - name: Load Environment Variables
+        uses: ./.github/actions/load-env-variables
+
+      - name: Set RabbitMQ Credentials
+        uses: ./.github/actions/set-rabbitmq-credentials
+
+      - name: Echo env var
+        run: echo ${{ env.ENV_NAME }}
 
       - name: Set AWS Credentials
         uses: ./.github/actions/set-aws-credentials
