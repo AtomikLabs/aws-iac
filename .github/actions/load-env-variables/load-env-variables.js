@@ -5,7 +5,17 @@ const fs = require('fs');
 async function loadEnvironmentVariables() {
   try {
     const eventName = github.context.eventName;
-    const refName = eventName === 'pull_request' ? github.context.payload.pull_request.base.ref : github.context.ref_name;
+    let refName;
+
+    if (eventName === 'pull_request') {
+      refName = github.context.payload.pull_request.base.ref;
+    } else if (github.context.ref) {
+      const refParts = github.context.ref.split('/');
+      refName = refParts.length > 2 ? refParts[2] : '';
+    } else {
+      throw new Error('Unable to determine the reference name for this event.');
+    }
+
     const envName = refName.replace(/\//g, '-');
 
     core.exportVariable('ENV_NAME', envName);
@@ -29,7 +39,7 @@ async function loadEnvironmentVariables() {
 }
 
 if (require.main === module) {
-    loadEnvironmentVariables();
+  loadEnvironmentVariables();
 }
 
 module.exports = { loadEnvironmentVariables };
