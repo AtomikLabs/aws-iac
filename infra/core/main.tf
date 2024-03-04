@@ -1,10 +1,10 @@
 terraform {
   backend "s3" {
     bucket         = "atomiklabs-infra-config-bucket"
-    key            = "terraform/terraform.state"
-    region         = "us-east-1"
     dynamodb_table = "atomiklabs-terraform-locks"
     encrypt        = true
+    key            = "terraform/terraform.state"
+    region         = "us-east-1"
   }
 }
 
@@ -31,9 +31,8 @@ locals {
   infra_config_bucket_arn         = var.infra_config_bucket_arn
   infra_config_prefix             = var.infra_config_prefix
   name                            = var.name
-  outputs_prefix                  = var.outputs_prefix
   repo                            = var.repo
-  
+  terraform_outputs_prefix        = var.terraform_outputs_prefix
   
   # **********************************************************
   # * NETWORKING CONFIGURATION                               *
@@ -49,11 +48,11 @@ locals {
   rabbitmqctl_password              = var.rabbitmqctl_password
   
   tags = {
-    Blueprint   = local.name
-    GithubRepo  = local.repo
-    Environment = local.environment
-    Region      = local.aws_region
     Application = local.name
+    Blueprint   = local.name
+    Environment = local.environment
+    GithubRepo  = local.repo
+    Region      = local.aws_region
   }
 }
 
@@ -63,4 +62,16 @@ module "networking" {
   availability_zone_available_names = data.aws_availability_zones.available.names
   environment                       = local.environment
   home_ip                           = var.home_ip
+}
+
+module "data_management" {
+  source = "./data_management"
+
+  aws_vpc_id                        = module.networking.aws_vpc_id
+  data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
+  environment                      = local.environment
+  home_ip                          = var.home_ip
+  infra_config_bucket_arn          = local.infra_config_bucket_arn
+  name                             = local.name
+  tags                             = local.tags
 }

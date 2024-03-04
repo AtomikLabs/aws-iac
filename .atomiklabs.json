@@ -6,7 +6,7 @@
       "infra_config_bucket_arn": "arn:aws:s3:::atomiklabs-infra-config-bucket",
       "infra_config_prefix": "terraform/terraform.state",
       "backend_dynamodb_table": "atomiklabs-terraform-locks",
-      "outputs_prefix": "terraform-outputs",
+      "terraform_outputs_prefix": "terraform-outputs",
       "repo": "github.com/AtomikLabs/atomiklabs",
       "terraform_aws_region": "us-east-1"
     },

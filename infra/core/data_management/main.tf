@@ -1,7 +1,15 @@
+locals {
+  aws_vpc_id = var.aws_vpc_id
+  data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
+  environment = var.environment
+  home_ip     = var.home_ip
+  infra_config_bucket_arn = var.infra_config_bucket_arn
+  name        = var.name
+  tags        = var.tags
+}
+
 resource "aws_s3_bucket" "atomiklabs_data_bucket" {
-  bucket = "${local.environment}-${local.name}-data-bucket"
-  
-  
+  bucket = "${local.environment}-${local.name}-data-bucket"  
   tags = local.tags
 }
 
@@ -34,12 +42,12 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "data_encryption" 
 
 resource "aws_glue_catalog_database" "data_catalog_database" {
   name = "${local.environment}-data_catalog_database"
+  tags = local.tags
 }
 
 resource "aws_glue_catalog_table" "data_ingestion_metadata_table" {
   database_name = aws_glue_catalog_database.data_catalog_database.name
   name          = "${local.environment}-data_ingestion_metadata_table"
-
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
@@ -137,6 +145,7 @@ resource "aws_iam_role" "lambda_glue_role" {
       },
     ],
   })
+  tags = local.tags
 }
 
 resource "aws_iam_policy" "lambda_glue_policy" {
@@ -164,12 +173,13 @@ resource "aws_iam_policy" "lambda_glue_policy" {
       },
     ],
   })
+  tags = local.tags
 }
 
 resource "aws_security_group" "rds_sg" {
   name        = "${local.environment}-rds-sg"
   description = "Security group for RDS (Postgres)"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = local.aws_vpc_id
 
   ingress {
     from_port       = 5432
@@ -222,76 +232,5 @@ resource "aws_iam_policy" "s3_infra_config_bucket_access" {
       },
     ],
   })
-}
-
-resource "aws_iam_role" "ssm_managed_instance_role" {
-  name = "ssm-managed-instance-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_policy" "ssm_manager" {
-  name        = "ssm-manager"
-  description = "Allow SSM to manage instances"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = [
-          "ssm:*"
-        ],
-        Effect   = "Allow",
-        Resource = "*"
-      },
-    ],
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ssm_managed_instance_role_ssm_manager" {
-  role       = aws_iam_role.ssm_managed_instance_role.name
-  policy_arn = aws_iam_policy.ssm_manager.arn
-}
-
-resource "aws_iam_policy" "ssm_policy_for_instances" {
-  name        = "ssm-policy-for-instances"
-  description = "Allow SSM to manage instances"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = [
-          "ssm:UpdateInstanceInformation",
-          "ssm:ListInstanceAssociations",
-          "ssm:DescribeInstanceInformation",
-          "ssm:SendCommand",
-          "ssm:ListCommands",
-          "ssm:GetCommandInvocation",
-          "ssm:ListCommandInvocations",
-          "ssm:CancelCommand",
-          "ssm:GetCommandInvocation",
-          "ssm:ListCommandInvocations",
-          "ssm:CancelCommand",
-          "ssm:ListCommands",
-          "ssm:SendCommand",
-          "ssm:DescribeInstanceInformation",
-          "ssm:ListInstanceAssociations",
-          "ssm:UpdateInstanceInformation"
-        ],
-        Effect   = "Allow",
-        Resource = "*"
-      },
-    ],
-  })
+  tags = local.tags
 }
