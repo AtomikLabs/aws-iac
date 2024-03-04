@@ -348,7 +348,7 @@ def create_research_themes(research: str, category: str) -> str:
 
 def get_long_date(date: str):
     str_date = datetime.strptime(date, "%Y-%m-%d")
-    long_date = str_date.strftime("%B %d, %Y")
+    long_date = str_date.strftime("%B %-d, %Y")
     return long_date
 
 
