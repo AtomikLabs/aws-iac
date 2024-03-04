@@ -80,16 +80,6 @@ variable "etl_key_prefix" {
     type        = string
 }
 
-variable "infra_config_bucket" {
-  description = "S3 bucket to store the infra config"
-  type        = string
-}
-
-variable "infra_config_bucket_arn" {
-  description = "S3 bucket ARN to store the infra config"
-  type        = string
-}
-
 # **********************************************************
 # * Messaging                                              *
 # **********************************************************
@@ -118,16 +108,6 @@ variable "home_ip" {
 
 variable "bastion_host_key_pair_name" {
   description = "Bastion host key pair name"
-  type        = string
-}
-
-variable "rabbitmqctl_password" {
-  description = "RabbitMQ control password"
-  type        = string
-}
-
-variable "rabbitmqctl_username" {
-  description = "RabbitMQ control username"
   type        = string
 }
 

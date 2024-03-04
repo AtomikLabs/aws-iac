@@ -176,38 +176,6 @@ resource "aws_iam_policy" "lambda_glue_policy" {
   tags = local.tags
 }
 
-resource "aws_security_group" "rds_sg" {
-  name        = "${local.environment}-rds-sg"
-  description = "Security group for RDS (Postgres)"
-  vpc_id      = local.aws_vpc_id
-
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.rabbitmq_sg.id, aws_security_group.web_sg.id, aws_security_group.bastion_sg.id]
-  }
-
-  ingress {
-    from_port   = 9100
-    to_port     = 9100
-    protocol    = "tcp"
-    cidr_blocks = [for subnet in aws_subnet.private : subnet.cidr_block]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name        = "${local.environment}-rds-sg"
-    Environment = local.environment
-  }
-}
-
 resource "aws_iam_policy" "s3_infra_config_bucket_access" {
   name        = "${local.environment}-s3-infra-config-bucket-access"
   description = "Allow access to the infra config bucket"

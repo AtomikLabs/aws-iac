@@ -37,13 +37,3 @@ output "aws_s3_bucket_atomiklabs_data_bucket" {
   description = "S3 bucket for atomiklabs data"
   value       = aws_s3_bucket.atomiklabs_data_bucket.bucket
 }
-
-output "aws_security_group_rds_sg_arn" {
-  description = "ARN of the RDS security group"
-  value       = aws_security_group.rds_sg.arn
-}
-
-output "aws_security_group_rds_sg_id" {
-  description = "ID of the RDS security group"
-  value       = aws_security_group.rds_sg.id
-}

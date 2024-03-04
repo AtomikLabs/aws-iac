@@ -67,7 +67,7 @@ module "networking" {
 module "data_management" {
   source = "./data_management"
 
-  aws_vpc_id                        = module.networking.aws_vpc_id
+  aws_vpc_id                        = module.networking.main_vpc_id
   data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
   environment                      = local.environment
   home_ip                          = var.home_ip
