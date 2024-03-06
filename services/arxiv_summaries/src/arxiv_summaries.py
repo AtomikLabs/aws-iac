@@ -265,6 +265,11 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
                 "If you would rather listen to today's summaries, you can hear them on the TechcraftingAI NLP podcast. ",
                 "Your virtual host will be happy to read them to you!",
             )
+        elif category == "CV":
+            intro = (
+                "If you would rather listen to today's summaries, you can hear them on the TechcraftingAI Computer Vision podcast. ",
+                "Your virtual host will be happy to read them to you!",
+            )
         elif category == "RO":
             intro = (
                 "If you would rather listen to today's summaries, you can hear them on the TechcraftingAI Robotics podcast. ",
@@ -306,7 +311,7 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
                     no_latex_paragraph = latex_to_human_readable(cleaned_paragraph)
                     doc.add_paragraph(no_latex_paragraph)
 
-        file_name = f"{research_date}_{group}_{category}_full_show_notes.docx"
+        file_name = f"{research_date}_{category}_full_show_notes.docx".lower()
         doc.save(os.path.join("show_notes", file_name))
 
 
@@ -437,7 +442,7 @@ def create_script(categories, records, research_date, group):
         outro = "That's all for today, thank you for listening. If you found the podcast helpful, please leave a comment, like, or share it with a friend. See you tomorrow!"
         outro_paragraph = doc.add_paragraph()
         outro_paragraph.add_run(outro)
-        file_name = f"{research_date}_{group}_{category}_script.docx"
+        file_name = f"{research_date}_{category}_script.docx".lower()
         doc.save(os.path.join("show_notes", file_name))
         themes = ""
         with open(os.path.join("show_notes", file_name), "rb") as f:
@@ -466,7 +471,7 @@ def create_pod_notes(categories: list, research_date: str, themes: str):
             category_text = "Robotics"
 
         text = f"arXiv {category_text} research summaries for {get_long_date(research_date)}.\n\nToday's Research Themes (AI-Generated):\n{themes}"
-        file_name = f"{research_date}_{category}_pod_notes.txt"
+        file_name = f"{research_date}_{category}_pod_notes.txt".lower()
         with open(os.path.join("show_notes", file_name), "w") as f:
             f.write(text)
 
@@ -477,13 +482,13 @@ def create_post_text(categories: list, research_date: str, themes: str):
         if category == "CL":
             hashtags = "#naturallanguageprocessing #nlp #ai #artificialintelligence #llm"
         elif category == "CV":
-            continue
+            hashtags = "#computervision #cv #ai #multimodalai #artificialintelligence #llm"
         elif category == "RO":
             hashtags = "#robotics #ro #ai #artificialintelligence #llm"
 
         day_of_week = datetime.strptime(research_date, "%Y-%m-%d").strftime("%A")
         text = f"{day_of_week}'s Themes (AI-Generated):\n\n{themes}\n\nThank you to arXiv for use of its open access interoperability.\n\n{hashtags}"
-        file_name = f"{research_date}_{category}_post_text.txt"
+        file_name = f"{research_date}_{category}_post_text.txt".lower()
         with open(os.path.join("show_notes", file_name), "w") as f:
             f.write(text)
 
@@ -502,7 +507,7 @@ def create_li_seo_lines(category: str, research_date: str):
         text = f"arXiv Robotics research summaries for {long_date}."
         description = f"Research abstracts and links for arXiv Robotics research summaries for {long_date}."
 
-    file_name = f"{research_date}_{category}_li_seo_lines.txt"
+    file_name = f"{research_date}_{category}_li_seo_lines.txt".lower()
     with open(os.path.join("show_notes", file_name), "w") as f:
         f.write(text)
         f.write("\n")
@@ -1048,10 +1053,10 @@ def run_test():
 
 def run_aws_test():
     config_for_test()
-    today = calculate_from_date()
-    print(f"Today: {today}")
-    log_initial_info({"test": "test"})
-    insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
+    # today = calculate_from_date()
+    #print(f"Today: {today}")
+    #log_initial_info({"test": "test"})
+    # insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
     # earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
     earliest = datetime.today().date() - timedelta(days=5)
     print(f"Earliest: {earliest}")
