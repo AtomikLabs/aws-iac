@@ -30,16 +30,16 @@ DAY_SPAN = 5
 # ENVIRONMENT VARIABLES
 APP_NAME = "APP_NAME"
 ARXIV_BASE_URL = "ARXIV_BASE_URL"
+DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
 DATA_INGESTION_METADATA_KEY_PREFIX = "DATA_INGESTION_METADATA_KEY_PREFIX"
+DATA_BUCKET = "DATA_BUCKET"
 ENVIRONMENT_NAME = "ENVIRONMENT"
-GLUE_DATABASE_NAME = "GLUE_DATABASE_NAME"
-GLUE_TABLE_NAME = "GLUE_TABLE_NAME"
+DATA_CATALOG_DB_NAME = "GLUE_DATABASE_NAME"
+METADATA_TABLE_NAME = "GLUE_TABLE_NAME"
 MAX_FETCH_ATTEMPTS = "MAX_FETCH_ATTEMPTS"
-S3_BUCKET_NAME = "S3_BUCKET_NAME"
-S3_STORAGE_KEY_PREFIX = "S3_STORAGE_KEY_PREFIX"
 SERVICE_NAME = "SERVICE_NAME"
 SERVICE_VERSION = "SERVICE_VERSION"
-SUMMARY_SET = "SUMMARY_SET"
+ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
 
 # LOGGING CONSTANTS
 FETCH_DATA = "fetch_daily_summaries.lambda_handler.fetch_data"
@@ -81,14 +81,14 @@ def lambda_handler(event: dict, context) -> dict:
         metadata = DataIngestionMetadata()
         metadata.app_name = config[APP_NAME]
         metadata.date_time = datetime.now()
-        metadata.database_name = config[GLUE_DATABASE_NAME]
+        metadata.database_name = config[DATA_CATALOG_DB_NAME]
         metadata.environment = config[ENVIRONMENT_NAME]
         metadata.function_name = config[SERVICE_NAME]
         metadata.function_version = config[SERVICE_VERSION]
         metadata.metadata_key = get_metadata_key(config)
-        metadata.metadata_bucket = config[S3_BUCKET_NAME]
-        metadata.raw_data_bucket = config[S3_BUCKET_NAME]
-        metadata.table_name = config[GLUE_TABLE_NAME]
+        metadata.metadata_bucket = config[DATA_BUCKET]
+        metadata.raw_data_bucket = config[DATA_BUCKET]
+        metadata.table_name = config[METADATA_TABLE_NAME]
 
         today = datetime.today().date()
         earliest = today - timedelta(days=DAY_SPAN)
@@ -96,7 +96,7 @@ def lambda_handler(event: dict, context) -> dict:
         metadata.earliest = earliest.strftime(DataIngestionMetadata.DATETIME_FORMAT)
 
         xml_data_list = fetch_data(
-            config.get(ARXIV_BASE_URL), earliest, config.get(SUMMARY_SET), config.get(MAX_FETCH_ATTEMPTS), metadata
+            config.get(ARXIV_BASE_URL), earliest, config.get(ARXIV_SUMMARY_SET), config.get(MAX_FETCH_ATTEMPTS), metadata
         )
 
         metadata.raw_data_key = get_storage_key(config)
@@ -131,16 +131,16 @@ def get_config() -> dict:
         config = {
             APP_NAME: os.environ[APP_NAME],
             ARXIV_BASE_URL: os.environ[ARXIV_BASE_URL],
+            DATA_BUCKET: os.environ[DATA_BUCKET],
             DATA_INGESTION_METADATA_KEY_PREFIX: os.environ[DATA_INGESTION_METADATA_KEY_PREFIX],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
-            GLUE_DATABASE_NAME: os.environ[GLUE_DATABASE_NAME],
-            GLUE_TABLE_NAME: os.environ[GLUE_TABLE_NAME],
+            DATA_CATALOG_DB_NAME: os.environ[DATA_CATALOG_DB_NAME],
+            METADATA_TABLE_NAME: os.environ[METADATA_TABLE_NAME],
             MAX_FETCH_ATTEMPTS: int(os.environ[MAX_FETCH_ATTEMPTS]),
-            S3_BUCKET_NAME: os.environ[S3_BUCKET_NAME],
-            S3_STORAGE_KEY_PREFIX: os.environ[S3_STORAGE_KEY_PREFIX],
+            DATA_INGESTION_KEY_PREFIX: os.environ[DATA_INGESTION_KEY_PREFIX],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
-            SUMMARY_SET: os.environ[SUMMARY_SET],
+            ARXIV_SUMMARY_SET: os.environ[ARXIV_SUMMARY_SET],
         }
         logger.debug("Config", method=GET_CONFIG, config=config)
     except KeyError as e:
@@ -277,7 +277,7 @@ def get_storage_key(config: dict) -> str:
         raise ValueError("Config is required")
 
     key_date = time.strftime(DataIngestionMetadata.S3_KEY_DATE_FORMAT)
-    key = f"{config.get(S3_STORAGE_KEY_PREFIX)}/{key_date}.json"
+    key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/{key_date}.json"
     logger.info("Storage key", method=GET_STORAGE_KEY, key=key)
     return key
 

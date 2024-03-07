@@ -1,7 +1,7 @@
 # **********************************************************
 # * CONTAINERIZATION                                       *
 # **********************************************************
-output "repo_url" {
+output "ecr_repo_url" {
   value = module.containerization.repo_url
 }
 
@@ -43,15 +43,19 @@ output "aws_iam_policy_s3_infra_config_bucket_access" {
     value       = module.data_management.aws_iam_policy_s3_infra_config_bucket_access
 }
 
-output "aws_s3_bucket_atomiklabs_data_bucket" {
+output "data_bucket" {
   description = "S3 bucket for atomiklabs data"
-  value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket.bucket
+}
+
+output "data_bucket_arn" {
+  description = "S3 bucket ARN for atomiklabs data"
+  value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket.arn
 }
 
 # **********************************************************
 # * NETWORKING                                             *
 # **********************************************************
-
 output "main_vpc_id" {
   value = module.networking.main_vpc_id
 }

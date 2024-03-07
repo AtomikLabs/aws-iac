@@ -58,7 +58,8 @@ locals {
   # **********************************************************
   data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
 
-
+  environment = var.environment
+  
   tags = {
     Blueprint   = local.name
     GithubRepo  = local.repo

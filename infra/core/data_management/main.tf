@@ -1,11 +1,11 @@
 locals {
-  aws_vpc_id = var.aws_vpc_id
-  data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
-  environment = var.environment
-  home_ip     = var.home_ip
-  infra_config_bucket_arn = var.infra_config_bucket_arn
-  name        = var.name
-  tags        = var.tags
+  aws_vpc_id                          = var.aws_vpc_id
+  data_ingestion_metadata_key_prefix  = var.data_ingestion_metadata_key_prefix
+  environment                         = var.environment
+  home_ip                             = var.home_ip
+  infra_config_bucket_arn             = var.infra_config_bucket_arn
+  name                                = var.name
+  tags                                = var.tags
 }
 
 resource "aws_s3_bucket" "atomiklabs_data_bucket" {
@@ -142,34 +142,6 @@ resource "aws_iam_role" "lambda_glue_role" {
         Principal = {
           Service = "lambda.amazonaws.com"
         },
-      },
-    ],
-  })
-  tags = local.tags
-}
-
-resource "aws_iam_policy" "lambda_glue_policy" {
-  name        = "${local.environment}-lambda_glue_data_catalog_access_policy"
-  description = "IAM policy for accessing AWS Glue Data Catalog from Lambda"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = [
-          "glue:GetDatabase",
-          "glue:GetDatabases",
-          "glue:GetTable",
-          "glue:GetTables",
-          "glue:SearchTables",
-          "glue:GetPartitions",
-          "glue:GetPartition",
-          "glue:StartCrawler",
-          "glue:UpdateTable",
-          "glue:CreateTable",
-        ],
-        Effect   = "Allow",
-        Resource = "*"
       },
     ],
   })

@@ -59,18 +59,8 @@ variable "terraform_outputs_prefix" {
 # * Data Management                                        *
 # **********************************************************
 
-variable "data_ingestion_key_prefix" {
-    description = "Prefix for the data ingestion"
-    type        = string
-}
-
 variable "data_ingestion_metadata_key_prefix" {
     description = "Prefix for the data ingestion metadata"
-    type        = string
-}
-
-variable "etl_key_prefix" {
-    description = "Prefix for the ETL"
     type        = string
 }
 
@@ -102,29 +92,5 @@ variable "home_ip" {
 
 variable "bastion_host_key_pair_name" {
   description = "Bastion host key pair name"
-  type        = string
-}
-
-# **********************************************************
-# * Services                                               *
-# **********************************************************
-
-variable "arxiv_base_url" {
-  description = "ArXiv base URL"
-  type        = string
-}
-
-variable "arxiv_summary_set" {
-  description = "ArXiv summary set to fetch"
-  type        = string
-}
-
-variable "fetch_daily_summaries_name" {
-  description = "Name of the fetch daily summaries function"
-  type        = string
-}
-
-variable "fetch_daily_summaries_version" {
-  description = "Version of the fetch daily summaries function"
   type        = string
 }
