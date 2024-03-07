@@ -19,6 +19,11 @@ locals {
   account_id                = data.aws_caller_identity.current.account_id
   aws_region                = var.aws_region
   partition                 = data.aws_partition.current.partition
+
+  # **********************************************************
+  # * Data Management                                        *
+  # **********************************************************
+  data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
   
   # **********************************************************
   # * INFRASTRUCTURE CONFIGURATION                           *
@@ -26,7 +31,6 @@ locals {
   alert_email                     = var.alert_email
   backend_dynamodb_table          = var.backend_dynamodb_table
   environment                     = var.environment
-  iam_user_name                   = var.iam_user_name
   infra_config_bucket             = var.infra_config_bucket
   infra_config_bucket_arn         = var.infra_config_bucket_arn
   infra_config_prefix             = var.infra_config_prefix
@@ -67,11 +71,17 @@ module "networking" {
 module "data_management" {
   source = "./data_management"
 
-  aws_vpc_id                        = module.networking.main_vpc_id
-  data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
-  environment                      = local.environment
-  home_ip                          = var.home_ip
-  infra_config_bucket_arn          = local.infra_config_bucket_arn
-  name                             = local.name
-  tags                             = local.tags
+  aws_vpc_id                          = module.networking.main_vpc_id
+  data_ingestion_metadata_key_prefix  = local.data_ingestion_metadata_key_prefix
+  environment                         = local.environment
+  home_ip                             = local.home_ip
+  infra_config_bucket_arn             = local.infra_config_bucket_arn
+  name                                = local.name
+  tags                                = local.tags
+}
+
+module "containerization" {
+  source = "./containerization"
+
+  environment = local.environment
 }

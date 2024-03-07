@@ -1073,8 +1073,6 @@ def run_aws_test():
 
     write_to_files(extracted_data, FILE_PATHS)
     records = [record for data in extracted_data for record in data.get("records", [])]
-    # for data in extracted_data:
-    # persist_research_summaries(data['records'], AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
     print(f"Records: {len(records)}")
     for research_date in date_list:
         r = research_date.strftime("%Y-%m-%d")

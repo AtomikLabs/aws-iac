@@ -24,12 +24,6 @@ variable "environment" {
   default     = "dev"
 }
 
-variable "iam_user_name" {
-  description = "IAM user name"
-  type        = string
-  default     = "atomiklabs-dev-ci-cd"
-}
-
 variable "infra_config_bucket" {
   description = "S3 bucket to store the infra config"
   type        = string
