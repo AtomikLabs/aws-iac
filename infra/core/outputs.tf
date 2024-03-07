@@ -45,12 +45,12 @@ output "aws_iam_policy_s3_infra_config_bucket_access" {
 
 output "data_bucket" {
   description = "S3 bucket for atomiklabs data"
-  value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket.bucket
+  value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
 }
 
 output "data_bucket_arn" {
   description = "S3 bucket ARN for atomiklabs data"
-  value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket.arn
+  value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
 }
 
 # **********************************************************
