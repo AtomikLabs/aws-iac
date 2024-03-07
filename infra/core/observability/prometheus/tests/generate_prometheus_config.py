@@ -3,7 +3,6 @@ import sys
 from unittest.mock import mock_open, patch
 
 import pytest
-
 from infra.observability.prometheus.src.generate_prometheus_config import PrometheusConfigGenerator
 
 

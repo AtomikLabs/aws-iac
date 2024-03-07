@@ -2,7 +2,6 @@ from unittest import mock
 from unittest.mock import call, mock_open, patch
 
 import pytest
-
 from infra.observability.thanos.src.generate_thanos_bucket_config import ThanosBucketConfigGenerator
 
 

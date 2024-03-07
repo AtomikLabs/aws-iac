@@ -1,7 +1,6 @@
 variable "app_name" {
   description   = "The name of the application"
   type          = string
-  default       = "atomiklabs"
 }
 
 variable "arxiv_base_url" {
@@ -17,7 +16,6 @@ variable "arxiv_summary_set" {
 variable "aws_region" {
   description   = "The AWS region"
   type          = string
-  default       = "us-east-1"
 }
 
 variable "data_bucket" {
@@ -59,7 +57,6 @@ variable "image_uri" {
 variable "max_retries" {
   description   = "The maximum number of retries"
   type          = number
-  default       = 3
 }
 
 variable "metadata_table_name" {

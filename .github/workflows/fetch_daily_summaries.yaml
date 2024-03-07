@@ -36,6 +36,7 @@ jobs:
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET_ARN=$(jq -r '.infra.infra_config_bucket_arn' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
+          echo "MAX_RETRIES=$(jq -r '.services.data_ingestion.fetch_daily_summaries.max_retries' "$config_file")" >> $GITHUB_ENV
           echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
           echo "SERVICE_NAME=$(jq -r '.services.data_ingestion.fetch_daily_summaries.service_name' "$config_file")" >> $GITHUB_ENV
           echo "SERVICE_VERSION=$(jq -r '.services.data_ingestion.fetch_daily_summaries.service_version' "$config_file")" >> $GITHUB_ENV
@@ -208,6 +209,7 @@ jobs:
           TF_VAR_environment: ${{ env.ENV_NAME }}
           TF_VAR_data_catalog_db_name: ${{ env.DATA_CATALOG_DB_NAME }}
           TF_VAR_image_uri: $${{ env.IMAGE_URI }}
+          TF_VAR_max_retries: ${{ env.MAX_RETRIES }}
           TF_VAR_metadata_table_name: ${{ env.METADATA_TABLE_NAME }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}
           TF_VAR_service_version: ${{ steps.increment-version.outputs.new-version }}
@@ -233,6 +235,7 @@ jobs:
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
           TF_VAR_environment: ${{ env.ENV_NAME }}
           TF_VAR_data_catalog_db_name: ${{ env.DATA_CATALOG_DB_NAME }}
+          TF_VAR_max_retries: ${{ env.MAX_RETRIES }}
           TF_VAR_metadata_table_name: ${{ env.METADATA_TABLE_NAME }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}
           TF_VAR_service_version: ${{ steps.increment-version.outputs.new-version }}
