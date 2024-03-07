@@ -1053,14 +1053,8 @@ def run_test():
 
 def run_aws_test():
     config_for_test()
-    # today = calculate_from_date()
-    #print(f"Today: {today}")
-    #log_initial_info({"test": "test"})
-    # insert_fetch_status(date.today(), AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-    # earliest = get_earliest_unfetched_date(AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
     earliest = datetime.today().date() - timedelta(days=5)
     print(f"Earliest: {earliest}")
-    # date_list = generate_date_list(earliest, today)
     date_list = [datetime.today().date()]
     for i in range(1, 2):
         date_list.append(datetime.today().date() - timedelta(days=i))
