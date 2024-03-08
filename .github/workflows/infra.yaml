@@ -131,7 +131,7 @@ jobs:
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
           TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
           TF_VAR_repo: ${{ env.REPO }}
-          TF_VAR_terraform_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
+          TF_VAR_terraform_outputs_prefix: ${{ env.TERRAFORM_OUTPUTS_PREFIX }}
 
       - name: Apply Terraform
         run: |
@@ -153,12 +153,12 @@ jobs:
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
           TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
           TF_VAR_repo: ${{ env.REPO }}
-          TF_VAR_terraform_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
+          TF_VAR_terraform_outputs_prefix: ${{ env.TERRAFORM_OUTPUTS_PREFIX }}
 
       - name: Save Terraform Outputs
         run: |
           terraform output -json > terraform_outputs.json
-          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.TERRAFORM_OUTPUTS_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}.json
+          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/terraform/${{ env.ENV_NAME }}-${{ env.TERRAFORM_OUTPUTS_PREFIX }}.json
         working-directory: ./infra/core
 
       - name: Upload Terraform Outputs
