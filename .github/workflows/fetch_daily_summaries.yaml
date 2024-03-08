@@ -271,7 +271,7 @@ jobs:
 
       - name: Update Fetch Daily Summaries Lambda Function
         id: update-fetch-daily-summaries
-        run: aws lambda update-function-code --function-name ${{ env.SERVICE_NAME }} --image-uri ${{ env.IMAGE_URI }}
+        run: aws lambda update-function-code --function-name ${{ env.ENV_NAME }}-${{ env.SERVICE_NAME }} --image-uri ${{ env.IMAGE_URI }}
         env:
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
           FETCH_DAILY_SUMMARIES_ARN: ${{ env.FETCH_DAILY_SUMMARIES_ARN }}
