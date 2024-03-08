@@ -109,7 +109,7 @@ jobs:
       - name: Ensure DynamoDB table exists
         id: ensure-dynamodb-table-exists
         run: |
-          TABLE_NAME="atomiklabs-terraform-locks"
+          TABLE_NAME="atomiklabs-fetch-daily-summaries-locks"
           REGION="${{ env.AWS_REGION }}"
           if aws dynamodb describe-table --table-name $TABLE_NAME 2>&1 | grep -q 'ResourceNotFoundException'; then
             echo "DynamoDB table does not exist. Creating table..."
