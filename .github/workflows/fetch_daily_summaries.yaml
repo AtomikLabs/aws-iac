@@ -183,7 +183,7 @@ jobs:
           image_uri=$ECR_REPO_URL:${{ steps.increment-version.outputs.new-tag }}
           echo "$ECR_REPO_URL:${{ steps.increment-version.outputs.new-tag }}" >> $GITHUB_ENV
           docker build -t $image_uri -f services/fetch_daily_summaries/Dockerfile .
-          docker push ${ image_uri }
+          docker push $image_uri
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
