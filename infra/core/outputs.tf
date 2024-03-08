@@ -50,7 +50,7 @@ output "data_bucket" {
 
 output "data_bucket_arn" {
   description = "S3 bucket ARN for atomiklabs data"
-  value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
 }
 
 # **********************************************************

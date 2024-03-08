@@ -158,7 +158,7 @@ resource "aws_iam_policy" "fetch_daily_summaries_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${local.data_bucket_arn }/raw_data/data_ingestion/*",
+          "${local.data_bucket_arn}/raw_data/data_ingestion/*",
           "${local.data_bucket_arn}/metadata/*"
         ]
       },
