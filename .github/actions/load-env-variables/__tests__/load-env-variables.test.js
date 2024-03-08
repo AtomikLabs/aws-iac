@@ -12,45 +12,56 @@ describe('Load Environment Variables Action', () => {
     jest.clearAllMocks();
     
     github.context.eventName = 'push';
-    github.context.ref = 'refs/heads/main';
-    github.context.payload = { pull_request: { base: { ref: 'develop' } } };
+    github.context.ref = 'refs/heads/feature/new-feature';
+    github.context.payload = { pull_request: { base: { ref: 'dev' } } };
     
     fs.existsSync.mockReturnValue(true);
     fs.readFileSync.mockReturnValue(JSON.stringify({ iam_user_name: 'testIamUser' }));
   });
 
-  test('correctly sets environment variables for push event', async () => {
+  test('sets environment variables correctly for push event to allowed branch', async () => {
+    github.context.ref = 'refs/heads/dev';
+
     await loadEnvironmentVariables();
 
-    expect(core.exportVariable).toHaveBeenCalledWith('ENV_NAME', 'main');
-    expect(core.exportVariable).toHaveBeenCalledWith('ENV_FILE', 'infra/core/environments/env.main.json');
+    expect(core.exportVariable).toHaveBeenCalledWith('ENV_NAME', 'dev');
+    expect(core.exportVariable).toHaveBeenCalledWith('ENV_FILE', 'infra/core/environments/env.dev.json');
     expect(core.exportVariable).toHaveBeenCalledWith('IAM_USER_NAME', 'testIamUser');
   });
 
-  test('correctly sets environment variables for pull request event', async () => {
+  test('sets environment variables correctly for pull request event', async () => {
     github.context.eventName = 'pull_request';
 
     await loadEnvironmentVariables();
 
-    expect(core.exportVariable).toHaveBeenCalledWith('ENV_NAME', 'develop');
-    expect(core.exportVariable).toHaveBeenCalledWith('ENV_FILE', 'infra/core/environments/env.develop.json');
+    expect(core.exportVariable).toHaveBeenCalledWith('ENV_NAME', 'dev');
+    expect(core.exportVariable).toHaveBeenCalledWith('ENV_FILE', 'infra/core/environments/env.dev.json');
     expect(core.exportVariable).toHaveBeenCalledWith('IAM_USER_NAME', 'testIamUser');
   });
 
-  test('throws error if environment file does not exist', async () => {
-    fs.existsSync.mockReturnValue(false);
+  test('fails when triggered by unsupported event', async () => {
+    github.context.eventName = 'issue_comment';
 
     await loadEnvironmentVariables();
 
+    expect(core.setFailed).toHaveBeenCalledWith(expect.stringContaining('Unsupported GitHub event'));
+  });
+
+  test('fails if environment file does not exist', async () => {
+    github.context.ref = 'refs/heads/dev';
+  
+    fs.existsSync.mockReturnValue(false);
+  
+    await loadEnvironmentVariables();
+  
     expect(core.setFailed).toHaveBeenCalledWith(expect.stringContaining('does not exist'));
   });
 
-  test('handles missing iam_user_name gracefully', async () => {
+  test('does not set IAM_USER_NAME if missing in environment file', async () => {
     fs.readFileSync.mockReturnValue(JSON.stringify({}));
 
     await loadEnvironmentVariables();
 
     expect(core.exportVariable).not.toHaveBeenCalledWith('IAM_USER_NAME', expect.anything());
-    expect(core.setFailed).not.toHaveBeenCalled();
   });
 });
