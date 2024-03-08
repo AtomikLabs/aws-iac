@@ -32,7 +32,7 @@ variable "service_version" {
   type        = string
 }
 
-variable "fetch_daily_summaries_max_attempts" {
+variable "max_retries" {
   description = "Max daily summaries fetch attempts"
   type        = number
   default     = 10
