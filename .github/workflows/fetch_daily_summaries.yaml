@@ -188,13 +188,6 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
 
-      - name: Update Fetch Daily Summaries Lambda Function
-        id: update-fetch-daily-summaries
-        run: aws lambda update-function-code --function-name ${{ env.SERVICE_NAME }} --image-uri ${{ env.IMAGE_URI }}
-        env:
-          ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
-          FETCH_DAILY_SUMMARIES_ARN: ${{ env.FETCH_DAILY_SUMMARIES_ARN }}
-
       - name: Validate Terraform
         run: terraform validate
         working-directory: ./infra/services/fetch_daily_summaries
@@ -255,6 +248,13 @@ jobs:
           terraform output -json > terraform_outputs.json
           aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.TERRAFORM_OUTPUTS_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}-{{ env.SERVICE_NAME }}.json
         working-directory: ./infra/services/fetch_daily_summaries
+
+      - name: Update Fetch Daily Summaries Lambda Function
+        id: update-fetch-daily-summaries
+        run: aws lambda update-function-code --function-name ${{ env.SERVICE_NAME }} --image-uri ${{ env.IMAGE_URI }}
+        env:
+          ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
+          FETCH_DAILY_SUMMARIES_ARN: ${{ env.FETCH_DAILY_SUMMARIES_ARN }}
 
       - name: Update .atomiklabs.json with New Version
         id: update-config
