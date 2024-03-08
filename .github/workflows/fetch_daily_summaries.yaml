@@ -221,7 +221,7 @@ jobs:
         run: |
           echo "${{ env.ENV_FILE }}"
           echo "${{ env.AWS_REGION }}"
-          terraform apply -var-file="../../${{ env.ENV_FILE }}" -auto-approve
+          terraform apply -var-file="../../../${{ env.ENV_FILE }}" -auto-approve
         working-directory: ./infra/services/fetch_daily_summaries
         env:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
