@@ -13,7 +13,7 @@ locals {
   aws_region                  = var.aws_region
   basic_execution_role_arn    = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   data_bucket                 = var.data_bucket
-  data_bucket_arn             = var.data_bucket_arn
+  data_bucket_arn             = "arn:aws:s3:::${var.data_bucket}"
   environment                 = var.environment
   image_uri                   = var.image_uri
   service_name                = var.service_name

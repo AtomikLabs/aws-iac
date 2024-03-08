@@ -20,7 +20,7 @@
       "data_ingestion_key_prefix": "raw_data/data_ingestion",
       "fetch_daily_summaries": {
         "service_name": "fetch_daily_summaries",
-        "service_version": "v0.2.13",
+        "service_version": "0.2.13",
         "max_retries": 10
       }
     }
