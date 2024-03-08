@@ -106,6 +106,7 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
     variables = {
       APP_NAME                              = local.app_name
       ARXIV_BASE_URL                        = local.arxiv_base_url
+      ARXIV_SUMMARY_SET                     = local.arxiv_summary_set
       DATA_BUCKET                           = local.data_bucket
       DATA_INGESTION_KEY_PREFIX             = local.data_ingestion_key_prefix
       DATA_INGESTION_METADATA_KEY_PREFIX    = local.data_ingestion_metadata_key_prefix
@@ -115,7 +116,6 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
       MAX_RETRIES                           = local.max_retries
       SERVICE_VERSION                       = local.service_version
       SERVICE_NAME                          = local.service_name
-      SUMMARY_SET                           = local.arxiv_summary_set
     }  
   }
 }
