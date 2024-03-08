@@ -181,7 +181,7 @@ jobs:
         run: |
           aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin 758145997264.dkr.ecr.us-east-1.amazonaws.com
           image_uri=$ECR_REPO_URL:${{ steps.increment-version.outputs.new-tag }}
-          echo "${ ECR_REPO_URL }:${{ steps.increment-version.outputs.new-tag }}" >> $GITHUB_ENV
+          echo "$ECR_REPO_URL:${{ steps.increment-version.outputs.new-tag }}" >> $GITHUB_ENV
           docker build -t $image_uri -f services/fetch_daily_summaries/Dockerfile .
           docker push ${ image_uri }
         env:
