@@ -191,28 +191,23 @@ jobs:
       - name: Verify Image in ECR Repository
         id: verify-image
         run: |
-          ecr_repo=echo {{ env.ECR_REPO_URL }} | cut -d'/' -f2
-          image_uri=${{ env.IMAGE_URI }}
           image_tag="${{ steps.increment-version.outputs.new-tag }}"
-          repo_name=$(echo "$ecr_repo" | cut -d'/' -f2)
-          echo "Verifying repo: $ecr_repo"
-          echo "Repository Name: $repo_name"
-          echo "Image Tag: $image_tag"
-          max_retries=10
-          retry_delay=10
-          retries=0
-
-          until aws ecr describe-images --repository-name "$ecr_repo" --region ${{ env.AWS_REGION }} | jq -e ".imageDetails[] | select(.imageTags[]? == \"$image_tag\")" > /dev/null
-          do
-            retries=$((retries+1))
-            if [[ $retries -gt $max_retries ]]; then
-              echo "::error::Failed to find image $image_tag in ECR repository $ecr_repo after $max_retries retries. Exiting."
+          repo_name="${{ env.ENV_NAME }}-repository"
+          set +e  # Disable exit on error
+          image_exists=$(aws ecr describe-images --repository-name $repo_name --image-ids imageTag=$image_tag --region ${{ env.AWS_REGION }} 2>&1)
+          result=$?
+          set -e  # Re-enable exit on error
+          if [ $result -eq 0 ]; then
+            echo "Image $image_tag found in ECR repository $repo_name."
+          else
+            if echo $image_exists | grep -q 'ImageNotFoundException'; then
+              echo "::error::Image with tag $image_tag not found in ECR repository $repo_name after several retries. Exiting."
+              exit 1
+            else
+              echo "::error::Unexpected error checking image existence: $image_exists"
               exit 1
             fi
-            echo "Image $image_tag not found in ECR repository $ecr_repo. Retrying in $retry_delay seconds..."
-            sleep $retry_delay
-          done
-          echo "Image $image_tag found in ECR repository $ecr_repo."
+          fi
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
 
