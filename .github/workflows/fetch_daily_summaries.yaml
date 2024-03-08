@@ -191,27 +191,28 @@ jobs:
       - name: Verify Image in ECR Repository
         id: verify-image
         run: |
+          ecr_repo=echo {{ env.ECR_REPO_URL }} | cut -d'/' -f2
           image_uri=${{ env.IMAGE_URI }}
           image_tag="${{ steps.increment-version.outputs.new-tag }}"
-          repo_name=$(echo "$image_uri" | cut -d'/' -f2)
-          echo "Verifying Image URI: $image_uri"
+          repo_name=$(echo "$ecr_repo" | cut -d'/' -f2)
+          echo "Verifying repo: $ecr_repo"
           echo "Repository Name: $repo_name"
           echo "Image Tag: $image_tag"
           max_retries=10
           retry_delay=10
           retries=0
 
-          until aws ecr describe-images --repository-name "$repo_name" --region ${{ env.AWS_REGION }} | jq -e ".imageDetails[] | select(.imageTags[]? == \"$image_tag\")" > /dev/null
+          until aws ecr describe-images --repository-name "$ecr_repo" --region ${{ env.AWS_REGION }} | jq -e ".imageDetails[] | select(.imageTags[]? == \"$image_tag\")" > /dev/null
           do
             retries=$((retries+1))
             if [[ $retries -gt $max_retries ]]; then
-              echo "::error::Failed to find image $image_tag in ECR repository $repo_name after $max_retries retries. Exiting."
+              echo "::error::Failed to find image $image_tag in ECR repository $ecr_repo after $max_retries retries. Exiting."
               exit 1
             fi
-            echo "Image $image_tag not found in ECR repository $repo_name. Retrying in $retry_delay seconds..."
+            echo "Image $image_tag not found in ECR repository $ecr_repo. Retrying in $retry_delay seconds..."
             sleep $retry_delay
           done
-          echo "Image $image_tag found in ECR repository $repo_name."
+          echo "Image $image_tag found in ECR repository $ecr_repo."
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
 
