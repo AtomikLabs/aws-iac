@@ -266,7 +266,7 @@ jobs:
         id: save-terraform-outputs
         run: |
           terraform output -json > terraform_outputs.json
-          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.TERRAFORM_OUTPUTS_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}-{{ env.SERVICE_NAME }}.json
+          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.TERRAFORM_OUTPUTS_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}-${{ env.SERVICE_NAME }}.json
         working-directory: ./infra/services/fetch_daily_summaries
 
       - name: Update Fetch Daily Summaries Lambda Function
