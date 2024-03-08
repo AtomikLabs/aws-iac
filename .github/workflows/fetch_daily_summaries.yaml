@@ -194,7 +194,7 @@ jobs:
 
       - name: Plan Terraform
         id: plan
-        run: terraform plan -var-file="../../${{ env.ENV_FILE }}"
+        run: terraform plan -var-file="../../../${{ env.ENV_FILE }}"
         working-directory: ./infra/services/fetch_daily_summaries
         env:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
