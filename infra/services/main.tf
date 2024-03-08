@@ -1,9 +1,9 @@
 terraform {
   backend "s3" {
     bucket         = "atomiklabs-infra-config-bucket"
-    key            = "terraform/terraform.state"
+    key            = "terraform/fetch-daily-summaries.state"
     region         = "us-east-1"
-    dynamodb_table = "atomiklabs-terraform-locks"
+    dynamodb_table = "atomiklabs-fetch-daily-summaries-locks"
     encrypt        = true
   }
 }
@@ -27,8 +27,8 @@ locals {
   arxiv_base_url                          = var.arxiv_base_url
   arxiv_summary_set                       = var.arxiv_summary_set
   data_ingestion_key_prefix               = var.data_ingestion_key_prefix
-  fetch_daily_summaries_name              = var.fetch_daily_summaries_name
-  fetch_daily_summaries_version           = var.fetch_daily_summaries_version
+  fetch_daily_summaries_name              = var.service_name
+  fetch_daily_summaries_version           = var.service_version
   max_daily_summary_fetch_attempts        = var.fetch_daily_summaries_max_attempts
 
   # **********************************************************
@@ -59,12 +59,4 @@ locals {
   data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
 
   environment = var.environment
-  
-  tags = {
-    Blueprint   = local.name
-    GithubRepo  = local.repo
-    Environment = local.environment
-    Region      = local.aws_region
-    Application = local.name
-  }
 }

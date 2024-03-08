@@ -204,10 +204,10 @@ jobs:
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_data_bucket: ${{ env.DATA_BUCKET }}
           TF_VAR_data_bucket_arn: ${{ env.DATA_BUCKET_ARN }}
+          TF_VAR_data_catalog_db_name: ${{ env.DATA_CATALOG_DB_NAME }}
           TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
           TF_VAR_environment: ${{ env.ENV_NAME }}
-          TF_VAR_data_catalog_db_name: ${{ env.DATA_CATALOG_DB_NAME }}
           TF_VAR_image_uri: $${{ env.IMAGE_URI }}
           TF_VAR_max_retries: ${{ env.MAX_RETRIES }}
           TF_VAR_metadata_table_name: ${{ env.METADATA_TABLE_NAME }}
@@ -231,10 +231,10 @@ jobs:
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_data_bucket: ${{ env.DATA_BUCKET }}
           TF_VAR_data_bucket_arn: ${{ env.DATA_BUCKET_ARN }}
+          TF_VAR_data_catalog_db_name: ${{ env.DATA_CATALOG_DB_NAME }}
           TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
           TF_VAR_environment: ${{ env.ENV_NAME }}
-          TF_VAR_data_catalog_db_name: ${{ env.DATA_CATALOG_DB_NAME }}
           TF_VAR_max_retries: ${{ env.MAX_RETRIES }}
           TF_VAR_metadata_table_name: ${{ env.METADATA_TABLE_NAME }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}

@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
     bucket         = "atomiklabs-infra-config-bucket"
-    dynamodb_table = "atomiklabs-terraform-locks"
+    dynamodb_table = "atomiklabs-fetch-daily-summaries-locks"
     encrypt        = true
     key            = "terraform/services/fetch_daily_summaries.state"
     region         = "us-east-1"

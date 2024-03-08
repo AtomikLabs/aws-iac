@@ -22,12 +22,12 @@ variable "data_ingestion_metadata_key_prefix" {
   type        = string
 }
 
-variable "fetch_daily_summaries_name" {
+variable "service_name" {
   description = "Fetch daily summaries service name"
   type        = string
 }
 
-variable "fetch_daily_summaries_version" {
+variable "service_version" {
   description = "Fetch daily summaries service version"
   type        = string
 }
