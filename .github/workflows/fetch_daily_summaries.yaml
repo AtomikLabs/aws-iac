@@ -143,7 +143,7 @@ jobs:
       - name: Fetch Terraform Outputs
         id: fetch-terraform-outputs
         run: |
-          terraform_outputs_path="s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.TERRAFORM_OUTPUTS_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}.json"
+          terraform_outputs_path="s3://${{ env.INFRA_CONFIG_BUCKET }}/terraform/${{ env.ENV_NAME }}-${{ env.TERRAFORM_OUTPUTS_PREFIX }}.json"
           aws s3 cp $terraform_outputs_path ./terraform_outputs.json
           echo "DATA_BUCKET=$(jq -r '.data_bucket.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "DATA_BUCKET_ARN=$(jq -r '.data_bucket_arn.value' ./terraform_outputs.json)" >> $GITHUB_ENV
@@ -252,7 +252,7 @@ jobs:
         id: save-terraform-outputs
         run: |
           terraform output -json > terraform_outputs.json
-          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}-{{ env.FETCH_DAILY_SUMMARIES_NAME }}.json
+          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.TERRAFORM_OUTPUTS_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}-{{ env.SERVICE_NAME }}.json
         working-directory: ./infra/services/fetch_daily_summaries
 
       - name: Update .atomiklabs.json with New Version
