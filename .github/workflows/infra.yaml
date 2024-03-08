@@ -1,20 +1,20 @@
-name: Infrastructure CI/CD
+name: Infra CI/CD
 
 on:
   push:
     branches:
       - main
       - stage
-      #- dev
+      - dev
     paths:
-      - "infra/**"
+      - "infra/core/**"
       - ".github/workflows/infra.yaml"
   pull_request:
     branches:
-      #- dev
+      - dev
       - test
     paths:
-      - "infra/**"
+      - "infra/core/**"
       - ".github/workflows/infra.yaml"
   workflow_dispatch:
 
@@ -31,30 +31,17 @@ jobs:
       - name: Read AtomikLabs config and Set Environment Variables
         run: |
           config_file=".atomiklabs.json"
-          echo "ARXIV_BASE_URL=$(jq -r '.data_ingestion.arxiv_base_url' "$config_file")" >> $GITHUB_ENV
-          echo "ARXIV_SUMMARY_SET=$(jq -r '.data_ingestion.arxiv_summary_set' "$config_file")" >> $GITHUB_ENV
           echo "AWS_REGION=$(jq -r '.infra.terraform_aws_region' "$config_file")" >> $GITHUB_ENV
+          echo "BACKEND_DYNAMODB_TABLE=$(jq -r '.infra.backend_dynamodb_table' "$config_file")" >> $GITHUB_ENV
           echo "BASTION_HOST_KEY_PAIR_NAME=$(jq -r '.networking.bastion_host_key_pair_name' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_KEY_PREFIX=$(jq -r '.data_ingestion.data_ingestion_key_prefix' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_METADATA_KEY_PREFIX=$(jq -r '.metadata.data_ingestion_metadata_key_prefix' "$config_file")" >> $GITHUB_ENV
           echo "ETL_KEY_PREFIX=$(jq -r '.etl.etl_key_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "FETCH_DAILY_SUMMARIES_NAME=$(jq -r '.data_ingestion.fetch_daily_summaries_name' "$config_file")" >> $GITHUB_ENV
-          echo "FETCH_DAILY_SUMMARIES_VERSION=$(jq -r '.data_ingestion.fetch_daily_summaries_version' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET_ARN=$(jq -r '.infra.infra_config_bucket_arn' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "BACKEND_DYNAMODB_TABLE=$(jq -r '.infra.backend_dynamodb_table' "$config_file")" >> $GITHUB_ENV
-          echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
           echo "REPO=$(jq -r '.infra.repo' "$config_file")" >> $GITHUB_ENV
-
-      - name: Load Environment Variables
-        uses: ./.github/actions/load-env-variables
-
-      - name: Set RabbitMQ Credentials
-        uses: ./.github/actions/set-rabbitmq-credentials
-
-      - name: Echo env var
-        run: echo ${{ env.ENV_NAME }}
+          echo "TERRAFORM_OUTPUTS_PREFIX=$(jq -r '.infra.terraform_outputs_prefix' "$config_file")" >> $GITHUB_ENV
 
       - name: Install node and npm
         uses: actions/setup-node@v4
@@ -64,6 +51,9 @@ jobs:
       - name: Install NPM Dependencies
         run: |
           npm install
+
+      - name: Load Environment Variables
+        uses: ./.github/actions/load-env-variables
 
       - name: Set AWS Credentials
         uses: ./.github/actions/set-aws-credentials
@@ -130,24 +120,18 @@ jobs:
         env:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
           TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
-          TF_VAR_arxiv_base_url: ${{ env.ARXIV_BASE_URL }}
-          TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_VAR_bastion_host_key_pair_name: ${{ env.BASTION_HOST_KEY_PAIR_NAME }}
-          TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
-          TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
-          TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
-          TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
-          TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
           TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
           TF_VAR_repo: ${{ env.REPO }}
+          TF_VAR_terraform_outputs_prefix: ${{ env.TERRAFORM_OUTPUTS_PREFIX }}
 
       - name: Apply Terraform
         run: |
@@ -158,29 +142,23 @@ jobs:
         env:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
           TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
-          TF_VAR_arxiv_base_url: ${{ env.ARXIV_BASE_URL }}
-          TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_VAR_bastion_host_key_pair_name: ${{ env.BASTION_HOST_KEY_PAIR_NAME }}
-          TF_VAR_data_ingestion_key_prefix: ${{ env.DATA_INGESTION_KEY_PREFIX }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
-          TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
-          TF_VAR_fetch_daily_summaries_name: ${{ env.FETCH_DAILY_SUMMARIES_NAME }}
-          TF_VAR_fetch_daily_summaries_version: ${{ env.FETCH_DAILY_SUMMARIES_VERSION }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
-          TF_VAR_outputs_prefix: ${{ env.OUTPUTS_PREFIX }}
           TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
           TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
           TF_VAR_repo: ${{ env.REPO }}
+          TF_VAR_terraform_outputs_prefix: ${{ env.TERRAFORM_OUTPUTS_PREFIX }}
 
       - name: Save Terraform Outputs
         run: |
           terraform output -json > terraform_outputs.json
-          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.INFRA_CONFIG_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}.json
+          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/terraform/${{ env.ENV_NAME }}-${{ env.TERRAFORM_OUTPUTS_PREFIX }}.json
         working-directory: ./infra/core
 
       - name: Upload Terraform Outputs
@@ -188,199 +166,3 @@ jobs:
         with:
           name: terraform_outputs
           path: ./infra/core/terraform_outputs.json
-
-  observability:
-    needs: core_infra
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install jq
-        run: sudo apt-get install jq
-
-      - name: Read AtomikLabs config and Set Environment Variables
-        run: |
-          config_file=".atomiklabs.json"
-          echo "AWS_REGION=$(jq -r '.infra.terraform_aws_region' "$config_file")" >> $GITHUB_ENV
-          echo "BASTION_HOST_KEY_PAIR_NAME=$(jq -r '.networking.bastion_host_key_pair_name' "$config_file")" >> $GITHUB_ENV
-          echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
-          echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "REPO=$(jq -r '.infra.repo' "$config_file")" >> $GITHUB_ENV
-
-      - name: Load Environment Variables
-        id: load-env-vars
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            ENV_NAME=$(echo "${{ github.base_ref }}" | tr '/' '-')
-          else
-            ENV_NAME=$(echo "${{ github.ref_name }}" | tr '/' '-')
-          fi
-          echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
-          env_file="infra/core/environments/env.$ENV_NAME.json"
-          echo "ENV_FILE=$env_file" >> $GITHUB_ENV
-          echo "::set-output name=env_file::$env_file"
-          iam_user_name=$(jq -r '.iam_user_name' $env_file)
-          echo "IAM_USER_NAME=$iam_user_name" >> $GITHUB_ENV
-
-      - name: Set AWS Credentials Based on Environment
-        run: |
-          if [ "$ENV_NAME" == "prod" ]; then
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          elif [ "$ENV_NAME" == "stage" ]; then
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          elif [ "$ENV_NAME" == "dev" ]; then
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          else
-            echo "Invalid environment name: $ENV_NAME"
-            exit 1
-          fi
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Download Terraform Outputs
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform_outputs
-          path: temp
-
-      - name: Install Prometheus Config Script Dependencies
-        run: |
-          pip install -r ./infra/observability/prometheus/requirements.txt
-
-      - name: Generate Prometheus Config
-        run: |
-          OBSERVER_IP=$(jq -r '.aws_instance_observer_private_ip.value' ./temp/terraform_outputs.json)
-          RABBITMQ_IPS=$(jq -r '.aws_instance_rabbitmq_private_ips.value[]' ./temp/terraform_outputs.json | paste -sd " " -)
-          BASTION_IP=$(jq -r '.aws_instance_bastion_private_ip.value' ./temp/terraform_outputs.json)
-          ALL_IPS="$OBSERVER_IP $RABBITMQ_IPS $BASTION_IP"
-          echo "Generating Prometheus config with IPs: $ALL_IPS"
-          python ./infra/observability/prometheus/src/generate_prometheus_config.py ./temp/terraform_outputs.json ./temp/prometheus.yml --ips $ALL_IPS
-          aws s3 cp ./temp/prometheus.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/prometheus/prometheus.yml
-
-      - name: Copy Prometheus config to EC2 instance and trigger reload
-        run: |
-          OBSERVER_INSTANCE_IDS=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
-            --query "Reservations[*].Instances[*].InstanceId" --output text)
-          echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
-
-          if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
-            echo "No instances found matching the criteria."
-            exit 1
-          fi
-
-          IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
-
-          for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
-            aws ssm send-command \
-              --instance-ids "$ID" \
-              --document-name "AWS-RunShellScript" \
-              --parameters commands=["aws s3 cp s3://${{ env.INFRA_CONFIG_BUCKET }}/prometheus/prometheus.yml /etc/prometheus/prometheus.yml"] \
-              --region ${{ env.AWS_REGION }}
-          done
-
-      - name: Generate Thanos bucket_config
-        run: |
-          PROMETHEUS_IP=$(jq -r '.aws_instance_prometheus_private_ip.value' ./temp/terraform_outputs.json)
-          python ./infra/observability/thanos/src/generate_thanos_bucket_config.py ${INFRA_CONFIG_BUCKET} ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} ./temp/bucket_config.yaml
-
-      - name: Upload Thanos bucket_config to S3
-        run: |
-          aws s3 cp ./temp/bucket_config.yaml s3://${{ env.INFRA_CONFIG_BUCKET }}/thanos/bucket_config.yaml
-
-      - name: Add Thanos bucket_config to Observer
-        run: |
-          OBSERVER_INSTANCE_IDS=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
-            --query "Reservations[*].Instances[*].InstanceId" --output text)
-          echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
-
-          if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
-            echo "No instances found matching the criteria."
-            exit 1
-          fi
-
-          IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
-
-          for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
-            aws ssm send-command \
-              --instance-ids "$ID" \
-              --document-name "AWS-RunShellScript" \
-              --parameters commands=["aws s3 cp s3://${{ env.INFRA_CONFIG_BUCKET }}/thanos/bucket_config.yaml /etc/thanos/bucket_config.yaml"] \
-              --region ${{ env.AWS_REGION }}
-          done
-
-      - name: Upload Docker Compose File to S3
-        run: |
-          aws s3 cp ./infra/observability/docker-compose.yml s3://${{ env.INFRA_CONFIG_BUCKET }}/observability/docker-compose.yml
-
-      - name: Add Docker Compose to Observer
-        run: |
-          OBSERVER_INSTANCE_IDS=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
-            --query "Reservations[*].Instances[*].InstanceId" --output text)
-          echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
-
-          if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
-            echo "No instances found matching the criteria."
-            exit 1
-          fi
-
-          IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
-
-          for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
-            aws ssm send-command \
-              --instance-ids "$ID" \
-              --document-name "AWS-RunShellScript" \
-              --parameters commands=["aws s3 cp s3://${{ env.INFRA_CONFIG_BUCKET }}/observability/docker-compose.yml /etc/observability/docker-compose.yml"] \
-              --region ${{ env.AWS_REGION }}
-          done
-
-      - name: Run Docker Compose Up on EC2 Instance
-        run: |
-          if [ -z "${{ env.OBSERVER_INSTANCE_IDS }}" ]; then
-            echo "No instances found matching the criteria."
-            exit 1
-          fi
-
-          IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "${{ env.OBSERVER_INSTANCE_IDS }}"
-
-          for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
-            aws ssm send-command \
-              --instance-ids "$ID" \
-              --document-name "AWS-RunShellScript" \
-              --parameters commands=["sudo docker-compose -f /etc/observability/docker-compose.yml up -d"] \
-              --region ${{ env.AWS_REGION }}
-          done
-
-      - name: Reload Prometheus via HTTP
-        run: |
-          OBSERVER_INSTANCE_IDS=$(aws ec2 describe-instances \
-             --filters "Name=tag:Name,Values=${{ env.ENV_NAME }}-observability" "Name=instance-state-name,Values=running" \
-             --query "Reservations[*].Instances[*].InstanceId" --output text)
-          echo "OBSERVER_INSTANCE_IDS=$OBSERVER_INSTANCE_IDS" >> $GITHUB_ENV
-
-          if [ -z "$OBSERVER_INSTANCE_IDS" ]; then
-            echo "No instances found matching the criteria."
-            exit 1
-          fi
-
-          IFS=' ' read -r -a OBSERVER_INSTANCE_ID_ARRAY <<< "$OBSERVER_INSTANCE_IDS"
-
-          for ID in "${OBSERVER_INSTANCE_ID_ARRAY[@]}"; do
-            aws ssm send-command \
-              --instance-ids "$ID" \
-              --document-name "AWS-RunShellScript" \
-              --parameters commands=["curl -X POST http://localhost:9090/-/reload"] \
-              --region "$AWS_REGION"
-          done

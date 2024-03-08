@@ -120,3 +120,78 @@ resource "aws_iam_role_policy_attachment" "observer_role_ssm_policy_for_instance
   role       = aws_iam_role.observer_role.name
   policy_arn = aws_iam_policy.ssm_policy_for_instances.arn
 }
+
+
+resource "aws_iam_role" "ssm_managed_instance_role" {
+  name = "ssm-managed-instance-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+  tags = local.tags
+}
+
+resource "aws_iam_policy" "ssm_manager" {
+  name        = "ssm-manager"
+  description = "Allow SSM to manage instances"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "ssm:*"
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      },
+    ],
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_managed_instance_role_ssm_manager" {
+  role       = aws_iam_role.ssm_managed_instance_role.name
+  policy_arn = aws_iam_policy.ssm_manager.arn
+}
+
+resource "aws_iam_policy" "ssm_policy_for_instances" {
+  name        = "ssm-policy-for-instances"
+  description = "Allow SSM to manage instances"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "ssm:UpdateInstanceInformation",
+          "ssm:ListInstanceAssociations",
+          "ssm:DescribeInstanceInformation",
+          "ssm:SendCommand",
+          "ssm:ListCommands",
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations",
+          "ssm:CancelCommand",
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations",
+          "ssm:CancelCommand",
+          "ssm:ListCommands",
+          "ssm:SendCommand",
+          "ssm:DescribeInstanceInformation",
+          "ssm:ListInstanceAssociations",
+          "ssm:UpdateInstanceInformation"
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      },
+    ],
+  })
+  tags = local.tags
+}

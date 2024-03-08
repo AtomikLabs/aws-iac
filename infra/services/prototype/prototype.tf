@@ -121,7 +121,7 @@ resource "aws_iam_role_policy_attachment" "prototype_lambda_glue_policy_attach" 
   policy_arn = aws_iam_policy.lambda_glue_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_vpc_access_attachment" {
+resource "aws_iam_role_policy_attachment" "prototype_vpc_access_attachment" {
   role       = aws_iam_role.prototype_lambda_execution_role.name
   policy_arn = local.AWSLambdaVPCAccessExecutionRole
 }

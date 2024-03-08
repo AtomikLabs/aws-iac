@@ -1,7 +1,15 @@
+locals {
+  aws_vpc_id                          = var.aws_vpc_id
+  data_ingestion_metadata_key_prefix  = var.data_ingestion_metadata_key_prefix
+  environment                         = var.environment
+  home_ip                             = var.home_ip
+  infra_config_bucket_arn             = var.infra_config_bucket_arn
+  name                                = var.name
+  tags                                = var.tags
+}
+
 resource "aws_s3_bucket" "atomiklabs_data_bucket" {
-  bucket = "${local.environment}-${local.name}-data-bucket"
-  
-  
+  bucket = "${local.environment}-${local.name}-data-bucket"  
   tags = local.tags
 }
 
@@ -34,12 +42,12 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "data_encryption" 
 
 resource "aws_glue_catalog_database" "data_catalog_database" {
   name = "${local.environment}-data_catalog_database"
+  tags = local.tags
 }
 
 resource "aws_glue_catalog_table" "data_ingestion_metadata_table" {
   database_name = aws_glue_catalog_database.data_catalog_database.name
   name          = "${local.environment}-data_ingestion_metadata_table"
-
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
@@ -137,32 +145,32 @@ resource "aws_iam_role" "lambda_glue_role" {
       },
     ],
   })
+  tags = local.tags
 }
 
-resource "aws_iam_policy" "lambda_glue_policy" {
-  name        = "${local.environment}-lambda_glue_data_catalog_access_policy"
-  description = "IAM policy for accessing AWS Glue Data Catalog from Lambda"
+resource "aws_iam_policy" "s3_infra_config_bucket_access" {
+  name        = "${local.environment}-s3-infra-config-bucket-access"
+  description = "Allow access to the infra config bucket"
 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
         Action = [
-          "glue:GetDatabase",
-          "glue:GetDatabases",
-          "glue:GetTable",
-          "glue:GetTables",
-          "glue:SearchTables",
-          "glue:GetPartitions",
-          "glue:GetPartition",
-          "glue:StartCrawler",
-          "glue:UpdateTable",
-          "glue:CreateTable",
-        ],
-        Effect   = "Allow",
-        Resource = "*"
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:PutObjectAcl"
+        ]
+        Effect   = "Allow"
+        Resource = "${local.infra_config_bucket_arn}/*"
+      },
+      {
+        Action   = "s3:ListBucket"
+        Effect   = "Allow"
+        Resource = "${local.infra_config_bucket_arn}"
       },
     ],
   })
+  tags = local.tags
 }
-

@@ -353,7 +353,7 @@ def create_research_themes(research: str, category: str) -> str:
 
 def get_long_date(date: str):
     str_date = datetime.strptime(date, "%Y-%m-%d")
-    long_date = str_date.strftime("%B %d, %Y")
+    long_date = str_date.strftime("%B %-d, %Y")
     return long_date
 
 
@@ -1073,8 +1073,6 @@ def run_aws_test():
 
     write_to_files(extracted_data, FILE_PATHS)
     records = [record for data in extracted_data for record in data.get("records", [])]
-    # for data in extracted_data:
-    # persist_research_summaries(data['records'], AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
     print(f"Records: {len(records)}")
     for research_date in date_list:
         r = research_date.strftime("%Y-%m-%d")

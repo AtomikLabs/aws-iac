@@ -39,14 +39,14 @@ def config():
         "ARXIV_BASE_URL": "http://test.arxiv.org",
         "DATA_INGESTION_METADATA_KEY_PREFIX": "test_prefix",
         "ENVIRONMENT": "test",
-        "GLUE_DATABASE_NAME": "testDB",
-        "GLUE_TABLE_NAME": "testTable",
-        "MAX_FETCH_ATTEMPTS": "5",
-        "S3_BUCKET_NAME": "testBucket",
-        "S3_STORAGE_KEY_PREFIX": "testPrefix",
+        "DATA_CATALOG_DB_NAME": "testDB",
+        "METADATA_TABLE_NAME": "testTable",
+        "MAX_RETRIES": "5",
+        "DATA_BUCKET": "testBucket",
+        "DATA_INGESTION_KEY_PREFIX": "testPrefix",
         "SERVICE_NAME": "testService",
         "SERVICE_VERSION": "testVersion",
-        "SUMMARY_SET": "cs",
+        "ARXIV_SUMMARY_SET": "cs",
     }
 
 
@@ -71,7 +71,7 @@ def test_lambda_handler_success(
     mock_data_ingestion_metadata_instance = mock_data_ingestion_metadata.return_value
     mock_data_ingestion_metadata_instance.DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
     mock_data_ingestion_metadata_instance.S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
-    mock_data_ingestion_metadata_instance.S3_STORAGE_KEY_PREFIX = "test_prefix"
+    mock_data_ingestion_metadata_instance.DATA_INGESTION_KEY_PREFIX = "test_prefix"
     mock_get_metadata_key.return_value = "test_prefix/2024-02-17T12-00-00.json"
     mock_get_storage_key.return_value = "test_prefix/2024-02-17T12-00-00.json"
     mock_get_config.return_value = {
@@ -79,14 +79,14 @@ def test_lambda_handler_success(
         "ARXIV_BASE_URL": "http://test.arxiv.org",
         "DATA_INGESTION_METADATA_KEY_PREFIX": "test_prefix",
         "ENVIRONMENT": "test",
-        "GLUE_DATABASE_NAME": "testDB",
-        "GLUE_TABLE_NAME": "testTable",
-        "MAX_FETCH_ATTEMPTS": 5,
-        "S3_BUCKET_NAME": "testBucket",
-        "S3_STORAGE_KEY_PREFIX": "testPrefix",
+        "DATA_CATALOG_DB_NAME": "testDB",
+        "METADATA_TABLE_NAME": "testTable",
+        "MAX_RETRIES": 5,
+        "DATA_BUCKET": "testBucket",
+        "DATA_INGESTION_KEY_PREFIX": "testPrefix",
         "SERVICE_NAME": "testService",
         "SERVICE_VERSION": "testVersion",
-        "SUMMARY_SET": "cs",
+        "ARXIV_SUMMARY_SET": "cs",
     }
     mock_fetch_data.return_value = ["<xml>sample data</xml>"]
     lambda_handler(event, context)
@@ -101,14 +101,14 @@ def test_get_config_with_all_variables_set():
             "ARXIV_BASE_URL": "https://test.arxiv.org",
             "DATA_INGESTION_METADATA_KEY_PREFIX": "test_prefix",
             "ENVIRONMENT": "development",
-            "GLUE_DATABASE_NAME": "test_glue_db",
-            "GLUE_TABLE_NAME": "test_table",
-            "MAX_FETCH_ATTEMPTS": "3",
-            "S3_BUCKET_NAME": "test_bucket",
-            "S3_STORAGE_KEY_PREFIX": "test_prefix",
+            "DATA_CATALOG_DB_NAME": "test_glue_db",
+            "METADATA_TABLE_NAME": "test_table",
+            "MAX_RETRIES": "3",
+            "DATA_BUCKET": "test_bucket",
+            "DATA_INGESTION_KEY_PREFIX": "test_prefix",
             "SERVICE_NAME": "testService",
             "SERVICE_VERSION": "testVersion",
-            "SUMMARY_SET": "test_set",
+            "ARXIV_SUMMARY_SET": "test_set",
         },
     ):
         with patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger") as mock_logger:
@@ -116,7 +116,7 @@ def test_get_config_with_all_variables_set():
             assert config["APP_NAME"] == "test_app"
             assert config["ARXIV_BASE_URL"] == "https://test.arxiv.org"
             assert config["ENVIRONMENT"] == "development"
-            assert int(config["MAX_FETCH_ATTEMPTS"]) == 3
+            assert int(config["MAX_RETRIES"]) == 3
             mock_logger.debug.assert_called_once()
 
 
@@ -287,7 +287,7 @@ def test_calculate_mb():
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.time.strftime")
 def test_get_storage_key_valid_config(mock_strftime):
     mock_strftime.return_value = "2024-02-17"
-    config = {"S3_STORAGE_KEY_PREFIX": "test_prefix"}
+    config = {"DATA_INGESTION_KEY_PREFIX": "test_prefix"}
     expected_key = "test_prefix/2024-02-17.json"
     assert get_storage_key(config) == expected_key
 
