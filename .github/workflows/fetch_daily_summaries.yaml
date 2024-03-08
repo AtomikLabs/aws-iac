@@ -275,20 +275,3 @@ jobs:
         env:
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
           FETCH_DAILY_SUMMARIES_ARN: ${{ env.FETCH_DAILY_SUMMARIES_ARN }}
-
-      - name: Update .atomiklabs.json with New Version
-        id: update-config
-        run: |
-          config_file=".atomiklabs.json"
-          new_version="${{ steps.increment-version.outputs.new-version }}"
-          tmp_file=$(mktemp)
-          jq --arg new_version "$new_version" '.services.data_ingestion.fetch_daily_summaries.lambda_version = $new_version' "$config_file" > "$tmp_file"
-          mv "$tmp_file" "$config_file"
-
-      - name: Commit and Push Updated Config File
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          git add .atomiklabs.json
-          git commit -m "Update .atomiklabs.json with new fetch_daily_summaries version"
-          git push
