@@ -31,6 +31,7 @@ class ETLMetadata:
 
     The schema of the metadata must match the definition in the AWS Glue Data Catalog.
     """
+
     # TODO: Refactor for ETL specific metadata
     DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
     S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"

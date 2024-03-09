@@ -2,11 +2,12 @@
 
 import json
 import os
-from collections import defaultdict
-import structlog
 import urllib.parse
+from collections import defaultdict
+
 import boto3
 import defusedxml.ElementTree as ET
+import structlog
 
 # TODO: Add metadata
 from .storage_manager import StorageManager
@@ -102,8 +103,8 @@ def lambda_handler(event, context):
     """
     try:
         log_initial_info(event)
-        bucket_name = event['Records'][0]['s3']['bucket']['name']
-        key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+        bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
+        key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
         xml_data = load_xml_from_s3(bucket_name, key)
         extracted_data = []
         for xml in xml_data:

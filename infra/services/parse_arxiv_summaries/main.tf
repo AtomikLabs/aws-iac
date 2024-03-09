@@ -45,7 +45,7 @@ resource "aws_lambda_permission" "allow_eventbridge_to_invoke_parse_arxiv_summar
 }
 
 resource "aws_iam_policy" "eventbridge_policy" {
-  name        = "${local.environment}-event_bridge_policy"
+  name        = "${local.environment}-${local.service_name}-event_bridge_policy"
   path        = "/"
   description = "Policy to allow triggering lambdas from eventbridge"
   policy = jsonencode({
@@ -61,7 +61,7 @@ resource "aws_iam_policy" "eventbridge_policy" {
 }
 
 resource "aws_iam_role" "eventbridge_role" {
-  name = "${local.environment}-event_bridge_role"
+  name = "${local.environment}-${local.service_name}-event_bridge_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -78,7 +78,7 @@ resource "aws_iam_role" "eventbridge_role" {
 }
 
 resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
-  name       = "${local.environment}-event_bridge_policy_attachment"
+  name       = "${local.environment}-${local.service_name}-event_bridge_policy_attachment"
   roles      = [aws_iam_role.eventbridge_role.name]
   policy_arn = aws_iam_policy.eventbridge_policy.arn
 }
@@ -161,7 +161,7 @@ resource "aws_iam_policy" "parse_arxiv_summaries_lambda_s3_access" {
 }
 
 resource "aws_iam_policy" "lambda_glue_policy" {
-  name        = "${local.environment}-lambda_glue_data_catalog_access_policy"
+  name        = "${local.environment}-${local.service_name}-lambda_glue_data_catalog_access_policy"
   description = "IAM policy for accessing AWS Glue Data Catalog from Lambda"
 
   policy = jsonencode({
