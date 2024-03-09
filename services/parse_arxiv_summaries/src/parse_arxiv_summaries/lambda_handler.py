@@ -110,6 +110,7 @@ def lambda_handler(event, context):
             extracted_data.append(parse_xml_data(xml))
         print(type(extracted_data))
         print(type(extracted_data[0]))
+        # TODO: fix param type
         upload_to_s3(key, bucket_name, extracted_data)
         logger.info("Finished parsing arXiv daily summaries")
         return {"statusCode": 200, "body": "Success"}

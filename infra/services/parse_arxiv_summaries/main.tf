@@ -27,7 +27,7 @@ resource "aws_s3_bucket_notification" "parse_arxiv_summaries_s3_trigger" {
   bucket = local.data_bucket
 
   lambda_function {
-    lambda_function_arn = aws_lambda_function.parse_arxiv_summaries.arn
+    lambda_function_arn = "arn:aws:lambda:us-east-1:758145997264:function:dev-parse_arxiv_summaries"
     events              = ["s3:ObjectCreated:*"]
     filter_prefix       = "raw_data/data_ingestion/"
     filter_suffix       = ".json"
@@ -43,7 +43,7 @@ resource "aws_lambda_permission" "allow_s3_bucket" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.parse_arxiv_summaries.function_name
   principal     = "s3.amazonaws.com"
-  source_arn    = "${local.data_bucket_arn}/*"
+  source_arn    = "${local.data_bucket_arn}"
 }
 
 # **********************************************************
@@ -106,6 +106,7 @@ resource "aws_iam_policy" "parse_arxiv_summaries_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
+          "${local.data_bucket_arn}/raw_data/data_ingestion/*",
           "${local.data_bucket_arn}/parsed_data/data_ingestion/*",
           "${local.data_bucket_arn}/metadata/*"
         ]
