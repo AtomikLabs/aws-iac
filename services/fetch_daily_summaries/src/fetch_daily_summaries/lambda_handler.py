@@ -24,22 +24,23 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
+# TODO: Make these constants configurable
 BACKOFF_TIMES = [30, 120]
 DAY_SPAN = 5
 
 # ENVIRONMENT VARIABLES
 APP_NAME = "APP_NAME"
 ARXIV_BASE_URL = "ARXIV_BASE_URL"
+ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
+DATA_BUCKET = "DATA_BUCKET"
+DATA_CATALOG_DB_NAME = "DATA_CATALOG_DB_NAME"
 DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
 DATA_INGESTION_METADATA_KEY_PREFIX = "DATA_INGESTION_METADATA_KEY_PREFIX"
-DATA_BUCKET = "DATA_BUCKET"
 ENVIRONMENT_NAME = "ENVIRONMENT"
-DATA_CATALOG_DB_NAME = "DATA_CATALOG_DB_NAME"
-METADATA_TABLE_NAME = "METADATA_TABLE_NAME"
 MAX_RETRIES = "MAX_RETRIES"
+METADATA_TABLE_NAME = "METADATA_TABLE_NAME"
 SERVICE_NAME = "SERVICE_NAME"
 SERVICE_VERSION = "SERVICE_VERSION"
-ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
 
 # LOGGING CONSTANTS
 FETCH_DATA = "fetch_daily_summaries.lambda_handler.fetch_data"
@@ -77,7 +78,7 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-
+        # TODO: extract this to a function
         metadata = DataIngestionMetadata()
         metadata.app_name = config[APP_NAME]
         metadata.date_time = datetime.now()
@@ -120,6 +121,26 @@ def lambda_handler(event: dict, context) -> dict:
         return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
 
 
+def log_initial_info(event: dict) -> None:
+    """
+    Logs initial info.
+
+    Args:
+        event (dict): Event.
+    """
+    try:
+        logger.debug(
+            "Log variables",
+            method=LOG_INITIAL_INFO,
+            log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
+            log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
+        )
+        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="AWS")
+    except KeyError:
+        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="CI/CD or local")
+    logger.debug("Event received", method=LOG_INITIAL_INFO, trigger_event=event)
+
+
 def get_config() -> dict:
     """
     Gets the config from the environment variables.
@@ -148,26 +169,6 @@ def get_config() -> dict:
         raise e
 
     return config
-
-
-def log_initial_info(event: dict) -> None:
-    """
-    Logs initial info.
-
-    Args:
-        event (dict): Event.
-    """
-    try:
-        logger.debug(
-            "Log variables",
-            method=LOG_INITIAL_INFO,
-            log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
-            log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
-        )
-        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="AWS")
-    except KeyError:
-        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="CI/CD or local")
-    logger.debug("Event received", method=LOG_INITIAL_INFO, trigger_event=event)
 
 
 def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int, metadata: DataIngestionMetadata) -> list:
