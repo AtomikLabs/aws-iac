@@ -20,67 +20,30 @@ locals {
   service_version             = var.service_version
 }
 
-
 # **********************************************************
 # * TRIGGER                                                *
 # **********************************************************
-resource "aws_cloudwatch_event_rule" "parse_arxiv_summaries" {
-  name                = "${local.environment}-${local.service_name}"
-  description         = "Rule to trigger the ${local.service_name} lambda"
-  schedule_expression = "cron(0 11 * * ? *)" # 3:00 AM PST
-  role_arn            = aws_iam_role.eventbridge_role.arn
+resource "aws_s3_bucket_notification" "parse_arxiv_summaries_s3_trigger" {
+  bucket = local.data_bucket
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.parse_arxiv_summaries.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_prefix       = "raw_data/data_ingestion/"
+    filter_suffix       = ".json"
+  }
+
+  depends_on = [
+    aws_lambda_permission.allow_s3_bucket
+  ]
 }
 
-resource "aws_cloudwatch_event_target" "parse_arxiv_summaries_target" {
-  rule      = aws_cloudwatch_event_rule.parse_arxiv_summaries.name
-  arn       = aws_lambda_function.parse_arxiv_summaries.arn
-}
-
-resource "aws_lambda_permission" "allow_eventbridge_to_invoke_parse_arxiv_summaries" {
-  statement_id  = "AllowExecutionFromEventBridge"
+resource "aws_lambda_permission" "allow_s3_bucket" {
+  statement_id  = "AllowExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.parse_arxiv_summaries.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.parse_arxiv_summaries.arn
-}
-
-resource "aws_iam_policy" "eventbridge_policy" {
-  name        = "${local.environment}-${local.service_name}-event_bridge_policy"
-  path        = "/"
-  description = "Policy to allow triggering lambdas from eventbridge"
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = "lambda:InvokeFunction",
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role" "eventbridge_role" {
-  name = "${local.environment}-${local.service_name}-event_bridge_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "events.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
-  name       = "${local.environment}-${local.service_name}-event_bridge_policy_attachment"
-  roles      = [aws_iam_role.eventbridge_role.name]
-  policy_arn = aws_iam_policy.eventbridge_policy.arn
+  principal     = "s3.amazonaws.com"
+  source_arn    = "${local.data_bucket_arn}/*"
 }
 
 # **********************************************************
@@ -143,7 +106,7 @@ resource "aws_iam_policy" "parse_arxiv_summaries_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${local.data_bucket_arn}/raw_data/data_ingestion/*",
+          "${local.data_bucket_arn}/parsed_data/data_ingestion/*",
           "${local.data_bucket_arn}/metadata/*"
         ]
       },
