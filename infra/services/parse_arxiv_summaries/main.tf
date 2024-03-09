@@ -43,7 +43,7 @@ resource "aws_lambda_permission" "allow_s3_bucket" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.parse_arxiv_summaries.function_name
   principal     = "s3.amazonaws.com"
-  source_arn    = "${local.data_bucket_arn}/*"
+  source_arn    = "${local.data_bucket_arn}"
 }
 
 # **********************************************************
