@@ -23,6 +23,13 @@
         "service_version": "0.2.13",
         "max_retries": 10
       }
+    },
+    "etl": {
+      "etl_key_prefix": "data_management/etl",
+      "parse_arxiv_summaries": {
+        "service_name": "parse_arxiv_summaries",
+        "service_version": "0.0.1"
+      }
     }
   },
   "etl":

@@ -1,17 +1,49 @@
 # Description: Parse arXiv research summaries and send them to be persisted.
 
 import json
-import logging
+import os
 from collections import defaultdict
-
+import structlog
+import urllib.parse
 import boto3
 import defusedxml.ElementTree as ET
 
-logger = logging.getLogger(__name__)
-logging.getLogger().setLevel(logging.INFO)
+# TODO: Add metadata
+from .storage_manager import StorageManager
 
+structlog.configure(
+    [
+        structlog.stdlib.filter_by_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.dict_tracebacks,
+        structlog.processors.JSONRenderer(),
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+)
+
+logger = structlog.get_logger()
+
+# ENVIRONMENT VARIABLES
+APP_NAME = "APP_NAME"
+DATA_CATALOG_DB_NAME = "DATA_CATALOG_DB_NAME"
+DATA_BUCKET = "DATA_BUCKET"
+ENVIRONMENT_NAME = "ENVIRONMENT"
+ETL_KEY_PREFIX = "ETL_KEY_PREFIX"
+SERVICE_NAME = "SERVICE_NAME"
+SERVICE_VERSION = "SERVICE_VERSION"
+
+# LOGGING CONSTANTS
+# TODO: Centralize error messages
 INTERNAL_SERVER_ERROR = "Internal server error"
 NO_REGION_SPECIFIED = "No region specified"
+PARSE_DATA = "parse_arxiv_summaries.lambda_handler.fetch_data"
+GET_CONFIG = "parse_arxiv_summaries.lambda_handler.get_config"
+GET_STORAGE_KEY = "parse_arxiv_summaries.lambda_handler.get_storage_key"
+LAMBDA_HANDLER = "parse_arxiv_summaries.lambda_handler"
+LAMBDA_NAME = "parse_arxiv_summaries"
+LOG_INITIAL_INFO = "parse_arxiv_summaries.lambda_handler.log_initial_info"
+PERSIST_TO_S3 = "parse_arxiv_summaries.lambda_handler.persist_to_s3"
 
 cs_categories_inverted = {
     "Artifical Intelligence": "AI",
@@ -69,16 +101,15 @@ def lambda_handler(event, context):
         The response to be returned to the client.
     """
     try:
-        bucket_name = "dev-atomiklabs-data-bucket"
-        key = "raw_data/data_ingestion/2024-03-08T21-53-02.json"
-        print("loading xml data")
+        log_initial_info(event)
+        bucket_name = event['Records'][0]['s3']['bucket']['name']
+        key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
         xml_data = load_xml_from_s3(bucket_name, key)
-        print(len(xml_data))
-        print(xml_data[0])
         extracted_data = []
         for xml in xml_data:
-            extracted_data.append(parse_xml_data(xml, "2024-03-05"))
-        len(extracted_data)
+            extracted_data.append(parse_xml_data(xml))
+        print(type(extracted_data))
+        print(type(extracted_data[0]))
         upload_to_s3(key, bucket_name, extracted_data)
         logger.info("Finished parsing arXiv daily summaries")
         return {"statusCode": 200, "body": "Success"}
@@ -95,11 +126,45 @@ def log_initial_info(event: dict) -> None:
     Args:
         event (dict): Event.
     """
-    logger.info(f"Received event: {event}")
-    logger.info("Starting to parse arXiv summaries")
+    try:
+        logger.debug(
+            "Log variables",
+            method=LOG_INITIAL_INFO,
+            log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
+            log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
+        )
+        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="AWS")
+    except KeyError:
+        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="CI/CD or local")
+    logger.debug("Event received", method=LOG_INITIAL_INFO, trigger_event=event)
 
 
-def load_xml_from_s3(bucket_name: str, key: str) -> list[ET]:
+def get_config() -> dict:
+    """
+    Gets the config from the environment variables.
+
+    Returns:
+        dict: The config.
+    """
+    try:
+        config = {
+            APP_NAME: os.environ[APP_NAME],
+            DATA_BUCKET: os.environ[DATA_BUCKET],
+            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
+            ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
+            DATA_CATALOG_DB_NAME: os.environ[DATA_CATALOG_DB_NAME],
+            SERVICE_NAME: os.environ[SERVICE_NAME],
+            SERVICE_VERSION: os.environ[SERVICE_VERSION],
+        }
+        logger.debug("Config", method=GET_CONFIG, config=config)
+    except KeyError as e:
+        logger.error("Missing environment variable", method=GET_CONFIG, error=str(e))
+        raise e
+
+    return config
+
+
+def load_xml_from_s3(bucket_name: str, key: str):
     """
     Loads XML from S3.
 
@@ -122,7 +187,7 @@ def load_xml_from_s3(bucket_name: str, key: str) -> list[ET]:
     return json.loads(body)
 
 
-def parse_xml_data(xml_data: str, from_date: str) -> dict:
+def parse_xml_data(xml_data: str) -> dict:
     extracted_data_chunk = defaultdict(list)
 
     try:
