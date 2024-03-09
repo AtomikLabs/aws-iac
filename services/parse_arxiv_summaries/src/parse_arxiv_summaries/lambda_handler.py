@@ -3,7 +3,6 @@
 import json
 import os
 import urllib.parse
-from collections import defaultdict
 
 import boto3
 import defusedxml.ElementTree as ET
