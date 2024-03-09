@@ -10,7 +10,6 @@ import defusedxml.ElementTree as ET
 import structlog
 
 # TODO: Add metadata
-from .storage_manager import StorageManager
 
 structlog.configure(
     [
