@@ -15,6 +15,7 @@ locals {
   data_bucket                 = var.data_bucket
   data_bucket_arn             = "arn:aws:s3:::${var.data_bucket}"
   environment                 = var.environment
+  etl_key_prefix              = var.etl_key_prefix
   image_uri                   = var.image_uri
   service_name                = var.service_name
   service_version             = var.service_version
@@ -62,6 +63,7 @@ resource "aws_lambda_function" "parse_arxiv_summaries" {
       APP_NAME                              = local.app_name
       DATA_BUCKET                           = local.data_bucket
       ENVIRONMENT                           = local.environment
+      ETL_KEY_PREFIX                        = local.etl_key_prefix
       SERVICE_VERSION                       = local.service_version
       SERVICE_NAME                          = local.service_name
     }  

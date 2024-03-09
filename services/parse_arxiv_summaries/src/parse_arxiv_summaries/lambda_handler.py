@@ -8,8 +8,6 @@ import boto3
 import defusedxml.ElementTree as ET
 import structlog
 
-# TODO: Add metadata
-
 structlog.configure(
     [
         structlog.stdlib.filter_by_level,
@@ -25,7 +23,6 @@ logger = structlog.get_logger()
 
 # ENVIRONMENT VARIABLES
 APP_NAME = "APP_NAME"
-DATA_CATALOG_DB_NAME = "DATA_CATALOG_DB_NAME"
 DATA_BUCKET = "DATA_BUCKET"
 ENVIRONMENT_NAME = "ENVIRONMENT"
 ETL_KEY_PREFIX = "ETL_KEY_PREFIX"
@@ -38,9 +35,8 @@ INTERNAL_SERVER_ERROR = "Internal server error"
 NO_REGION_SPECIFIED = "No region specified"
 PARSE_DATA = "parse_arxiv_summaries.lambda_handler.fetch_data"
 GET_CONFIG = "parse_arxiv_summaries.lambda_handler.get_config"
-GET_STORAGE_KEY = "parse_arxiv_summaries.lambda_handler.get_storage_key"
 LAMBDA_HANDLER = "parse_arxiv_summaries.lambda_handler"
-LAMBDA_NAME = "parse_arxiv_summaries"
+LOAD_XML_FROM_S3 = "parse_arxiv_summaries.lambda_handler.load_xml_from_s3"
 LOG_INITIAL_INFO = "parse_arxiv_summaries.lambda_handler.log_initial_info"
 PERSIST_TO_S3 = "parse_arxiv_summaries.lambda_handler.persist_to_s3"
 
@@ -108,8 +104,7 @@ def lambda_handler(event, context):
         for xml in xml_data:
             extracted_records = parse_xml_data(xml)
             extracted_data["records"].extend(extracted_records)
-        # TODO: fix param type
-        upload_to_s3(key, bucket_name, extracted_data)
+        persist_to_s3(key, bucket_name, extracted_data)
         logger.info("Finished parsing arXiv daily summaries")
         return {"statusCode": 200, "body": "Success"}
 
@@ -151,7 +146,6 @@ def get_config() -> dict:
             DATA_BUCKET: os.environ[DATA_BUCKET],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
             ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
-            DATA_CATALOG_DB_NAME: os.environ[DATA_CATALOG_DB_NAME],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
@@ -159,7 +153,7 @@ def get_config() -> dict:
     except KeyError as e:
         logger.error("Missing environment variable", method=GET_CONFIG, error=str(e))
         raise e
-
+    logger.debug("Config", method=GET_CONFIG, config=config)
     return config
 
 
@@ -174,21 +168,34 @@ def load_xml_from_s3(bucket_name: str, key: str):
     Returns:
         XML.
     """
-    logger.info(f"Loading XML from S3 bucket {bucket_name}")
+    logger.info("Loading XML from S3 bucket", method=LOAD_XML_FROM_S3, bucket_name=bucket_name, key=key)
     if not bucket_name:
+        logger.error("Must provide a bucket name", method=LOAD_XML_FROM_S3, bucket_name=bucket_name, key=key)
         raise ValueError("Must provide a bucket name")
     if not key:
+        logger.error("Must provide a key", method=LOAD_XML_FROM_S3, bucket_name=bucket_name, key=key)
         raise ValueError("Must provide a key")
-
     s3 = boto3.resource("s3")
     obj = s3.Object(bucket_name, key)
     body = obj.get()["Body"].read()
+    logger.info("Loaded XML from S3 bucket", method=LOAD_XML_FROM_S3, bucket_name=bucket_name, key=key)
     return json.loads(body)
 
 
 def parse_xml_data(xml_data: str) -> list:
-    extracted_data_chunk = []
+    """
+    Parses raw arXiv XML data into a json format for further processing.
+    Returns a flat list of objects for each record in the XML with a selected
+    subset of fields.
 
+    Args:
+        xml_data (str): Raw arXiv XML data.
+
+    Returns:
+        list: Parsed data.
+    """
+    extracted_data_chunk = []
+    logger.info("Parsing XML data", method=PARSE_DATA, data_length=len(xml_data))
     try:
         root = ET.fromstring(xml_data)
         ns = {"oai": "http://www.openarchives.org/OAI/2.0/", "dc": "http://purl.org/dc/elements/1.1/"}
@@ -234,14 +241,14 @@ def parse_xml_data(xml_data: str) -> list:
                     "group": group,
                 }
             )
-
     except ET.ParseError as e:
-        print(f"Parse error: {e}")
+        logger.error("Failed to parse XML data", method=PARSE_DATA, error=str(e))
 
+    logger.info("Finished parsing XML data", method=PARSE_DATA, data_length=len(extracted_data_chunk))
     return extracted_data_chunk
 
 
-def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
+def persist_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
     """
     Uploads XML to S3.
 
@@ -251,11 +258,8 @@ def upload_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
         xml (dict): XML.
     """
     logger.info("Uploading to S3 bucket " + bucket_name + " as " + original_filename + "_parsed.xml")
+    # TODO: use etl key prefix and update filenames to have data ingestion id in name
     s3 = boto3.client("s3")
     s3.put_object(
         Body=json.dumps(xml), Bucket=bucket_name, Key=(original_filename + "_parsed.json").replace("raw", "parsed")
     )
-
-
-if __name__ == "__main__":
-    lambda_handler({}, {})
