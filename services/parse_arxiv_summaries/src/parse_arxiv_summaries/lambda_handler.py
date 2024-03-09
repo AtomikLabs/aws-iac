@@ -109,8 +109,6 @@ def lambda_handler(event, context):
         for xml in xml_data:
             extracted_records = parse_xml_data(xml)
             extracted_data["records"].extend(extracted_records)
-        print(type(extracted_data))
-        print(type(extracted_data[0]))
         # TODO: fix param type
         upload_to_s3(key, bucket_name, extracted_data)
         logger.info("Finished parsing arXiv daily summaries")
@@ -189,8 +187,8 @@ def load_xml_from_s3(bucket_name: str, key: str):
     return json.loads(body)
 
 
-def parse_xml_data(xml_data: str) -> dict:
-    extracted_data_chunk = defaultdict(list)
+def parse_xml_data(xml_data: str) -> list:
+    extracted_data_chunk = []
 
     try:
         root = ET.fromstring(xml_data)
@@ -224,7 +222,7 @@ def parse_xml_data(xml_data: str) -> dict:
             date = date_elements[0].text
             group = "cs"
 
-            extracted_data_chunk["records"].append(
+            extracted_data_chunk.append(
                 {
                     "identifier": identifier,
                     "abstract_url": abstract_url,
