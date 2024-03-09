@@ -105,11 +105,10 @@ def lambda_handler(event, context):
         bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
         key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
         xml_data = load_xml_from_s3(bucket_name, key)
-        extracted_data = {}
-        extracted_data["records"] = []
-        # add data from each parse_xml_data calls' ['records'] to extracted_data['records']
+        extracted_data = {"records": []}
         for xml in xml_data:
-            extracted_data["records"].extend(parse_xml_data(xml)["records"])
+            extracted_records = parse_xml_data(xml)
+            extracted_data["records"].extend(extracted_records)
         print(type(extracted_data))
         print(type(extracted_data[0]))
         # TODO: fix param type
