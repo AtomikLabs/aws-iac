@@ -21,6 +21,32 @@ locals {
 }
 
 # **********************************************************
+# * TRIGGER                                                *
+# **********************************************************
+resource "aws_s3_bucket_notification" "parse_arxiv_summaries_s3_trigger" {
+  bucket = local.data_bucket
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.parse_arxiv_summaries.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_prefix       = "raw_data/data_ingestion/"
+    filter_suffix       = ".json"
+  }
+
+  depends_on = [
+    aws_lambda_permission.allow_s3_bucket
+  ]
+}
+
+resource "aws_lambda_permission" "allow_s3_bucket" {
+  statement_id  = "AllowExecutionFromS3Bucket"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.parse_arxiv_summaries.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = "${local.data_bucket_arn}/*"
+}
+
+# **********************************************************
 # * SERVICE                                                *
 # **********************************************************
 resource "aws_lambda_function" "parse_arxiv_summaries" {
