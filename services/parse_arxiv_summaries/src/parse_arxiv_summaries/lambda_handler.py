@@ -240,4 +240,4 @@ def get_output_key(config, key: str) -> str:
     """
     today = date.today().strftime("%Y-%m-%d")
     filename = key.split("/")[-1]
-    return f"{config[ETL_KEY_PREFIX]}/{today}-{filename}.json"
+    return f"{config[ETL_KEY_PREFIX]}/{today}-{filename}"
