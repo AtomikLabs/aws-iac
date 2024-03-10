@@ -23,6 +23,11 @@ variable "data_catalog_db_name" {
   type          = string
 }
 
+variable "data_ingestion_key_prefix" {
+  description   = "The prefix for the data ingestion keys"
+  type          = string
+}
+
 variable "environment" {
   description   = "The environment where the service is deployed"
   type          = string

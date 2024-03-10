@@ -14,6 +14,7 @@ locals {
   basic_execution_role_arn    = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   data_bucket                 = var.data_bucket
   data_bucket_arn             = "arn:aws:s3:::${var.data_bucket}"
+  data_ingestion_key_prefix   = var.data_ingestion_key_prefix
   environment                 = var.environment
   etl_key_prefix              = var.etl_key_prefix
   image_uri                   = var.image_uri
@@ -108,8 +109,8 @@ resource "aws_iam_policy" "parse_arxiv_summaries_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${local.data_bucket_arn}/raw_data/data_ingestion/*",
-          "${local.data_bucket_arn}/parsed_data/data_ingestion/*",
+          "${local.data_bucket_arn}/${local.data_ingestion_key_prefix}/*",
+          "${local.data_bucket_arn}/${local.etl_key_prefix}/*",
           "${local.data_bucket_arn}/metadata/*"
         ]
       },
