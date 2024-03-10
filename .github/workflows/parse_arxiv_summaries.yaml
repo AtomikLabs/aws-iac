@@ -33,6 +33,7 @@ jobs:
           config_file=".atomiklabs.json"
           echo "APP_NAME=$(jq -r '.app_name' "$config_file")" >> $GITHUB_ENV
           echo "AWS_REGION=$(jq -r '.infra.terraform_aws_region' "$config_file")" >> $GITHUB_ENV
+          echo "ETL_KEY_PREFIX=$(jq -r '.services.etl.etl_key_prefix' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET_ARN=$(jq -r '.infra.infra_config_bucket_arn' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
@@ -220,6 +221,7 @@ jobs:
           TF_VAR_data_bucket_arn: ${{ env.DATA_BUCKET_ARN }}
           TF_VAR_data_catalog_db_name: ${{ env.DATA_CATALOG_DB_NAME }}
           TF_VAR_environment: ${{ env.ENV_NAME }}
+          TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
           TF_VAR_image_uri: ${{ env.IMAGE_URI }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}
           TF_VAR_service_version: ${{ steps.increment-version.outputs.new-version }}
@@ -239,6 +241,7 @@ jobs:
           TF_VAR_data_bucket_arn: ${{ env.DATA_BUCKET_ARN }}
           TF_VAR_data_catalog_db_name: ${{ env.DATA_CATALOG_DB_NAME }}
           TF_VAR_environment: ${{ env.ENV_NAME }}
+          TF_VAR_etl_key_prefix: ${{ env.ETL_KEY_PREFIX }}
           TF_VAR_image_uri: ${{ env.IMAGE_URI }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}
           TF_VAR_service_version: ${{ steps.increment-version.outputs.new-version }}

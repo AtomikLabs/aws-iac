@@ -29,6 +29,11 @@ variable "environment" {
   default       = "dev"
 }
 
+variable "etl_key_prefix" {
+  description   = "The prefix for the ETL keys"
+  type          = string
+}
+
 variable "image_uri" {
   description   = "The name of the Docker image"
   type          = string
