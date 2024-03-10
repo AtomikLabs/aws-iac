@@ -8,6 +8,8 @@ import boto3
 import defusedxml.ElementTree as ET
 import structlog
 
+from .storage_manager import StorageManager
+
 structlog.configure(
     [
         structlog.stdlib.filter_by_level,
@@ -99,12 +101,14 @@ def lambda_handler(event, context):
         log_initial_info(event)
         bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
         key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
+        storage_manager = StorageManager(bucket_name, logger)
         xml_data = load_xml_from_s3(bucket_name, key)
         extracted_data = {"records": []}
         for xml in xml_data:
             extracted_records = parse_xml_data(xml)
             extracted_data["records"].extend(extracted_records)
-        persist_to_s3(key, bucket_name, extracted_data)
+        content_str = json.dumps(extracted_data)
+        storage_manager.persist(key, content_str)
         logger.info("Finished parsing arXiv daily summaries")
         return {"statusCode": 200, "body": "Success"}
 
