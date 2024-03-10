@@ -12,7 +12,10 @@ structlog.configure(
     logger_factory=structlog.stdlib.LoggerFactory(),
 )
 
+logger = structlog.get_logger()
+
 # Logging constants
+LOAD = "StorageManager.load"
 PERSIST = "StorageManager.persist"
 
 
@@ -30,6 +33,30 @@ class StorageManager:
             logger.error("Invalid bucket_name", bucket_name=bucket_name)
             raise ValueError("bucket_name must be a non-empty string")
         self.bucket_name = bucket_name
+
+    def load(self, key: str):
+        """
+        Load the content from an AWS S3 bucket with the given key.
+
+        Args:
+            key: The key to use when loading the content from the S3 bucket.
+
+        Returns:
+            The content stored in the S3 bucket with the given deserialized
+            from JSON.
+        """
+        logger.info("Loading XML from S3 bucket", method=LOAD, bucket_name=self.bucket_name, key=key)
+        if not self.bucket_name:
+            logger.error("Must provide a bucket name", method=LOAD, bucket_name=self.bucket_name, key=key)
+            raise ValueError("Must provide a bucket name")
+        if not key:
+            logger.error("Must provide a key", method=LOAD, bucket_name=self.bucket_name, key=key)
+            raise ValueError("Must provide a key")
+        s3 = boto3.resource("s3")
+        obj = s3.Object(self.bucket_name, key)
+        body = obj.get()["Body"].read()
+        logger.info("Loaded data from S3 bucket", method=LOAD, bucket_name=self.bucket_name, key=key)
+        return body
 
     def persist(self, key: str, content: str) -> None:
         """

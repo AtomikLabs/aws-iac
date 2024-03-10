@@ -1,10 +1,9 @@
 # Description: Parse arXiv research summaries and send them to be persisted.
-
 import json
 import os
 import urllib.parse
+from datetime import date
 
-import boto3
 import defusedxml.ElementTree as ET
 import structlog
 
@@ -43,7 +42,7 @@ LOG_INITIAL_INFO = "parse_arxiv_summaries.lambda_handler.log_initial_info"
 PERSIST_TO_S3 = "parse_arxiv_summaries.lambda_handler.persist_to_s3"
 
 cs_categories_inverted = {
-    "Computer Science - Artifical Intelligence": "AI",
+    "Computer Science - Artificial Intelligence": "AI",
     "Computer Science - Hardware Architecture": "AR",
     "Computer Science - Computational Complexity": "CC",
     "Computer Science - Computational Engineering, Finance, and Science": "CE",
@@ -99,16 +98,18 @@ def lambda_handler(event, context):
     """
     try:
         log_initial_info(event)
+        config = get_config()
         bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
         key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
         storage_manager = StorageManager(bucket_name, logger)
-        xml_data = load_xml_from_s3(bucket_name, key)
+        xml_data = json.loads(storage_manager.load(key))
         extracted_data = {"records": []}
         for xml in xml_data:
             extracted_records = parse_xml_data(xml)
             extracted_data["records"].extend(extracted_records)
         content_str = json.dumps(extracted_data)
-        storage_manager.persist(key, content_str)
+        output_key = get_output_key(config[ETL_KEY_PREFIX])
+        storage_manager.persist(output_key, content_str)
         logger.info("Finished parsing arXiv daily summaries")
         return {"statusCode": 200, "body": "Success"}
 
@@ -159,31 +160,6 @@ def get_config() -> dict:
         raise e
     logger.debug("Config", method=GET_CONFIG, config=config)
     return config
-
-
-def load_xml_from_s3(bucket_name: str, key: str):
-    """
-    Loads XML from S3.
-
-    Args:
-        bucket_name (str): Bucket name.
-        key (str): Key.
-
-    Returns:
-        XML.
-    """
-    logger.info("Loading XML from S3 bucket", method=LOAD_XML_FROM_S3, bucket_name=bucket_name, key=key)
-    if not bucket_name:
-        logger.error("Must provide a bucket name", method=LOAD_XML_FROM_S3, bucket_name=bucket_name, key=key)
-        raise ValueError("Must provide a bucket name")
-    if not key:
-        logger.error("Must provide a key", method=LOAD_XML_FROM_S3, bucket_name=bucket_name, key=key)
-        raise ValueError("Must provide a key")
-    s3 = boto3.resource("s3")
-    obj = s3.Object(bucket_name, key)
-    body = obj.get()["Body"].read()
-    logger.info("Loaded XML from S3 bucket", method=LOAD_XML_FROM_S3, bucket_name=bucket_name, key=key)
-    return json.loads(body)
 
 
 def parse_xml_data(xml_data: str) -> list:
@@ -252,18 +228,15 @@ def parse_xml_data(xml_data: str) -> list:
     return extracted_data_chunk
 
 
-def persist_to_s3(original_filename: str, bucket_name: str, xml: dict) -> None:
+def get_output_key(key: str) -> str:
     """
-    Uploads XML to S3.
+    Gets the output key.
 
     Args:
-        original_filename (str): Original filename.
-        bucket_name (str): Bucket name.
-        xml (dict): XML.
+        key (str): Key.
+
+    Returns:
+        str: The output key.
     """
-    logger.info("Uploading to S3 bucket " + bucket_name + " as " + original_filename + "_parsed.xml")
-    # TODO: use etl key prefix and update filenames to have data ingestion id in name
-    s3 = boto3.client("s3")
-    s3.put_object(
-        Body=json.dumps(xml), Bucket=bucket_name, Key=(original_filename + "_parsed.json").replace("raw", "parsed")
-    )
+    today = date.today().strftime("%Y-%m-%d")
+    return f"{os.environ[ETL_KEY_PREFIX]}/{today}/{key}"
