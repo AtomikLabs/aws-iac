@@ -226,7 +226,6 @@ docker run --restart=always \
 -e NEO4J_dbms_logs_security_level=INFO \
 -e NEO4J_dbms_logs_http_level=INFO \
 -e NEO4J_dbms_logs_tx_level=INFO \
--e NEO4J_PLUGINS='["apoc"]' \
 -e NEO4J_AUTH=neo4j/password \
 --name neo4j \
 neo4j:latest
