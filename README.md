@@ -34,4 +34,4 @@ None of this would be possible without [arXiv](https://arxiv.org/). It's easy to
 - Neo4j Community (self-hosted)
 - Languages: Python, JavaScript, HCL
 
-<a href="https://www.patreon.com/bePatron?u=13955935" data-patreon-widget-type="become-patron-button">Support AtomikLabs</a><script async src="https://c6.patreon.com/becomePatronButton.bundle.js"></script>
+[Help keep the lights on the coder caffeinated](patreon.com/AtomikLabs).
