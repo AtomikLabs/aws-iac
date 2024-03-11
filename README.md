@@ -38,4 +38,4 @@ None of this would be possible without [arXiv](https://arxiv.org/). It's easy to
 - Neo4j Community (self-hosted)
 
 ## Support
-Help keep the lights on the coder caffeinated by [supporting AtomikLabs on Patreon](patreon.com/AtomikLabs).
+Help keep the lights on and the coder caffeinated by [supporting AtomikLabs on Patreon](patreon.com/AtomikLabs).
