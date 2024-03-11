@@ -1,41 +1,43 @@
-[![Infrastructure CI/CD](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml)
-[![Tests](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml)
-[![Lint and Format](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml)
+[![Infrastructure CI/CD](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/infra.yaml)  
+[![Fetch Daily Summaries CI/CD](https://github.com/AtomikLabs/atomiklabs/actions/workflows/fetch_daily_summaries.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/fetch_daily_summaries.yaml)  
+[![Parse arXiv Summaries CI/CD](https://github.com/AtomikLabs/atomiklabs/actions/workflows/parse_arxiv_summaries.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/parse_arxiv_summaries.yaml)  
+[![Tests](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/tests.yaml)  
+[![Lint and Format](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml/badge.svg)](https://github.com/AtomikLabs/atomiklabs/actions/workflows/lint_and_format.yaml)  
 
-Overview of AtomikLabs
-=======================
+I want to model AI and computer science and build tools that augment anyone who wants to understand, build, or research in the field.
 
-Introduction
-------------
+It started as a project to help me stay current as I move through grad school. Now AtomikLabs supports about ~800 subscribers to daily TechcraftingAI research summary newsletters and TTS podcasts.
 
-AtomikLabs is an open science platform aimed at using AI speed up and improve AI research itself. The goal is provide services and tools that help researchers access, understand, and synthesize the latest advances in the field.
+TechcraftingAI Computer Vision - [newsletter](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7171170030766710784), [podcast](https://podcasters.spotify.com/pod/show/brad-edwards24)  
+TechcraftingAI NLP - [newsletter](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7114658433022259200), [podcast](https://podcasters.spotify.com/pod/show/brad-edwards7)  
+TechcraftingAI Robotics - [newsletter](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7122964022873784320), [podcast](https://podcasters.spotify.com/pod/show/brad-edwards1)  
 
-Mission and Vision
-------------------
+## Current Status
 
-The mission of AtomikLabs is to accelerate the pace of discovery and collaboration within the AI research community. Our vision is to create a space where researchers, students, and AI enthusiasts can easily interact with cutting-edge findings, fostering an environment of open science and shared learning.
+I am building the data pipeline and populating the graph database that will support all future development. The next major step is a research news site that will host the podcasts, showcase the latest research, and allow users to sign up for customized research newsletters.
 
-Planned Platform Features
------------------
+## Thanks to arXiv and Cornell University
+None of this would be possible without [arXiv](https://arxiv.org/). It's easy to take that resource for granted, but the contribution it makes to open science is immeasurable.
 
-- **Automated Podcast Generation**: AtomikLabs features a unique tool that converts the latest AI research papers into engaging, easily digestible podcasts, making complex information more accessible.
-- **Automated Newsletters**: Stay informed with our automated newsletters, which provide personalized summaries of significant developments in AI research.
-- **Research Repository**: Our platform will offer a comprehensive repository of AI research papers, allowing users to easily search and access the latest studies.
-- **Citation Tracker**: AtomikLabs will provide a citation tracker that allows users to track the impact of their research and monitor the latest citations.
-- **Research Synthesis Tools**: Our platform offers a suite of tools designed to help users synthesize and analyze AI research, empowering them with the ability to draw insights and make connections across various studies.
-- **News Services**: AtomikLabs will provide a news service that aggregates the latest AI news from across the web, allowing users to stay up-to-date on the latest developments in the field.
+### Tech Stack
 
-Target Audience
----------------
+- GitHub Actions and Workflows for CI/CD
+- Languages: Python, JavaScript, HCL (Terraform)
+- AWS
+  - Lambda
+  - ECR
+  - EC2
+  - DynamoDB
+  - s3
+  - Polly
+  - EventBridge
+  - VPC
+  - SecretsManager
+  - IAM
+  - SessionManager
+  - CloudWatch
+  - Route53
+- Neo4j Community (self-hosted)
 
-AtomikLabs is built for anyone who wants to understand and research AI.
-
-Platform Architecture
----------------------
-
-AtomikLabs was built with a serverless, event-driven microservices architecture, ensuring scalability and efficiency. Hosted on AWS, our infrastructure employs nested CloudFormation templates, allowing for robust, modular deployment across multiple environments.
-
-Future Roadmap
---------------
-
-Looking ahead, AtomikLabs plans to integrate advanced NLP and ML tools to further enhance the research experience. The roadmap includes features that will allow more in-depth analysis and interpretation of AI studies, supporting researchers in uncovering new insights.
+## Support
+Help keep the lights on and the coder caffeinated by [supporting AtomikLabs on Patreon](patreon.com/AtomikLabs).
