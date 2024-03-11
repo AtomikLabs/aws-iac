@@ -1,5 +1,5 @@
 locals {
-  availability_zone_available_names             = data.aws_availability_zones.available.names
+  availability_zone_available_names             = var.availability_zones
   aws_vpc_id                                    = var.aws_vpc_id
   data_ingestion_metadata_key_prefix            = var.data_ingestion_metadata_key_prefix
   default_ami_id                                = var.default_ami_id
