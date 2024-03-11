@@ -13,6 +13,7 @@ locals {
   neo4j_resource_prefix                         = var.neo4j_resource_prefix
   private_subnets                               = var.private_subnets
   region                                        = var.region
+  ssm_policy_for_instances_arn                  = var.ssm_policy_for_instances_arn
   tags                                          = var.tags
 }
 
@@ -343,4 +344,30 @@ resource "aws_security_group" "neo4j_security_group" {
       "Name" = "${local.environment}-neo4j-sg"
     }
   )
+}
+
+resource "aws_iam_role" "neo4j_instance_role" {
+  name = "${local.environment}-neo4j-instance-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "neo4j_role_ssm_policy_for_instances" {
+  role       = aws_iam_role.neo4j_instance_role.name
+  policy_arn = local.ssm_policy_for_instances_arn
+}
+
+resource "aws_iam_instance_profile" "neo4j_instance_profile" {
+  name = "${local.environment}-neo4j-instance-profile"
+  role = aws_iam_role.neo4j_instance_role.name
 }

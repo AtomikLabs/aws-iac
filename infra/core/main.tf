@@ -41,6 +41,7 @@ locals {
   infra_config_prefix             = var.infra_config_prefix
   name                            = var.name
   repo                            = var.repo
+  ssm_policy_for_instances_arn    = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   terraform_outputs_prefix        = var.terraform_outputs_prefix
   
   # **********************************************************
@@ -84,6 +85,7 @@ module "data_management" {
   neo4j_resource_prefix                         = local.neo4j_resource_prefix
   private_subnets                               = module.networking.aws_private_subnet_ids
   region                                        = local.aws_region
+  ssm_policy_for_instances_arn                  = local.ssm_policy_for_instances_arn 
   tags                                          = local.tags
 }
 

@@ -70,6 +70,11 @@ variable "region" {
   type        = string
 }
 
+variable "ssm_policy_for_instances_arn" {
+  description = "SSM policy for instances ARN"
+  type        = string
+}
+
 variable "tags" {
   description = "Tags"
   type        = map(string)
