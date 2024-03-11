@@ -190,6 +190,7 @@ resource "aws_instance" "neo4j_host" {
   iam_instance_profile = aws_iam_instance_profile.neo4j_instance_profile.name
   key_name = "${local.environment}-${local.neo4j_key_pair_name}"
   subnet_id = element(local.private_subnets, 0)
+  public_ip = true
   user_data = <<-EOF
 #!/bin/bash
 

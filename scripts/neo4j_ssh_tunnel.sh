@@ -8,6 +8,6 @@ fi
 PRIVATE_IP=$1
 BASTION_IP=$2
 
-ssh -L 7687:${PRIVATE_IP}:7687 -N -f -i ~/.ssh/dev-atomiklabs-bastion-keypair.pem ec2-user@${BASTION_IP}
+ssh -L 7474:${PRIVATE_IP}:7474 -L 7687:${PRIVATE_IP}:7687 -N -f -i ~/.ssh/dev-atomiklabs-bastion-keypair.pem ec2-user@${BASTION_IP}
 
 echo "SSH tunnel established to ${PRIVATE_IP} via ${BASTON_IP}."
