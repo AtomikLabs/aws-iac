@@ -228,6 +228,10 @@ EOF
   ]
 
   depends_on = [ aws_ebs_volume.neo4j_ebs_volume ]
+
+  tags = {
+    Name = "${local.environment}-neo4j-host"
+  }
 }
 
 resource "aws_ebs_volume" "neo4j_ebs_volume" {
