@@ -8,7 +8,7 @@
   },
   "data_management": {
     "neo4j": {
-      "ami_id": "ami-0440d3b780d96b29d",
+      "ami_id": "ami-0f403e3180720dd7e",
       "instance_type": "t3a.small",
       "key_pair_name": "atomiklabs-neo4j-keypair",
       "resource_prefix": "data-management-neo4j"
@@ -20,7 +20,7 @@
     },
   "infra":{
     "backend_dynamodb_table": "atomiklabs-terraform-locks",
-    "default_ami_id": "ami-0440d3b780d96b29d",
+    "default_ami_id": "ami-0f403e3180720dd7e",
     "infra_config_bucket": "atomiklabs-infra-config-bucket",
     "infra_config_bucket_arn": "arn:aws:s3:::atomiklabs-infra-config-bucket",
     "infra_config_prefix": "terraform/terraform.state",
