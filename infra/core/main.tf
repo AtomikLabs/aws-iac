@@ -68,6 +68,17 @@ module "networking" {
   home_ip                           = var.home_ip
 }
 
+ module "security" {
+  source = "./security"
+
+  aws_ssm_managed_instance_core_arn = local.ssm_policy_for_instances_arn
+  bastion_host_key_pair_name        = local.bastion_host_key_pair_name
+  environment                       = local.environment
+  home_ip                           = local.home_ip
+  public_subnets                    = module.networking.aws_public_subnet_ids
+  vpc_id                            = module.networking.main_vpc_id
+ }
+
 module "data_management" {
   source = "./data_management"
 

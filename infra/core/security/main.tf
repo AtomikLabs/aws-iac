@@ -1,6 +1,10 @@
-resource "aws_iam_role_policy_attachment" "bastion_host_role_s3_infra_bucket" {
-  role       = aws_iam_role.bastion_host_role.name
-  policy_arn = aws_iam_policy.s3_infra_config_bucket_access.arn
+locals {
+  AmazonSSMManagedInstanceCoreARN     = var.aws_ssm_managed_instance_core_arn
+  bastion_host_key_pair_name          = var.bastion_host_key_pair_name
+  environment                         = var.environment
+  home_ip                             = var.home_ip
+  public_subnets                      = var.public_subnets
+  vpc_id                              = var.vpc_id
 }
 
 resource "aws_iam_role_policy_attachment" "bastion_role_ssm_managed_instance" {
@@ -13,17 +17,11 @@ resource "aws_iam_instance_profile" "bastion_host_profile" {
   role = aws_iam_role.bastion_host_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "bastion_role_ssm_policy_for_instances" {
-  role       = aws_iam_role.bastion_host_role.name
-  policy_arn = aws_iam_policy.ssm_policy_for_instances.arn
-}
-
 resource "aws_instance" "bastion_host" {
   ami                   = "ami-0440d3b780d96b29d" # ec2
   instance_type         = "t2.micro"
-  subnet_id             = element(aws_subnet.public.*.id, 0)
+  subnet_id             = element(local.public_subnets, 0)
   key_name              = "${local.environment}-${local.bastion_host_key_pair_name}"
-  user_data             = file("../../infra/core/networking/src/init-instance.sh")
   iam_instance_profile  = aws_iam_instance_profile.bastion_host_profile.name
 
   vpc_security_group_ids = [
@@ -55,20 +53,13 @@ resource "aws_iam_role" "bastion_host_role" {
 resource "aws_security_group" "bastion_sg" {
   name        = "${local.environment}-bastion-sg"
   description = "Security group for Bastion Host"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = local.vpc_id
 
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = [local.home_ip]
-  }
-
-  ingress {
-    from_port   = 9100
-    to_port     = 9100
-    protocol    = "tcp"
-    cidr_blocks = [for subnet in aws_subnet.private : subnet.cidr_block]
   }
 
   egress {
