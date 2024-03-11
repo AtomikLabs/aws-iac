@@ -193,35 +193,41 @@ resource "aws_instance" "neo4j_host" {
   user_data = <<-EOF
 #!/bin/bash
 
-amazon-linux-extras install docker -y
-service docker start
+yum install docker -y
+systemctl start docker
+systemctl enable docker
 usermod -a -G docker ec2-user
 
-mkdir -p /neo4j/data
-mkdir -p /neo4j/logs
-
-if ! blkid /dev/sdh | grep -q ext4; then
-mkfs.ext4 /dev/sdh
+target=$(readlink -f /dev/sdh)
+if sudo file -s "$target" | grep -q "ext"; then
+  echo "Filesystem exists on target"
+else
+  /usr/sbin/mkfs.ext4 /dev/sdh
 fi
 
 mount /dev/sdh /neo4j
+mkdir -p /neo4j/data
+mkdir -p /neo4j/logs
 
-docker run --restart=always
--p 7474:7474 -p 7687:7687
--v /neo4j/data:/data
--v /neo4j/logs:/logs
--e NEO4J_dbms_memory_pagecache_size=1G
--e NEO4J_dbms_memory_heap_initial__size=1G
--e NEO4J_dbms_memory_heap_max__size=1G
--e NEO4J_dbms_logs_debug_level=INFO
--e NEO4J_dbms_logs_gc_enabled=false
--e NEO4J_dbms_logs_query_enabled=false
--e NEO4J_dbms_logs_security_level=INFO
--e NEO4J_dbms_logs_http_level=INFO
--e NEO4J_dbms_logs_tx_level=INFO
--e NEO4J_PLUGINS='["apoc", "graph-data-science", "graph-algorithms"]'
--e NEO4J_AUTH=neo4j/password
---name neo4j
+chown :docker /neo4j/data /neo4j/logs
+chmod g+rwx /neo4j/data /neo4j/logs
+
+docker run --restart=always \
+-p 7474:7474 -p 7687:7687 \
+-v /neo4j/data:/data \
+-v /neo4j/logs:/logs \
+-e NEO4J_dbms_memory_pagecache_size=1G \
+-e NEO4J_dbms_memory_heap_initial__size=1G \
+-e NEO4J_dbms_memory_heap_max__size=1G \
+-e NEO4J_dbms_logs_debug_level=INFO \
+-e NEO4J_dbms_logs_gc_enabled=false \
+-e NEO4J_dbms_logs_query_enabled=false \
+-e NEO4J_dbms_logs_security_level=INFO \
+-e NEO4J_dbms_logs_http_level=INFO \
+-e NEO4J_dbms_logs_tx_level=INFO \
+-e NEO4J_PLUGINS='["apoc"]' \
+-e NEO4J_AUTH=neo4j/password \
+--name neo4j \
 neo4j:latest
 EOF
 
