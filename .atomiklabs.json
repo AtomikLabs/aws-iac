@@ -1,63 +1,71 @@
 {
   "version": 1,
   "app_name": "atomiklabs",
-  "infra":{
-    "infra_config_bucket": "atomiklabs-infra-config-bucket",
-    "infra_config_bucket_arn": "arn:aws:s3:::atomiklabs-infra-config-bucket",
-    "infra_config_prefix": "terraform/terraform.state",
-    "backend_dynamodb_table": "atomiklabs-terraform-locks",
-    "terraform_outputs_prefix": "terraform-outputs",
-    "repo": "github.com/AtomikLabs/atomiklabs",
-    "terraform_aws_region": "us-east-1"
-  },
   "arxiv": {
     "arxiv_base_url": "http://export.arxiv.org/oai2",
     "arxiv_summary_set": "cs",
     "arxiv_summary_sets": ["cs"]
   },
-  "services": {
-    "data_ingestion": {
-      "data_ingestion_key_prefix": "raw_data/data_ingestion",
-      "fetch_daily_summaries": {
-        "service_name": "fetch_daily_summaries",
-        "service_version": "0.2.13",
-        "max_retries": 10
-      }
-    },
-    "etl": {
-      "etl_key_prefix": "data_management/etl",
-      "parse_arxiv_summaries": {
-        "service_name": "parse_arxiv_summaries",
-        "service_version": "0.0.1"
-      }
+  "data_management": {
+    "neo4j": {
+      "ami_id": "ami-0440d3b780d96b29d",
+      "instance_type": "t4g.small",
+      "key_pair_name": "atomiklabs-neo4j-keypair",
+      "resource_prefix": "data-management-neo4j"
     }
   },
   "etl":
     {
       "etl_key_prefix": "data_management/etl"
     },
+  "infra":{
+    "backend_dynamodb_table": "atomiklabs-terraform-locks",
+    "default_ami_id": "ami-0440d3b780d96b29d",
+    "infra_config_bucket": "atomiklabs-infra-config-bucket",
+    "infra_config_bucket_arn": "arn:aws:s3:::atomiklabs-infra-config-bucket",
+    "infra_config_prefix": "terraform/terraform.state",
+    "repo": "github.com/AtomikLabs/atomiklabs",
+    "terraform_aws_region": "us-east-1",
+    "terraform_outputs_prefix": "terraform-outputs"
+  },
   "metadata":
-    { "data_ingestion_metadata_key_prefix": "data_management/metadata/data_ingestion" },
+  { "data_ingestion_metadata_key_prefix": "data_management/metadata/data_ingestion" },
   "networking":
-    {
-      "bastion_host_key_pair_name": "atomiklabs-bastion-keypair"
-    },
+  {
+    "bastion_host_key_pair_name": "atomiklabs-bastion-keypair"
+  },
   "observability":
+  {
+    "prometheus":
     {
-      "prometheus":
-      {
-        "evaluation_interval": "30s",
-        "scrape_interval": "30s"
+      "evaluation_interval": "30s",
+      "scrape_interval": "30s"
+    }
+  },
+  "prototype":
+  {
+    "arxiv_base_url": "http://export.arxiv.org/oai2",
+    "arxiv_summary_set": "cs",
+    "data_ingestion_key_prefix": "raw_data/data_ingestion",
+    "prototype_arn": "arn:aws:lambda:us-east-1:758145997264:function:dev-fetch_daily_summaries",
+    "prototype_name": "prototype",
+    "prototype_version": "v0.0.1",
+    "prototype_max_attempts": 10
+  },
+  "services": {
+    "data_ingestion": {
+      "data_ingestion_key_prefix": "raw_data/data_ingestion",
+      "fetch_daily_summaries": {
+        "max_retries": 10,
+        "service_name": "fetch_daily_summaries",
+        "service_version": "0.2.13"
       }
     },
-  "prototype":
-    {
-      "arxiv_base_url": "http://export.arxiv.org/oai2",
-      "arxiv_summary_set": "cs",
-      "data_ingestion_key_prefix": "raw_data/data_ingestion",
-      "prototype_arn": "arn:aws:lambda:us-east-1:758145997264:function:dev-fetch_daily_summaries",
-      "prototype_name": "prototype",
-      "prototype_version": "v0.0.1",
-      "prototype_max_attempts": 10
+    "etl": {
+      "parse_arxiv_summaries": {
+        "service_name": "parse_arxiv_summaries",
+        "service_version": "0.0.1"
+      }
     }
+  }
 }

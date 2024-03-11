@@ -53,6 +53,11 @@ output "data_bucket_arn" {
   value       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
 }
 
+output "neo4j_instance_private_ip" {
+  description = "Private IP of Neo4j instance"
+  value       = module.data_management.neo4j_instance_private_ip
+}
+
 # **********************************************************
 # * NETWORKING                                             *
 # **********************************************************

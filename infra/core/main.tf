@@ -23,13 +23,18 @@ locals {
   # **********************************************************
   # * Data Management                                        *
   # **********************************************************
-  data_ingestion_metadata_key_prefix = var.data_ingestion_metadata_key_prefix
+  data_ingestion_metadata_key_prefix            = var.data_ingestion_metadata_key_prefix
+  neo4j_ami_id                                  = var.neo4j_ami_id
+  neo4j_instance_type                           = var.neo4j_instance_type
+  neo4j_key_pair_name                           = var.neo4j_key_pair_name
+  neo4j_resource_prefix                         = var.neo4j_resource_prefix
   
   # **********************************************************
   # * INFRASTRUCTURE CONFIGURATION                           *
   # **********************************************************
   alert_email                     = var.alert_email
   backend_dynamodb_table          = var.backend_dynamodb_table
+  default_ami_id                  = var.default_ami_id
   environment                     = var.environment
   infra_config_bucket             = var.infra_config_bucket
   infra_config_bucket_arn         = var.infra_config_bucket_arn
@@ -44,12 +49,6 @@ locals {
 
   bastion_host_key_pair_name        = var.bastion_host_key_pair_name
   home_ip                           = "${var.home_ip}/32"
-
-  # **********************************************************
-  # * MESSAGING CONFIGURATION                                *
-  # **********************************************************
-  rabbitmqctl_username              = var.rabbitmqctl_username
-  rabbitmqctl_password              = var.rabbitmqctl_password
   
   tags = {
     Application = local.name
@@ -71,13 +70,20 @@ module "networking" {
 module "data_management" {
   source = "./data_management"
 
-  aws_vpc_id                          = module.networking.main_vpc_id
-  data_ingestion_metadata_key_prefix  = local.data_ingestion_metadata_key_prefix
-  environment                         = local.environment
-  home_ip                             = local.home_ip
-  infra_config_bucket_arn             = local.infra_config_bucket_arn
-  name                                = local.name
-  tags                                = local.tags
+  aws_vpc_id                                    = module.networking.main_vpc_id
+  data_ingestion_metadata_key_prefix            = local.data_ingestion_metadata_key_prefix
+  default_ami_id                                = local.default_ami_id
+  environment                                   = local.environment
+  home_ip                                       = local.home_ip
+  infra_config_bucket_arn                       = local.infra_config_bucket_arn
+  name                                          = local.name
+  neo4j_ami_id                                  = local.neo4j_ami_id
+  neo4j_instance_type                           = local.neo4j_instance_type
+  neo4j_key_pair_name                           = local.neo4j_key_pair_name
+  neo4j_resource_prefix                         = local.neo4j_resource_prefix
+  private_subnets                               = module.networking.aws_private_subnet_ids
+  region                                        = local.aws_region
+  tags                                          = local.tags
 }
 
 module "containerization" {

@@ -1,6 +1,7 @@
 # **********************************************************
 # * Core Config                                            *
 # **********************************************************
+
 variable "alert_email"  {
   description = "Email to receive alerts"
   type        = string
@@ -14,8 +15,12 @@ variable "aws_region" {
 
 variable "backend_dynamodb_table" {
   description = "DynamoDB table name for Terraform state"
+  type        = string 
+}
+
+variable "default_ami_id" {
+  description = "Default AMI ID"
   type        = string
-  
 }
 
 variable "environment" {
@@ -64,16 +69,23 @@ variable "data_ingestion_metadata_key_prefix" {
     type        = string
 }
 
-# **********************************************************
-# * Messaging                                              *
-# **********************************************************
-variable "rabbitmqctl_username" {
-  description = "RabbitMQ control username"
+variable "neo4j_ami_id" {
+  description = "Neo4j AMI ID"
   type        = string
 }
 
-variable "rabbitmqctl_password" {
-  description = "RabbitMQ control password"
+variable "neo4j_instance_type" {
+  description = "Neo4j instance type"
+  type        = string
+}
+
+variable "neo4j_key_pair_name" {
+  description = "Neo4j key pair name"
+  type        = string
+}
+
+variable "neo4j_resource_prefix" {
+  description = "Prefix for the resources"
   type        = string
 }
 
