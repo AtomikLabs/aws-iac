@@ -8,9 +8,9 @@ I want to model AI and computer science and build tools that augment anyone who 
 
 It started as a project to help me stay current as I move through grad school. Now AtomikLabs supports about ~800 subscribers to daily TechcraftingAI research summary newsletters and TTS podcasts.
 
-TechcraftingAI Computer Vision - [newsletter](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7171170030766710784), [podcast](https://podcasters.spotify.com/pod/show/brad-edwards24)
-TechcraftingAI NLP - [newsletter](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7114658433022259200), [podcast](https://podcasters.spotify.com/pod/show/brad-edwards7)
-TechcraftingAI Robotics - [newsletter](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7122964022873784320), [podcast](https://podcasters.spotify.com/pod/show/brad-edwards1)
+TechcraftingAI Computer Vision - [newsletter](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7171170030766710784), [podcast](https://podcasters.spotify.com/pod/show/brad-edwards24)  
+TechcraftingAI NLP - [newsletter](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7114658433022259200), [podcast](https://podcasters.spotify.com/pod/show/brad-edwards7)  
+TechcraftingAI Robotics - [newsletter](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7122964022873784320), [podcast](https://podcasters.spotify.com/pod/show/brad-edwards1)  
 
 ## Current Status
 
