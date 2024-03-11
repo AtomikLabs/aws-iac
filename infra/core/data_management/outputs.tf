@@ -42,3 +42,8 @@ output "aws_s3_bucket_atomiklabs_data_bucket_arn" {
   description = "S3 bucket ARN for atomiklabs data"
   value       = aws_s3_bucket.atomiklabs_data_bucket.arn
 }
+
+output "neo4j_instance_private_ip" {
+  description = "Private IP of Neo4j instance"
+  value       = aws_instance.neo4j_host.private_ip
+}

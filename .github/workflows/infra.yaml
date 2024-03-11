@@ -36,10 +36,15 @@ jobs:
           echo "BASTION_HOST_KEY_PAIR_NAME=$(jq -r '.networking.bastion_host_key_pair_name' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_KEY_PREFIX=$(jq -r '.data_ingestion.data_ingestion_key_prefix' "$config_file")" >> $GITHUB_ENV
           echo "DATA_INGESTION_METADATA_KEY_PREFIX=$(jq -r '.metadata.data_ingestion_metadata_key_prefix' "$config_file")" >> $GITHUB_ENV
+          echo "DEFAULT_AMI_ID=$(jq -r '.infra.default_ami_id' "$config_file")" >> $GITHUB_ENV
           echo "ETL_KEY_PREFIX=$(jq -r '.etl.etl_key_prefix' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_BUCKET_ARN=$(jq -r '.infra.infra_config_bucket_arn' "$config_file")" >> $GITHUB_ENV
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
+          echo "NEO4J_AMI_ID=$(jq -r '.data_management.neo4j.ami_id' "$config_file")" >> $GITHUB_ENV
+          echo "NEO4J_INSTANCE_TYPE=$(jq -r '.data_management.neo4j.instance_type' "$config_file")" >> $GITHUB_ENV
+          echo "NEO4J_KEY_PAIR_NAME=$(jq -r '.data_management.neo4j.key_pair_name' "$config_file")" >> $GITHUB_ENV
+          echo "NEO4J_RESOURCE_PREFIX=$(jq -r '.data_management.neo4j.resource_prefix' "$config_file")" >> $GITHUB_ENV
           echo "REPO=$(jq -r '.infra.repo' "$config_file")" >> $GITHUB_ENV
           echo "TERRAFORM_OUTPUTS_PREFIX=$(jq -r '.infra.terraform_outputs_prefix' "$config_file")" >> $GITHUB_ENV
 
@@ -124,12 +129,15 @@ jobs:
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_VAR_bastion_host_key_pair_name: ${{ env.BASTION_HOST_KEY_PAIR_NAME }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
+          TF_VAR_default_ami_id: ${{ env.DEFAULT_AMI_ID }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
-          TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
-          TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
+          TF_VAR_neo4j_ami_id: ${{ env.NEO4J_AMI_ID }}
+          TF_VAR_neo4j_instance_type: ${{ env.NEO4J_INSTANCE_TYPE }}
+          TF_VAR_neo4j_key_pair_name: ${{ env.NEO4J_KEY_PAIR_NAME }}
+          TF_VAR_neo4j_resource_prefix: ${{ env.NEO4J_RESOURCE_PREFIX }}
           TF_VAR_repo: ${{ env.REPO }}
           TF_VAR_terraform_outputs_prefix: ${{ env.TERRAFORM_OUTPUTS_PREFIX }}
 
@@ -146,12 +154,15 @@ jobs:
           TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
           TF_VAR_bastion_host_key_pair_name: ${{ env.BASTION_HOST_KEY_PAIR_NAME }}
           TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
+          TF_VAR_default_ami_id: ${{ env.DEFAULT_AMI_ID }}
           TF_VAR_home_ip: ${{ secrets.HOME_IP }}
           TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
           TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
           TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
-          TF_VAR_rabbitmqctl_password: ${{ secrets.RABBITMQCTL_PASSWORD }}
-          TF_VAR_rabbitmqctl_username: ${{ secrets.RABBITMQCTL_USERNAME }}
+          TF_VAR_neo4j_ami_id: ${{ env.NEO4J_AMI_ID }}
+          TF_VAR_neo4j_instance_type: ${{ env.NEO4J_INSTANCE_TYPE }}
+          TF_VAR_neo4j_key_pair_name: ${{ env.NEO4J_KEY_PAIR_NAME }}
+          TF_VAR_neo4j_resource_prefix: ${{ env.NEO4J_RESOURCE_PREFIX }}
           TF_VAR_repo: ${{ env.REPO }}
           TF_VAR_terraform_outputs_prefix: ${{ env.TERRAFORM_OUTPUTS_PREFIX }}
 
