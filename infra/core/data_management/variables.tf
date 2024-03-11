@@ -1,5 +1,10 @@
-variable "infra_config_bucket_arn" {
-  description = "ARN of the infra config bucket"
+variable "availability_zones" {
+  description = "Availability zones"
+  type        = list(string)
+}
+
+variable "aws_vpc_id" {
+  description = "VPC ID"
   type        = string
 }
 
@@ -24,8 +29,8 @@ variable "home_ip" {
   type          = string
 }
 
-variable "aws_vpc_id" {
-  description = "VPC ID"
+variable "infra_config_bucket_arn" {
+  description = "ARN of the infra config bucket"
   type        = string
 }
 

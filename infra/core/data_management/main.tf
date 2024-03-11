@@ -1,4 +1,5 @@
 locals {
+  availability_zone_available_names             = data.aws_availability_zones.available.names
   aws_vpc_id                                    = var.aws_vpc_id
   data_ingestion_metadata_key_prefix            = var.data_ingestion_metadata_key_prefix
   default_ami_id                                = var.default_ami_id
@@ -230,7 +231,7 @@ EOF
 }
 
 resource "aws_ebs_volume" "neo4j_ebs_volume" {
-  availability_zone = local.region
+  availability_zone = local.availability_zone_available_names[0]
   size              = 50
 
   tags = {
