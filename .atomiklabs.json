@@ -9,7 +9,7 @@
   "data_management": {
     "neo4j": {
       "ami_id": "ami-0440d3b780d96b29d",
-      "instance_type": "t4g.small",
+      "instance_type": "t3a.small",
       "key_pair_name": "atomiklabs-neo4j-keypair",
       "resource_prefix": "data-management-neo4j"
     }
