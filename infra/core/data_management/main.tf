@@ -344,28 +344,28 @@ resource "aws_security_group" "neo4j_security_group" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [local.bastion_host_ip]
+    cidr_blocks = ["${local.bastion_host_ip}/32"]
   }
 
   ingress {
     from_port   = 7473
     to_port     = 7473
     protocol    = "tcp"
-    cidr_blocks = [local.bastion_host_ip]
+    cidr_blocks = ["${local.bastion_host_ip}/32"]
   }
 
   ingress {
     from_port   = 7474
     to_port     = 7474
     protocol    = "tcp"
-    cidr_blocks = [local.bastion_host_ip]
+    cidr_blocks = ["${local.bastion_host_ip}/32"]
   }
 
   ingress {
     from_port   = 7687
     to_port     = 7687
     protocol    = "tcp"
-    cidr_blocks = [local.bastion_host_ip]
+    cidr_blocks = ["${local.bastion_host_ip}/32"]
   }
   
   egress {
