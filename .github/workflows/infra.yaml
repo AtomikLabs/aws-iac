@@ -76,7 +76,7 @@ jobs:
           if ! aws s3 ls "s3://${INFRA_CONFIG_BUCKET}" 2>&1 | grep -q 'NoSuchBucket'; then
             echo "Bucket exists."
           else
-            echo "Bucket does not exist. Creating bucket... "
+            echo "Bucket does not exist. Creating bucket..."
             aws s3 mb "s3://${INFRA_CONFIG_BUCKET}"
             aws s3api put-bucket-versioning --bucket ${INFRA_CONFIG_BUCKET} --versioning-configuration Status=Enabled
           fi
