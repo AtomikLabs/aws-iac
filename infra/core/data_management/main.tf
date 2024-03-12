@@ -5,6 +5,7 @@ data "aws_secretsmanager_secret_version" "neo4j_credentials" {
 locals {
   availability_zone_available_names             = var.availability_zones
   aws_vpc_id                                    = var.aws_vpc_id
+  bastion_host_ip                               = var.bastion_host_ip
   data_ingestion_metadata_key_prefix            = var.data_ingestion_metadata_key_prefix
   default_ami_id                                = var.default_ami_id
   environment                                   = var.environment
@@ -315,21 +316,28 @@ resource "aws_security_group" "neo4j_security_group" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [local.home_ip]
+    cidr_blocks = [local.home_ip, local.bastion_host_ip]
+  }
+
+  ingress {
+    from_port   = 7473
+    to_port     = 7473
+    protocol    = "tcp"
+    cidr_blocks = [local.home_ip, local.bastion_host_ip]
   }
 
   ingress {
     from_port   = 7474
     to_port     = 7474
     protocol    = "tcp"
-    cidr_blocks = [local.home_ip]
+    cidr_blocks = [local.home_ip, local.bastion_host_ip]
   }
 
   ingress {
     from_port   = 7687
     to_port     = 7687
     protocol    = "tcp"
-    cidr_blocks = [local.home_ip]
+    cidr_blocks = [local.home_ip, local.bastion_host_ip]
   }
   
   egress {

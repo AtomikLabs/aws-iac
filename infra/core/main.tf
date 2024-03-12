@@ -84,6 +84,7 @@ module "data_management" {
 
   availability_zones                            = data.aws_availability_zones.available.names
   aws_vpc_id                                    = module.networking.main_vpc_id
+  bastion_host_ip                               = module.security.bastion_host_public_ip
   data_ingestion_metadata_key_prefix            = local.data_ingestion_metadata_key_prefix
   default_ami_id                                = local.default_ami_id
   environment                                   = local.environment

@@ -8,6 +8,11 @@ variable "aws_vpc_id" {
   type        = string
 }
 
+variable "bastion_host_ip" {
+  description = "Bastion host IP"
+  type        = string
+}
+
 variable "data_ingestion_metadata_key_prefix" {
     description = "Prefix for the data ingestion metadata"
     type        = string
