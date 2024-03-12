@@ -1,3 +1,7 @@
+data "aws_secretsmanager_secret_version" "neo4j_credentials" {
+  secret_id = "${var.environment}/neo4j-credentials"
+}
+
 locals {
   availability_zone_available_names             = var.availability_zones
   aws_vpc_id                                    = var.aws_vpc_id
@@ -13,10 +17,10 @@ locals {
   neo4j_resource_prefix                         = var.neo4j_resource_prefix
   private_subnets                               = var.private_subnets
   region                                        = var.region
+  secret                                        = jsondecode(data.aws_secretsmanager_secret_version.neo4j_credentials.secret_string)
   ssm_policy_for_instances_arn                  = var.ssm_policy_for_instances_arn
   tags                                          = var.tags
 }
-
 resource "aws_s3_bucket" "atomiklabs_data_bucket" {
   bucket = "${local.environment}-${local.name}-data-bucket"  
   tags = local.tags
@@ -189,8 +193,7 @@ resource "aws_instance" "neo4j_host" {
   instance_type = local.neo4j_instance_type
   iam_instance_profile = aws_iam_instance_profile.neo4j_instance_profile.name
   key_name = "${local.environment}-${local.neo4j_key_pair_name}"
-  #subnet_id = element(local.private_subnets, 0)
-  subnet_id = "subnet-04009cf0b3fc72200"
+  subnet_id = element(local.private_subnets, 0)
   user_data = <<-EOF
 #!/bin/bash
 
@@ -217,7 +220,7 @@ docker run --restart=always \
 -p 7474:7474 -p 7687:7687 \
 -v /neo4j/data:/data \
 -v /neo4j/logs:/logs \
--e NEO4J_AUTH=neo4j/password \
+-e NEO4J_AUTH=${local.secret.username}/${local.secret.password} \
 --name neo4j \
 neo4j:latest
 EOF
