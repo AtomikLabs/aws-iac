@@ -217,15 +217,6 @@ docker run --restart=always \
 -p 7474:7474 -p 7687:7687 \
 -v /neo4j/data:/data \
 -v /neo4j/logs:/logs \
--e NEO4J_dbms_memory_pagecache_size=1G \
--e NEO4J_dbms_memory_heap_initial__size=1G \
--e NEO4J_dbms_memory_heap_max__size=1G \
--e NEO4J_dbms_logs_debug_level=INFO \
--e NEO4J_dbms_logs_gc_enabled=false \
--e NEO4J_dbms_logs_query_enabled=false \
--e NEO4J_dbms_logs_security_level=INFO \
--e NEO4J_dbms_logs_http_level=INFO \
--e NEO4J_dbms_logs_tx_level=INFO \
 -e NEO4J_AUTH=neo4j/password \
 --name neo4j \
 neo4j:latest
