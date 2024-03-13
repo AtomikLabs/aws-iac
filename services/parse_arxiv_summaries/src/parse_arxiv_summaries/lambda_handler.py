@@ -1,4 +1,3 @@
-# Description: Parse arXiv research summaries and send them to be persisted.
 import json
 import os
 import urllib.parse
