@@ -78,7 +78,7 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-        # TODO: extract this to a function
+        # TODO: extract this to a separate function
         metadata = DataIngestionMetadata()
         metadata.app_name = config[APP_NAME]
         metadata.date_time = datetime.now()

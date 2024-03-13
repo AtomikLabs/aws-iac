@@ -230,7 +230,7 @@ def parse_xml_data(xml_data: str) -> list:
 
 def get_output_key(config, key: str) -> str:
     """
-    Gets the output key.
+    Gets the output key for parsed arxiv summaries.
 
     Args:
         key (str): Key.
