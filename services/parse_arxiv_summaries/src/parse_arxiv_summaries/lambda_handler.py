@@ -107,7 +107,7 @@ def lambda_handler(event, context):
             extracted_records = parse_xml_data(xml)
             extracted_data["records"].extend(extracted_records)
         content_str = json.dumps(extracted_data)
-        output_key = get_output_key(config, key)
+        output_key = get_output_key(config)
         storage_manager.persist(output_key, content_str)
         logger.info("Finished parsing arXiv daily summaries")
         return {"statusCode": 200, "body": "Success"}
@@ -227,16 +227,13 @@ def parse_xml_data(xml_data: str) -> list:
     return extracted_data_chunk
 
 
-def get_output_key(config, key: str) -> str:
+def get_output_key(config) -> str:
     """
     Gets the output key for parsed arxiv summaries.
-
-    Args:
-        key (str): Key.
 
     Returns:
         str: The output key.
     """
     today = date.today().strftime("%Y-%m-%d")
-    filename = key.split("/")[-1]
+    filename = "parsed_arxiv_summaries.json"
     return f"{config[ETL_KEY_PREFIX]}/{today}-{filename}"
