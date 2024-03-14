@@ -8,7 +8,7 @@ variable "aws_vpc_id" {
   type        = string
 }
 
-variable "bastion_host_ip" {
+variable "bastion_host_private_ip" {
   description = "Bastion host IP"
   type        = string
 }
