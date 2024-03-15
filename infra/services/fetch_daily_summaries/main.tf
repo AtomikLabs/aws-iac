@@ -101,7 +101,7 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   s3_bucket = local.infra_config_bucket
   s3_key = local.zip_key
   package_type  = "Zip"
-  handler       = "app.lambda_handler.lambda_handler"
+  handler       = "lambda_handler.lambda_handler"
   role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
   timeout       = 900
   memory_size   = 128
