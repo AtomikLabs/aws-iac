@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import defusedxml.ElementTree as ET
 import requests
 import structlog
-from neo4j import GraphDatabase
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -193,8 +192,6 @@ def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> lis
         while fetch_attempts < max_fetch_attempts:
             response = session.get(base_url, params=params, timeout=(10, 30))
             response.raise_for_status()
-            uri = response.request.url
-            size_of_data_downloaded = calculate_mb(len(response.content))
             full_xml_responses.append(response.text)
 
             root = ET.fromstring(response.content)

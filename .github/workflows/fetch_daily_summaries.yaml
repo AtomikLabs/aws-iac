@@ -68,16 +68,16 @@ jobs:
 
       - name: Set NEO4J Credentials
         run: |
-          if [ ${{ env.ENV_NAME }} == "dev" ]; then
+          if [ ${{ env.ENV_NAME }} = "dev" ]; then
             echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_DEV_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
-            elif [ ${{ env.ENV_NAME }} == "prod" ]; then
+            elif [ ${{ env.ENV_NAME }} = "prod" ]; then
               echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_PROD_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
-          elif [ ${{ env.ENV_NAME }} == "stage" ]; then
+          elif [ ${{ env.ENV_NAME }} = "stage" ]; then
             echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_STAGE_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
-          elif [ ${{ env.ENV_NAME }} == "test" ]; then
+          elif [ ${{ env.ENV_NAME }} = "test" ]; then
             echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_TEST_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
           fi
-          aws ssm get-parameters --names dev/neo4j-credentials --with-decryption --region ${{ env.AWS_REGION }} > neo4j_credentials.json
+          aws ssm get-parameters --names $NEO4J_CREDENTIALS_ARN --with-decryption --region ${{ env.AWS_REGION }} > neo4j_credentials.json
           NEO4J_USERNAME=$(jq -r '.Parameters[0].Value | fromjson | .username' neo4j_credentials.json)
           NEO4J_PASSWORD=$(jq -r '.Parameters[0].Value | fromjson | .password' neo4j_credentials.json)
           echo "NEO4J_USERNAME=$NEO4J_USERNAME" >> $GITHUB_ENV
