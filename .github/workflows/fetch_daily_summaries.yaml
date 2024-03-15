@@ -108,5 +108,5 @@ jobs:
 
       - name: more debug
         run: |
-          echo $NEO4J_USERNAME
-          echo $NEO4J_PASSWORD
+          echo ${{env.NEO4J_USERNAME}}
+          echo ${{env.NEO4J_PASSWORD}}
