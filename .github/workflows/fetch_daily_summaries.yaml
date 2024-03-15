@@ -248,11 +248,3 @@ jobs:
           terraform output -json > terraform_outputs.json
           aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.TERRAFORM_OUTPUTS_PREFIX }}/${{ env.ENV_NAME }}-${{ env.OUTPUTS_PREFIX }}-${{ env.SERVICE_NAME }}.json
         working-directory: ./infra/services/fetch_daily_summaries
-
-      - name: Deploy Fetch Daily Summaries Lambda Function
-        id: deploy-fetch-daily-summaries
-        run: |
-          aws lambda update-function-code --function-name ${{env.ENV_NAME}}-${{ env.SERVICE_NAME }} --s3-bucket ${{ env.INFRA_CONFIG_BUCKET }} --s3-key ${{ env.ZIP_PREFIX }}/${{ env.SERVICE_NAME}}.zip
-          aws lambda publish-version --function-name ${{env.ENV_NAME}}-${{ env.SERVICE_NAME }}
-        env:
-          AWS_REGION: ${{ env.AWS_REGION }}
