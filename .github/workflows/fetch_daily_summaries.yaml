@@ -100,13 +100,10 @@ jobs:
 
       - name: Debug
         run: |
-          echo "${{steps.get-neo4j-secrets.outputs.NEO4J_RETRIEVED_CREDS}}"
-          creds=$(echo "${{steps.get-neo4j-secrets.outputs.NEO4J_RETRIEVED_CREDS}}" | jq -r '.')
-          echo $creds
-          echo "NEO4J_USERNAME=$(echo $creds | jq -r '.username')" >> $GITHUB_ENV
-          echo "NEO4J_PASSWORD=$(echo $creds | jq -r '.password')" >> $GITHUB_ENV
-
-      - name: more debug
-        run: |
-          echo ${{env.NEO4J_USERNAME}}
-          echo ${{env.NEO4J_PASSWORD}}
+          echo ${{secrets.NEO4J_RETRIEVED_CREDS}}
+          echo "moo"
+          echo ${{ env.NEO4J_RETRIEVED_CREDS }}
+          username=$(echo ${{secrets.NEO4J_RETRIEVED_CREDS}} | jq -r '.username')
+          password=$(echo ${{env.NEO4J_RETRIEVED_CREDS}} | jq -r '.password')
+          echo "username: $username"
+          echo "password: $password"
