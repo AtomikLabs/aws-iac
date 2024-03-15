@@ -89,5 +89,5 @@ jobs:
           echo "${{ env.NEO4J_RETRIEVED_CREDS.username }}"
           echo "${{ env.NEO4J_RETRIEVED_CREDS.password }}"
           echo "presets"
-          echo "${{ env.NEO4J_USERNAME}}"
-          echo "${{ env.NEO4J_PASSWORD}}"
+          echo $NEO4J_USERNAME
+          echo $NEO4J_PASSWORD
