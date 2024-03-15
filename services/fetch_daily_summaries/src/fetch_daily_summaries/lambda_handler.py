@@ -10,8 +10,7 @@ import structlog
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-sys.path.append(os.path.join(os.path.dirname(__file__)))
-from .storage_manager import StorageManager
+from storage_manager import StorageManager
 
 structlog.configure(
     [
