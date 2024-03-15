@@ -97,6 +97,7 @@ jobs:
         with:
           secret-ids: |
             NEO4J_RETRIEVED_CREDS, ${{ env.NEO4J_CREDENTIALS_ARN }}
+          parse-json-secrets: true
 
       - name: Debug
         run: |
