@@ -77,7 +77,7 @@ jobs:
           elif [ ${{ env.ENV_NAME }} = "test" ]; then
             echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_TEST_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
           fi
-          aws ssm get-parameters --names $NEO4J_CREDENTIALS_ARN --with-decryption --region ${{ env.AWS_REGION }} > neo4j_credentials.json
+          aws ssm get-parameters --names arn:aws:secretsmanager:us-east-1:758145997264:secret:test/neo4j-credentials-Dey1J8 --with-decryption --region ${{ env.AWS_REGION }} > neo4j_credentials.json
           NEO4J_USERNAME=$(jq -r '.Parameters[0].Value | fromjson | .username' neo4j_credentials.json)
           NEO4J_PASSWORD=$(jq -r '.Parameters[0].Value | fromjson | .password' neo4j_credentials.json)
           echo "NEO4J_USERNAME=$NEO4J_USERNAME" >> $GITHUB_ENV
