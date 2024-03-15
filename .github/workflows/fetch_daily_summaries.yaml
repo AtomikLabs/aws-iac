@@ -66,6 +66,17 @@ jobs:
           COMMIT_SHA=$(git rev-parse HEAD)
           echo "::set-output name=commit-sha::$COMMIT_SHA"
 
+      - name: Set AWS Credentials
+        uses: ./.github/actions/set-aws-credentials
+        with:
+          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
+          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+
       - name: Set NEO4J Credentials
         run: |
           credentials_arn=""
@@ -88,17 +99,6 @@ jobs:
 
           echo "NEO4J_USERNAME=$NEO4J_USERNAME" >> $GITHUB_ENV
           echo "NEO4J_PASSWORD=$NEO4J_PASSWORD" >> $GITHUB_ENV
-
-      - name: Set AWS Credentials
-        uses: ./.github/actions/set-aws-credentials
-        with:
-          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
-          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
-          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
-          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
-          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
-          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
-          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
 
       - name: Ensure S3 bucket exists
         id: ensure-s3-bucket-exists
