@@ -103,3 +103,12 @@ jobs:
         run: |
           echo "NEO4J_RETRIEVED_CREDS=$NEO4J_RETRIEVED_CREDS"
           echo "OTHER=$OTHER"
+          username=$(echo $NEO4J_RETRIEVED_CREDS | jq -r '.username')
+          password=$(echo $NEO4J_RETRIEVED_CREDS | jq -r '.password')
+          echo "NEO4J_USERNAME=$username" >> $GITHUB_ENV
+          echo "NEO4J_PASSWORD=$password" >> $GITHUB_ENV
+
+      - name: more debug
+        run: |
+          echo "NEO4J_USERNAME=$NEO4J_USERNAME"
+          echo "NEO4J_PASSWORD=$NEO4J_PASSWORD"
