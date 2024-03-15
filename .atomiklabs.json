@@ -49,7 +49,7 @@
     "prototype_max_attempts": 10
   },
   "services": {
-    "zip_prefix": "services/code/",
+    "zip_prefix": "services/code",
     "data_ingestion": {
       "data_ingestion_key_prefix": "raw_data/data_ingestion",
       "fetch_daily_summaries": {

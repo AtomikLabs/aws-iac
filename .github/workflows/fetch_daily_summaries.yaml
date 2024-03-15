@@ -118,10 +118,10 @@ jobs:
           ls -la build
           cd build
           pip install -r requirements.txt -t .
-          cd ..
-          zip -r ${{ env.SERVICE_NAME}}.zip build/* -x build/__pycache__/**\*
+          zip -r ${{ env.SERVICE_NAME}}.zip . -x build/__pycache__/**\*
           zip_key="${{ env.ZIP_PREFIX }}/${{ env.SERVICE_NAME}}.zip"
           echo "ZIP_KEY=$zip_key" >> $GITHUB_ENV
+          cd ..
           aws s3 cp ${{ env.SERVICE_NAME}}.zip s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.ZIP_PREFIX }}/${{ env.SERVICE_NAME}}.zip
         env:
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
