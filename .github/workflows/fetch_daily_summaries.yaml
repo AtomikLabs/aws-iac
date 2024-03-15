@@ -85,9 +85,4 @@ jobs:
 
       - name: Debug
         run: |
-          echo "${{ env.NEO4J_RETRIEVED_CREDS }}"
-          echo "${{ env.NEO4J_RETRIEVED_CREDS.username }}"
-          echo "${{ env.NEO4J_RETRIEVED_CREDS.password }}"
-          echo "presets"
-          echo "$NEO4J_USERNAME"
-          echo $NEO4J_PASSWORD
+          echo "$${{ env.ENV_NAME }}_NEO4J_CREDENTIALS_USERNAME"
