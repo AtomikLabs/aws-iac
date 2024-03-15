@@ -112,18 +112,18 @@ jobs:
         id: update-fetch-daily-summaries
         run: |
           mkdir build
-          cp services/${{ env.SERVICE_NAME}}/src/requirements.txt build/
-          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/lambda_handler.py build/
-          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/storage_manager.py build/
-          ls -la build
-          cd build
+          mkdir build/app
+          cp services/${{ env.SERVICE_NAME}}/src/requirements.txt build/app/
+          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/lambda_handler.py build/app/
+          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/storage_manager.py build/app/
+          cd build/app
           pip install -r requirements.txt -t .
           touch __init__.py
-          zip -r ${{ env.SERVICE_NAME}}.zip . -x build/__pycache__/**\*
+          zip -r ${{ env.SERVICE_NAME}}.zip . -x ./__pycache__/**\*
           zip_key="${{ env.ZIP_PREFIX }}/${{ env.SERVICE_NAME}}.zip"
           echo "ZIP_KEY=$zip_key" >> $GITHUB_ENV
           aws s3 cp ${{ env.SERVICE_NAME}}.zip s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.ZIP_PREFIX }}/${{ env.SERVICE_NAME}}.zip
-          cd ..
+          cd ../../
         env:
           ECR_REPO_URL: ${{ env.ECR_REPO_URL }}
           FETCH_DAILY_SUMMARIES_ARN: ${{ env.FETCH_DAILY_SUMMARIES_ARN }}
@@ -180,8 +180,6 @@ jobs:
           aws s3 cp $terraform_outputs_path ./terraform_outputs.json
           echo "DATA_BUCKET=$(jq -r '.data_bucket.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "DATA_BUCKET_ARN=$(jq -r '.data_bucket_arn.value' ./terraform_outputs.json)" >> $GITHUB_ENV
-          echo "DATA_CATALOG_DB_NAME=$(jq -r '.aws_glue_catalog_database_data_catalog_database_name.value' ./terraform_outputs.json)" >> $GITHUB_ENV
-          echo "METADATA_TABLE_NAME=$(jq -r '.aws_glue_catalog_table_data_catalog_table_data_ingestion_metadata_table_name.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "NEO4J_URI=$(jq -r '.neo4j_instance_private_ip.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "ECR_REPO_URL=$(jq -r '.ecr_repo_url.value' ./terraform_outputs.json)" >> $GITHUB_ENV
         env:
