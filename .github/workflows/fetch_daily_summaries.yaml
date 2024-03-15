@@ -97,14 +97,9 @@ jobs:
         with:
           secret-ids: |
             NEO4J_RETRIEVED_CREDS, ${{ env.NEO4J_CREDENTIALS_ARN }}
-          parse-json-secrets: true
 
       - name: Debug
         run: |
-          echo ${{secrets.NEO4J_RETRIEVED_CREDS}}
+          echo $NEO4J_RETRIEVED_CREDS_NEO4J_USERNAME
           echo "moo"
-          echo ${{ env.NEO4J_RETRIEVED_CREDS }}
-          username=$(echo ${{secrets.NEO4J_RETRIEVED_CREDS}} | jq -r '.neo4j_username')
-          password=$(echo ${{env.NEO4J_RETRIEVED_CREDS}} | jq -r '.neo4j_password')
-          echo "username: $username"
-          echo "password: $password"
+          echo ${{ env.NEO4J_RETRIEVED_CREDS_NEO4J_USERNAME }}
