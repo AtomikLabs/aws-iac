@@ -97,20 +97,17 @@ jobs:
         with:
           secret-ids: |
             NEO4J_RETRIEVED_CREDS, ${{ env.NEO4J_CREDENTIALS_ARN }}
-            OTHER, ${{env.ENV_NAME}}/neo4j-credentials
+            OTHER, "${{env.ENV_NAME}}/neo4j-credentials"
 
       - name: Debug
         run: |
-          echo "NEO4J_RETRIEVED_CREDS=$NEO4J_RETRIEVED_CREDS"
-          echo "OTHER=$OTHER"
-          username=$(echo $NEO4J_RETRIEVED_CREDS | jq -r '.username')
-          password=$(echo $OTHER | jq -r '.password')
-          echo $username
-          echo $password
-          echo "NEO4J_USERNAME=$username" >> $GITHUB_ENV
-          echo "NEO4J_PASSWORD=$password" >> $GITHUB_ENV
+          echo "${{steps.get-neo4j-secrets.outputs.NEO4J_RETRIEVED_CREDS}}"
+          creds=$(echo "${{steps.get-neo4j-secrets.outputs.NEO4J_RETRIEVED_CREDS}}" | jq -r '.')
+          echo $creds
+          echo "NEO4J_USERNAME=$(echo $creds | jq -r '.username')" >> $GITHUB_ENV
+          echo "NEO4J_PASSWORD=$(echo $creds | jq -r '.password')" >> $GITHUB_ENV
 
       - name: more debug
         run: |
-          echo "NEO4J_USERNAME=${{env.NEO4J_USERNAME}}"
-          echo "NEO4J_PASSWORD=${{env.NEO4J_PASSWORD}}"
+          echo $NEO4J_USERNAME
+          echo $NEO4J_PASSWORD
