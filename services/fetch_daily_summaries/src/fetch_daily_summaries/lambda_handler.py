@@ -138,6 +138,7 @@ def get_config() -> dict:
             ARXIV_BASE_URL: os.environ[ARXIV_BASE_URL],
             ARXIV_SUMMARY_SET: os.environ[ARXIV_SUMMARY_SET],
             DATA_BUCKET: os.environ[DATA_BUCKET],
+            DATA_INGESTION_KEY_PREFIX: os.environ[DATA_INGESTION_KEY_PREFIX],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
             MAX_RETRIES: int(os.environ[MAX_RETRIES]),
             NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
@@ -265,30 +266,7 @@ def get_storage_key(config: dict) -> str:
         logger.error("Config is required", method=GET_STORAGE_KEY)
         raise ValueError("Config is required")
 
-    key_date = time.strftime(DataIngestionMetadata.S3_KEY_DATE_FORMAT)
+    key_date = time.strftime(S3_KEY_DATE_FORMAT)
     key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/{key_date}.json"
     logger.info("Storage key", method=GET_STORAGE_KEY, key=key)
-    return key
-
-
-def get_metadata_key(config: dict) -> str:
-    """
-    Gets the metadata key for the S3 bucket to store the fetched data.
-
-    Args:
-        config (dict): The config.
-
-    Returns:
-        str: The metadata key.
-
-    Raises:
-        ValueError: If config is not provided.
-    """
-    if not config:
-        logger.error("Config is required", method=GET_STORAGE_KEY)
-        raise ValueError("Config is required")
-
-    key_date = time.strftime(DataIngestionMetadata.S3_KEY_DATE_FORMAT)
-    key = f"{config.get(DATA_INGESTION_METADATA_KEY_PREFIX)}/{key_date}_metadata.json"
-    logger.info("Metadata key", method=GET_STORAGE_KEY, key=key)
     return key

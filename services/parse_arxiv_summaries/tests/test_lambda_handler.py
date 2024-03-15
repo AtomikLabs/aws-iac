@@ -61,8 +61,8 @@ class TestLambdaHandler(unittest.TestCase):
         mock_date.today.return_value = datetime.date(2023, 4, 1)
         config = {"ETL_KEY_PREFIX": "test-prefix"}
         with patch.dict(os.environ, {"ETL_KEY_PREFIX": "test-prefix"}):
-            output_key = get_output_key(config, "test-key.json")
-            assert output_key == "test-prefix/2023-04-01-test-key.json"
+            output_key = get_output_key(config)
+            assert output_key == f"test-prefix/{mock_date.today()}-parsed_arxiv_summaries.json"
 
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.StorageManager")
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.parse_xml_data")
