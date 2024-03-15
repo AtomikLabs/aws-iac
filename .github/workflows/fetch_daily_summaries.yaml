@@ -80,7 +80,7 @@ jobs:
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
         with:
           secret-ids: |
-            NEO4J_RETRIEVED_CREDS, ${{ env.NEO4J_CREDENTIALS_ARN }}
+            NEO4J_RETRIEVED_CREDS, ${{ env.ENV_NAME }}/neo4j-credentials
           parse-json-secrets: true
 
       - name: Debug
