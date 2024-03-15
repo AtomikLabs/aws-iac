@@ -99,12 +99,22 @@ jobs:
             NEO4J_CREDS, ${{ env.NEO4J_CREDENTIALS_ARN }}
           parse-json-secrets: true
 
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Update Fetch Daily Summaries Lambda Function
         id: update-fetch-daily-summaries
         run: |
-          cp services/${{ env.SERVICE_NAME}}/src/requirements.txt services/${{ env.SERVICE_NAME}}/src/.venv/Lib/requirements.txt
-          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/lambda_handler.py services/${{ env.SERVICE_NAME}}/src/.venv/Lib/lambda_handler.py
-          zip -r ${{ env.SERVICE_NAME}}.zip services/${{ env.SERVICE_NAME}}/src/.venv/Lib/* -x services/${{ env.SERVICE_NAME}}/src/.venv/Lib/__pycache__/**\*
+          mkdir build
+          cp services/${{ env.SERVICE_NAME}}/src/requirements.txt build/
+          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/lambda_handler.py build/
+          ls -la build
+          cd build
+          pip install -r requirements.txt -t .
+          cd ..
+          zip -r ${{ env.SERVICE_NAME}}.zip build/* -x build/__pycache__/**\*
           zip_key="${{ env.ZIP_PREFIX }}/${{ env.SERVICE_NAME}}.zip"
           echo "ZIP_KEY=$zip_key" >> $GITHUB_ENV
           aws s3 cp ${{ env.SERVICE_NAME}}.zip s3://${{ env.INFRA_CONFIG_BUCKET }}/${{ env.ZIP_PREFIX }}/${{ env.SERVICE_NAME}}.zip
