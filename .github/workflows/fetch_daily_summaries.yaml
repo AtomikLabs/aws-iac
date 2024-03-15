@@ -90,9 +90,18 @@ jobs:
           elif [ "${{ env.ENV_NAME }}" == "test" ]; then
             credentials_arn="${{ secrets.AWS_TEST_NEO4J_CREDENTIALS }}"
           fi
+          echo "NEO4J_CREDENTIALS_ARN=$credentials_arn" >> $GITHUB_ENV
 
-          aws secretsmanager get-secret-value --secret-id "$credentials_arn" --query SecretString --output text > neo4j_credentials.json
-          credentials_file=".neo4j_credentials.json"
+      - name: Get neo4j secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: |
+            NEO4J_RETRIEVED_CREDS, ${{ env.NEO4J_CREDENTIALS_ARN }}
+            OTHER, "${{env.ENV_NAME}}/neo4j-credentials"
 
-          echo "NEO4J_USERNAME=$(jq -r '.username' "$credentials_file")"
-          echo "NEO4J_PASSWORD=$(jq -r '.password' "$credentials_file")"
+      - name: Debug
+        run: |
+          echo "NEO4J_RETRIEVED_CREDS=$NEO4J_RETRIEVED_CREDS"
+          echo "NEO4J_RETRIEVED_CREDS=${{ env.NEO4J_RETRIEVED_CREDS }}"
+          echo "OTHER=$OTHER"
+          echo "OTHER=${{ env.OTHER }}"
