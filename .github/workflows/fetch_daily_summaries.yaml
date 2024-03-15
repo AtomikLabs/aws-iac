@@ -93,6 +93,7 @@ jobs:
 
           aws secretsmanager get-secret-value --secret-id "$credentials_arn" --query SecretString --output text >> neo4j_credentials.json
           credentials_file=".neo4j_credentials.json"
+          cat ./neo4j_credentials.json
 
           echo "NEO4J_USERNAME=$(jq -r '.username' "$credentials_file")" >> $GITHUB_ENV
           echo "$NEO4J_USERNAME"
