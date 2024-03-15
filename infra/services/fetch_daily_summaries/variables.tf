@@ -28,18 +28,8 @@ variable "data_bucket_arn" {
   type          = string
 }
 
-variable "data_catalog_db_name" {
-  description   = "The name of the data catalog database"
-  type          = string
-}
-
 variable "data_ingestion_key_prefix" {
   description   = "The prefix for raw data in the data bucket"
-  type          = string
-}
-
-variable "data_ingestion_metadata_key_prefix" {
-  description   = "The prefix for the data ingestion metadata keys"
   type          = string
 }
 
@@ -49,19 +39,9 @@ variable "environment" {
   default       = "dev"
 }
 
-variable "image_uri" {
-  description   = "The name of the Docker image"
-  type          = string
-}
-
 variable "max_retries" {
   description   = "The maximum number of retries"
   type          = number
-}
-
-variable "metadata_table_name" {
-  description   = "The name of the metadata table"
-  type          = string
 }
 
 variable "neo4j_password" {

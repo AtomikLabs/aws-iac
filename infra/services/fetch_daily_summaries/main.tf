@@ -15,7 +15,6 @@ locals {
   data_bucket                 = var.data_bucket
   data_bucket_arn             = "arn:aws:s3:::${var.data_bucket}"
   environment                 = var.environment
-  image_uri                   = var.image_uri
   neo4j_password              = var.neo4j_password
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
@@ -25,9 +24,6 @@ locals {
   arxiv_base_url                          = var.arxiv_base_url
   arxiv_summary_set                       = var.arxiv_summary_set
   data_ingestion_key_prefix               = var.data_ingestion_key_prefix
-  data_ingestion_metadata_key_prefix      = var.data_ingestion_metadata_key_prefix
-  data_catalog_db_name                    = var.data_catalog_db_name
-  metadata_table_name                     = var.metadata_table_name
   max_retries                             = var.max_retries
 }
 
@@ -113,7 +109,6 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
       ARXIV_SUMMARY_SET                     = local.arxiv_summary_set
       DATA_BUCKET                           = local.data_bucket
       DATA_INGESTION_KEY_PREFIX             = local.data_ingestion_key_prefix
-      DATA_INGESTION_METADATA_KEY_PREFIX    = local.data_ingestion_metadata_key_prefix
       ENVIRONMENT                           = local.environment
       MAX_RETRIES                           = local.max_retries
       NEO4J_PASSWORD                        = local.neo4j_password
