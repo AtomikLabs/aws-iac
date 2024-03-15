@@ -64,6 +64,21 @@ variable "metadata_table_name" {
   type          = string
 }
 
+variable "neo4j_password" {
+  description   = "The password for the Neo4j database"
+  type          = string
+}
+
+variable "neo4j_uri" {
+  description   = "The URI of the Neo4j database"
+  type          = string
+}
+
+variable "neo4j_username" {
+  description   = "The username for the Neo4j database"
+  type          = string
+}
+
 variable "service_name" {
   description   = "The name of the service"
   type          = string

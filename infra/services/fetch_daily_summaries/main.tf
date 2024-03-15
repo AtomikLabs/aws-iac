@@ -16,6 +16,9 @@ locals {
   data_bucket_arn             = "arn:aws:s3:::${var.data_bucket}"
   environment                 = var.environment
   image_uri                   = var.image_uri
+  neo4j_password              = var.neo4j_password
+  neo4j_uri                   = var.neo4j_uri
+  neo4j_username              = var.neo4j_username
   service_name                = var.service_name
   service_version             = var.service_version
 
@@ -96,8 +99,8 @@ resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
 # **********************************************************
 resource "aws_lambda_function" "fetch_daily_summaries" {
   function_name = "${local.environment}-${local.service_name}"
-  package_type  = "Image"
-  image_uri     = local.image_uri
+  package_type  = "Zip"
+  handler       = "lambda_handler.lambda_handler"
   role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
   timeout       = 900
   memory_size   = 128
@@ -111,9 +114,10 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
       DATA_INGESTION_KEY_PREFIX             = local.data_ingestion_key_prefix
       DATA_INGESTION_METADATA_KEY_PREFIX    = local.data_ingestion_metadata_key_prefix
       ENVIRONMENT                           = local.environment
-      DATA_CATALOG_DB_NAME                  = local.data_catalog_db_name
-      METADATA_TABLE_NAME                   = local.metadata_table_name
       MAX_RETRIES                           = local.max_retries
+      NEO4J_PASSWORD                        = local.neo4j_password
+      NEO4J_URI                             = local.neo4j_uri
+      NEO4J_USERNAME                        = local.neo4j_username
       SERVICE_VERSION                       = local.service_version
       SERVICE_NAME                          = local.service_name
     }  

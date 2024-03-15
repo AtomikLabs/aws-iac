@@ -4,12 +4,12 @@ import time
 from datetime import datetime, timedelta
 
 import defusedxml.ElementTree as ET
+from neo4j import GraphDatabase
 import requests
 import structlog
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .data_ingestion_metadata import DataIngestionMetadata
 from .storage_manager import StorageManager
 
 structlog.configure(
@@ -35,10 +35,11 @@ ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
 DATA_BUCKET = "DATA_BUCKET"
 DATA_CATALOG_DB_NAME = "DATA_CATALOG_DB_NAME"
 DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
-DATA_INGESTION_METADATA_KEY_PREFIX = "DATA_INGESTION_METADATA_KEY_PREFIX"
 ENVIRONMENT_NAME = "ENVIRONMENT"
 MAX_RETRIES = "MAX_RETRIES"
-METADATA_TABLE_NAME = "METADATA_TABLE_NAME"
+NEO4J_PASSWORD = "NEO4J_PASSWORD"
+NEO4J_URI = "NEO4J_URI"
+NEO4J_USERNAME = "NEO4J_USERNAME"
 SERVICE_NAME = "SERVICE_NAME"
 SERVICE_VERSION = "SERVICE_VERSION"
 
@@ -52,6 +53,9 @@ LAMBDA_NAME = "fetch_daily_summaries"
 LOG_INITIAL_INFO = "fetch_daily_summaries.lambda_handler.log_initial_info"
 PERSIST_TO_S3 = "fetch_daily_summaries.lambda_handler.persist_to_s3"
 
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
+
 
 def lambda_handler(event: dict, context) -> dict:
     """
@@ -64,9 +68,6 @@ def lambda_handler(event: dict, context) -> dict:
     Returns:
         dict: A dict with the status code and body.
     """
-    metadata = DataIngestionMetadata()
-    metadata.date_time = datetime.now()
-    metadata.function_name = context.function_name
     try:
         log_initial_info(event)
 
@@ -78,33 +79,18 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-        # TODO: extract this to a separate function
-        metadata = DataIngestionMetadata()
-        metadata.app_name = config[APP_NAME]
-        metadata.date_time = datetime.now()
-        metadata.database_name = config[DATA_CATALOG_DB_NAME]
-        metadata.environment = config[ENVIRONMENT_NAME]
-        metadata.function_name = config[SERVICE_NAME]
-        metadata.function_version = config[SERVICE_VERSION]
-        metadata.metadata_key = get_metadata_key(config)
-        metadata.metadata_bucket = config[DATA_BUCKET]
-        metadata.raw_data_bucket = config[DATA_BUCKET]
-        metadata.table_name = config[METADATA_TABLE_NAME]
 
         today = datetime.today().date()
         earliest = today - timedelta(days=DAY_SPAN)
-        metadata.today = today.strftime(DataIngestionMetadata.DATETIME_FORMAT)
-        metadata.earliest = earliest.strftime(DataIngestionMetadata.DATETIME_FORMAT)
 
         xml_data_list = fetch_data(
-            config.get(ARXIV_BASE_URL), earliest, config.get(ARXIV_SUMMARY_SET), config.get(MAX_RETRIES), metadata
+            config.get(ARXIV_BASE_URL), earliest, config.get(ARXIV_SUMMARY_SET), config.get(MAX_RETRIES)
         )
 
-        metadata.raw_data_key = get_storage_key(config)
+        raw_data_key = get_storage_key(config)
         content_str = json.dumps(xml_data_list)
-        storage_manager = StorageManager(metadata.raw_data_bucket, logger)
-        storage_manager.persist(metadata.raw_data_key, content_str)
-        metadata.write()
+        storage_manager = StorageManager(config.get(DATA_BUCKET), logger)
+        storage_manager.upload_to_s3(raw_data_key, content_str)
         logger.info("Fetching arXiv summaries succeeded", method=LAMBDA_HANDLER, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
 
@@ -116,8 +102,6 @@ def lambda_handler(event: dict, context) -> dict:
             body="Internal Server Error",
             error=str(e),
         )
-        metadata.error_message = str(e)
-        metadata.status = "failure"
         return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
 
 
@@ -154,12 +138,11 @@ def get_config() -> dict:
             ARXIV_BASE_URL: os.environ[ARXIV_BASE_URL],
             ARXIV_SUMMARY_SET: os.environ[ARXIV_SUMMARY_SET],
             DATA_BUCKET: os.environ[DATA_BUCKET],
-            DATA_INGESTION_KEY_PREFIX: os.environ[DATA_INGESTION_KEY_PREFIX],
-            DATA_INGESTION_METADATA_KEY_PREFIX: os.environ[DATA_INGESTION_METADATA_KEY_PREFIX],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
-            DATA_CATALOG_DB_NAME: os.environ[DATA_CATALOG_DB_NAME],
-            METADATA_TABLE_NAME: os.environ[METADATA_TABLE_NAME],
             MAX_RETRIES: int(os.environ[MAX_RETRIES]),
+            NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
+            NEO4J_URI: os.environ[NEO4J_URI],
+            NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
@@ -170,8 +153,14 @@ def get_config() -> dict:
 
     return config
 
+def set_data_source():
+    """
+    Sets the data source.
+    """
+    
 
-def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int, metadata: DataIngestionMetadata) -> list:
+
+def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> list:
     """
     Fetches data from arXiv.
 
@@ -180,16 +169,15 @@ def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int, metada
         from_date (str): The from date.
         set (str): The set.
         max_fetches (int): The maximum number of fetches.
-        metadata (DataIngestionMetadata): The metadata.
 
     Returns:
         list: A list of XML data.
 
     Raises:
-        ValueError: If base_url, from_date, set, or metadata are not provided.
+        ValueError: If base_url, from_date, or set are not provided.
     """
-    if not base_url or not from_date or not set or not metadata:
-        error_msg = "Base URL, from date, set, and metadata are required"
+    if not base_url or not from_date or not set:
+        error_msg = "Base URL, from date, and set are required"
         logger.error(error_msg, method=FETCH_DATA)
         raise ValueError(error_msg)
 
@@ -204,8 +192,8 @@ def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int, metada
         while fetch_attempts < max_fetch_attempts:
             response = session.get(base_url, params=params, timeout=(10, 30))
             response.raise_for_status()
-            metadata.uri = response.request.url
-            metadata.size_of_data_downloaded = calculate_mb(len(response.content))
+            uri = response.request.url
+            size_of_data_downloaded = calculate_mb(len(response.content))
             full_xml_responses.append(response.text)
 
             root = ET.fromstring(response.content)
