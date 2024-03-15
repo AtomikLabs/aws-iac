@@ -54,12 +54,14 @@
       "data_ingestion_key_prefix": "raw_data/data_ingestion",
       "fetch_daily_summaries": {
         "max_retries": 10,
+        "runtime": "python3.10",
         "service_name": "fetch_daily_summaries",
         "service_version": "0.2.13"
       }
     },
     "etl": {
       "parse_arxiv_summaries": {
+        "runtime": "python3.10",
         "service_name": "parse_arxiv_summaries",
         "service_version": "0.0.1"
       }

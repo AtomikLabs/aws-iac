@@ -46,6 +46,7 @@ jobs:
           echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
           echo "MAX_RETRIES=$(jq -r '.services.data_ingestion.fetch_daily_summaries.max_retries' "$config_file")" >> $GITHUB_ENV
           echo "OUTPUTS_PREFIX=$(jq -r '.infra.outputs_prefix' "$config_file")" >> $GITHUB_ENV
+          echo "RUNTIME=$(jq -r '.services.data_ingestion.fetch_daily_summaries.runtime' "$config_file")" >> $GITHUB_ENV
           echo "SERVICE_NAME=$(jq -r '.services.data_ingestion.fetch_daily_summaries.service_name' "$config_file")" >> $GITHUB_ENV
           echo "SERVICE_VERSION=$(jq -r '.services.data_ingestion.fetch_daily_summaries.service_version' "$config_file")" >> $GITHUB_ENV
           echo "ZIP_PREFIX=$(jq -r '.services.zip_prefix' "$config_file")" >> $GITHUB_ENV
@@ -207,7 +208,8 @@ jobs:
           TF_VAR_max_retries: ${{ env.MAX_RETRIES }}
           TF_VAR_neo4j_password: ${{ env.NEO4J_CREDS_NEO4J_PASSWORD }}
           TF_VAR_neo4j_uri: ${{ env.NEO4J_URI}}
-          TF_var_neo4j_username: ${{ env.NEO4J_CREDS_NEO4J_USERNAME }}
+          TF_VAR_neo4j_username: ${{ env.NEO4J_CREDS_NEO4J_USERNAME }}
+          TF_VAR_runtime: ${{ env.RUNTIME }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}
           TF_VAR_service_version: ${{ env.SERVICE_VERSION }}
           TF_VAR_zip_key: ${{ env.ZIP_KEY }}
@@ -233,7 +235,8 @@ jobs:
           TF_VAR_max_retries: ${{ env.MAX_RETRIES }}
           TF_VAR_neo4j_password: ${{ env.NEO4J_CREDS_NEO4J_PASSWORD }}
           TF_VAR_neo4j_uri: ${{ env.NEO4J_URI}}
-          TF_var_neo4j_username: ${{ env.NEO4J_CREDS_NEO4J_USERNAME }}
+          TF_VAR_neo4j_username: ${{ env.NEO4J_CREDS_NEO4J_USERNAME }}
+          TF_VAR_runtime: ${{ env.RUNTIME }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}
           TF_VAR_service_version: ${{ env.SERVICE_VERSION }}
           TF_VAR_zip_key: ${{ env.ZIP_KEY }}

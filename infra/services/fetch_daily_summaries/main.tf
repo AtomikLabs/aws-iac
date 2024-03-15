@@ -19,6 +19,7 @@ locals {
   neo4j_password              = var.neo4j_password
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
+  runtime                     = var.runtime
   service_name                = var.service_name
   service_version             = var.service_version
   zip_key                     = var.zip_key
@@ -104,6 +105,7 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
   timeout       = 900
   memory_size   = 128
+  runtime       = local.runtime
 
   environment {
     variables = {
