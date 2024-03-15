@@ -82,7 +82,7 @@ jobs:
           credentials_arn=""
 
           if [ "${{ env.ENV_NAME }}" == "dev" ]; then
-          aws secretsmanager get-secret-value --secret-id "${{ secrets.AWS_DEV_NEO4J_CREDENTIALS }}" --query SecretString --output text >> neo4j_credentials.json
+          aws secretsmanager get-secret-value --secret-id "arn:aws:secretsmanager:us-east-1:758145997264:secret:test/neo4j-credentials-Dey1J8" --query SecretString --output text >> neo4j_credentials.json
           credentials_file="neo4j_credentials.json"
             credentials_arn="${{ secrets.AWS_DEV_NEO4J_CREDENTIALS }}"
           elif [ "${{ env.ENV_NAME }}" == "prod" ]; then
