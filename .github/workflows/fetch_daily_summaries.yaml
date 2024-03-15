@@ -71,6 +71,9 @@ jobs:
           if [ ${{ env.ENV_NAME }} == "dev" ]; then
             echo "dev"
             echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_DEV_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
+            echo "${{ secrets.AWS_DEV_NEO4J_CREDENTIALS }}"
+            echo "var"
+            echo "${{ env.NEO4J_CREDENTIALS_ARN }}"
           elif [ ${{ env.ENV_NAME }} == "prod" ]; then
               echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_PROD_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
           elif [ ${{ env.ENV_NAME }} == "stage" ]; then
