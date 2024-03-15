@@ -99,6 +99,7 @@ resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
 # **********************************************************
 resource "aws_lambda_function" "fetch_daily_summaries" {
   function_name = "${local.environment}-${local.service_name}"
+  filename = ""
   package_type  = "Zip"
   handler       = "lambda_handler.lambda_handler"
   role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
