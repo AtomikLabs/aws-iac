@@ -112,14 +112,12 @@ jobs:
         id: update-fetch-daily-summaries
         run: |
           mkdir build
-          mkdir build/app
-          cp services/${{ env.SERVICE_NAME}}/src/requirements.txt build/app/
-          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/lambda_handler.py build/app/
-          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/storage_manager.py build/app/
-          cd build/app
+          cp services/${{ env.SERVICE_NAME}}/src/requirements.txt build/
+          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/lambda_handler.py build/
+          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/storage_manager.py build/
+          cd build
           pip install -r requirements.txt -t .
           touch __init__.py
-          cd ..
           zip -r ${{ env.SERVICE_NAME}}.zip . -x ./__pycache__/**\*
           zip_key="${{ env.ZIP_PREFIX }}/${{ env.SERVICE_NAME}}.zip"
           echo "ZIP_KEY=$zip_key" >> $GITHUB_ENV
