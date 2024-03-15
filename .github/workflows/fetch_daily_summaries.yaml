@@ -181,7 +181,7 @@ jobs:
           TF_VAR_neo4j_uri: ${{ env.NEO4J_URI}}
           TF_var_neo4j_username: ${{ env.NEO4J_CREDS_NEO4J_USERNAME }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}
-          TF_VAR_service_version: ${{ steps.increment-version.outputs.new-version }}
+          TF_VAR_service_version: "0.0.1"
 
       - name: Apply Terraform
         id: apply-terraform
