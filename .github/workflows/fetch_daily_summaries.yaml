@@ -70,7 +70,7 @@ jobs:
         run: |
           if [ ${{ env.ENV_NAME }} == "dev" ]; then
             echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_DEV_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
-            elif [ ${{ env.ENV_NAME }} == "prod" ]; then
+          elif [ ${{ env.ENV_NAME }} == "prod" ]; then
               echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_PROD_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
           elif [ ${{ env.ENV_NAME }} == "stage" ]; then
             echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_STAGE_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
@@ -78,6 +78,7 @@ jobs:
             echo "NEO4J_CREDENTIALS_ARN=${{ secrets.AWS_TEST_NEO4J_CREDENTIALS }}" >> $GITHUB_ENV
           fi
           aws secretsmanager get-secret-value --secret-id ${{ env.NEO4J_CREDENTIALS_ARN }} --query SecretString --output text >> neo4j_credentials.json
+          credentials_file="neo4j_credentials.json"
           NEO4J_USERNAME=$(jq -r '.username' "$credentials_file")
           NEO4J_PASSWORD=$(jq -r '.password' "$credentials_file")
           echo "NEO4J_USERNAME=$NEO4J_USERNAME" >> $GITHUB_ENV
