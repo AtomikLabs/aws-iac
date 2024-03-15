@@ -4,9 +4,9 @@ import time
 from datetime import datetime, timedelta
 
 import defusedxml.ElementTree as ET
-from neo4j import GraphDatabase
 import requests
 import structlog
+from neo4j import GraphDatabase
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -154,11 +154,11 @@ def get_config() -> dict:
 
     return config
 
+
 def set_data_source():
     """
     Sets the data source.
     """
-    
 
 
 def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> list:

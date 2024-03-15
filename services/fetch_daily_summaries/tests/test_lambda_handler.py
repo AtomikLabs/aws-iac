@@ -1,20 +1,29 @@
 import json
 from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import lambda_handler, fetch_data, get_config, log_initial_info, get_storage_key
+from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import (
+    fetch_data,
+    get_config,
+    get_storage_key,
+    lambda_handler,
+    log_initial_info,
+)
+
 
 @pytest.fixture
 def event():
     """Sample AWS event fixture."""
     return {}
 
+
 @pytest.fixture
 def context():
     """Sample AWS context fixture, can be expanded as needed."""
     return MagicMock()
+
 
 @pytest.fixture
 def config():
@@ -31,15 +40,33 @@ def config():
         "NEO4J_URI": "bolt://localhost:7687",
         "NEO4J_USERNAME": "username",
         "SERVICE_NAME": "test_service",
-        "SERVICE_VERSION": "1.0"
+        "SERVICE_VERSION": "1.0",
     }
+
 
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger")
 def test_log_initial_info(mock_logger, event):
     log_initial_info(event)
     mock_logger.debug.assert_called()
 
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.os.environ", {"MAX_RETRIES": "3", "ARXIV_BASE_URL": "http://example.com", "ARXIV_SUMMARY_SET": "cs", "DATA_BUCKET": "my-test-bucket", "DATA_INGESTION_KEY_PREFIX": "data/prefix", "ENVIRONMENT": "test", "NEO4J_PASSWORD": "password", "NEO4J_URI": "bolt://localhost:7687", "NEO4J_USERNAME": "username", "SERVICE_NAME": "test_service", "SERVICE_VERSION": "1.0", "APP_NAME": "test_app"})
+
+@patch(
+    "services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.os.environ",
+    {
+        "MAX_RETRIES": "3",
+        "ARXIV_BASE_URL": "http://example.com",
+        "ARXIV_SUMMARY_SET": "cs",
+        "DATA_BUCKET": "my-test-bucket",
+        "DATA_INGESTION_KEY_PREFIX": "data/prefix",
+        "ENVIRONMENT": "test",
+        "NEO4J_PASSWORD": "password",
+        "NEO4J_URI": "bolt://localhost:7687",
+        "NEO4J_USERNAME": "username",
+        "SERVICE_NAME": "test_service",
+        "SERVICE_VERSION": "1.0",
+        "APP_NAME": "test_app",
+    },
+)
 def test_get_config():
     expected = {
         "MAX_RETRIES": 3,
@@ -53,9 +80,10 @@ def test_get_config():
         "NEO4J_USERNAME": "username",
         "SERVICE_NAME": "test_service",
         "SERVICE_VERSION": "1.0",
-        "APP_NAME": "test_app"
+        "APP_NAME": "test_app",
     }
     assert get_config() == expected
+
 
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.requests.Session")
 def test_fetch_data(mock_session):
@@ -74,21 +102,36 @@ def test_fetch_data(mock_session):
     assert len(result) == 1
     assert result[0] == "<xml>data</xml>"
 
+
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.datetime")
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.StorageManager")
 def test_lambda_handler_success(mock_storage_manager, mock_datetime, event, context, config):
     mock_datetime.today.return_value = datetime(2023, 1, 1)
     mock_datetime.strptime.return_value = datetime(2023, 1, 1)
-    with patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_config", return_value=config), \
-         patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.fetch_data", return_value=["<xml>data</xml>"]), \
-         patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_storage_key", return_value="key"):
+    with (
+        patch(
+            "services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_config", return_value=config
+        ),
+        patch(
+            "services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.fetch_data",
+            return_value=["<xml>data</xml>"],
+        ),
+        patch(
+            "services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_storage_key",
+            return_value="key",
+        ),
+    ):
         response = lambda_handler(event, context)
         assert response["statusCode"] == 200
         assert json.loads(response["body"]) == {"message": "Success"}
 
+
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger")
 def test_lambda_handler_exception(mock_logger, event, context):
-    with patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_config", side_effect=Exception("Test exception")):
+    with patch(
+        "services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_config",
+        side_effect=Exception("Test exception"),
+    ):
         response = lambda_handler(event, context)
         assert response["statusCode"] == 500
         assert json.loads(response["body"]) == {"message": "Internal Server Error"}
