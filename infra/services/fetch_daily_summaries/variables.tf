@@ -39,6 +39,11 @@ variable "environment" {
   default       = "dev"
 }
 
+variable "infra_config_bucket" {
+  description   = "The name of the S3 bucket where the infrastructure configuration is stored"
+  type          = string
+}
+
 variable "max_retries" {
   description   = "The maximum number of retries"
   type          = number
@@ -69,6 +74,10 @@ variable "service_version" {
   type          = string
 }
 
+variable "zip_key" {
+  description   = "The key for the zip file"
+  type          = string
+}
 
 
 

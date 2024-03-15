@@ -15,11 +15,13 @@ locals {
   data_bucket                 = var.data_bucket
   data_bucket_arn             = "arn:aws:s3:::${var.data_bucket}"
   environment                 = var.environment
+  infra_config_bucket         = var.infra_config_bucket
   neo4j_password              = var.neo4j_password
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
   service_name                = var.service_name
   service_version             = var.service_version
+  zip_key                     = var.zip_key
 
   arxiv_base_url                          = var.arxiv_base_url
   arxiv_summary_set                       = var.arxiv_summary_set
@@ -95,7 +97,8 @@ resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
 # **********************************************************
 resource "aws_lambda_function" "fetch_daily_summaries" {
   function_name = "${local.environment}-${local.service_name}"
-  filename = ""
+  s3_bucket = local.infra_config_bucket
+  s3_key = local.zip_key
   package_type  = "Zip"
   handler       = "lambda_handler.lambda_handler"
   role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
