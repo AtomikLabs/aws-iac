@@ -95,11 +95,14 @@ jobs:
           credentials_file=".neo4j_credentials.json"
 
           echo "NEO4J_USERNAME=$(jq -r '.username' "$credentials_file")" >> $GITHUB_ENV
+          echo "$NEO4J_USERNAME"
+          echo "space"
           echo "NEO4J_PASSWORD=$(jq -r '.password' "$credentials_file")" >> $GITHUB_ENV
 
       - name: Ensure S3 bucket exists
         id: ensure-s3-bucket-exists
         run: |
+          echo "${{ env.NEO4J_USERNAME}}"
           if ! aws s3 ls "s3://${{ env.INFRA_CONFIG_BUCKET }}" 2>&1 | grep -q 'NoSuchBucket'; then
             echo "Bucket exists."
           else
