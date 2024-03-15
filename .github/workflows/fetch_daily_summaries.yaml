@@ -77,31 +77,20 @@ jobs:
           STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
           STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
 
-      - name: Set NEO4J Credentials
-        run: |
-          credentials_arn=""
-
-          if [ "${{ env.ENV_NAME }}" == "dev" ]; then
-            credentials_arn="${{ secrets.AWS_DEV_NEO4J_CREDENTIALS }}"
-          elif [ "${{ env.ENV_NAME }}" == "prod" ]; then
-            credentials_arn="${{ secrets.AWS_PROD_NEO4J_CREDENTIALS }}"
-          elif [ "${{ env.ENV_NAME }}" == "stage" ]; then
-            credentials_arn="${{ secrets.AWS_STAGE_NEO4J_CREDENTIALS }}"
-          elif [ "${{ env.ENV_NAME }}" == "test" ]; then
-            credentials_arn="${{ secrets.AWS_TEST_NEO4J_CREDENTIALS }}"
-          fi
-          echo "NEO4J_CREDENTIALS_ARN=$credentials_arn" >> $GITHUB_ENV
-
       - name: Get neo4j secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
         with:
           secret-ids: |
             NEO4J_RETRIEVED_CREDS, ${{ env.NEO4J_CREDENTIALS_ARN }}
-            OTHER, ${{env.ENV_NAME}}/neo4j-credentials
 
       - name: Debug
         run: |
-          echo "NEO4J_RETRIEVED_CREDS=$NEO4J_RETRIEVED_CREDS"
-          echo "NEO4J_RETRIEVED_CREDS=${{ env.NEO4J_RETRIEVED_CREDS }}"
-          echo "OTHER=$OTHER"
-          echo "OTHER=${{ env.OTHER }}"
+          creds=${{ steps.get-neo4j-secrets.outputs.secret }}
+          echo $creds
+          echo "NEO4J_USERNAME=$(echo $creds | jq -r '.NEO4J_USERNAME')" >> $GITHUB_ENV
+          echo "NEO4J_PASSWORD=$(echo $creds | jq -r '.NEO4J_PASSWORD')" >> $GITHUB_ENV
+
+      - name: debug
+        run: |
+          echo $NEO4J_USERNAME
+          echo $NEO4J_PASSWORD
