@@ -76,21 +76,18 @@ jobs:
           PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
           STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
           STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
-
       - name: Get neo4j secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
         with:
           secret-ids: |
             NEO4J_RETRIEVED_CREDS, ${{ env.NEO4J_CREDENTIALS_ARN }}
+          parse-json-secrets: true
 
       - name: Debug
         run: |
-          creds=${{ steps.get-neo4j-secrets.outputs.secret }}
-          echo $creds
-          echo "NEO4J_USERNAME=$(echo $creds | jq -r '.NEO4J_USERNAME')" >> $GITHUB_ENV
-          echo "NEO4J_PASSWORD=$(echo $creds | jq -r '.NEO4J_PASSWORD')" >> $GITHUB_ENV
-
-      - name: debug
-        run: |
-          echo $NEO4J_USERNAME
-          echo $NEO4J_PASSWORD
+          echo "${{ env.NEO4J_RETRIEVED_CREDS }}"
+          echo "${{ env.NEO4J_RETRIEVED_CREDS.username }}"
+          echo "${{ env.NEO4J_RETRIEVED_CREDS.password }}"
+          echo "presets"
+          echo "${{ env.NEO4J_USERNAME}}"
+          echo "${{ env.NEO4J_PASSWORD}}"
