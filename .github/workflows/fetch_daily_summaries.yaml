@@ -18,6 +18,9 @@ on:
 jobs:
   fetch_daily_summaries:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10]
     steps:
       - name: Checkout code
         id: checkout
@@ -110,6 +113,7 @@ jobs:
           mkdir build
           cp services/${{ env.SERVICE_NAME}}/src/requirements.txt build/
           cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/lambda_handler.py build/
+          cp services/${{ env.SERVICE_NAME}}/src/${{ env.SERVICE_NAME}}/storage_manager.py build/
           ls -la build
           cd build
           pip install -r requirements.txt -t .
