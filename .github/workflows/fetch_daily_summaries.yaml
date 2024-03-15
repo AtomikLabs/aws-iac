@@ -105,6 +105,8 @@ jobs:
           echo "OTHER=$OTHER"
           username=$(echo $NEO4J_RETRIEVED_CREDS | jq -r '.username')
           password=$(echo $OTHER | jq -r '.password')
+          echo $username
+          echo $password
           echo "NEO4J_USERNAME=$username" >> $GITHUB_ENV
           echo "NEO4J_PASSWORD=$password" >> $GITHUB_ENV
 
