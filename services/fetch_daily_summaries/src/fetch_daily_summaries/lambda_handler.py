@@ -6,11 +6,10 @@ from datetime import datetime, timedelta
 import defusedxml.ElementTree as ET
 import requests
 import structlog
+from neo4j_manager import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, Neo4jDatabase
 from requests.adapters import HTTPAdapter
+from storage_manager import StorageManager
 from urllib3.util.retry import Retry
-
-from .neo4j_manager import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, Neo4jDatabase
-from .storage_manager import StorageManager
 
 structlog.configure(
     [
