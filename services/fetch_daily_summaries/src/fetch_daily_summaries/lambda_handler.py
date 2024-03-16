@@ -7,10 +7,15 @@ import defusedxml.ElementTree as ET
 import requests
 import structlog
 from requests.adapters import HTTPAdapter
+from storage_manager import StorageManager
 from urllib3.util.retry import Retry
 
-from services.fetch_daily_summaries.src.fetch_daily_summaries.neo4j_manager import Neo4jDatabase, NEO4J, NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME
-from storage_manager import StorageManager
+from services.fetch_daily_summaries.src.fetch_daily_summaries.neo4j_manager import (
+    NEO4J_PASSWORD,
+    NEO4J_URI,
+    NEO4J_USERNAME,
+    Neo4jDatabase,
+)
 
 structlog.configure(
     [
@@ -29,19 +34,19 @@ BACKOFF_TIMES = [30, 120]
 DAY_SPAN = 5
 
 # ENVIRONMENT VARIABLES
-APP_NAME                    = "APP_NAME"
-ARXIV_BASE_URL              = "ARXIV_BASE_URL"
-ARXIV_SUMMARY_SET           = "ARXIV_SUMMARY_SET"
-DATA_BUCKET                 = "DATA_BUCKET"
-DATA_INGESTION_KEY_PREFIX   = "DATA_INGESTION_KEY_PREFIX"
-ENVIRONMENT_NAME            = "ENVIRONMENT"
-MAX_RETRIES                 = "MAX_RETRIES"
-SERVICE_NAME                = "SERVICE_NAME"
-SERVICE_VERSION             = "SERVICE_VERSION"
+APP_NAME = "APP_NAME"
+ARXIV_BASE_URL = "ARXIV_BASE_URL"
+ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
+DATA_BUCKET = "DATA_BUCKET"
+DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
+ENVIRONMENT_NAME = "ENVIRONMENT"
+MAX_RETRIES = "MAX_RETRIES"
+SERVICE_NAME = "SERVICE_NAME"
+SERVICE_VERSION = "SERVICE_VERSION"
 
 # CONSTANTS
-DATETIME_FORMAT     = "%Y-%m-%dT%H:%M:%S.%f%z"
-S3_KEY_DATE_FORMAT  = "%Y-%m-%dT%H-%M-%S"
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -199,7 +204,9 @@ def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> lis
     if fetch_attempts == max_fetch_attempts:
         logger.warning("Reached maximum fetch attempts without completing data retrieval", method=fetch_data.__name__)
 
-    logger.info("Fetched data from arXiv successfully", method=fetch_data.__name__, num_xml_responses=len(full_xml_responses))
+    logger.info(
+        "Fetched data from arXiv successfully", method=fetch_data.__name__, num_xml_responses=len(full_xml_responses)
+    )
     return full_xml_responses
 
 
