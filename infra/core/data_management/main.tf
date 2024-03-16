@@ -221,7 +221,7 @@ docker run --restart=always \
 -p 7474:7474 -p 7687:7687 \
 -v /neo4j/data:/data \
 -v /neo4j/logs:/logs \
--e NEO4J_AUTH=${local.secret.username}/${local.secret.password} \
+-e NEO4J_AUTH=${local.secret.neo4j_username}/${local.secret.neo4j_password} \
 --name neo4j \
 neo4j:latest
 EOF
