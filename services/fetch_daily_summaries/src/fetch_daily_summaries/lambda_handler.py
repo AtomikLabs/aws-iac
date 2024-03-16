@@ -75,9 +75,10 @@ def lambda_handler(event: dict, context) -> dict:
 
         raw_data_key = get_storage_key(config)
         content_str = json.dumps(xml_data_list)
-        sm = StorageManager(config.get(DATA_BUCKET), logger)
-        sm.upload_to_s3(raw_data_key, content_str)
-        neo4j = Neo4jDatabase(config.get(NEO4J_URI), config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+        storage_manager = StorageManager(config.get(DATA_BUCKET), logger)
+        storage_manager.upload_to_s3(raw_data_key, content_str)
+        neo4j_uri = f"neo4j://{config.get(NEO4J_URI)}:7687"
+        neo4j = Neo4jDatabase(neo4j_uri, config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         neo4j.create_arxiv_datasource_node(config.get(ARXIV_BASE_URL))
         neo4j.create_arxiv_raw_data_node(
             earliest, today, today, SERVICE_NAME, SERVICE_VERSION, len(content_str), raw_data_key
