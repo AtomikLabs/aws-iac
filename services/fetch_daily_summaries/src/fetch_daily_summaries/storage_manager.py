@@ -58,7 +58,7 @@ class StorageManager:
         logger.info("Loaded data from S3 bucket", method=LOAD, bucket_name=self.bucket_name, key=key)
         return body
 
-    def persist(self, key: str, content: str) -> None:
+    def upload_to_s3(self, key: str, content: str) -> None:
         """
         Persist the content to an AWS S3 bucket with the given key.
 

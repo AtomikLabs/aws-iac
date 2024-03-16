@@ -114,6 +114,7 @@ jobs:
           mkdir build
           cp services/${{ env.SERVICE_NAME }}/src/requirements.txt build/
           cp services/${{ env.SERVICE_NAME }}/src/${{ env.SERVICE_NAME }}/lambda_handler.py build/
+          cp services/${{ env.SERVICE_NAME }}/src/${{ env.SERVICE_NAME }}/neo4j_manager.py build/
           cp services/${{ env.SERVICE_NAME }}/src/${{ env.SERVICE_NAME }}/storage_manager.py build/
           cd build
           pip install -r requirements.txt -t .
