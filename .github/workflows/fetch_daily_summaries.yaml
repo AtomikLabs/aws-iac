@@ -182,7 +182,7 @@ jobs:
           echo "NEO4J_URI=$(jq -r '.neo4j_instance_private_ip.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "ECR_REPO_URL=$(jq -r '.ecr_repo_url.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "AWS_VPC_ID=$(jq -r '.main_vpc_id.value' ./terraform_outputs.json)" >> $GITHUB_ENV
-          echo "PRIVATE_SUBNET_IDS=$(jq -r '.aws_private_subnet_id.value' ./terraform_outputs.json)" >> $GITHUB_ENV
+          echo "PRIVATE_SUBNET_IDS=$(jq -r '.aws_private_subnet_ids.value' ./terraform_outputs.json)" >> $GITHUB_ENV
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
 
