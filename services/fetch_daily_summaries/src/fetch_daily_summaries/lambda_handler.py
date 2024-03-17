@@ -4,8 +4,10 @@ import time
 from datetime import datetime, timedelta
 
 import defusedxml.ElementTree as ET
+import pytz
 import requests
 import structlog
+from neo4j.time import DateTime
 from neo4j_manager import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, Neo4jDatabase
 from requests.adapters import HTTPAdapter
 from storage_manager import StorageManager
@@ -25,7 +27,7 @@ structlog.configure(
 logger = structlog.get_logger()
 # TODO: Make these constants configurable
 BACKOFF_TIMES = [30, 120]
-DAY_SPAN = 5
+DAY_SPAN = 1
 
 # ENVIRONMENT VARIABLES
 APP_NAME = "APP_NAME"
@@ -65,8 +67,8 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-
-        today = datetime.today().date()
+        date_obtained = datetime.now().astimezone(pytz.timezone("US/Pacific"))
+        today = date_obtained.date()
         earliest = today - timedelta(days=DAY_SPAN)
 
         xml_data_list = fetch_data(
@@ -81,7 +83,7 @@ def lambda_handler(event: dict, context) -> dict:
         neo4j = Neo4jDatabase(neo4j_uri, config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         neo4j.create_arxiv_datasource_node(config.get(ARXIV_BASE_URL))
         neo4j.create_arxiv_raw_data_node(
-            earliest, today, today, SERVICE_NAME, SERVICE_VERSION, len(content_str), raw_data_key
+            earliest, today, date_obtained, SERVICE_NAME, SERVICE_VERSION, len(content_str), raw_data_key
         )
         logger.info("Fetching arXiv summaries succeeded", method=lambda_handler.__name__, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}

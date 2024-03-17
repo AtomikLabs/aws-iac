@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 import structlog
 from neo4j import GraphDatabase
@@ -185,7 +185,7 @@ class Neo4jDatabase:
         self,
         date_from: date,
         date_to: date,
-        date_obtained: date,
+        date_obtained: datetime,
         method_name: str,
         method_version: str,
         size: int,
@@ -215,7 +215,7 @@ class Neo4jDatabase:
             or not date_obtained
             or not isinstance(date_from, date)
             or not isinstance(date_to, date)
-            or not isinstance(date_obtained, date)
+            or not isinstance(date_obtained, datetime)
         ):
             message = "Date from, date to, and date obtained are required and must be dates."
             logger.error(

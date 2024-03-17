@@ -34,7 +34,7 @@ locals {
   # * INFRASTRUCTURE CONFIGURATION                           *
   # **********************************************************
   alert_email                     = var.alert_email
-  app_name                            = var.app_name
+  app_name                        = var.app_name
   backend_dynamodb_table          = var.backend_dynamodb_table
   default_ami_id                  = var.default_ami_id
   environment                     = var.environment
