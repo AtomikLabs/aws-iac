@@ -148,13 +148,6 @@ def get_config() -> dict:
 
     return config
 
-
-def set_data_source():
-    """
-    Sets the data source.
-    """
-
-
 def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> list:
     """
     Fetches data from arXiv.

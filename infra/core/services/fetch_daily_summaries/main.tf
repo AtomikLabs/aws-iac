@@ -101,7 +101,7 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   handler       = "lambda_handler.lambda_handler"
   role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
   timeout       = 900
-  memory_size   = 128
+  memory_size   = 256
   runtime       = local.runtime
 
   vpc_config {
