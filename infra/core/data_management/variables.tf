@@ -1,3 +1,9 @@
+variable "app_name" {
+  description = "Base name of the application"
+  type        = string
+  default     = "atomiklabs"
+}
+
 variable "availability_zones" {
   description = "Availability zones"
   type        = list(string)
@@ -39,11 +45,6 @@ variable "infra_config_bucket_arn" {
   type        = string
 }
 
-variable "name" {
-  description = "Base name of the application"
-  type        = string
-  default     = "atomiklabs"
-}
 
 variable "neo4j_ami_id" {
   description = "Neo4j AMI ID"

@@ -7,6 +7,12 @@ variable "alert_email"  {
   type        = string
 }
 
+variable "app_name" {
+  description = "Base name of the application"
+  type        = string
+  default     = "atomiklabs"
+}
+
 variable "aws_region" {
   description = "AWS region to deploy the infrastructure"
   type        = string
@@ -44,11 +50,6 @@ variable "infra_config_prefix" {
   type        = string
 }
 
-variable "name" {
-  description = "Base name of the application"
-  type        = string
-  default     = "atomiklabs"
-}
 
 variable "repo" {
   description = "application Github repository"
@@ -63,6 +64,11 @@ variable "terraform_outputs_prefix" {
 # **********************************************************
 # * Data Management                                        *
 # **********************************************************
+
+variable "data_ingestion_key_prefix" {
+    description = "Prefix for the data ingestion"
+    type        = string
+}
 
 variable "data_ingestion_metadata_key_prefix" {
     description = "Prefix for the data ingestion metadata"
@@ -104,5 +110,60 @@ variable "home_ip" {
 
 variable "bastion_host_key_pair_name" {
   description = "Bastion host key pair name"
+  type        = string
+}
+
+
+# **********************************************************
+# * Services                                               *
+# **********************************************************
+
+variable "arxiv_base_url" {
+  description = "Base URL for the Arxiv API"
+  type        = string
+}
+
+variable "arxiv_summary_set" {
+  description = "Arxiv summary set"
+  type        = string
+}
+
+variable "default_lambda_runtime" {
+  description = "Default Lambda runtime"
+  type        = string
+}
+
+variable "neo4j_password" {
+  description = "Neo4j password"
+  type        = string
+}
+
+variable "neo4j_uri" {
+  description = "Neo4j URI"
+  type        = string
+}
+
+variable "neo4j_username" {
+  description = "Neo4j username"
+  type        = string
+}
+
+variable "zip_key_prefix" {
+  description = "Prefix for the zip key"
+  type        = string
+}
+
+variable "fetch_daily_summaries_max_retries" {
+  description = "Max retries for the fetch daily summaries"
+  type        = number
+}
+
+variable "fetch_daily_summaries_service_name" {
+  description = "Service name for the fetch daily summaries"
+  type        = string
+}
+
+variable "fetch_daily_summaries_service_version" {
+  description = "Service version for the fetch daily summaries"
   type        = string
 }

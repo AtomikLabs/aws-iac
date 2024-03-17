@@ -28,26 +28,6 @@ jobs:
       - name: Install jq
         run: sudo apt-get install jq
 
-      - name: Read AtomikLabs config and Set Environment Variables
-        run: |
-          config_file=".atomiklabs.json"
-          echo "AWS_REGION=$(jq -r '.infra.terraform_aws_region' "$config_file")" >> $GITHUB_ENV
-          echo "BACKEND_DYNAMODB_TABLE=$(jq -r '.infra.backend_dynamodb_table' "$config_file")" >> $GITHUB_ENV
-          echo "BASTION_HOST_KEY_PAIR_NAME=$(jq -r '.networking.bastion_host_key_pair_name' "$config_file")" >> $GITHUB_ENV
-          echo "DATA_INGESTION_KEY_PREFIX=$(jq -r '.data_ingestion.data_ingestion_key_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "DATA_INGESTION_METADATA_KEY_PREFIX=$(jq -r '.metadata.data_ingestion_metadata_key_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "DEFAULT_AMI_ID=$(jq -r '.infra.default_ami_id' "$config_file")" >> $GITHUB_ENV
-          echo "ETL_KEY_PREFIX=$(jq -r '.etl.etl_key_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "INFRA_CONFIG_BUCKET=$(jq -r '.infra.infra_config_bucket' "$config_file")" >> $GITHUB_ENV
-          echo "INFRA_CONFIG_BUCKET_ARN=$(jq -r '.infra.infra_config_bucket_arn' "$config_file")" >> $GITHUB_ENV
-          echo "INFRA_CONFIG_PREFIX=$(jq -r '.infra.infra_config_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "NEO4J_AMI_ID=$(jq -r '.data_management.neo4j.ami_id' "$config_file")" >> $GITHUB_ENV
-          echo "NEO4J_INSTANCE_TYPE=$(jq -r '.data_management.neo4j.instance_type' "$config_file")" >> $GITHUB_ENV
-          echo "NEO4J_KEY_PAIR_NAME=$(jq -r '.data_management.neo4j.key_pair_name' "$config_file")" >> $GITHUB_ENV
-          echo "NEO4J_RESOURCE_PREFIX=$(jq -r '.data_management.neo4j.resource_prefix' "$config_file")" >> $GITHUB_ENV
-          echo "REPO=$(jq -r '.infra.repo' "$config_file")" >> $GITHUB_ENV
-          echo "TERRAFORM_OUTPUTS_PREFIX=$(jq -r '.infra.terraform_outputs_prefix' "$config_file")" >> $GITHUB_ENV
-
       - name: Install node and npm
         uses: actions/setup-node@v4
         with:
@@ -60,6 +40,13 @@ jobs:
       - name: Load Environment Variables
         uses: ./.github/actions/load-env-variables
 
+      - name: Extract variables
+        id: vars
+        run: |
+          echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket_arn=$(grep '^infra_config_bucket_arn' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+
       - name: Set AWS Credentials
         uses: ./.github/actions/set-aws-credentials
         with:
@@ -71,20 +58,62 @@ jobs:
           DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
           DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
 
+      - name: Set NEO4J Credentials
+        run: |
+          credentials_arn=""
+          if [ "${{ env.ENV_NAME }}" == "dev" ]; then
+            credentials_arn="${{ secrets.AWS_DEV_NEO4J_CREDENTIALS }}"
+          elif [ "${{ env.ENV_NAME }}" == "prod" ]; then
+            credentials_arn="${{ secrets.AWS_PROD_NEO4J_CREDENTIALS }}"
+          elif [ "${{ env.ENV_NAME }}" == "stage" ]; then
+            credentials_arn="${{ secrets.AWS_STAGE_NEO4J_CREDENTIALS }}"
+          elif [ "${{ env.ENV_NAME }}" == "test" ]; then
+            credentials_arn="${{ secrets.AWS_TEST_NEO4J_CREDENTIALS }}"
+          fi
+          echo "NEO4J_CREDENTIALS_ARN=$credentials_arn" >> $GITHUB_OUTPUTS
+
+      - name: Get neo4j secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v1
+        with:
+          secret-ids: |
+            NEO4J_CREDS, ${{env.NEO4J_CREDENTIALS_ARN}}
+          parse-json-secrets: true
+
+      - name: Set up Python ${{matrix.python-version}}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{matrix.python-version}}
+
+      - name: Update Fetch Daily Summaries Lambda Function
+        id: update-fetch-daily-summaries
+        run: |
+          mkdir build
+          cp services/fetch_daily_summaries/src/requirements.txt build/
+          cp services/fetch_daily_summaries/src/fetch_daily_summaries/lambda_handler.py build/
+          cp services/fetch_daily_summaries/src/fetch_daily_summaries/neo4j_manager.py build/
+          cp services/fetch_daily_summaries/src/fetch_daily_summaries/storage_manager.py build/
+          cd build
+          pip install -r requirements.txt -t .
+          zip -r fetch_daily_summaries.zip . -x ./__pycache__/**\*
+          zip_key="fetch_daily_summaries/fetch_daily_summaries.zip"
+          echo "FETCH_DAILY_SUMMARIES_ZIP_KEY=$zip_key" >> $GITHUB_OUTPUT
+          aws s3 cp fetch_daily_summaries.zip s3://fetch_daily_summaries/fetch_daily_summaries/fetch_daily_summaries.zip
+          cd ../
+
       - name: Ensure S3 bucket exists
         run: |
-          if ! aws s3 ls "s3://${INFRA_CONFIG_BUCKET}" 2>&1 | grep -q 'NoSuchBucket'; then
+          if ! aws s3 ls "s3://${{steps.vars.outputs.infra_config_bucket}}" 2>&1 | grep -q 'NoSuchBucket'; then
             echo "Bucket exists."
           else
             echo "Bucket does not exist. Creating bucket..."
-            aws s3 mb "s3://${INFRA_CONFIG_BUCKET}"
-            aws s3api put-bucket-versioning --bucket ${INFRA_CONFIG_BUCKET} --versioning-configuration Status=Enabled
+            aws s3 mb "s3:/${{steps.vars.outputs.infra_config_bucket}}"
+            aws s3api put-bucket-versioning --bucket ${{steps.vars.outputs.infra_config_bucket}} --versioning-configuration Status=Enabled
           fi
 
       - name: Ensure DynamoDB table exists
         run: |
-          TABLE_NAME="atomiklabs-terraform-locks"
-          REGION="${{ env.AWS_REGION }}"
+          TABLE_NAME="${{steps.vars.outputs.backend_dynamodb_table}}"
+          REGION="${{env.AWS_REGION}}"
           if aws dynamodb describe-table --table-name $TABLE_NAME 2>&1 | grep -q 'ResourceNotFoundException'; then
             echo "DynamoDB table does not exist. Creating table..."
             aws dynamodb create-table \
@@ -120,56 +149,34 @@ jobs:
 
       - name: Plan Terraform
         id: plan
-        run: terraform plan -var-file="../../${{ env.ENV_FILE }}"
+        run: terraform plan -var-file="../../${{env.ENV_FILE}}"
         working-directory: ./infra/core
         env:
-          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
-          TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
-          TF_VAR_aws_region: ${{ env.AWS_REGION }}
-          TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
-          TF_VAR_bastion_host_key_pair_name: ${{ env.BASTION_HOST_KEY_PAIR_NAME }}
-          TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
-          TF_VAR_default_ami_id: ${{ env.DEFAULT_AMI_ID }}
-          TF_VAR_home_ip: ${{ secrets.HOME_IP }}
-          TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
-          TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
-          TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
-          TF_VAR_neo4j_ami_id: ${{ env.NEO4J_AMI_ID }}
-          TF_VAR_neo4j_instance_type: ${{ env.NEO4J_INSTANCE_TYPE }}
-          TF_VAR_neo4j_key_pair_name: ${{ env.NEO4J_KEY_PAIR_NAME }}
-          TF_VAR_neo4j_resource_prefix: ${{ env.NEO4J_RESOURCE_PREFIX }}
-          TF_VAR_repo: ${{ env.REPO }}
-          TF_VAR_terraform_outputs_prefix: ${{ env.TERRAFORM_OUTPUTS_PREFIX }}
+          AWS_DEFAULT_REGION: ${{env.AWS_REGION}}
+          TF_VAR_alert_email: ${{secrets.ALERT_EMAIL}}
+          TF_VAR_home_ip: ${{secrets.HOME_IP}}
+          TF_VAR_neo4j_password: ${{env.NEO4J_CREDS_NEO4J_PASSWORD}}
+          TF_VAR_neo4j_uri: ${{env.NEO4J_URI}}
+          TF_VAR_neo4j_username: ${{env.NEO4J_CREDS_NEO4J_USERNAME}}
 
       - name: Apply Terraform
         run: |
-          echo "${{ env.ENV_FILE }}"
-          echo "${{ env.AWS_REGION }}"
-          terraform apply -var-file="../../${{ env.ENV_FILE }}" -auto-approve
+          echo "${{env.ENV_FILE}}"
+          echo "${{env.AWS_REGION}}"
+          terraform apply -var-file="../../${{env.ENV_FILE}}" -auto-approve
         working-directory: ./infra/core
         env:
-          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
-          TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
-          TF_VAR_aws_region: ${{ env.AWS_REGION }}
-          TF_VAR_backend_dynamodb_table: ${{ env.BACKEND_DYNAMODB_TABLE }}
-          TF_VAR_bastion_host_key_pair_name: ${{ env.BASTION_HOST_KEY_PAIR_NAME }}
-          TF_VAR_data_ingestion_metadata_key_prefix: ${{ env.DATA_INGESTION_METADATA_KEY_PREFIX }}
-          TF_VAR_default_ami_id: ${{ env.DEFAULT_AMI_ID }}
-          TF_VAR_home_ip: ${{ secrets.HOME_IP }}
-          TF_VAR_infra_config_bucket: ${{ env.INFRA_CONFIG_BUCKET }}
-          TF_VAR_infra_config_bucket_arn: ${{ env.INFRA_CONFIG_BUCKET_ARN }}
-          TF_VAR_infra_config_prefix: ${{ env.INFRA_CONFIG_PREFIX }}
-          TF_VAR_neo4j_ami_id: ${{ env.NEO4J_AMI_ID }}
-          TF_VAR_neo4j_instance_type: ${{ env.NEO4J_INSTANCE_TYPE }}
-          TF_VAR_neo4j_key_pair_name: ${{ env.NEO4J_KEY_PAIR_NAME }}
-          TF_VAR_neo4j_resource_prefix: ${{ env.NEO4J_RESOURCE_PREFIX }}
-          TF_VAR_repo: ${{ env.REPO }}
-          TF_VAR_terraform_outputs_prefix: ${{ env.TERRAFORM_OUTPUTS_PREFIX }}
+          AWS_DEFAULT_REGION: ${{env.AWS_REGION}}
+          TF_VAR_alert_email: ${{secrets.ALERT_EMAIL}}
+          TF_VAR_home_ip: ${{secrets.HOME_IP}}
+          TF_VAR_neo4j_password: ${{env.NEO4J_CREDS_NEO4J_PASSWORD}}
+          TF_VAR_neo4j_uri: ${{env.NEO4J_URI}}
+          TF_VAR_neo4j_username: ${{env.NEO4J_CREDS_NEO4J_USERNAME}}
 
       - name: Save Terraform Outputs
         run: |
           terraform output -json > terraform_outputs.json
-          aws s3 cp terraform_outputs.json s3://${{ env.INFRA_CONFIG_BUCKET }}/terraform/${{ env.ENV_NAME }}-${{ env.TERRAFORM_OUTPUTS_PREFIX }}.json
+          aws s3 cp terraform_outputs.json s3://${{env.INFRA_CONFIG_BUCKET}}/terraform/${{env.ENV_NAME}}-${{env.TERRAFORM_OUTPUTS_PREFIX}}.json
         working-directory: ./infra/core
 
       - name: Upload Terraform Outputs
