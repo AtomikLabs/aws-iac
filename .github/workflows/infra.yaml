@@ -55,6 +55,10 @@ jobs:
       - name: Set Region
         run: |
           echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
+          echo steps.vars.outputs.aws_region
+          echo steps.vars.outputs.backend_dynamodb_table
+          echo steps.vars.outputs.infra_config_bucket_arn
+          echo steps.vars.outputs.terraform_outputs_prefix
 
       - name: Set AWS Credentials
         uses: ./.github/actions/set-aws-credentials
@@ -178,7 +182,7 @@ jobs:
       - name: Save Terraform Outputs
         run: |
           terraform output -json > terraform_outputs.json
-          aws s3 cp terraform_outputs.json s3://${{steps.vars.outputs.infra_config_bucket}}/terraform/${{env.ENV_NAME}}-${{steps.vars.outputs.terraform_outputs_prefix}}.json
+          aws s3 cp terraform_outputs.json s3://${{steps.vars.outputs.infra_config_bucket_arn}}/terraform/${{env.ENV_NAME}}-${{steps.vars.outputs.terraform_outputs_prefix}}.json
         working-directory: ./infra/core
 
       - name: Upload Terraform Outputs
