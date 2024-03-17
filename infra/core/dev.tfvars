@@ -47,7 +47,7 @@ zip_key_prefix = "services/code"
 # fetch_daily_summaries
 
 fetch_daily_summaries_max_retries = 10
-fetch_daily_summaries_service_name = "fetch_daily_Summaries"
+fetch_daily_summaries_service_name = "fetch_daily_summaries"
 fetch_daily_summaries_service_version = "0.0.1"
 
 # parase_arxiv_summaries
