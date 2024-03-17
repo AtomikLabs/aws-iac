@@ -4,6 +4,7 @@
 
 app_name = "atomiklabs"
 app_version = "0.0.4"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
 aws_region = "us-east-1"
 backend_dynamodb_table = "terraform-state-locks"
 default_ami_id = "ami-0f403e3180720dd7e"
@@ -38,7 +39,7 @@ bastion_host_key_pair_name = "atomiklabs-bastion-keypair"
 # **********************************************************
 
 arxiv_base_url = "http://export.arxiv.org/oai2"
-arxiv_summary_sets = ["cs"]
+arxiv_summary_set = "cs"
 default_lambda_runtime = "python3.10"
 zip_key_prefix = "services/code"
 
