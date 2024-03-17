@@ -45,10 +45,12 @@ jobs:
         run: |
           echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "$aws_region"
-          echo "AWS_REGION=$aws_region" >> $GITHUB_ENV
           echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "infra_config_bucket_arn=$(grep '^infra_config_bucket_arn' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Set Region
+        run: |
+          echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
 
       - name: Set AWS Credentials
         uses: ./.github/actions/set-aws-credentials
@@ -64,6 +66,7 @@ jobs:
       - name: Set NEO4J Credentials
         id: neo4j-creds
         run: |
+          echo "${{steps.vars.outputs.aws_region}}"
           credentials_arn=""
           if [ "${{ env.ENV_NAME }}" == "dev" ]; then
             credentials_arn="${{ secrets.AWS_DEV_NEO4J_CREDENTIALS }}"
