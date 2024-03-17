@@ -98,17 +98,13 @@ jobs:
         id: update-fetch-daily-summaries
         run: |
           mkdir build
-          cp services/fetch_daily_summaries/src/requirements.txt build/
-          cp services/fetch_daily_summaries/src/fetch_daily_summaries/lambda_handler.py build/
-          cp services/fetch_daily_summaries/src/fetch_daily_summaries/neo4j_manager.py build/
-          cp services/fetch_daily_summaries/src/fetch_daily_summaries/storage_manager.py build/
-          cd build
+          mkdir build/fetch_daily_summaries
+          cp services/fetch_daily_summaries/src/requirements.txt build/fetch_daily_summaries/
+          cp services/fetch_daily_summaries/src/fetch_daily_summaries/lambda_handler.py build/fetch_daily_summaries/
+          cp services/fetch_daily_summaries/src/fetch_daily_summaries/neo4j_manager.py build/fetch_daily_summaries/
+          cp services/fetch_daily_summaries/src/fetch_daily_summaries/storage_manager.py build/fetch_daily_summaries/
+          cd build/fetch_daily_summaries
           pip install -r requirements.txt -t .
-          zip -r fetch_daily_summaries.zip . -x ./__pycache__/**\*
-          zip_key="fetch_daily_summaries/fetch_daily_summaries.zip"
-          echo "FETCH_DAILY_SUMMARIES_ZIP_KEY=$zip_key" >> $GITHUB_OUTPUT
-          aws s3 cp fetch_daily_summaries.zip s3://fetch_daily_summaries/fetch_daily_summaries/fetch_daily_summaries.zip
-          cd ../
 
       - name: Ensure S3 bucket exists
         run: |

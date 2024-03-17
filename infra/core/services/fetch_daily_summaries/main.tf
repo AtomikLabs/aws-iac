@@ -22,6 +22,12 @@ locals {
   max_retries                             = var.max_retries
 }
 
+data "archive_file" "fetch_daily_summaries_lambda_function" {
+  type       = "zip"
+  source_dir  = "build/fetch_daily_summaries"
+  output_path = "build/fetch_daily_summaries/fetch_daily_summaries.zip"
+}
+
 
 # **********************************************************
 # * TRIGGER                                                *
@@ -90,8 +96,7 @@ resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
 # **********************************************************
 resource "aws_lambda_function" "fetch_daily_summaries" {
   function_name = "${local.environment}-${local.service_name}"
-  s3_bucket = local.infra_config_bucket
-  s3_key = local.zip_key_prefix
+  filename = data.archive_file.fetch_daily_summaries_lambda_function.output_path
   package_type  = "Zip"
   handler       = "lambda_handler.lambda_handler"
   role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
