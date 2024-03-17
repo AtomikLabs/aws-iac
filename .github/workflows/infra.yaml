@@ -155,7 +155,7 @@ jobs:
 
       - name: Plan Terraform
         id: plan
-        run: terraform plan -var-file="../../${{env.ENV_FILE}}"
+        run: terraform plan -var-file="${{env.ENV_NAME}}.tfvars"
         working-directory: ./infra/core
         env:
           AWS_DEFAULT_REGION: ${{env.AWS_REGION}}
@@ -169,7 +169,7 @@ jobs:
         run: |
           echo "${{env.ENV_FILE}}"
           echo "${{env.AWS_REGION}}"
-          terraform apply -var-file="../../${{env.ENV_FILE}}" -auto-approve
+          terraform apply -var-file="${{env.ENV_NAME}}.tfvars" -auto-approve
         working-directory: ./infra/core
         env:
           AWS_DEFAULT_REGION: ${{env.AWS_REGION}}
