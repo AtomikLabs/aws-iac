@@ -24,8 +24,8 @@ locals {
 
 data "archive_file" "fetch_daily_summaries_lambda_function" {
   type       = "zip"
-  source_dir  = "build/fetch_daily_summaries"
-  output_path = "build/fetch_daily_summaries/fetch_daily_summaries.zip"
+  source_dir  = "../../build/fetch_daily_summaries"
+  output_path = "../../build/fetch_daily_summaries/fetch_daily_summaries.zip"
 }
 
 

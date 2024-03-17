@@ -103,8 +103,7 @@ jobs:
           cp services/fetch_daily_summaries/src/fetch_daily_summaries/lambda_handler.py build/fetch_daily_summaries/
           cp services/fetch_daily_summaries/src/fetch_daily_summaries/neo4j_manager.py build/fetch_daily_summaries/
           cp services/fetch_daily_summaries/src/fetch_daily_summaries/storage_manager.py build/fetch_daily_summaries/
-          cd build/fetch_daily_summaries
-          pip install -r requirements.txt -t .
+          ls -l build/fetch_daily_summaries
 
       - name: Ensure S3 bucket exists
         run: |
