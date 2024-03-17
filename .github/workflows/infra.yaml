@@ -37,6 +37,9 @@ jobs:
         run: |
           npm install
 
+      - name: Load Environment Variables
+        uses: ./.github/actions/load-env-variables
+
       - name: Extract variables
         id: vars
         run: |
@@ -80,9 +83,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{matrix.python-version}}
-
-      - name: Load Environment Variables
-        uses: ./.github/actions/load-env-variables
 
       - name: Update Fetch Daily Summaries Lambda Function
         id: update-fetch-daily-summaries
