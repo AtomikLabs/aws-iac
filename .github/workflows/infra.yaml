@@ -70,7 +70,7 @@ jobs:
           elif [ "${{ env.ENV_NAME }}" == "test" ]; then
             credentials_arn="${{ secrets.AWS_TEST_NEO4J_CREDENTIALS }}"
           fi
-          echo "NEO4J_CREDENTIALS_ARN=$credentials_arn" >> $GITHUB_OUTPUTS
+          echo "NEO4J_CREDENTIALS_ARN=$credentials_arn" >> $GITHUB_OUTPUT
 
       - name: Get neo4j secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
