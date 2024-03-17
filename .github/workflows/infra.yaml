@@ -59,6 +59,7 @@ jobs:
           DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
 
       - name: Set NEO4J Credentials
+        id: neo4j-creds
         run: |
           credentials_arn=""
           if [ "${{ env.ENV_NAME }}" == "dev" ]; then
@@ -76,7 +77,7 @@ jobs:
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
         with:
           secret-ids: |
-            NEO4J_CREDS, ${{env.NEO4J_CREDENTIALS_ARN}}
+            NEO4J_CREDS, ${{steps.neo4j-creds.outputs.NEO4J_CREDENTIALS_ARN}}
           parse-json-secrets: true
 
       - name: Set up Python ${{matrix.python-version}}
