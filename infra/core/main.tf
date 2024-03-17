@@ -138,6 +138,7 @@ module "fetch_daily_summaries" {
   infra_config_bucket       = local.infra_config_bucket
   max_retries               = local.fetch_daily_summaries_max_retries
   neo4j_password            = local.neo4j_password
+  neo4j_security_group_id   = module.data_management.neo4j_security_group_id
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
   private_subnets           = module.networking.aws_private_subnet_ids
