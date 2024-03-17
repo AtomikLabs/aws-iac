@@ -138,11 +138,6 @@ variable "neo4j_password" {
   type        = string
 }
 
-variable "neo4j_uri" {
-  description = "Neo4j URI"
-  type        = string
-}
-
 variable "neo4j_username" {
   description = "Neo4j username"
   type        = string

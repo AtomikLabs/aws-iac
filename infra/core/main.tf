@@ -67,7 +67,7 @@ locals {
   arxiv_summary_set         = var.arxiv_summary_set
   default_lambda_runtime    = var.default_lambda_runtime
   neo4j_password            = var.neo4j_password
-  neo4j_uri                 = var.neo4j_uri
+  neo4j_uri                 = module.data_management.neo4j_instance_private_ip
   neo4j_username            = var.neo4j_username
   zip_key_prefix            = var.zip_key_prefix
 
