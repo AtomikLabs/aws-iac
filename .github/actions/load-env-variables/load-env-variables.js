@@ -26,6 +26,21 @@ async function loadEnvironmentVariables() {
 
     const envName = refName.replace(/\//g, "-");
     core.exportVariable("ENV_NAME", envName);
+
+    const envFile = `infra/core/environments/env.${envName}.json`;
+    core.exportVariable("ENV_FILE", envFile);
+
+    if (!fs.existsSync(envFile)) {
+      throw new Error(`Environment file ${envFile} does not exist`);
+    }
+
+    const data = fs.readFileSync(envFile, { encoding: "utf8", flag: "r" });
+    const jsonData = JSON.parse(data);
+
+    const iamUserName = jsonData.iam_user_name;
+    core.exportVariable("IAM_USER_NAME", iamUserName);
+
+    console.log(`Environment variables set for environment: ${envName}`);
   } catch (error) {
     core.setFailed(`Action failed with error: ${error}`);
   }
