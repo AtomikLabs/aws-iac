@@ -253,28 +253,10 @@ resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-resource "aws_security_group_rule" "fetch_daily_summaries_lambda_sg_ingress_7687" {
+resource "aws_security_group_rule" "fetch_daily_summaries_lambda_sg_ingress" {
   type        = "ingress"
-  from_port   = 7687
-  to_port     = 7687
-  protocol    = "-1"
-  security_group_id = local.neo4j_security_group_id
-  source_security_group_id = aws_security_group.fetch_daily_summaries_security_group.id
-}
-
-resource "aws_security_group_rule" "fetch_daily_summaries_lambda_sg_ingress_7474" {
-  type        = "ingress"
-  from_port   = 7474
-  to_port     = 7474
-  protocol    = "-1"
-  security_group_id = local.neo4j_security_group_id
-  source_security_group_id = aws_security_group.fetch_daily_summaries_security_group.id
-}
-
-resource "aws_security_group_rule" "fetch_daily_summaries_lambda_sg_ingress_7373" {
-  type        = "ingress"
-  from_port   = 7373
-  to_port     = 7373
+  from_port   = 0
+  to_port     = 0
   protocol    = "-1"
   security_group_id = local.neo4j_security_group_id
   source_security_group_id = aws_security_group.fetch_daily_summaries_security_group.id
