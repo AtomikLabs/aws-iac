@@ -37,9 +37,6 @@ jobs:
         run: |
           npm install
 
-      - name: Load Environment Variables
-        uses: ./.github/actions/load-env-variables
-
       - name: Extract variables
         id: vars
         run: |
