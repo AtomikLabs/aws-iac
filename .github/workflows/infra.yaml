@@ -49,16 +49,12 @@ jobs:
           echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "infra_config_bucket_arn=$(grep '^infra_config_bucket_arn' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket=$(grep '^infra_config_bucket' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Set Region
         run: |
           echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
-          echo ${{steps.vars.outputs.aws_region}}
-          echo ${{steps.vars.outputs.backend_dynamodb_table}}
-          echo ${{steps.vars.outputs.infra_config_bucket_arn}}
-          echo ${{steps.vars.outputs.terraform_outputs_prefix}}
 
       - name: Set AWS Credentials
         uses: ./.github/actions/set-aws-credentials
