@@ -18,6 +18,11 @@ variable "aws_region" {
   type          = string
 }
 
+variable "aws_vpc_id" {
+  description   = "The ID of the VPC"
+  type          = string
+}
+
 variable "data_bucket" {
   description   = "The name of the S3 bucket where the data is stored"
   type          = string
@@ -62,6 +67,11 @@ variable "neo4j_uri" {
 variable "neo4j_username" {
   description   = "The username for the Neo4j database"
   type          = string
+}
+
+variable "private_subnets" {
+  description = "Private subnets"
+  type        = list(string)
 }
 
 variable "runtime" {

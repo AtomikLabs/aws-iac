@@ -181,6 +181,8 @@ jobs:
           echo "DATA_BUCKET_ARN=$(jq -r '.data_bucket_arn.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "NEO4J_URI=$(jq -r '.neo4j_instance_private_ip.value' ./terraform_outputs.json)" >> $GITHUB_ENV
           echo "ECR_REPO_URL=$(jq -r '.ecr_repo_url.value' ./terraform_outputs.json)" >> $GITHUB_ENV
+          echo "AWS_VPC_ID=$(jq -r '.main_vpc_id.value' ./terraform_outputs.json)" >> $GITHUB_ENV
+          echo "PRIVATE_SUBNET_IDS=$(jq -r '.aws_private_subnet_id.value' ./terraform_outputs.json)" >> $GITHUB_ENV
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
 
@@ -195,6 +197,7 @@ jobs:
         env:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
           TF_VAR_app_name: ${{ env.APP_NAME }}
+          TF_VAR_aws_vpc_id: ${{ env.AWS_VPC_ID }}
           TF_VAR_arxiv_base_url: ${{ env.ARXIV_BASE_URL }}
           TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
@@ -207,6 +210,7 @@ jobs:
           TF_VAR_neo4j_password: ${{ env.NEO4J_CREDS_NEO4J_PASSWORD }}
           TF_VAR_neo4j_uri: ${{ env.NEO4J_URI}}
           TF_VAR_neo4j_username: ${{ env.NEO4J_CREDS_NEO4J_USERNAME }}
+          TF_VAR_private_subnets: ${{ env.PRIVATE_SUBNET_IDS }}
           TF_VAR_runtime: ${{ env.RUNTIME }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}
           TF_VAR_service_version: ${{ env.SERVICE_VERSION }}
@@ -222,6 +226,7 @@ jobs:
         env:
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
           TF_VAR_app_name: ${{ env.APP_NAME }}
+          TF_VAR_aws_vpc_id: ${{ env.AWS_VPC_ID }}
           TF_VAR_arxiv_base_url: ${{ env.ARXIV_BASE_URL }}
           TF_VAR_arxiv_summary_set: ${{ env.ARXIV_SUMMARY_SET }}
           TF_VAR_aws_region: ${{ env.AWS_REGION }}
@@ -234,6 +239,7 @@ jobs:
           TF_VAR_neo4j_password: ${{ env.NEO4J_CREDS_NEO4J_PASSWORD }}
           TF_VAR_neo4j_uri: ${{ env.NEO4J_URI}}
           TF_VAR_neo4j_username: ${{ env.NEO4J_CREDS_NEO4J_USERNAME }}
+          TF_VAR_private_subnets: ${{ env.PRIVATE_SUBNET_IDS }}
           TF_VAR_runtime: ${{ env.RUNTIME }}
           TF_VAR_service_name: ${{ env.SERVICE_NAME }}
           TF_VAR_service_version: ${{ env.SERVICE_VERSION }}

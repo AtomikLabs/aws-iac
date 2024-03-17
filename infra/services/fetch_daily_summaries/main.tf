@@ -11,6 +11,7 @@ terraform {
 locals {
   app_name                    = var.app_name
   aws_region                  = var.aws_region
+  aws_vpc_id                  = var.aws_vpc_id
   basic_execution_role_arn    = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   data_bucket                 = var.data_bucket
   data_bucket_arn             = "arn:aws:s3:::${var.data_bucket}"
@@ -19,6 +20,7 @@ locals {
   neo4j_password              = var.neo4j_password
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
+  private_subnets             = var.private_subnets
   runtime                     = var.runtime
   service_name                = var.service_name
   service_version             = var.service_version
@@ -106,6 +108,11 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   timeout       = 900
   memory_size   = 128
   runtime       = local.runtime
+
+  vpc_config {
+    subnet_ids         = [local.private_subnets[0], local.private_subnets[1]]
+    security_group_ids = [aws_security_group.fetch_daily_summaries_security_group.id]
+  }
 
   environment {
     variables = {
@@ -221,3 +228,37 @@ resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_vpc_access_atta
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
   policy_arn = local.basic_execution_role_arn
 }
+
+resource "aws_security_group" "fetch_daily_summaries_security_group" {
+  name_prefix = "${local.environment}-fetch-daily-summaries-sg"
+  vpc_id      = local.aws_vpc_id
+  
+  ingress {
+    protocol  = -1
+    self      = true
+    from_port = 0
+    to_port   = 0
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${local.environment}-fetch-daily-summaries-sg"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc_access_execution" {
+  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_ec2_interface_creator" {
+  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaEC2InterfacePolicy"
+}
+
