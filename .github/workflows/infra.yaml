@@ -50,6 +50,7 @@ jobs:
           echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "infra_config_bucket_arn=$(grep '^infra_config_bucket_arn' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Set Region
         run: |
@@ -165,8 +166,6 @@ jobs:
 
       - name: Apply Terraform
         run: |
-          echo "${{env.ENV_FILE}}"
-          echo "${{env.AWS_REGION}}"
           terraform apply -var-file="${{env.ENV_NAME}}.tfvars" -auto-approve
         working-directory: ./infra/core
         env:
@@ -179,7 +178,7 @@ jobs:
       - name: Save Terraform Outputs
         run: |
           terraform output -json > terraform_outputs.json
-          aws s3 cp terraform_outputs.json s3://${{env.INFRA_CONFIG_BUCKET}}/terraform/${{env.ENV_NAME}}-${{env.TERRAFORM_OUTPUTS_PREFIX}}.json
+          aws s3 cp terraform_outputs.json s3://${{steps.vars.outputs.infra_config_bucket}}/terraform/${{env.ENV_NAME}}-${{steps.vars.outputs.terraform_outputs_prefix}}.json
         working-directory: ./infra/core
 
       - name: Upload Terraform Outputs
