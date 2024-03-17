@@ -71,9 +71,9 @@ locals {
   neo4j_username            = var.neo4j_username
   zip_key_prefix            = var.zip_key_prefix
 
-  fetch_daily_summaries_max_retries = var.fetch_daily_summaries_max_retries
-  fetch_daily_summaries_service_name = var.fetch_daily_summaries_service_name
-  fetch_daily_summaries_service_version = var.fetch_daily_summaries_service_version
+  fetch_daily_summaries_max_retries       = var.fetch_daily_summaries_max_retries
+  fetch_daily_summaries_service_name      = var.fetch_daily_summaries_service_name
+  fetch_daily_summaries_service_version   = var.fetch_daily_summaries_service_version
 }
 
 module "networking" {
@@ -131,8 +131,8 @@ module "fetch_daily_summaries" {
   arxiv_summary_set         = local.arxiv_summary_set
   aws_region                = local.aws_region
   aws_vpc_id                = module.networking.main_vpc_id
-  data_bucket               = module.data_management.data_bucket
-  data_bucket_arn           = module.data_management.data_bucket_arn
+  data_bucket               = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  data_bucket_arn           = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
   data_ingestion_key_prefix = local.data_ingestion_key_prefix
   environment               = local.environment
   infra_config_bucket       = local.infra_config_bucket
