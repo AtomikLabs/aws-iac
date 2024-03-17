@@ -254,7 +254,8 @@ def get_storage_key(config: dict) -> str:
         logger.error("Config is required", method=get_storage_key.__name__)
         raise ValueError("Config is required")
 
-    key_date = time.strftime(S3_KEY_DATE_FORMAT)
-    key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/{key_date}.json"
+    storage_date = datetime.now().astimezone(pytz.timezone("US/Pacific"))
+    key_date = storage_date.strftime(S3_KEY_DATE_FORMAT)
+    key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/arxiv-{key_date}.json"
     logger.info("Storage key", method=get_storage_key.__name__, key=key)
     return key
