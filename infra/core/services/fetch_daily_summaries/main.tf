@@ -251,9 +251,3 @@ resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
-
-resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_ec2_interface_creator" {
-  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaEC2InterfacePolicy"
-}
-
