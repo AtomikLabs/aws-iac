@@ -11,7 +11,7 @@ locals {
   environment                                   = var.environment
   home_ip                                       = var.home_ip
   infra_config_bucket_arn                       = var.infra_config_bucket_arn
-  name                                          = var.name
+  app_name                                          = var.app_name
   neo4j_ami_id                                  = var.neo4j_ami_id
   neo4j_instance_type                           = var.neo4j_instance_type
   neo4j_key_pair_name                           = var.neo4j_key_pair_name
@@ -23,7 +23,7 @@ locals {
   tags                                          = var.tags
 }
 resource "aws_s3_bucket" "atomiklabs_data_bucket" {
-  bucket = "${local.environment}-${local.name}-data-bucket"  
+  bucket = "${local.environment}-${local.app_name}-data-bucket"  
   tags = local.tags
 }
 
@@ -221,7 +221,7 @@ docker run --restart=always \
 -p 7474:7474 -p 7687:7687 \
 -v /neo4j/data:/data \
 -v /neo4j/logs:/logs \
--e NEO4J_AUTH=${local.secret.username}/${local.secret.password} \
+-e NEO4J_AUTH=${local.secret.neo4j_username}/${local.secret.neo4j_password} \
 --name neo4j \
 neo4j:latest
 EOF

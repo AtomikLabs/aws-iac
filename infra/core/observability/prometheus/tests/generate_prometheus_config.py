@@ -18,8 +18,9 @@ def generator_args():
 
 @pytest.fixture
 def setup_generator(mock_file_read_data, generator_args):
-    with patch("builtins.open", mock_open(read_data=mock_file_read_data)), patch(
-        "sys.argv", ["script.py"] + generator_args
+    with (
+        patch("builtins.open", mock_open(read_data=mock_file_read_data)),
+        patch("sys.argv", ["script.py"] + generator_args),
     ):
         return PrometheusConfigGenerator(sys.argv[1:])
 

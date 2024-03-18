@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": "0.0.4-alpha",
   "app_name": "atomiklabs",
   "arxiv": {
     "arxiv_base_url": "http://export.arxiv.org/oai2",
@@ -14,11 +14,10 @@
       "resource_prefix": "data-management-neo4j"
     }
   },
-  "etl":
-    {
-      "etl_key_prefix": "data_management/etl"
-    },
-  "infra":{
+  "etl": {
+    "etl_key_prefix": "data_management/etl"
+  },
+  "infra": {
     "backend_dynamodb_table": "atomiklabs-terraform-locks",
     "default_ami_id": "ami-0f403e3180720dd7e",
     "infra_config_bucket": "atomiklabs-infra-config-bucket",
@@ -28,22 +27,19 @@
     "terraform_aws_region": "us-east-1",
     "terraform_outputs_prefix": "terraform-outputs"
   },
-  "metadata":
-  { "data_ingestion_metadata_key_prefix": "data_management/metadata/data_ingestion" },
-  "networking":
-  {
+  "metadata": {
+    "data_ingestion_metadata_key_prefix": "data_management/metadata/data_ingestion"
+  },
+  "networking": {
     "bastion_host_key_pair_name": "atomiklabs-bastion-keypair"
   },
-  "observability":
-  {
-    "prometheus":
-    {
+  "observability": {
+    "prometheus": {
       "evaluation_interval": "30s",
       "scrape_interval": "30s"
     }
   },
-  "prototype":
-  {
+  "prototype": {
     "arxiv_base_url": "http://export.arxiv.org/oai2",
     "arxiv_summary_set": "cs",
     "data_ingestion_key_prefix": "raw_data/data_ingestion",
@@ -53,16 +49,19 @@
     "prototype_max_attempts": 10
   },
   "services": {
+    "zip_prefix": "services/code",
     "data_ingestion": {
       "data_ingestion_key_prefix": "raw_data/data_ingestion",
       "fetch_daily_summaries": {
         "max_retries": 10,
+        "runtime": "python3.10",
         "service_name": "fetch_daily_summaries",
-        "service_version": "0.2.13"
+        "service_version": "0.3.0"
       }
     },
     "etl": {
       "parse_arxiv_summaries": {
+        "runtime": "python3.10",
         "service_name": "parse_arxiv_summaries",
         "service_version": "0.0.1"
       }

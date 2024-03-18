@@ -1,15 +1,15 @@
 import json
 import os
-import time
 from datetime import datetime, timedelta
 
 import defusedxml.ElementTree as ET
+import pytz
 import requests
 import structlog
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .data_ingestion_metadata import DataIngestionMetadata
+from .neo4j_manager import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, Neo4jDatabase
 from .storage_manager import StorageManager
 
 structlog.configure(
@@ -33,24 +33,15 @@ APP_NAME = "APP_NAME"
 ARXIV_BASE_URL = "ARXIV_BASE_URL"
 ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
 DATA_BUCKET = "DATA_BUCKET"
-DATA_CATALOG_DB_NAME = "DATA_CATALOG_DB_NAME"
 DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
-DATA_INGESTION_METADATA_KEY_PREFIX = "DATA_INGESTION_METADATA_KEY_PREFIX"
 ENVIRONMENT_NAME = "ENVIRONMENT"
 MAX_RETRIES = "MAX_RETRIES"
-METADATA_TABLE_NAME = "METADATA_TABLE_NAME"
 SERVICE_NAME = "SERVICE_NAME"
 SERVICE_VERSION = "SERVICE_VERSION"
 
-# LOGGING CONSTANTS
-FETCH_DATA = "fetch_daily_summaries.lambda_handler.fetch_data"
-GET_CONFIG = "fetch_daily_summaries.lambda_handler.get_config"
-GET_EARLIEST_DATE = "fetch_daily_summaries.lambda_handler.get_earliest_date"
-GET_STORAGE_KEY = "fetch_daily_summaries.lambda_handler.get_storage_key"
-LAMBDA_HANDLER = "fetch_daily_summaries.lambda_handler"
-LAMBDA_NAME = "fetch_daily_summaries"
-LOG_INITIAL_INFO = "fetch_daily_summaries.lambda_handler.log_initial_info"
-PERSIST_TO_S3 = "fetch_daily_summaries.lambda_handler.persist_to_s3"
+# CONSTANTS
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -64,9 +55,6 @@ def lambda_handler(event: dict, context) -> dict:
     Returns:
         dict: A dict with the status code and body.
     """
-    metadata = DataIngestionMetadata()
-    metadata.date_time = datetime.now()
-    metadata.function_name = context.function_name
     try:
         log_initial_info(event)
 
@@ -74,50 +62,39 @@ def lambda_handler(event: dict, context) -> dict:
 
         logger.info(
             "Fetching arXiv daily summaries",
-            method=LAMBDA_HANDLER,
+            method=lambda_handler.__name__,
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-        # TODO: extract this to a separate function
-        metadata = DataIngestionMetadata()
-        metadata.app_name = config[APP_NAME]
-        metadata.date_time = datetime.now()
-        metadata.database_name = config[DATA_CATALOG_DB_NAME]
-        metadata.environment = config[ENVIRONMENT_NAME]
-        metadata.function_name = config[SERVICE_NAME]
-        metadata.function_version = config[SERVICE_VERSION]
-        metadata.metadata_key = get_metadata_key(config)
-        metadata.metadata_bucket = config[DATA_BUCKET]
-        metadata.raw_data_bucket = config[DATA_BUCKET]
-        metadata.table_name = config[METADATA_TABLE_NAME]
-
-        today = datetime.today().date()
+        date_obtained = datetime.now().astimezone(pytz.timezone("US/Pacific"))
+        today = date_obtained.date()
         earliest = today - timedelta(days=DAY_SPAN)
-        metadata.today = today.strftime(DataIngestionMetadata.DATETIME_FORMAT)
-        metadata.earliest = earliest.strftime(DataIngestionMetadata.DATETIME_FORMAT)
 
         xml_data_list = fetch_data(
-            config.get(ARXIV_BASE_URL), earliest, config.get(ARXIV_SUMMARY_SET), config.get(MAX_RETRIES), metadata
+            config.get(ARXIV_BASE_URL), earliest, config.get(ARXIV_SUMMARY_SET), config.get(MAX_RETRIES)
         )
 
-        metadata.raw_data_key = get_storage_key(config)
+        raw_data_key = get_storage_key(config)
         content_str = json.dumps(xml_data_list)
-        storage_manager = StorageManager(metadata.raw_data_bucket, logger)
-        storage_manager.persist(metadata.raw_data_key, content_str)
-        metadata.write()
-        logger.info("Fetching arXiv summaries succeeded", method=LAMBDA_HANDLER, status=200, body="Success")
+        storage_manager = StorageManager(config.get(DATA_BUCKET), logger)
+        storage_manager.upload_to_s3(raw_data_key, content_str)
+        neo4j_uri = f"neo4j://{config.get(NEO4J_URI)}:7687"
+        neo4j = Neo4jDatabase(neo4j_uri, config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+        neo4j.create_arxiv_datasource_node(config.get(ARXIV_BASE_URL))
+        neo4j.create_arxiv_raw_data_node(
+            earliest, today, date_obtained, SERVICE_NAME, SERVICE_VERSION, len(content_str), raw_data_key
+        )
+        logger.info("Fetching arXiv summaries succeeded", method=lambda_handler.__name__, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
 
     except Exception as e:
         logger.exception(
             "Fetching arXiv daily summaries failed",
-            method=LAMBDA_HANDLER,
+            method=lambda_handler.__name__,
             status=500,
             body="Internal Server Error",
             error=str(e),
         )
-        metadata.error_message = str(e)
-        metadata.status = "failure"
         return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
 
 
@@ -131,14 +108,14 @@ def log_initial_info(event: dict) -> None:
     try:
         logger.debug(
             "Log variables",
-            method=LOG_INITIAL_INFO,
+            method=log_initial_info.__name__,
             log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
             log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
         )
-        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="AWS")
+        logger.debug("Running on", method=log_initial_info.__name__, platform="AWS")
     except KeyError:
-        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="CI/CD or local")
-    logger.debug("Event received", method=LOG_INITIAL_INFO, trigger_event=event)
+        logger.debug("Running on", method=log_initial_info.__name__, platform="CI/CD or local")
+    logger.debug("Event received", method=log_initial_info.__name__, trigger_event=event)
 
 
 def get_config() -> dict:
@@ -155,23 +132,23 @@ def get_config() -> dict:
             ARXIV_SUMMARY_SET: os.environ[ARXIV_SUMMARY_SET],
             DATA_BUCKET: os.environ[DATA_BUCKET],
             DATA_INGESTION_KEY_PREFIX: os.environ[DATA_INGESTION_KEY_PREFIX],
-            DATA_INGESTION_METADATA_KEY_PREFIX: os.environ[DATA_INGESTION_METADATA_KEY_PREFIX],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
-            DATA_CATALOG_DB_NAME: os.environ[DATA_CATALOG_DB_NAME],
-            METADATA_TABLE_NAME: os.environ[METADATA_TABLE_NAME],
             MAX_RETRIES: int(os.environ[MAX_RETRIES]),
+            NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
+            NEO4J_URI: os.environ[NEO4J_URI],
+            NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
-        logger.debug("Config", method=GET_CONFIG, config=config)
+        logger.debug("Config", method=get_config.__name__, config=config)
     except KeyError as e:
-        logger.error("Missing environment variable", method=GET_CONFIG, error=str(e))
+        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
         raise e
 
     return config
 
 
-def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int, metadata: DataIngestionMetadata) -> list:
+def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> list:
     """
     Fetches data from arXiv.
 
@@ -180,17 +157,16 @@ def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int, metada
         from_date (str): The from date.
         set (str): The set.
         max_fetches (int): The maximum number of fetches.
-        metadata (DataIngestionMetadata): The metadata.
 
     Returns:
         list: A list of XML data.
 
     Raises:
-        ValueError: If base_url, from_date, set, or metadata are not provided.
+        ValueError: If base_url, from_date, or set are not provided.
     """
-    if not base_url or not from_date or not set or not metadata:
-        error_msg = "Base URL, from date, set, and metadata are required"
-        logger.error(error_msg, method=FETCH_DATA)
+    if not base_url or not from_date or not set:
+        error_msg = "Base URL, from date, and set are required"
+        logger.error(error_msg, method=fetch_data.__name__)
         raise ValueError(error_msg)
 
     session = configure_request_retries()
@@ -204,8 +180,6 @@ def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int, metada
         while fetch_attempts < max_fetch_attempts:
             response = session.get(base_url, params=params, timeout=(10, 30))
             response.raise_for_status()
-            metadata.uri = response.request.url
-            metadata.size_of_data_downloaded = calculate_mb(len(response.content))
             full_xml_responses.append(response.text)
 
             root = ET.fromstring(response.content)
@@ -216,13 +190,15 @@ def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int, metada
             else:
                 break
     except requests.exceptions.RequestException as e:
-        logger.exception("Error occurred while fetching data from arXiv", method=FETCH_DATA, error=str(e))
+        logger.exception("Error occurred while fetching data from arXiv", method=fetch_data.__name__, error=str(e))
         raise
 
     if fetch_attempts == max_fetch_attempts:
-        logger.warning("Reached maximum fetch attempts without completing data retrieval", method=FETCH_DATA)
+        logger.warning("Reached maximum fetch attempts without completing data retrieval", method=fetch_data.__name__)
 
-    logger.info("Fetched data from arXiv successfully", method=FETCH_DATA, num_xml_responses=len(full_xml_responses))
+    logger.info(
+        "Fetched data from arXiv successfully", method=fetch_data.__name__, num_xml_responses=len(full_xml_responses)
+    )
     return full_xml_responses
 
 
@@ -233,6 +209,7 @@ def configure_request_retries() -> requests.Session:
     Returns:
         requests.Session: The session.
     """
+    logger.debug("Configuring request retries", method=configure_request_retries.__name__)
     session = requests.Session()
     retries = Retry(
         total=5,
@@ -274,33 +251,11 @@ def get_storage_key(config: dict) -> str:
         ValueError: If config is not provided.
     """
     if not config:
-        logger.error("Config is required", method=GET_STORAGE_KEY)
+        logger.error("Config is required", method=get_storage_key.__name__)
         raise ValueError("Config is required")
 
-    key_date = time.strftime(DataIngestionMetadata.S3_KEY_DATE_FORMAT)
-    key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/{key_date}.json"
-    logger.info("Storage key", method=GET_STORAGE_KEY, key=key)
-    return key
-
-
-def get_metadata_key(config: dict) -> str:
-    """
-    Gets the metadata key for the S3 bucket to store the fetched data.
-
-    Args:
-        config (dict): The config.
-
-    Returns:
-        str: The metadata key.
-
-    Raises:
-        ValueError: If config is not provided.
-    """
-    if not config:
-        logger.error("Config is required", method=GET_STORAGE_KEY)
-        raise ValueError("Config is required")
-
-    key_date = time.strftime(DataIngestionMetadata.S3_KEY_DATE_FORMAT)
-    key = f"{config.get(DATA_INGESTION_METADATA_KEY_PREFIX)}/{key_date}_metadata.json"
-    logger.info("Metadata key", method=GET_STORAGE_KEY, key=key)
+    storage_date = datetime.now().astimezone(pytz.timezone("US/Pacific"))
+    key_date = storage_date.strftime(S3_KEY_DATE_FORMAT)
+    key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/arxiv-{key_date}.json"
+    logger.info("Storage key", method=get_storage_key.__name__, key=key)
     return key
