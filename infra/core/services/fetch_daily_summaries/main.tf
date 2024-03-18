@@ -228,6 +228,16 @@ resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_vpc_access_atta
 resource "aws_security_group" "fetch_daily_summaries_security_group" {
   name_prefix = "${local.environment}-fetch-daily-summaries-sg"
   vpc_id      = local.aws_vpc_id
+<<<<<<< HEAD
+=======
+  
+  ingress {
+    protocol  = -1
+    self      = true
+    from_port = 0
+    to_port   = 0
+  }
+>>>>>>> dev
 
   egress {
     from_port   = 0
