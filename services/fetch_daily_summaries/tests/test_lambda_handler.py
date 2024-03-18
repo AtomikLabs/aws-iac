@@ -121,6 +121,7 @@ def test_lambda_handler_success(mock_storage_manager, mock_datetime, event, cont
         ),
     ):
         response = lambda_handler(event, context)
+        print(response)
         # TODO: Refactor for neo4j
         # assert response["statusCode"] == 200
         # assert json.loads(response["body"]) == {"message": "Success"}

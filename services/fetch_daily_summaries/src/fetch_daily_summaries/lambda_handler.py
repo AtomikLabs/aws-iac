@@ -1,17 +1,16 @@
 import json
 import os
-import time
 from datetime import datetime, timedelta
 
 import defusedxml.ElementTree as ET
 import pytz
 import requests
 import structlog
-from neo4j.time import DateTime
-from neo4j_manager import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, Neo4jDatabase
 from requests.adapters import HTTPAdapter
-from storage_manager import StorageManager
 from urllib3.util.retry import Retry
+
+from .neo4j_manager import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, Neo4jDatabase
+from .storage_manager import StorageManager
 
 structlog.configure(
     [
@@ -27,7 +26,7 @@ structlog.configure(
 logger = structlog.get_logger()
 # TODO: Make these constants configurable
 BACKOFF_TIMES = [30, 120]
-DAY_SPAN = 1
+DAY_SPAN = 5
 
 # ENVIRONMENT VARIABLES
 APP_NAME = "APP_NAME"
@@ -147,6 +146,7 @@ def get_config() -> dict:
         raise e
 
     return config
+
 
 def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> list:
     """
