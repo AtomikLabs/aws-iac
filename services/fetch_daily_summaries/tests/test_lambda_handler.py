@@ -3,12 +3,14 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+import pytz
 
 from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import (
     fetch_data,
     get_config,
     lambda_handler,
     log_initial_info,
+    get_storage_key,
 )
 
 
@@ -85,26 +87,68 @@ def test_get_config():
 
 
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.requests.Session")
-def test_fetch_data(mock_session):
-    mock_response = MagicMock()
-    mock_response.text = "<xml>data</xml>"
-    mock_response.content = b"<xml>data</xml>"
-    mock_response.raise_for_status = MagicMock()
-    mock_session.return_value.get.return_value = mock_response
+def test_fetch_data_success(mock_session):
+    with open("services/fetch_daily_summaries/tests/resources/test_arxiv_data.xml", "r") as file:
+        xml_data = file.read().replace('<resumptionToken cursor="0" completeListSize="1162">6960524|1001</resumptionToken>', "")
+        mock_response = MagicMock()
+        mock_response.text = xml_data
+        mock_response.content = bytes(xml_data, "utf-8")
+        mock_response.raise_for_status = MagicMock()
+        mock_session.return_value.get.return_value = mock_response
 
-    base_url = "http://example.com"
-    from_date = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d")
-    set_name = "cs"
-    max_fetches = 1
+        base_url = "http://example.com"
+        from_date = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d")
+        set_name = "cs"
+        max_fetches = 1
 
-    result = fetch_data(base_url, from_date, set_name, max_fetches)
-    assert len(result) == 1
-    assert result[0] == "<xml>data</xml>"
+        result = fetch_data(base_url, from_date, set_name, max_fetches)
+        assert len(result) == 1
+        assert result[0] == xml_data
+
+
+def test_fetch_data_should_raise_exception_without_base_url():
+    with pytest.raises(Exception) as e:
+        fetch_data("", "2023-01-01", "cs", 1)
+    assert str(e.value) == "Base URL, from date, and set are required"
+
+
+def test_fetch_data_should_raise_exception_without_from_date():
+    with pytest.raises(Exception) as e:
+        fetch_data("http://example.com", "", "cs", 1)
+    assert str(e.value) == "Base URL, from date, and set are required"
+
+
+def test_fetch_data_should_raise_exception_without_set():
+    with pytest.raises(Exception) as e:
+        fetch_data("http://example.com", "2023-01-01", "", 1)
+    assert str(e.value) == "Base URL, from date, and set are required"
+
+
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.requests.Session")
+def test_fetch_data_should_handle_resumption_token(mock_session):
+    with open("services/fetch_daily_summaries/tests/resources/test_arxiv_data.xml", "r") as file:
+        xml_data = file.read()
+        mock_response = MagicMock()
+        mock_response.text = xml_data
+        mock_response.content = bytes(xml_data, "utf-8")
+        mock_response.raise_for_status = MagicMock()
+        mock_session.return_value.get.return_value = mock_response
+
+        base_url = "http://example.com"
+        from_date = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d")
+        set_name = "cs"
+        max_fetches = 2
+
+        result = fetch_data(base_url, from_date, set_name, max_fetches)
+        assert len(result) == 2
+        assert result[0] == xml_data
+        assert result[1] == xml_data
 
 
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.datetime")
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.StorageManager")
-def test_lambda_handler_success(mock_storage_manager, mock_datetime, event, context, config):
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.Neo4jDatabase")
+def test_lambda_handler_success(mock_neo4jdb, mock_storage_manager, mock_datetime, event, context, config):
     mock_datetime.today.return_value = datetime(2023, 1, 1)
     mock_datetime.strptime.return_value = datetime(2023, 1, 1)
     with (
@@ -122,9 +166,8 @@ def test_lambda_handler_success(mock_storage_manager, mock_datetime, event, cont
     ):
         response = lambda_handler(event, context)
         print(response)
-        # TODO: Refactor for neo4j
-        # assert response["statusCode"] == 200
-        # assert json.loads(response["body"]) == {"message": "Success"}
+        assert response["statusCode"] == 200
+        assert json.loads(response["body"]) == {"message": "Success"}
 
 
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger")
@@ -136,3 +179,17 @@ def test_lambda_handler_exception(mock_logger, event, context):
         response = lambda_handler(event, context)
         assert response["statusCode"] == 500
         assert json.loads(response["body"]) == {"message": "Internal Server Error"}
+
+
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.datetime")
+def test_get_storage_key_should_return_correct_key(mock_datetime, config):
+    mock_datetime.now.return_value = datetime(2023, 1, 1)
+    mock_datetime.now.astimezone.return_value = datetime(2023, 1, 1)
+    expected = "data/prefix/arxiv-2023-01-01T00-00-00.json"
+    assert get_storage_key(config) == expected
+
+def test_get_storage_key_should_raise_exception_without_config():
+    with pytest.raises(Exception) as e:
+        get_storage_key(None)
+    assert str(e.value) == "Config is required"
+
