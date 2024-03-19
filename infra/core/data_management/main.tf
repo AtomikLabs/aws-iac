@@ -5,10 +5,11 @@ data "aws_secretsmanager_secret_version" "neo4j_credentials" {
 locals {
   availability_zone_available_names             = var.availability_zones
   aws_vpc_id                                    = var.aws_vpc_id
-  bastion_host_private_ip                       = var.bastion_host_private_ip
+  bastion_host_security_group_id                = var.bastion_host_security_group_id
   data_ingestion_metadata_key_prefix            = var.data_ingestion_metadata_key_prefix
   default_ami_id                                = var.default_ami_id
   environment                                   = var.environment
+  fetch_daily_summaries_security_group_id       = var.fetch_daily_summaries_security_group_id
   home_ip                                       = var.home_ip
   infra_config_bucket_arn                       = var.infra_config_bucket_arn
   app_name                                          = var.app_name
@@ -344,28 +345,28 @@ resource "aws_security_group" "neo4j_security_group" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["${local.bastion_host_private_ip}/32"]
+    security_groups = [local.bastion_host_security_group_id]
   }
 
   ingress {
     from_port   = 7473
     to_port     = 7473
     protocol    = "tcp"
-    cidr_blocks = ["${local.bastion_host_private_ip}/32"]
+    security_groups = [local.bastion_host_security_group_id, local.fetch_daily_summaries_security_group_id]
   }
 
   ingress {
     from_port   = 7474
     to_port     = 7474
     protocol    = "tcp"
-    cidr_blocks = ["${local.bastion_host_private_ip}/32"]
+    security_groups = [local.bastion_host_security_group_id, local.fetch_daily_summaries_security_group_id]
   }
 
   ingress {
     from_port   = 7687
     to_port     = 7687
     protocol    = "tcp"
-    cidr_blocks = ["${local.bastion_host_private_ip}/32"]
+    security_groups = [local.bastion_host_security_group_id, local.fetch_daily_summaries_security_group_id]
   }
   
   egress {

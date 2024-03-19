@@ -131,7 +131,7 @@ class Neo4jDatabase:
                 arxiv_uuid = data.get("uuid")
                 if arxiv_uuid:
                     message = "An arXiv DataSource node already exists. Must not create another."
-                    logger.error(
+                    logger.warn(
                         message, method=self.create_arxiv_datasource_node.__name__, uri=self.uri, username=self.username
                     )
                     return data
@@ -236,7 +236,7 @@ class Neo4jDatabase:
             logger.error(
                 message,
                 method=self.create_arxiv_raw_data_node.__name__,
-                method_name=method_name,
+                method_named=method_name,
                 method_version=method_version,
             )
             raise ValueError(message)
@@ -295,10 +295,8 @@ class Neo4jDatabase:
                     database_=NEO4J,
                 )
                 if (
-                    summary.counters.nodes_created != 2
-                    and summary.counters.nodes_created != 3
-                    or summary.counters.relationships_created != 6
-                ):
+                    summary.counters.nodes_created != 2 and summary.counters.nodes_created != 3
+                ) or summary.counters.relationships_created != 6:
                     message = "Failed to create arXiv raw data node or multiple nodes were created."
                     logger.error(
                         message,

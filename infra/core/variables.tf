@@ -143,8 +143,13 @@ variable "neo4j_username" {
   type        = string
 }
 
-variable "zip_key_prefix" {
-  description = "Prefix for the zip key"
+variable "layer_data_management_service_name" {
+  description = "Service name for the layer data management"
+  type        = string
+}
+
+variable "layer_data_management_service_version" {
+  description = "Service version for the layer data management"
   type        = string
 }
 

@@ -95,14 +95,20 @@ jobs:
         with:
           python-version: ${{matrix.python-version}}
 
-      - name: Update Fetch Daily Summaries Lambda Function
-        id: update-fetch-daily-summaries
+      - name: Zip data management layer package
+        id: zip-data-management-layer
         run: |
-          mkdir build
-          mkdir build/fetch_daily_summaries
+          mkdir -p build/layer_data_management
+          cp services/layer_data_management/src/requirements.txt build/layer_data_management/
+          cp services/layer_data_management/src/layer_data_management/neo4j_manager.py build/layer_data_management/
+          pip install -r build/layer_data_management/requirements.txt -t build/layer_data_management/
+
+      - name: Zip Fetch Daily Summaries Lambda Function
+        id: zip-fetch-daily-summaries
+        run: |
+          mkdir -p build/fetch_daily_summaries
           cp services/fetch_daily_summaries/src/requirements.txt build/fetch_daily_summaries/
           cp services/fetch_daily_summaries/src/fetch_daily_summaries/lambda_handler.py build/fetch_daily_summaries/
-          cp services/fetch_daily_summaries/src/fetch_daily_summaries/neo4j_manager.py build/fetch_daily_summaries/
           cp services/fetch_daily_summaries/src/fetch_daily_summaries/storage_manager.py build/fetch_daily_summaries/
           pip install -r build/fetch_daily_summaries/requirements.txt -t build/fetch_daily_summaries/
 

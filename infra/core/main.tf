@@ -69,7 +69,9 @@ locals {
   neo4j_password            = var.neo4j_password
   neo4j_uri                 = module.data_management.neo4j_instance_private_ip
   neo4j_username            = var.neo4j_username
-  zip_key_prefix            = var.zip_key_prefix
+
+  layer_data_management_service_name      = var.layer_data_management_service_name
+  layer_data_management_service_version   = var.layer_data_management_service_version
 
   fetch_daily_summaries_max_retries       = var.fetch_daily_summaries_max_retries
   fetch_daily_summaries_service_name      = var.fetch_daily_summaries_service_name
@@ -95,32 +97,15 @@ module "networking" {
   vpc_id                            = module.networking.main_vpc_id
  }
 
-module "data_management" {
-  source = "./data_management"
+module "layer_data_management" {
+  source = "./services/layer_data_management"
 
-  app_name                                      = local.app_name
-  availability_zones                            = data.aws_availability_zones.available.names
-  aws_vpc_id                                    = module.networking.main_vpc_id
-  bastion_host_private_ip                       = module.security.bastion_host_private_ip
-  data_ingestion_metadata_key_prefix            = local.data_ingestion_metadata_key_prefix
-  default_ami_id                                = local.default_ami_id
-  environment                                   = local.environment
-  home_ip                                       = local.home_ip
-  infra_config_bucket_arn                       = local.infra_config_bucket_arn
-  neo4j_ami_id                                  = local.neo4j_ami_id
-  neo4j_instance_type                           = local.neo4j_instance_type
-  neo4j_key_pair_name                           = local.neo4j_key_pair_name
-  neo4j_resource_prefix                         = local.neo4j_resource_prefix
-  private_subnets                               = module.networking.aws_private_subnet_ids
-  region                                        = local.aws_region
-  ssm_policy_for_instances_arn                  = local.ssm_policy_for_instances_arn 
-  tags                                          = local.tags
-}
-
-module "containerization" {
-  source = "./containerization"
-
-  environment = local.environment
+  app_name        = local.app_name
+  aws_region      = local.aws_region
+  environment     = local.environment
+  runtime         = local.default_lambda_runtime
+  service_name    = local.layer_data_management_service_name
+  service_version = local.layer_data_management_service_version
 }
 
 module "fetch_daily_summaries" {
@@ -138,12 +123,39 @@ module "fetch_daily_summaries" {
   infra_config_bucket       = local.infra_config_bucket
   max_retries               = local.fetch_daily_summaries_max_retries
   neo4j_password            = local.neo4j_password
-  neo4j_security_group_id   = module.data_management.neo4j_security_group_id
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
   private_subnets           = module.networking.aws_private_subnet_ids
   runtime                   = local.default_lambda_runtime
   service_name              = local.fetch_daily_summaries_service_name
   service_version           = local.fetch_daily_summaries_service_version
-  zip_key_prefix            = local.zip_key_prefix
+}
+
+module "data_management" {
+  source = "./data_management"
+
+  app_name                                        = local.app_name
+  availability_zones                              = data.aws_availability_zones.available.names
+  aws_vpc_id                                      = module.networking.main_vpc_id
+  bastion_host_security_group_id                  = module.security.bastion_host_security_group_id
+  data_ingestion_metadata_key_prefix              = local.data_ingestion_metadata_key_prefix
+  default_ami_id                                  = local.default_ami_id
+  environment                                     = local.environment
+  fetch_daily_summaries_security_group_id         = module.fetch_daily_summaries.fetch_daily_summaries_security_group_id
+  home_ip                                         = local.home_ip
+  infra_config_bucket_arn                         = local.infra_config_bucket_arn
+  neo4j_ami_id                                    = local.neo4j_ami_id
+  neo4j_instance_type                             = local.neo4j_instance_type
+  neo4j_key_pair_name                             = local.neo4j_key_pair_name
+  neo4j_resource_prefix                           = local.neo4j_resource_prefix
+  private_subnets                                 = module.networking.aws_private_subnet_ids
+  region                                          = local.aws_region
+  ssm_policy_for_instances_arn                    = local.ssm_policy_for_instances_arn
+  tags                                            = local.tags
+}
+
+module "containerization" {
+  source = "./containerization"
+
+  environment = local.environment
 }

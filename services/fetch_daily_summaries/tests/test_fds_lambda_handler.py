@@ -6,11 +6,12 @@ import pytest
 import pytz
 
 from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import (
+    S3_KEY_DATE_FORMAT,
     fetch_data,
     get_config,
+    get_storage_key,
     lambda_handler,
     log_initial_info,
-    get_storage_key,
 )
 
 
@@ -89,7 +90,9 @@ def test_get_config():
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.requests.Session")
 def test_fetch_data_success(mock_session):
     with open("services/fetch_daily_summaries/tests/resources/test_arxiv_data.xml", "r") as file:
-        xml_data = file.read().replace('<resumptionToken cursor="0" completeListSize="1162">6960524|1001</resumptionToken>', "")
+        xml_data = file.read().replace(
+            '<resumptionToken cursor="0" completeListSize="1162">6960524|1001</resumptionToken>', ""
+        )
         mock_response = MagicMock()
         mock_response.text = xml_data
         mock_response.content = bytes(xml_data, "utf-8")
@@ -183,13 +186,13 @@ def test_lambda_handler_exception(mock_logger, event, context):
 
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.datetime")
 def test_get_storage_key_should_return_correct_key(mock_datetime, config):
-    mock_datetime.now.return_value = datetime(2023, 1, 1)
-    mock_datetime.now.astimezone.return_value = datetime(2023, 1, 1)
-    expected = "data/prefix/arxiv-2023-01-01T00-00-00.json"
+    mock_datetime.now.return_value = datetime(2023, 1, 1, 0, 0, 0, 0)
+    mock_datetime.now.astimezone.return_value = datetime(2023, 1, 1, 0, 0, 0, 0)
+    expected = f"data/prefix/arxiv-{datetime(2023, 1, 1, 0, 0, 0, 0).astimezone(pytz.timezone('US/Pacific')).strftime(S3_KEY_DATE_FORMAT)}.json"
     assert get_storage_key(config) == expected
+
 
 def test_get_storage_key_should_raise_exception_without_config():
     with pytest.raises(Exception) as e:
         get_storage_key(None)
     assert str(e.value) == "Config is required"
-
