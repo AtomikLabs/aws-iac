@@ -11,7 +11,6 @@ from requests.adapters import HTTPAdapter
 from storage_manager import StorageManager
 from urllib3.util.retry import Retry
 
-
 structlog.configure(
     [
         structlog.stdlib.filter_by_level,
