@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import (
+    S3_KEY_DATE_FORMAT,
     fetch_data,
     get_config,
     get_storage_key,
     lambda_handler,
     log_initial_info,
-    S3_KEY_DATE_FORMAT
 )
 
 
