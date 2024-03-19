@@ -5,8 +5,7 @@ from datetime import date
 
 import defusedxml.ElementTree as ET
 import structlog
-
-from .storage_manager import StorageManager
+from storage_manager import StorageManager
 
 structlog.configure(
     [
