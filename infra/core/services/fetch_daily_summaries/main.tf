@@ -8,7 +8,6 @@ locals {
   environment                 = var.environment
   infra_config_bucket         = var.infra_config_bucket
   neo4j_password              = var.neo4j_password
-  neo4j_security_group_id     = var.neo4j_security_group_id
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
   private_subnets             = var.private_subnets
@@ -243,13 +242,4 @@ resource "aws_security_group" "fetch_daily_summaries_security_group" {
 resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc_access_execution" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-}
-
-resource "aws_security_group_rule" "fetch_daily_summaries_lambda_sg_ingress" {
-  type        = "ingress"
-  from_port   = 0
-  to_port     = 0
-  protocol    = "-1"
-  security_group_id = local.neo4j_security_group_id
-  source_security_group_id = aws_security_group.fetch_daily_summaries_security_group.id
 }

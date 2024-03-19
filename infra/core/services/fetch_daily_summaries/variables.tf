@@ -59,11 +59,6 @@ variable "neo4j_password" {
   type          = string
 }
 
-variable "neo4j_security_group_id" {
-  description   = "The security group ID for the Neo4j instance"
-  type          = string
-}
-
 variable "neo4j_uri" {
   description   = "The URI of the Neo4j database"
   type          = string

@@ -14,8 +14,8 @@ variable "aws_vpc_id" {
   type        = string
 }
 
-variable "bastion_host_private_ip" {
-  description = "Bastion host IP"
+variable "bastion_host_security_group_id" {
+  description = "Bastion host security group ID"
   type        = string
 }
 
@@ -33,6 +33,11 @@ variable "environment" {
   description   = "Environment"
   type          = string
   default       = "dev"
+}
+
+variable "fetch_daily_summaries_security_group_id" {
+  description = "Fetch daily summaries security group ID"
+  type        = string
 }
 
 variable "home_ip" {
