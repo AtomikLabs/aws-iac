@@ -30,5 +30,6 @@ per-file-ignores = [
 
 [tool.pytest.ini_options]
 pythonpath = [
-    "."
+    ".",
+    "services/layer_data_management/src/layer_data_management"
 ]
