@@ -15,7 +15,6 @@ locals {
   runtime                     = var.runtime
   service_name                = var.service_name
   service_version             = var.service_version
-  zip_key_prefix              = var.zip_key_prefix
 
   arxiv_base_url              = var.arxiv_base_url
   arxiv_summary_set           = var.arxiv_summary_set

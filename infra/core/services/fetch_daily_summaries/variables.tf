@@ -93,12 +93,3 @@ variable "service_version" {
   description   = "The version of the service"
   type          = string
 }
-
-variable "zip_key_prefix" {
-  description   = "The key prefix for services zip files"
-  type          = string
-}
-
-
-
-

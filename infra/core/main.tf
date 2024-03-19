@@ -69,7 +69,9 @@ locals {
   neo4j_password            = var.neo4j_password
   neo4j_uri                 = module.data_management.neo4j_instance_private_ip
   neo4j_username            = var.neo4j_username
-  zip_key_prefix            = var.zip_key_prefix
+
+  layer_data_management_service_name      = var.layer_data_management_service_name
+  layer_data_management_service_version   = var.layer_data_management_service_version
 
   fetch_daily_summaries_max_retries       = var.fetch_daily_summaries_max_retries
   fetch_daily_summaries_service_name      = var.fetch_daily_summaries_service_name
@@ -123,6 +125,17 @@ module "containerization" {
   environment = local.environment
 }
 
+module "layer_data_management" {
+  source = "./services/layer_data_management"
+
+  app_name        = local.app_name
+  aws_region      = local.aws_region
+  environment     = local.environment
+  runtime         = local.default_lambda_runtime
+  service_name    = local.layer_data_management_service_name
+  service_version = local.layer_data_management_service_version
+}
+
 module "fetch_daily_summaries" {
   source = "./services/fetch_daily_summaries"
   
@@ -145,5 +158,4 @@ module "fetch_daily_summaries" {
   runtime                   = local.default_lambda_runtime
   service_name              = local.fetch_daily_summaries_service_name
   service_version           = local.fetch_daily_summaries_service_version
-  zip_key_prefix            = local.zip_key_prefix
 }
