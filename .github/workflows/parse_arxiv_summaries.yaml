@@ -3,14 +3,12 @@ name: Parse arXiv Summaries CI/CD
 on:
   push:
     branches:
-      - prod
-      - stage
-      - dev
+      - test
     paths:
       - "services/parse_arxiv_summaries/**"
   pull_request:
     branches:
-      - dev
+      - test
     paths:
       - "services/parse_arxiv_summaries/**"
   workflow_dispatch:

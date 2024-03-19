@@ -98,10 +98,10 @@ jobs:
       - name: Zip data management layer package
         id: zip-data-management-layer
         run: |
-          mkdir -p build/data_management_layer
-          cp services/data_management_layer/src/requirements.txt build/data_management_layer/
-          cp services/data_management_layer/src/data_management_layer/neo4j_manager.py build/data_management_layer/
-          pip install -r build/data_management_layer/requirements.txt -t build/data_management_layer/
+          mkdir -p build/layer_data_management
+          cp services/layer_data_management/src/requirements.txt build/layer_data_management/
+          cp services/layer_data_management/src/layer_data_management/neo4j_manager.py build/layer_data_management/
+          pip install -r build/layer_data_management/requirements.txt -t build/layer_data_management/
 
       - name: Zip Fetch Daily Summaries Lambda Function
         id: zip-fetch-daily-summaries
