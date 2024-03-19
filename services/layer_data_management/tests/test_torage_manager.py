@@ -4,7 +4,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from services.parse_arxiv_summaries.src.parse_arxiv_summaries.storage_manager import StorageManager
+from services.layer_data_management.src.layer_data_management.storage_manager import StorageManager
 
 
 @pytest.fixture
@@ -56,14 +56,14 @@ def test_load_empty_key(storage_manager, mock_logger):
 
 
 @mock_aws
-def test_persist_success(storage_manager, mock_logger):
+def test_upload_to_s3_success(storage_manager, mock_logger):
     """Tests successful persistence of content to S3."""
     boto3.client("s3", region_name="us-east-1").create_bucket(Bucket="test-bucket")
 
     key = "test-key"
     content = "test-content"
 
-    storage_manager.persist(key=key, content=content)
+    storage_manager.upload_to_s3(key=key, content=content)
 
     s3 = boto3.resource("s3", region_name="us-east-1")
     stored_content = s3.Object("test-bucket", key).get()["Body"].read().decode("utf-8")
@@ -75,28 +75,28 @@ def test_persist_success(storage_manager, mock_logger):
 
 
 @mock_aws
-def test_persist_empty_key(storage_manager, mock_logger):
+def test_upload_to_s3_empty_key(storage_manager, mock_logger):
     """Tests that persist raises a ValueError when the key is empty."""
     with pytest.raises(ValueError, match="key must be a non-empty string"):
-        storage_manager.persist(key="", content="test-content")
+        storage_manager.upload_to_s3(key="", content="test-content")
 
 
 @mock_aws
-def test_persist_empty_content(storage_manager, mock_logger):
+def test_upload_to_s3_empty_content(storage_manager, mock_logger):
     """Tests that persist raises a ValueError when the content is empty."""
     with pytest.raises(ValueError, match="content must be a non-empty string"):
-        storage_manager.persist(key="test-key", content="")
+        storage_manager.upload_to_s3(key="test-key", content="")
 
 
 @mock_aws
-def test_persist_failure(storage_manager, mock_logger, mocker):
+def test_upload_to_s3_failure(storage_manager, mock_logger, mocker):
     """Tests that persist raises an exception when there is an error persisting the content to S3."""
     key = "test-key"
     content = "test-content"
     mocker.patch("boto3.resource", side_effect=Exception("Test exception"))
 
     with pytest.raises(Exception, match="Test exception"):
-        storage_manager.persist(key=key, content=content)
+        storage_manager.upload_to_s3(key=key, content=content)
 
     mock_logger.error.assert_called_with(
         "Failed to persist content to S3",
