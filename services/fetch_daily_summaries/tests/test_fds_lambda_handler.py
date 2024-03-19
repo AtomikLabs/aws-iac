@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
-import pytz
 
 from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import (
     fetch_data,
