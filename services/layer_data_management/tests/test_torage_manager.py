@@ -4,7 +4,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from services.parse_arxiv_summaries.src.parse_arxiv_summaries.storage_manager import StorageManager
+from services.layer_data_management.src.layer_data_management.storage_manager import StorageManager
 
 
 @pytest.fixture
