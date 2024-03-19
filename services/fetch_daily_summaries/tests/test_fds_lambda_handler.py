@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+import pytz
 
 from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import (
     S3_KEY_DATE_FORMAT,
@@ -187,7 +188,7 @@ def test_lambda_handler_exception(mock_logger, event, context):
 def test_get_storage_key_should_return_correct_key(mock_datetime, config):
     mock_datetime.now.return_value = datetime(2023, 1, 1, 0, 0, 0, 0)
     mock_datetime.now.astimezone.return_value = datetime(2023, 1, 1, 0, 0, 0, 0)
-    expected = f"data/prefix/arxiv-{datetime(2023, 1, 1, 0, 0, 0, 0).strftime(S3_KEY_DATE_FORMAT)}.json"
+    expected = f"data/prefix/arxiv-{datetime(2023, 1, 1, 0, 0, 0, 0).astimezone(pytz.timezone('US/Pacific')).strftime(S3_KEY_DATE_FORMAT)}.json"
     assert get_storage_key(config) == expected
 
 
