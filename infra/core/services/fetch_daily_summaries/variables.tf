@@ -59,6 +59,11 @@ variable "lambda_vpc_access_role" {
   type          = string
 }
 
+variable "layer_data_management_arn" {
+  description   = "The ARN of the layer for data management"
+  type          = string
+}
+
 variable "max_retries" {
   description   = "The maximum number of retries"
   type          = number

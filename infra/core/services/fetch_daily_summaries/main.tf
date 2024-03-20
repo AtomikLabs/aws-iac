@@ -8,6 +8,7 @@ locals {
   environment                 = var.environment
   infra_config_bucket         = var.infra_config_bucket
   lambda_vpc_access_role      = var.lambda_vpc_access_role
+  layer_data_management_arn   = var.layer_data_management_arn
   neo4j_password              = var.neo4j_password
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
@@ -105,11 +106,6 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
   memory_size       = 256
   runtime           = local.runtime
 
-  vpc_config {
-    subnet_ids         = [local.private_subnets[0], local.private_subnets[1]]
-    security_group_ids = [aws_security_group.fetch_daily_summaries_security_group.id]
-  }
-
   environment {
     variables = {
       APP_NAME                              = local.app_name
@@ -125,6 +121,13 @@ resource "aws_lambda_function" "fetch_daily_summaries" {
       SERVICE_VERSION                       = local.service_version
       SERVICE_NAME                          = local.service_name
     }  
+  }
+
+  layers = [local.layer_data_management_arn]
+
+  vpc_config {
+    subnet_ids         = [local.private_subnets[0], local.private_subnets[1]]
+    security_group_ids = [aws_security_group.fetch_daily_summaries_security_group.id]
   }
 }
 

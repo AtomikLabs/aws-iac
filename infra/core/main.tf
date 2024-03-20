@@ -129,6 +129,7 @@ module "fetch_daily_summaries" {
   environment               = local.environment
   infra_config_bucket       = local.infra_config_bucket
   lambda_vpc_access_role    = local.lambda_vpc_access_role
+  layer_data_management_arn = module.layer_data_management.layer_data_management_arn
   max_retries               = local.fetch_daily_summaries_max_retries
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
@@ -152,6 +153,7 @@ module "parse_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
+  layer_data_management_arn = module.layer_data_management.layer_data_management_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username

@@ -49,6 +49,11 @@ variable "lambda_vpc_access_role" {
   type          = string
 }
 
+variable "layer_data_management_arn" {
+  description   = "The ARN of the layer for data management"
+  type          = string
+}
+
 variable "neo4j_password" {
   description   = "The password for the Neo4j database"
   type          = string
