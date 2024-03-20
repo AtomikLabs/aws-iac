@@ -55,5 +55,5 @@ fetch_daily_summaries_service_version = "0.0.2"
 
 # parase_arxiv_summaries
 
-parse_arxiv_summaries_name = "parse_arxiv_summaries"
-parse_arxiv_summaries_version = "0.0.2"
+parse_arxiv_summaries_service_name = "parse_arxiv_summaries"
+parse_arxiv_summaries_service_version = "0.0.2"
