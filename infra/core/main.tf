@@ -25,6 +25,7 @@ locals {
   # **********************************************************
   data_ingestion_key_prefix                     = var.data_ingestion_key_prefix
   data_ingestion_metadata_key_prefix            = var.data_ingestion_metadata_key_prefix
+  etl_key_prefix                                = var.etl_key_prefix
   neo4j_ami_id                                  = var.neo4j_ami_id
   neo4j_instance_type                           = var.neo4j_instance_type
   neo4j_key_pair_name                           = var.neo4j_key_pair_name
@@ -65,7 +66,9 @@ locals {
   # **********************************************************
   arxiv_base_url            = var.arxiv_base_url
   arxiv_summary_set         = var.arxiv_summary_set
+  basic_execution_role_arn  = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   default_lambda_runtime    = var.default_lambda_runtime
+  lambda_vpc_access_role    = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
   neo4j_password            = var.neo4j_password
   neo4j_uri                 = module.data_management.neo4j_instance_private_ip
   neo4j_username            = var.neo4j_username
@@ -76,6 +79,9 @@ locals {
   fetch_daily_summaries_max_retries       = var.fetch_daily_summaries_max_retries
   fetch_daily_summaries_service_name      = var.fetch_daily_summaries_service_name
   fetch_daily_summaries_service_version   = var.fetch_daily_summaries_service_version
+
+  parse_arxiv_summaries_service_name      = var.parse_arxiv_summaries_service_name
+  parse_arxiv_summaries_service_version   = var.parse_arxiv_summaries_service_version
 }
 
 module "networking" {
@@ -116,11 +122,13 @@ module "fetch_daily_summaries" {
   arxiv_summary_set         = local.arxiv_summary_set
   aws_region                = local.aws_region
   aws_vpc_id                = module.networking.main_vpc_id
+  basic_execution_role_arn  = local.basic_execution_role_arn
   data_bucket               = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
   data_bucket_arn           = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
   data_ingestion_key_prefix = local.data_ingestion_key_prefix
   environment               = local.environment
   infra_config_bucket       = local.infra_config_bucket
+  lambda_vpc_access_role    = local.lambda_vpc_access_role
   max_retries               = local.fetch_daily_summaries_max_retries
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
@@ -131,23 +139,48 @@ module "fetch_daily_summaries" {
   service_version           = local.fetch_daily_summaries_service_version
 }
 
+module "parse_arxiv_summaries" {
+  source = "./services/parse_arxiv_summaries"
+
+  app_name                  = local.app_name
+  aws_region                = local.aws_region
+  aws_vpc_id                = module.networking.main_vpc_id
+  basic_execution_role_arn  = local.basic_execution_role_arn
+  data_bucket               = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  data_bucket_arn           = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
+  data_ingestion_key_prefix = local.data_ingestion_key_prefix
+  environment               = local.environment
+  etl_key_prefix            = local.etl_key_prefix
+  lambda_vpc_access_role    = local.lambda_vpc_access_role
+  neo4j_password            = local.neo4j_password
+  neo4j_uri                 = local.neo4j_uri
+  neo4j_username            = local.neo4j_username
+  private_subnets           = module.networking.aws_private_subnet_ids
+  runtime                   = local.default_lambda_runtime
+  service_name              = local.parse_arxiv_summaries_service_name
+  service_version           = local.parse_arxiv_summaries_service_version
+}
+
 module "data_management" {
   source = "./data_management"
 
   app_name                                        = local.app_name
   availability_zones                              = data.aws_availability_zones.available.names
   aws_vpc_id                                      = module.networking.main_vpc_id
-  bastion_host_security_group_id                  = module.security.bastion_host_security_group_id
   data_ingestion_metadata_key_prefix              = local.data_ingestion_metadata_key_prefix
   default_ami_id                                  = local.default_ami_id
   environment                                     = local.environment
-  fetch_daily_summaries_security_group_id         = module.fetch_daily_summaries.fetch_daily_summaries_security_group_id
   home_ip                                         = local.home_ip
   infra_config_bucket_arn                         = local.infra_config_bucket_arn
   neo4j_ami_id                                    = local.neo4j_ami_id
   neo4j_instance_type                             = local.neo4j_instance_type
   neo4j_key_pair_name                             = local.neo4j_key_pair_name
   neo4j_resource_prefix                           = local.neo4j_resource_prefix
+  neo4j_source_security_group_ids                 = [
+                                                      module.security.bastion_host_security_group_id,
+                                                      module.fetch_daily_summaries.fetch_daily_summaries_security_group_id,
+                                                      module.parse_arxiv_summaries.parse_arxiv_summaries_security_group_id
+                                                    ]
   private_subnets                                 = module.networking.aws_private_subnet_ids
   region                                          = local.aws_region
   ssm_policy_for_instances_arn                    = local.ssm_policy_for_instances_arn

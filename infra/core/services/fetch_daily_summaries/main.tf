@@ -2,11 +2,12 @@ locals {
   app_name                    = var.app_name
   aws_region                  = var.aws_region
   aws_vpc_id                  = var.aws_vpc_id
-  basic_execution_role_arn    = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  basic_execution_role_arn    = var.basic_execution_role_arn
   data_bucket                 = var.data_bucket
-  data_bucket_arn             = "arn:aws:s3:::${var.data_bucket}"
+  data_bucket_arn             = var.data_bucket_arn
   environment                 = var.environment
   infra_config_bucket         = var.infra_config_bucket
+  lambda_vpc_access_role      = var.lambda_vpc_access_role
   neo4j_password              = var.neo4j_password
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
@@ -23,8 +24,8 @@ locals {
 
 data "archive_file" "fetch_daily_summaries_lambda_function" {
   type       = "zip"
-  source_dir  = "../../build/fetch_daily_summaries"
-  output_path = "../../build/fetch_daily_summaries/fetch_daily_summaries.zip"
+  source_dir  = "../../build/${local.service_name}"
+  output_path = "../../build/${local.service_name}/${local.service_name}.zip"
 }
 
 
@@ -95,7 +96,7 @@ resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
 # **********************************************************
 resource "aws_lambda_function" "fetch_daily_summaries" {
   function_name = "${local.environment}-${local.service_name}"
-  filename = data.archive_file.fetch_daily_summaries_lambda_function.output_path
+  filename      = data.archive_file.fetch_daily_summaries_lambda_function.output_path
   package_type  = "Zip"
   handler       = "lambda_handler.lambda_handler"
   role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
@@ -181,41 +182,9 @@ resource "aws_iam_policy" "fetch_daily_summaries_lambda_s3_access" {
   })
 }
 
-resource "aws_iam_policy" "lambda_glue_policy" {
-  name        = "${local.environment}-${local.service_name}-lambda_glue_data_catalog_access_policy"
-  description = "IAM policy for accessing AWS Glue Data Catalog from Lambda"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = [
-          "glue:GetDatabase",
-          "glue:GetDatabases",
-          "glue:GetTable",
-          "glue:GetTables",
-          "glue:SearchTables",
-          "glue:GetPartitions",
-          "glue:GetPartition",
-          "glue:StartCrawler",
-          "glue:UpdateTable",
-          "glue:CreateTable",
-        ],
-        Effect   = "Allow",
-        Resource = "*"
-      },
-    ],
-  })
-}
-
 resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_s3_access_attachment" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
   policy_arn = aws_iam_policy.fetch_daily_summaries_lambda_s3_access.arn
-}
-
-resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_glue_policy_attach" {
-  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
-  policy_arn = aws_iam_policy.lambda_glue_policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_vpc_access_attachment" {
@@ -224,7 +193,7 @@ resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_vpc_access_atta
 }
 
 resource "aws_security_group" "fetch_daily_summaries_security_group" {
-  name_prefix = "${local.environment}-fetch-daily-summaries-sg"
+  name_prefix = "${local.environment}-${local.service_name}-sg"
   vpc_id      = local.aws_vpc_id
 
   egress {
@@ -235,11 +204,11 @@ resource "aws_security_group" "fetch_daily_summaries_security_group" {
   }
 
   tags = {
-    Name = "${local.environment}-fetch-daily-summaries-sg"
+    Name = "${local.environment}-${local.service_name}-sg"
   }
 }
 
-resource "aws_iam_role_policy_attachment" "iam_role_policy_attachment_lambda_vpc_access_execution" {
+resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_vpc_access_attachment" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+  policy_arn = local.lambda_vpc_access_role
 }

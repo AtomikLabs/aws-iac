@@ -75,6 +75,11 @@ variable "data_ingestion_metadata_key_prefix" {
     type        = string
 }
 
+variable "etl_key_prefix" {
+    description = "Prefix for the ETL keys"
+    type        = string
+}
+
 variable "neo4j_ami_id" {
   description = "Neo4j AMI ID"
   type        = string
@@ -165,5 +170,15 @@ variable "fetch_daily_summaries_service_name" {
 
 variable "fetch_daily_summaries_service_version" {
   description = "Service version for the fetch daily summaries"
+  type        = string
+}
+
+variable "parse_arxiv_summaries_service_name" {
+  description = "Service name for the parse arxiv summaries"
+  type        = string
+}
+
+variable "parse_arxiv_summaries_service_version" {
+  description = "Service version for the parse arxiv summaries"
   type        = string
 }
