@@ -41,8 +41,6 @@ LOG_INITIAL_INFO = "parse_arxiv_summaries.lambda_handler.log_initial_info"
 PERSIST_TO_S3 = "parse_arxiv_summaries.lambda_handler.persist_to_s3"
 
 
-
-
 def lambda_handler(event, context):
     """
     The main entry point for the Lambda function.
