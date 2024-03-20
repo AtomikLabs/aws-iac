@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies and run tests
         run: |
-          find ./services/ -name 'requirements.txt' | while read requirements; do
+          find ./services/ -name 'requirements.local.txt' | while read requirements; do
             if [[ $requirements == *"/services/"* ]]; then
               dir=$(dirname "$requirements")
               echo "Installing dependencies in $dir"

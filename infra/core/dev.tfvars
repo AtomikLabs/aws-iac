@@ -23,6 +23,7 @@ terraform_outputs_prefix = "terraform-outputs"
 
 data_ingestion_key_prefix = "raw_data/data_ingestion"
 data_ingestion_metadata_key_prefix = "raw_data/data_ingestion/metadata"
+etl_key_prefix = "processed_data/etl"
 neo4j_ami_id = "ami-0f403e3180720dd7e"
 neo4j_instance_type = "t3a.small"
 neo4j_key_pair_name = "atomiklabs-neo4j-keypair"
@@ -54,5 +55,5 @@ fetch_daily_summaries_service_version = "0.0.2"
 
 # parase_arxiv_summaries
 
-parse_arxiv_summaries_name = "parse_arxiv_summaries"
-parse_arxiv_summaries_version = "0.0.1"
+parse_arxiv_summaries_service_name = "parse_arxiv_summaries"
+parse_arxiv_summaries_service_version = "0.0.2"

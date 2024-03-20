@@ -5,11 +5,9 @@ data "aws_secretsmanager_secret_version" "neo4j_credentials" {
 locals {
   availability_zone_available_names             = var.availability_zones
   aws_vpc_id                                    = var.aws_vpc_id
-  bastion_host_security_group_id                = var.bastion_host_security_group_id
   data_ingestion_metadata_key_prefix            = var.data_ingestion_metadata_key_prefix
   default_ami_id                                = var.default_ami_id
   environment                                   = var.environment
-  fetch_daily_summaries_security_group_id       = var.fetch_daily_summaries_security_group_id
   home_ip                                       = var.home_ip
   infra_config_bucket_arn                       = var.infra_config_bucket_arn
   app_name                                          = var.app_name
@@ -17,6 +15,7 @@ locals {
   neo4j_instance_type                           = var.neo4j_instance_type
   neo4j_key_pair_name                           = var.neo4j_key_pair_name
   neo4j_resource_prefix                         = var.neo4j_resource_prefix
+  neo4j_source_security_group_ids               = var.neo4j_source_security_group_ids
   private_subnets                               = var.private_subnets
   region                                        = var.region
   secret                                        = jsondecode(data.aws_secretsmanager_secret_version.neo4j_credentials.secret_string)
@@ -345,28 +344,28 @@ resource "aws_security_group" "neo4j_security_group" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    security_groups = [local.bastion_host_security_group_id]
+    security_groups = local.neo4j_source_security_group_ids
   }
 
   ingress {
     from_port   = 7473
     to_port     = 7473
     protocol    = "tcp"
-    security_groups = [local.bastion_host_security_group_id, local.fetch_daily_summaries_security_group_id]
+    security_groups = local.neo4j_source_security_group_ids
   }
 
   ingress {
     from_port   = 7474
     to_port     = 7474
     protocol    = "tcp"
-    security_groups = [local.bastion_host_security_group_id, local.fetch_daily_summaries_security_group_id]
+    security_groups = local.neo4j_source_security_group_ids
   }
 
   ingress {
     from_port   = 7687
     to_port     = 7687
     protocol    = "tcp"
-    security_groups = [local.bastion_host_security_group_id, local.fetch_daily_summaries_security_group_id]
+    security_groups = local.neo4j_source_security_group_ids
   }
   
   egress {

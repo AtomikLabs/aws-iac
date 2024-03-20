@@ -14,11 +14,6 @@ variable "aws_vpc_id" {
   type        = string
 }
 
-variable "bastion_host_security_group_id" {
-  description = "Bastion host security group ID"
-  type        = string
-}
-
 variable "data_ingestion_metadata_key_prefix" {
     description = "Prefix for the data ingestion metadata"
     type        = string
@@ -33,11 +28,6 @@ variable "environment" {
   description   = "Environment"
   type          = string
   default       = "dev"
-}
-
-variable "fetch_daily_summaries_security_group_id" {
-  description = "Fetch daily summaries security group ID"
-  type        = string
 }
 
 variable "home_ip" {
@@ -69,6 +59,11 @@ variable "neo4j_key_pair_name" {
 variable "neo4j_resource_prefix" {
   description = "Neo4j resource prefix"
   type        = string
+}
+
+variable "neo4j_source_security_group_ids" {
+  description = "Neo4j source security group IDs"
+  type        = list(string)
 }
 
 variable "private_subnets" {

@@ -70,7 +70,7 @@ def test_upload_to_s3_success(storage_manager, mock_logger):
 
     assert stored_content == content, "The content stored in S3 should match the input content."
     mock_logger.info.assert_called_with(
-        "Persisted content to S3", method="StorageManager.persist", bucket_name="test-bucket", key=key
+        "Persisted content to S3", method="upload_to_s3", bucket_name="test-bucket", key=key
     )
 
 
@@ -100,7 +100,7 @@ def test_upload_to_s3_failure(storage_manager, mock_logger, mocker):
 
     mock_logger.error.assert_called_with(
         "Failed to persist content to S3",
-        method="StorageManager.persist",
+        method="upload_to_s3",
         bucket_name="test-bucket",
         key=key,
         error="Test exception",

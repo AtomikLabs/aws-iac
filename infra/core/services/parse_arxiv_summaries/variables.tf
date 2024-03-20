@@ -8,6 +8,16 @@ variable "aws_region" {
   type          = string
 }
 
+variable "aws_vpc_id" {
+  description   = "The ID of the VPC"
+  type          = string
+}
+
+variable "basic_execution_role_arn" {
+  description   = "The ARN of the basic execution role"
+  type          = string
+}
+
 variable "data_bucket" {
   description   = "The name of the S3 bucket where the data is stored"
   type          = string
@@ -15,11 +25,6 @@ variable "data_bucket" {
 
 variable "data_bucket_arn" {
   description   = "The ARN of the S3 bucket where the data is stored"
-  type          = string
-}
-
-variable "data_catalog_db_name" {
-  description   = "The name of the data catalog database"
   type          = string
 }
 
@@ -39,8 +44,38 @@ variable "etl_key_prefix" {
   type          = string
 }
 
-variable "image_uri" {
-  description   = "The name of the Docker image"
+variable "lambda_vpc_access_role" {
+  description   = "The ARN of the role that allows the Lambda function to access the VPC"
+  type          = string
+}
+
+variable "layer_data_management_arn" {
+  description   = "The ARN of the layer for data management"
+  type          = string
+}
+
+variable "neo4j_password" {
+  description   = "The password for the Neo4j database"
+  type          = string
+}
+
+variable "neo4j_uri" {
+  description   = "The URI for the Neo4j database"
+  type          = string
+}
+
+variable "neo4j_username" {
+  description   = "The username for the Neo4j database"
+  type          = string
+}
+
+variable "private_subnets" {
+  description   = "The private subnets"
+  type          = list(string)
+}
+
+variable "runtime" {
+  description   = "The runtime for the Lambda function"
   type          = string
 }
 

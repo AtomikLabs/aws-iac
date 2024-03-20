@@ -11,15 +11,28 @@ terraform {
 locals {
   app_name                    = var.app_name
   aws_region                  = var.aws_region
-  basic_execution_role_arn    = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  aws_vpc_id                  = var.aws_vpc_id
+  basic_execution_role_arn    = var.basic_execution_role_arn
   data_bucket                 = var.data_bucket
-  data_bucket_arn             = "arn:aws:s3:::${var.data_bucket}"
+  data_bucket_arn             = var.data_bucket_arn
   data_ingestion_key_prefix   = var.data_ingestion_key_prefix
   environment                 = var.environment
   etl_key_prefix              = var.etl_key_prefix
-  image_uri                   = var.image_uri
+  lambda_vpc_access_role      = var.lambda_vpc_access_role
+  layer_data_management_arn   = var.layer_data_management_arn
+  neo4j_password              = var.neo4j_password
+  neo4j_uri                   = var.neo4j_uri
+  neo4j_username              = var.neo4j_username
+  private_subnets             = var.private_subnets
+  runtime                     = var.runtime
   service_name                = var.service_name
   service_version             = var.service_version
+}
+
+data "archive_file" "parse_arxiv_summaries_lambda_function" {
+  type       = "zip"
+  source_dir = "../../build/${local.service_name}"
+  output_path = "../../build/${local.service_name}/${local.service_name}.zip"
 }
 
 # **********************************************************
@@ -29,9 +42,9 @@ resource "aws_s3_bucket_notification" "parse_arxiv_summaries_s3_trigger" {
   bucket = local.data_bucket
 
   lambda_function {
-    lambda_function_arn = "arn:aws:lambda:us-east-1:758145997264:function:dev-parse_arxiv_summaries"
+    lambda_function_arn = "arn:aws:lambda:us-east-1:758145997264:function:${local.environment}-${local.service_name}"
     events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = "raw_data/data_ingestion/"
+    filter_prefix       = local.data_ingestion_key_prefix
     filter_suffix       = ".json"
   }
 
@@ -52,12 +65,15 @@ resource "aws_lambda_permission" "allow_s3_bucket" {
 # * SERVICE                                                *
 # **********************************************************
 resource "aws_lambda_function" "parse_arxiv_summaries" {
-  function_name = "${local.environment}-${local.service_name}"
-  package_type  = "Image"
-  image_uri     = local.image_uri
-  role          = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.arn
-  timeout       = 900
-  memory_size   = 128
+  function_name     = "${local.environment}-${local.service_name}"
+  filename          = data.archive_file.parse_arxiv_summaries_lambda_function.output_path
+  package_type      = "Zip"
+  handler           = "lambda_handler.lambda_handler"
+  role              = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.arn
+  source_code_hash  = data.archive_file.parse_arxiv_summaries_lambda_function.output_base64sha256
+  timeout           = 900
+  memory_size       = 256
+  runtime           = local.runtime
 
   environment {
     variables = {
@@ -65,9 +81,19 @@ resource "aws_lambda_function" "parse_arxiv_summaries" {
       DATA_BUCKET                           = local.data_bucket
       ENVIRONMENT                           = local.environment
       ETL_KEY_PREFIX                        = local.etl_key_prefix
+      NEO4J_PASSWORD                        = local.neo4j_password
+      NEO4J_URI                             = local.neo4j_uri
+      NEO4J_USERNAME                        = local.neo4j_username
       SERVICE_VERSION                       = local.service_version
       SERVICE_NAME                          = local.service_name
     }  
+  }
+
+  layers = [local.layer_data_management_arn]
+
+  vpc_config {
+    subnet_ids         = local.private_subnets
+    security_group_ids = [aws_security_group.parse_arxiv_summaries_security_group.id]
   }
 }
 
@@ -111,7 +137,6 @@ resource "aws_iam_policy" "parse_arxiv_summaries_lambda_s3_access" {
         Resource = [
           "${local.data_bucket_arn}/${local.data_ingestion_key_prefix}/*",
           "${local.data_bucket_arn}/${local.etl_key_prefix}/*",
-          "${local.data_bucket_arn}/metadata/*"
         ]
       },
       {
@@ -127,44 +152,55 @@ resource "aws_iam_policy" "parse_arxiv_summaries_lambda_s3_access" {
   })
 }
 
-resource "aws_iam_policy" "lambda_glue_policy" {
-  name        = "${local.environment}-${local.service_name}-lambda_glue_data_catalog_access_policy"
-  description = "IAM policy for accessing AWS Glue Data Catalog from Lambda"
+resource "aws_iam_policy" "parse_arxivc_summaries_kms_decrypt" {
+  name        = "${local.environment}-${local.service_name}-kms-decrypt"
+  description = "Allow Lambda to decrypt KMS keys"
 
   policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [
       {
         Action = [
-          "glue:GetDatabase",
-          "glue:GetDatabases",
-          "glue:GetTable",
-          "glue:GetTables",
-          "glue:SearchTables",
-          "glue:GetPartitions",
-          "glue:GetPartition",
-          "glue:StartCrawler",
-          "glue:UpdateTable",
-          "glue:CreateTable",
-        ],
-        Effect   = "Allow",
-        Resource = "*"
-      },
-    ],
+          "kms:Decrypt"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "*"
+        ]
+      }
+    ]
   })
 }
+
+resource "aws_security_group" "parse_arxiv_summaries_security_group" {
+  name        = "${local.environment}-${local.service_name}-security-group"
+  description = "Security group for the parse arXiv summaries service"
+  vpc_id      = local.aws_vpc_id
+
+  egress {
+    from_port  = 0
+    to_port    = 0
+    protocol   = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${local.environment}-${local.service_name}-sg"
+  }
+}
+
 
 resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_lambda_s3_access_attachment" {
   role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
   policy_arn = aws_iam_policy.parse_arxiv_summaries_lambda_s3_access.arn
 }
 
-resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_lambda_glue_policy_attach" {
-  role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
-  policy_arn = aws_iam_policy.lambda_glue_policy.arn
-}
-
 resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_vpc_access_attachment" {
   role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
-  policy_arn = local.basic_execution_role_arn
+  policy_arn = local.lambda_vpc_access_role
+}
+
+resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_kms_decrypt_attachment" {
+  role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
+  policy_arn = aws_iam_policy.parse_arxivc_summaries_kms_decrypt.arn
 }

@@ -1,10 +1,12 @@
 import json
 import os
 import urllib.parse
-from datetime import date
+from datetime import datetime
 
 import defusedxml.ElementTree as ET
+import pytz
 import structlog
+from arxiv_constants import CS_CATEGORIES_INVERTED
 from storage_manager import StorageManager
 
 structlog.configure(
@@ -32,55 +34,7 @@ SERVICE_VERSION = "SERVICE_VERSION"
 # TODO: Centralize error messages
 INTERNAL_SERVER_ERROR = "Internal server error"
 NO_REGION_SPECIFIED = "No region specified"
-PARSE_DATA = "parse_arxiv_summaries.lambda_handler.fetch_data"
-GET_CONFIG = "parse_arxiv_summaries.lambda_handler.get_config"
-LAMBDA_HANDLER = "parse_arxiv_summaries.lambda_handler"
-LOAD_XML_FROM_S3 = "parse_arxiv_summaries.lambda_handler.load_xml_from_s3"
-LOG_INITIAL_INFO = "parse_arxiv_summaries.lambda_handler.log_initial_info"
-PERSIST_TO_S3 = "parse_arxiv_summaries.lambda_handler.persist_to_s3"
-
-cs_categories_inverted = {
-    "Computer Science - Artificial Intelligence": "AI",
-    "Computer Science - Hardware Architecture": "AR",
-    "Computer Science - Computational Complexity": "CC",
-    "Computer Science - Computational Engineering, Finance, and Science": "CE",
-    "Computer Science - Computational Geometry": "CG",
-    "Computer Science - Computation and Language": "CL",
-    "Computer Science - Cryptography and Security": "CR",
-    "Computer Science - Computer Vision and Pattern Recognition": "CV",
-    "Computer Science - Computers and Society": "CY",
-    "Computer Science - Databases": "DB",
-    "Computer Science - Distributed, Parallel, and Cluster Computing": "DC",
-    "Computer Science - Digital Libraries": "DL",
-    "Computer Science - Discrete Mathematics": "DM",
-    "Computer Science - Data Structures and Algorithms": "DS",
-    "Computer Science - Emerging Technologies": "ET",
-    "Computer Science - Formal Languages and Automata Theory": "FL",
-    "Computer Science - General Literature": "GL",
-    "Computer Science - Graphics": "GR",
-    "Computer Science - Computer Science and Game Theory": "GT",
-    "Computer Science - Human-Computer Interaction": "HC",
-    "Computer Science - Information Retrieval": "IR",
-    "Computer Science - Information Theory": "IT",
-    "Computer Science - Machine Learning": "LG",
-    "Computer Science - Logic in Computer Science": "LO",
-    "Computer Science - Multiagent Systems": "MA",
-    "Computer Science - Multimedia": "MM",
-    "Computer Science - Mathematical Software": "MS",
-    "Computer Science - Numerical Analysis": "NA",
-    "Computer Science - Neural and Evolutionary Computing": "NE",
-    "Computer Science - Networking and Internet Architecture": "NI",
-    "Computer Science - Other Computer Science": "OH",
-    "Computer Science - Operating Systems": "OS",
-    "Computer Science - Performance": "PF",
-    "Computer Science - Programming Languages": "PL",
-    "Computer Science - Robotics": "RO",
-    "Computer Science - Symbolic Computation": "SC",
-    "Computer Science - Sound": "SD",
-    "Computer Science - Software Engineering": "SE",
-    "Computer Science - Social and Information Networks": "SI",
-    "Computer Science - Systems and Control": "SY",
-}
+S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 
 def lambda_handler(event, context):
@@ -107,8 +61,8 @@ def lambda_handler(event, context):
             extracted_data["records"].extend(extracted_records)
         content_str = json.dumps(extracted_data)
         output_key = get_output_key(config)
-        storage_manager.persist(output_key, content_str)
-        logger.info("Finished parsing arXiv daily summaries")
+        storage_manager.upload_to_s3(output_key, content_str)
+        logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
         return {"statusCode": 200, "body": "Success"}
 
     except Exception as e:
@@ -126,14 +80,14 @@ def log_initial_info(event: dict) -> None:
     try:
         logger.debug(
             "Log variables",
-            method=LOG_INITIAL_INFO,
+            method=log_initial_info.__name__,
             log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
             log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
         )
-        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="AWS")
+        logger.debug("Running on", method=log_initial_info.__name__, platform="AWS")
     except KeyError:
-        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="CI/CD or local")
-    logger.debug("Event received", method=LOG_INITIAL_INFO, trigger_event=event)
+        logger.debug("Running on", method=log_initial_info.__name__, platform="CI/CD or local")
+    logger.debug("Event received", method=log_initial_info.__name__, trigger_event=event)
 
 
 def get_config() -> dict:
@@ -152,11 +106,11 @@ def get_config() -> dict:
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
-        logger.debug("Config", method=GET_CONFIG, config=config)
+        logger.debug("Config", method=get_config.__name__, config=config)
     except KeyError as e:
-        logger.error("Missing environment variable", method=GET_CONFIG, error=str(e))
+        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
         raise e
-    logger.debug("Config", method=GET_CONFIG, config=config)
+    logger.debug("Config", method=get_config.__name__, config=config)
     return config
 
 
@@ -173,7 +127,7 @@ def parse_xml_data(xml_data: str) -> list:
         list: Parsed data.
     """
     extracted_data_chunk = []
-    logger.info("Parsing XML data", method=PARSE_DATA, data_length=len(xml_data))
+    logger.info("Parsing XML data", method=parse_xml_data.__name__, data_length=len(xml_data))
     try:
         root = ET.fromstring(xml_data)
         ns = {"oai": "http://www.openarchives.org/OAI/2.0/", "dc": "http://purl.org/dc/elements/1.1/"}
@@ -196,7 +150,7 @@ def parse_xml_data(xml_data: str) -> list:
 
             # Find all subjects
             subjects_elements = record.findall(".//dc:subject", ns)
-            categories = [cs_categories_inverted.get(subject.text, "") for subject in subjects_elements]
+            categories = [CS_CATEGORIES_INVERTED.get(subject.text, "") for subject in subjects_elements]
             # Remove empty strings
             categories = list(filter(None, categories))
             primary_category = categories[0] if categories else ""
@@ -220,9 +174,9 @@ def parse_xml_data(xml_data: str) -> list:
                 }
             )
     except ET.ParseError as e:
-        logger.error("Failed to parse XML data", method=PARSE_DATA, error=str(e))
+        logger.error("Failed to parse XML data", method=parse_xml_data.__name__, error=str(e))
 
-    logger.info("Finished parsing XML data", method=PARSE_DATA, data_length=len(extracted_data_chunk))
+    logger.info("Finished parsing XML data", method=parse_xml_data.__name__, data_length=len(extracted_data_chunk))
     return extracted_data_chunk
 
 
@@ -233,6 +187,6 @@ def get_output_key(config) -> str:
     Returns:
         str: The output key.
     """
-    today = date.today().strftime("%Y-%m-%d")
-    filename = "parsed_arxiv_summaries.json"
-    return f"{config[ETL_KEY_PREFIX]}/{today}-{filename}"
+    storage_date = datetime.now().astimezone(pytz.timezone("US/Pacific"))
+    key_date = storage_date.strftime(S3_KEY_DATE_FORMAT)
+    return f"{config[ETL_KEY_PREFIX]}/parsed_arxiv_summaries-{key_date}.json"
