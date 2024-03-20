@@ -75,7 +75,7 @@ resource "aws_lambda_function" "parse_arxiv_summaries" {
 
   vpc_config {
     subnet_ids         = local.private_subnets
-    security_group_ids = []
+    security_group_ids = [aws_security_group.parse_arxiv_summaries_security_group.id]
   }
 
   environment {
