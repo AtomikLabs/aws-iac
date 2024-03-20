@@ -34,13 +34,6 @@ SERVICE_VERSION = "SERVICE_VERSION"
 # TODO: Centralize error messages
 INTERNAL_SERVER_ERROR = "Internal server error"
 NO_REGION_SPECIFIED = "No region specified"
-PARSE_DATA = "parse_arxiv_summaries.lambda_handler.fetch_data"
-GET_CONFIG = "parse_arxiv_summaries.lambda_handler.get_config"
-LAMBDA_HANDLER = "parse_arxiv_summaries.lambda_handler"
-LOAD_XML_FROM_S3 = "parse_arxiv_summaries.lambda_handler.load_xml_from_s3"
-LOG_INITIAL_INFO = "parse_arxiv_summaries.lambda_handler.log_initial_info"
-PERSIST_TO_S3 = "parse_arxiv_summaries.lambda_handler.persist_to_s3"
-
 S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 
@@ -69,7 +62,7 @@ def lambda_handler(event, context):
         content_str = json.dumps(extracted_data)
         output_key = get_output_key(config)
         storage_manager.upload_to_s3(output_key, content_str)
-        logger.info("Finished parsing arXiv daily summaries")
+        logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
         return {"statusCode": 200, "body": "Success"}
 
     except Exception as e:
