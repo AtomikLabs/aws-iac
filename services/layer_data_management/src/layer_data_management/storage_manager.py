@@ -14,6 +14,7 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
+
 class StorageManager:
     """
     A class to manage the storage of data in an AWS S3 bucket.
@@ -76,9 +77,15 @@ class StorageManager:
         try:
             s3 = boto3.resource("s3")
             s3.Bucket(self.bucket_name).put_object(Key=key, Body=content)
-            self.logger.info("Persisted content to S3", method=self.upload_to_s3.__name__, bucket_name=self.bucket_name, key=key)
+            self.logger.info(
+                "Persisted content to S3", method=self.upload_to_s3.__name__, bucket_name=self.bucket_name, key=key
+            )
         except Exception as e:
             self.logger.error(
-                "Failed to persist content to S3", method=self.upload_to_s3.__name__, bucket_name=self.bucket_name, key=key, error=str(e)
+                "Failed to persist content to S3",
+                method=self.upload_to_s3.__name__,
+                bucket_name=self.bucket_name,
+                key=key,
+                error=str(e),
             )
             raise e
