@@ -98,7 +98,7 @@ class TestLambdaHandler(unittest.TestCase):
 
         response = lambda_handler(self.event, self.context)
         self.assertEqual(response, {"statusCode": 200, "body": "Success"})
-        mock_storage_manager().persist.assert_called_once()
+        mock_storage_manager().upload_to_S3.assert_called_once()
 
 
 if __name__ == "__main__":
