@@ -95,14 +95,15 @@ resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
 # * SERVICE                                                *
 # **********************************************************
 resource "aws_lambda_function" "fetch_daily_summaries" {
-  function_name = "${local.environment}-${local.service_name}"
-  filename      = data.archive_file.fetch_daily_summaries_lambda_function.output_path
-  package_type  = "Zip"
-  handler       = "lambda_handler.lambda_handler"
-  role          = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
-  timeout       = 900
-  memory_size   = 256
-  runtime       = local.runtime
+  function_name     = "${local.environment}-${local.service_name}"
+  filename          = data.archive_file.fetch_daily_summaries_lambda_function.output_path
+  package_type      = "Zip"
+  handler           = "lambda_handler.lambda_handler"
+  role              = aws_iam_role.fetch_daily_summaries_lambda_execution_role.arn
+  source_code_hash  = data.archive_file.fetch_daily_summaries_lambda_function.output_base64sha256
+  timeout           = 900
+  memory_size       = 256
+  runtime           = local.runtime
 
   vpc_config {
     subnet_ids         = [local.private_subnets[0], local.private_subnets[1]]

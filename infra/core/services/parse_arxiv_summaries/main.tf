@@ -64,14 +64,15 @@ resource "aws_lambda_permission" "allow_s3_bucket" {
 # * SERVICE                                                *
 # **********************************************************
 resource "aws_lambda_function" "parse_arxiv_summaries" {
-  function_name = "${local.environment}-${local.service_name}"
-  filename      = data.archive_file.parse_arxiv_summaries_lambda_function.output_path
-  package_type  = "Zip"
-  handler       = "lambda_handler.lambda_handler"
-  role          = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.arn
-  timeout       = 900
-  memory_size   = 256
-  runtime       = local.runtime
+  function_name     = "${local.environment}-${local.service_name}"
+  filename          = data.archive_file.parse_arxiv_summaries_lambda_function.output_path
+  package_type      = "Zip"
+  handler           = "lambda_handler.lambda_handler"
+  role              = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.arn
+  source_code_hash  = data.archive_file.parse_arxiv_summaries_lambda_function.output_base64sha256
+  timeout           = 900
+  memory_size       = 256
+  runtime           = local.runtime
 
   vpc_config {
     subnet_ids         = local.private_subnets
