@@ -182,6 +182,26 @@ resource "aws_iam_policy" "fetch_daily_summaries_lambda_s3_access" {
   })
 }
 
+resource "aws_iam_policy" "fetch_daily_summaries_kms_decrypt" {
+  name        = "${local.environment}-${local.service_name}-kms-decrypt"
+  description = "Allow Lambda to decrypt KMS keys"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "kms:Decrypt"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "*"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_s3_access_attachment" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
   policy_arn = aws_iam_policy.fetch_daily_summaries_lambda_s3_access.arn
@@ -190,6 +210,11 @@ resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_lambda_s3_acces
 resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_vpc_access_attachment" {
   role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
   policy_arn = local.basic_execution_role_arn
+}
+
+resource "aws_iam_role_policy_attachment" "fetch_daily_summaries_kms_decrypt_attachment" {
+  role       = aws_iam_role.fetch_daily_summaries_lambda_execution_role.name
+  policy_arn = aws_iam_policy.fetch_daily_summaries_kms_decrypt.arn
 }
 
 resource "aws_security_group" "fetch_daily_summaries_security_group" {
