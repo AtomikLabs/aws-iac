@@ -65,7 +65,7 @@ def lambda_handler(event, context):
             extracted_data["records"].extend(extracted_records)
         content_str = json.dumps(extracted_data)
         output_key = get_output_key(config)
-        storage_manager.persist(output_key, content_str)
+        storage_manager.upload_to_s3(output_key, content_str)
         logger.info("Finished parsing arXiv daily summaries")
         return {"statusCode": 200, "body": "Success"}
 
