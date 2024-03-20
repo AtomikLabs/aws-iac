@@ -14,11 +14,6 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
-# Logging constants
-LOAD = "StorageManager.load"
-PERSIST = "StorageManager.persist"
-
-
 class StorageManager:
     """
     A class to manage the storage of data in an AWS S3 bucket.
@@ -45,17 +40,17 @@ class StorageManager:
             The content stored in the S3 bucket with the given deserialized
             from JSON.
         """
-        logger.info("Loading XML from S3 bucket", method=LOAD, bucket_name=self.bucket_name, key=key)
+        logger.info("Loading XML from S3 bucket", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
         if not self.bucket_name:
-            logger.error("Must provide a bucket name", method=LOAD, bucket_name=self.bucket_name, key=key)
+            logger.error("Must provide a bucket name", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
             raise ValueError("Must provide a bucket name")
         if not key:
-            logger.error("Must provide a key", method=LOAD, bucket_name=self.bucket_name, key=key)
+            logger.error("Must provide a key", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
             raise ValueError("Must provide a key")
         s3 = boto3.resource("s3")
         obj = s3.Object(self.bucket_name, key)
         body = obj.get()["Body"].read()
-        logger.info("Loaded data from S3 bucket", method=LOAD, bucket_name=self.bucket_name, key=key)
+        logger.info("Loaded data from S3 bucket", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
         return body
 
     def upload_to_s3(self, key: str, content: str) -> None:
@@ -81,9 +76,9 @@ class StorageManager:
         try:
             s3 = boto3.resource("s3")
             s3.Bucket(self.bucket_name).put_object(Key=key, Body=content)
-            self.logger.info("Persisted content to S3", method=PERSIST, bucket_name=self.bucket_name, key=key)
+            self.logger.info("Persisted content to S3", method=self.upload_to_s3.__name__, bucket_name=self.bucket_name, key=key)
         except Exception as e:
             self.logger.error(
-                "Failed to persist content to S3", method=PERSIST, bucket_name=self.bucket_name, key=key, error=str(e)
+                "Failed to persist content to S3", method=self.upload_to_s3.__name__, bucket_name=self.bucket_name, key=key, error=str(e)
             )
             raise e
