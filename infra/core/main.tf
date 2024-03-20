@@ -186,9 +186,3 @@ module "data_management" {
   ssm_policy_for_instances_arn                    = local.ssm_policy_for_instances_arn
   tags                                            = local.tags
 }
-
-module "containerization" {
-  source = "./containerization"
-
-  environment = local.environment
-}
