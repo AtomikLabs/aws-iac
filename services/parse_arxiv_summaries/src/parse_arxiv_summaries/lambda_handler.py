@@ -1,9 +1,10 @@
 import json
 import os
 import urllib.parse
-from datetime import date
+from datetime import datetime
 
 import defusedxml.ElementTree as ET
+import pytz
 import structlog
 from arxiv_constants import CS_CATEGORIES_INVERTED
 from storage_manager import StorageManager
@@ -39,6 +40,8 @@ LAMBDA_HANDLER = "parse_arxiv_summaries.lambda_handler"
 LOAD_XML_FROM_S3 = "parse_arxiv_summaries.lambda_handler.load_xml_from_s3"
 LOG_INITIAL_INFO = "parse_arxiv_summaries.lambda_handler.log_initial_info"
 PERSIST_TO_S3 = "parse_arxiv_summaries.lambda_handler.persist_to_s3"
+
+S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 
 def lambda_handler(event, context):
@@ -84,14 +87,14 @@ def log_initial_info(event: dict) -> None:
     try:
         logger.debug(
             "Log variables",
-            method=LOG_INITIAL_INFO,
+            method=log_initial_info.__name__,
             log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
             log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
         )
-        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="AWS")
+        logger.debug("Running on", method=log_initial_info.__name__, platform="AWS")
     except KeyError:
-        logger.debug("Running on", method=LOG_INITIAL_INFO, platform="CI/CD or local")
-    logger.debug("Event received", method=LOG_INITIAL_INFO, trigger_event=event)
+        logger.debug("Running on", method=log_initial_info.__name__, platform="CI/CD or local")
+    logger.debug("Event received", method=log_initial_info.__name__, trigger_event=event)
 
 
 def get_config() -> dict:
@@ -110,11 +113,11 @@ def get_config() -> dict:
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
-        logger.debug("Config", method=GET_CONFIG, config=config)
+        logger.debug("Config", method=get_config.__name__, config=config)
     except KeyError as e:
-        logger.error("Missing environment variable", method=GET_CONFIG, error=str(e))
+        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
         raise e
-    logger.debug("Config", method=GET_CONFIG, config=config)
+    logger.debug("Config", method=get_config.__name__, config=config)
     return config
 
 
@@ -131,7 +134,7 @@ def parse_xml_data(xml_data: str) -> list:
         list: Parsed data.
     """
     extracted_data_chunk = []
-    logger.info("Parsing XML data", method=PARSE_DATA, data_length=len(xml_data))
+    logger.info("Parsing XML data", method=parse_xml_data.__name__, data_length=len(xml_data))
     try:
         root = ET.fromstring(xml_data)
         ns = {"oai": "http://www.openarchives.org/OAI/2.0/", "dc": "http://purl.org/dc/elements/1.1/"}
@@ -178,9 +181,9 @@ def parse_xml_data(xml_data: str) -> list:
                 }
             )
     except ET.ParseError as e:
-        logger.error("Failed to parse XML data", method=PARSE_DATA, error=str(e))
+        logger.error("Failed to parse XML data", method=parse_xml_data.__name__, error=str(e))
 
-    logger.info("Finished parsing XML data", method=PARSE_DATA, data_length=len(extracted_data_chunk))
+    logger.info("Finished parsing XML data", method=parse_xml_data.__name__, data_length=len(extracted_data_chunk))
     return extracted_data_chunk
 
 
@@ -191,6 +194,6 @@ def get_output_key(config) -> str:
     Returns:
         str: The output key.
     """
-    today = date.today().strftime("%Y-%m-%d")
-    filename = "parsed_arxiv_summaries.json"
-    return f"{config[ETL_KEY_PREFIX]}/{today}-{filename}"
+    storage_date = datetime.now().astimezone(pytz.timezone("US/Pacific"))
+    key_date = storage_date.strftime(S3_KEY_DATE_FORMAT)
+    return f"{config[ETL_KEY_PREFIX]}/parsed_arxiv_summaries-{key_date}.json"
