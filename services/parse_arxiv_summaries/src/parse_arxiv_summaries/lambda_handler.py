@@ -67,7 +67,7 @@ def lambda_handler(event, context):
 
     except Exception as e:
         logger.error(e)
-        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR}
+        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e), "event": event}
 
 
 def log_initial_info(event: dict) -> None:
