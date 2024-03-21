@@ -260,7 +260,6 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
         theme_header = "Research Themes (AI-Generated)"
         thank_you = "Thank you to arXiv for use of its open access interoperability."
         summary_header = "Summaries"
-        lfg = "A quick note: I am open to working with a very small number of consulting clients or joining the right team. DM me to talk about working together!\n\nAnd now back to your regularly scheduled science..."
         if category == "CL":
             intro = (
                 "If you would rather listen to today's summaries, you can hear them on the TechcraftingAI NLP podcast. ",
@@ -276,8 +275,6 @@ def create_full_show_notes(categories: list, records: list, research_date: str, 
                 "If you would rather listen to today's summaries, you can hear them on the TechcraftingAI Robotics podcast. ",
                 "Your virtual host will be happy to read them to you!",
             )
-        lfg_paragraph = doc.add_paragraph()
-        lfg_paragraph.add_run(lfg)
         intro_paragraph = doc.add_paragraph()
         intro_paragraph.add_run(intro)
         theme_header_heading = doc.add_heading(theme_header, level=2)
@@ -489,7 +486,7 @@ def create_post_text(categories: list, research_date: str, themes: str):
             hashtags = "#robotics #ro #ai #artificialintelligence #llm"
 
         day_of_week = datetime.strptime(research_date, "%Y-%m-%d").strftime("%A")
-        text = f"{day_of_week}'s Themes (AI-Generated):\n\n{themes}\n\nThank you to arXiv for use of its open access interoperability.\n\nI am open to working with a very small number of consulting clients or joining the right team. DM me to talk about working together!\n\n{hashtags}"
+        text = f"{day_of_week}'s Themes (AI-Generated):\n\n{themes}\n\nThank you to arXiv for use of its open access interoperability.\n\n{hashtags}"
         file_name = f"{research_date}_{category}_post_text.txt".lower()
         with open(os.path.join("show_notes", file_name), "w") as f:
             f.write(text)
