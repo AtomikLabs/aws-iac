@@ -94,7 +94,7 @@ def lambda_handler(event: dict, context) -> dict:
             body="Internal Server Error",
             error=str(e),
         )
-        return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"})}
+        return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"}), "error": str(e), "event": event}
 
 
 def log_initial_info(event: dict) -> None:
