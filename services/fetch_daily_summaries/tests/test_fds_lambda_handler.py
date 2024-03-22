@@ -3,13 +3,10 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
-import pytz
 
-from services.layer_data_management.src.layer_data_management.constants import S3_KEY_DATE_FORMAT
 from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import (
     fetch_data,
     get_config,
-    get_storage_key,
     lambda_handler,
     log_initial_info,
 )

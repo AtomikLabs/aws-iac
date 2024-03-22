@@ -1,16 +1,11 @@
 import json
 import os
 import unittest
-from datetime import datetime
 from unittest.mock import MagicMock, patch
-
-import pytz
 
 from services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler import (
     get_config,
-    get_output_key,
     lambda_handler,
-    log_initial_info,
 )
 
 S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
