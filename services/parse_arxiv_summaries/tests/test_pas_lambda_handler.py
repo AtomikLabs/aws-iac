@@ -54,9 +54,8 @@ class TestLambdaHandler(unittest.TestCase):
                 "SERVICE_VERSION": "test-version",
             },
         )
-        
-    # TODO: Add tests for parse_xml_data
 
+    # TODO: Add tests for parse_xml_data
 
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.StorageManager")
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.parse_xml_data")
