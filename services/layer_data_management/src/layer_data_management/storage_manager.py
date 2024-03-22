@@ -35,7 +35,7 @@ class StorageManager:
         self.bucket_name = bucket_name
 
     @staticmethod
-    def get_storage_key_date(self) -> str:
+    def get_storage_key_date() -> str:
         """
         Get the current date in the format used for S3 keys using the default timezone.
 
