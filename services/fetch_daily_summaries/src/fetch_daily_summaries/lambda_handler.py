@@ -6,6 +6,7 @@ import defusedxml.ElementTree as ET
 import pytz
 import requests
 import structlog
+from constants import APP_NAME, ARXIV_BASE_URL, ARXIV_SUMMARY_SET, DATA_BUCKET, DATA_INGESTION_KEY_PREFIX, ENVIRONMENT_NAME, MAX_RETRIES, NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, SERVICE_NAME, S3_KEY_DATE_FORMAT, SERVICE_VERSION
 from neo4j_manager import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, Neo4jDatabase
 from requests.adapters import HTTPAdapter
 from storage_manager import StorageManager
@@ -26,21 +27,6 @@ logger = structlog.get_logger()
 # TODO: Make these constants configurable
 BACKOFF_TIMES = [30, 120]
 DAY_SPAN = 5
-
-# ENVIRONMENT VARIABLES
-APP_NAME = "APP_NAME"
-ARXIV_BASE_URL = "ARXIV_BASE_URL"
-ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
-DATA_BUCKET = "DATA_BUCKET"
-DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
-ENVIRONMENT_NAME = "ENVIRONMENT"
-MAX_RETRIES = "MAX_RETRIES"
-SERVICE_NAME = "SERVICE_NAME"
-SERVICE_VERSION = "SERVICE_VERSION"
-
-# CONSTANTS
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
-S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 
 def lambda_handler(event: dict, context) -> dict:
