@@ -44,6 +44,18 @@ class StorageManager:
         """
         storage_date = datetime.now().astimezone(pytz.timezone(DEFAULT_TIMEZONE))
         return storage_date.strftime(S3_KEY_DATE_FORMAT)
+    
+    def get_storage_key_datetime(self, date: str) -> datetime:
+        """
+        Get the date in the format used for S3 keys.
+
+        Args:
+            date: The date to format.
+
+        Returns:
+            The date in the format used for S3 keys.
+        """
+        return datetime.strptime(date, S3_KEY_DATE_FORMAT).astimezone(pytz.timezone(DEFAULT_TIMEZONE))
 
     def load(self, key: str):
         """

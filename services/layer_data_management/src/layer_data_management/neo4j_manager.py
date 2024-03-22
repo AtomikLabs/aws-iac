@@ -321,10 +321,7 @@ class Neo4jDatabase:
 
     def store_arxiv_records(self,
                             parse_uuid: str,
-                            records: list,
-                            data_bucket: str,
-                            abstract_storage_prefix: str,
-                            full_text_storage_prefix: str="") -> dict:
+                            records: list) -> dict:
         """
         Stores arxiv research summary records in the neo4j database.
         
@@ -348,6 +345,7 @@ class Neo4jDatabase:
                 method=self.store_arxiv_records.__name__,
                 parse_uuid=parse_uuid,
             )
+            raise ValueError(message)
         if not records or not isinstance(records, list):
             message = "Records must be present and be a list of dict."
             logger.error(
@@ -357,31 +355,7 @@ class Neo4jDatabase:
                 records=records,
             )
             raise ValueError(message)
-        if not data_bucket or not isinstance(data_bucket, str):
-            message = "Data bucket is required and must be a string."
-            logger.error(
-                message,
-                method=self.store_arxiv_records.__name__,
-                data_bucket=data_bucket,
-            )
-            raise ValueError(message)
-        if not abstract_storage_prefix or not isinstance(abstract_storage_prefix, str):
-            message = "Abstract storage prefix is required and must be a string."
-            logger.error(
-                message,
-                method=self.store_arxiv_records.__name__,
-                abstract_storage_prefix=abstract_storage_prefix,
-            )
-            raise ValueError(message)
-        if not full_text_storage_prefix or not isinstance(full_text_storage_prefix, str):
-            message = "Full text storage prefix must be a string."
-            logger.error(
-                message,
-                method=self.store_arxiv_records.__name__,
-                full_text_storage_prefix=full_text_storage_prefix,
-            )
-            raise ValueError(message)
-        
+  
         results = {"stored": [], "failed": []}
         if len(records) == 0:
             return results
@@ -392,7 +366,6 @@ class Neo4jDatabase:
         )
         with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
             try:
-                results = {"stored": [], "failed": []}
                 with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
                     driver.verify_connectivity()
                     for record in records:
@@ -400,12 +373,8 @@ class Neo4jDatabase:
                             arXiv_identifier = record.get("identifier")
                             if not arXiv_identifier:
                                 raise ValueError("ArXiv identifier is required.")
-                            existing_record = self.check_arxiv_research_exists(arXiv_identifier)
-                            if existing_record:
-                                self.update_arxiv_node(record, parse_uuid)
-                            else:
-                                node = self.create_arxiv_node(record, parse_uuid)
-                                results.get("stored").append(node.get("title"))
+                            node = self.create_arxiv_node(record, parse_uuid)
+                            results.get("stored").append(node.get("title"))
                         except Exception as e:
                             message = "An error occurred while trying to store an arXiv record."
                             logger.error(
@@ -420,7 +389,6 @@ class Neo4jDatabase:
                                 method=self.store_arxiv_records.__name__,
                                 num_stored=len(len(results.get("stored"))),
                                 num_failed=len(results.get("failed")))
-                return results
             except Exception as e:
                 message = "An error occurred while trying to store arXiv records."
                 logger.error(
@@ -429,6 +397,7 @@ class Neo4jDatabase:
                     error=str(e),
                 )
                 raise e
+        return results
     
     def check_arxiv_research_exists(self, arXiv_identifier: str) -> dict:
         """
@@ -534,7 +503,89 @@ class Neo4jDatabase:
                 )
                 raise e
             
-    def create_arxiv_node(self, record: dict) -> dict:
-        raise NotImplementedError("Method not implemented.")
-    def update_arxiv_node(self, record: dict) -> dict:
-        raise NotImplementedError("Method not implemented.")
+    def create_arxiv_node(self, record: dict, parse_uuid: str) -> dict:
+        if not record or not isinstance(record, dict):
+            message = "Record is required and must be a dict."
+            logger.error(
+                message,
+                method=self.create_arxiv_node.__name__,
+                record=record,
+            )
+            raise ValueError(message)
+        if not parse_uuid or not isinstance(parse_uuid, str):
+            message = "Parse UUID is required and must be a string."
+            logger.error(
+                message,
+                method=self.create_arxiv_node.__name__,
+                parse_uuid=parse_uuid,
+            )
+            raise ValueError(message)
+        try:
+            with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+                driver.verify_connectivity()
+            
+                node_uuid = uuid.uuid4().__str__()
+                abstract = record.get("abstract")
+                abstract_url = record.get("abstract_url")
+                arXiv_identifier = record.get("identifier")
+                authors = record.get("authors")
+                categories = record.get("categories")
+                date = StorageManager.get_storage_key_datetime(record.get("date"))
+                date_created = StorageManager.get_storage_key_date()
+                full_text_url = record.get("full_text_url").replace("/abs/", "/pdf/")
+                group = record.get("group")
+                parsed_by_uuid = uuid.uuid4().__str__()
+                parsed_uuid = uuid.uuid4().__str__()
+                primary_category = record.get("primary_category")
+                title = record.get("title")
+                records, summary, _ = driver.execute_query(
+                    """
+                    MERGE (n:ArxivRecord {uuid: $uuid})
+                    SET n.abstract = $abstract, n.abstractUrl = $abstract_url, n.arxivId = $arxiv_id
+                    SET n.authors = $authors, n.categories = $categories, n.date = $date
+                    SET n.dateCreated = $date_created, n.fullTextUrl = $full_text_url, n.group = $group
+                    SET n.lastModified = $date_created, n.primaryCategory = $primary_category, n.title = $title
+                    MERGE (n)-[:PARSED_BY {parsed_by_uuid: $parsed_by_uuid}]->(p:DataOperation {uuid: $parse_uuid})
+                    MERGE (p)-[:PARSED {parsed_uuid: $parsed_uuid}]->(n)
+
+                    RETURN n
+                    """,
+                    uuid=node_uuid,
+                    abstract=abstract,
+                    abstract_url=abstract_url,
+                    arxiv_id=arXiv_identifier,
+                    authors=authors,
+                    categories=categories,
+                    date=date,
+                    date_created=date_created,
+                    full_text_url=full_text_url,
+                    group=group,
+                    last_modified=date_created,
+                    parsed_by_uuid=parsed_by_uuid,
+                    parsed_by_uuid=parsed_uuid,
+                    primary_category=primary_category,
+                    title=title,
+                )
+                                
+                if summary.counters.nodes_created != 1:
+                    message = "Failed to create arXiv record node or multiple nodes were created."
+                    logger.error(
+                        message,
+                        method=self.create_arxiv_node.__name__,
+                        records_created=summary.counters.nodes_created,
+                    )
+                    raise RuntimeError(message)
+                logger.debug(
+                    "Created arXiv record node in {time} ms.".format(time=summary.result_available_after),
+                    method=self.create_arxiv_node.__name__,
+                    uuid=node_uuid,
+                )
+                return records[0].data()
+        except Exception as e:
+            message = "An error occurred while trying to create an arXiv record."
+            logger.error(
+                message,
+                method=self.create_arxiv_node.__name__,
+                error=str(e),
+            )
+            raise e

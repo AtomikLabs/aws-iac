@@ -47,7 +47,7 @@ def lambda_handler(event, context):
             method=lambda_handler.__name__,
             num_records=len(json_data["records"]),
         )
-        store_records(json_data.get("records"), key)
+        store_records(json_data.get("records"), bucket_name, key)
         return {"statusCode": 200, "body": "Success"}
     except Exception as e:
         logger.error(
@@ -102,9 +102,14 @@ def get_config() -> dict:
     return config
 
 
-def store_records(records: List[Dict], key: str) -> int:
+def store_records(records: List[Dict], bucket_name:str, key: str) -> int:
     """
     Stores arxiv research summary records in the neo4j database.
+
+    Args:
+        records (List[Dict]): The arXiv records to store.
+        bucket_name (str): The S3 bucket name for the parsed arXiv records.
+        key (str): The S3 key for the parsed arXiv records.
 
     Returns:
         int: The number of records stored.
@@ -117,6 +122,14 @@ def store_records(records: List[Dict], key: str) -> int:
             records=records,
         )
         raise ValueError("Records must be present and be a list of dict.")
+    if not key or not isinstance(key, str):
+        logger.error(
+            "Key for parsed records must be present and be a string.",
+            method=store_records.__name__,
+            key_type=type(key),
+            key=key,
+        )
+        raise ValueError("Key must be present and be a string.")
     total = len(records)
     malformed_records = []
     well_formed_records = []
