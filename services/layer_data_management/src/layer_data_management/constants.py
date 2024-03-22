@@ -1,3 +1,4 @@
+# Arxiv
 CS_CATEGORIES_INVERTED = {
     "Computer Science - Artificial Intelligence": "AI",
     "Computer Science - Hardware Architecture": "AR",
@@ -40,3 +41,28 @@ CS_CATEGORIES_INVERTED = {
     "Computer Science - Social and Information Networks": "SI",
     "Computer Science - Systems and Control": "SY",
 }
+
+# Services Environment
+APP_NAME = "APP_NAME"
+ARXIV_BASE_URL = "ARXIV_BASE_URL"
+ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
+DATA_BUCKET = "DATA_BUCKET"
+DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
+ENVIRONMENT_NAME = "ENVIRONMENT"
+ETL_KEY_PREFIX = "ETL_KEY_PREFIX"
+MAX_RETRIES = "MAX_RETRIES"
+NEO4J_PASSWORD = "NEO4J_PASSWORD"
+NEO4J_URI = "NEO4J_URI"
+NEO4J_USERNAME = "NEO4J_USERNAME"
+SERVICE_NAME = "SERVICE_NAME"
+SERVICE_VERSION = "SERVICE_VERSION"
+
+# Dates
+DEFAULT_TIMEZONE = "US/Pacific"
+S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
+
+# Error Messages
+INTERNAL_SERVER_ERROR = "Internal server error"
+
+# Databases
+DEFAULT_NEO4J_DB = "neo4j"  # supposed to be lower case

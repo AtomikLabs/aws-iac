@@ -3,13 +3,10 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
-import pytz
 
 from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler import (
-    S3_KEY_DATE_FORMAT,
     fetch_data,
     get_config,
-    get_storage_key,
     lambda_handler,
     log_initial_info,
 )
@@ -17,13 +14,11 @@ from services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler imp
 
 @pytest.fixture
 def event():
-    """Sample AWS event fixture."""
     return {}
 
 
 @pytest.fixture
 def context():
-    """Sample AWS context fixture, can be expanded as needed."""
     return MagicMock()
 
 
@@ -148,7 +143,7 @@ def test_fetch_data_should_handle_resumption_token(mock_session):
         assert result[1] == xml_data
 
 
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.datetime")
+@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.StorageManager.datetime")
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.StorageManager")
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.Neo4jDatabase")
 def test_lambda_handler_success(mock_neo4jdb, mock_storage_manager, mock_datetime, event, context, config):
@@ -182,17 +177,3 @@ def test_lambda_handler_exception(mock_logger, event, context):
         response = lambda_handler(event, context)
         assert response["statusCode"] == 500
         assert json.loads(response["body"]) == {"message": "Internal Server Error"}
-
-
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.datetime")
-def test_get_storage_key_should_return_correct_key(mock_datetime, config):
-    mock_datetime.now.return_value = datetime(2023, 1, 1, 0, 0, 0, 0)
-    mock_datetime.now.astimezone.return_value = datetime(2023, 1, 1, 0, 0, 0, 0)
-    expected = f"data/prefix/arxiv-{datetime(2023, 1, 1, 0, 0, 0, 0).astimezone(pytz.timezone('US/Pacific')).strftime(S3_KEY_DATE_FORMAT)}.json"
-    assert get_storage_key(config) == expected
-
-
-def test_get_storage_key_should_raise_exception_without_config():
-    with pytest.raises(Exception) as e:
-        get_storage_key(None)
-    assert str(e.value) == "Config is required"

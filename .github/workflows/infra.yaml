@@ -100,9 +100,9 @@ jobs:
         run: |
           mkdir -p build/layer_data_management/python
           cp services/layer_data_management/src/requirements.txt build/layer_data_management/python/
-          cp services/layer_data_management/src/layer_data_management/arxiv_constants.py build/layer_data_management/python/
           cp services/layer_data_management/src/layer_data_management/neo4j_manager.py build/layer_data_management/python/
           cp services/layer_data_management/src/layer_data_management/storage_manager.py build/layer_data_management/python/
+          cp services/layer_data_management/src/layer_data_management/constants.py build/layer_data_management/python/
           pip install -r build/layer_data_management/python/requirements.txt -t build/layer_data_management/python/
 
       - name: Zip Fetch Daily Summaries Lambda Function

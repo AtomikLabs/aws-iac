@@ -1,12 +1,19 @@
 import json
 import os
 import urllib.parse
-from datetime import datetime
 
 import defusedxml.ElementTree as ET
-import pytz
 import structlog
-from arxiv_constants import CS_CATEGORIES_INVERTED
+from constants import (
+    APP_NAME,
+    CS_CATEGORIES_INVERTED,
+    DATA_BUCKET,
+    ENVIRONMENT_NAME,
+    ETL_KEY_PREFIX,
+    INTERNAL_SERVER_ERROR,
+    SERVICE_NAME,
+    SERVICE_VERSION,
+)
 from storage_manager import StorageManager
 
 structlog.configure(
@@ -21,20 +28,6 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-
-# ENVIRONMENT VARIABLES
-APP_NAME = "APP_NAME"
-DATA_BUCKET = "DATA_BUCKET"
-ENVIRONMENT_NAME = "ENVIRONMENT"
-ETL_KEY_PREFIX = "ETL_KEY_PREFIX"
-SERVICE_NAME = "SERVICE_NAME"
-SERVICE_VERSION = "SERVICE_VERSION"
-
-# LOGGING CONSTANTS
-# TODO: Centralize error messages
-INTERNAL_SERVER_ERROR = "Internal server error"
-NO_REGION_SPECIFIED = "No region specified"
-S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 
 def lambda_handler(event, context):
@@ -187,6 +180,5 @@ def get_output_key(config) -> str:
     Returns:
         str: The output key.
     """
-    storage_date = datetime.now().astimezone(pytz.timezone("US/Pacific"))
-    key_date = storage_date.strftime(S3_KEY_DATE_FORMAT)
+    key_date = StorageManager.get_storage_key_date()
     return f"{config[ETL_KEY_PREFIX]}/parsed_arxiv_summaries-{key_date}.json"

@@ -1,12 +1,25 @@
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import defusedxml.ElementTree as ET
-import pytz
 import requests
 import structlog
-from neo4j_manager import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, Neo4jDatabase
+from constants import (
+    APP_NAME,
+    ARXIV_BASE_URL,
+    ARXIV_SUMMARY_SET,
+    DATA_BUCKET,
+    DATA_INGESTION_KEY_PREFIX,
+    ENVIRONMENT_NAME,
+    MAX_RETRIES,
+    NEO4J_PASSWORD,
+    NEO4J_URI,
+    NEO4J_USERNAME,
+    SERVICE_NAME,
+    SERVICE_VERSION,
+)
+from neo4j_manager import Neo4jDatabase
 from requests.adapters import HTTPAdapter
 from storage_manager import StorageManager
 from urllib3.util.retry import Retry
@@ -26,21 +39,6 @@ logger = structlog.get_logger()
 # TODO: Make these constants configurable
 BACKOFF_TIMES = [30, 120]
 DAY_SPAN = 5
-
-# ENVIRONMENT VARIABLES
-APP_NAME = "APP_NAME"
-ARXIV_BASE_URL = "ARXIV_BASE_URL"
-ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
-DATA_BUCKET = "DATA_BUCKET"
-DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
-ENVIRONMENT_NAME = "ENVIRONMENT"
-MAX_RETRIES = "MAX_RETRIES"
-SERVICE_NAME = "SERVICE_NAME"
-SERVICE_VERSION = "SERVICE_VERSION"
-
-# CONSTANTS
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
-S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -65,7 +63,7 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-        date_obtained = datetime.now().astimezone(pytz.timezone("US/Pacific"))
+        date_obtained = StorageManager.get_storage_key_date()
         today = date_obtained.date()
         earliest = today - timedelta(days=DAY_SPAN)
 
@@ -94,7 +92,12 @@ def lambda_handler(event: dict, context) -> dict:
             body="Internal Server Error",
             error=str(e),
         )
-        return {"statusCode": 500, "body": json.dumps({"message": "Internal Server Error"}), "error": str(e), "event": event}
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"message": "Internal Server Error"}),
+            "error": str(e),
+            "event": event,
+        }
 
 
 def log_initial_info(event: dict) -> None:
@@ -252,9 +255,7 @@ def get_storage_key(config: dict) -> str:
     if not config:
         logger.error("Config is required", method=get_storage_key.__name__)
         raise ValueError("Config is required")
-
-    storage_date = datetime.now().astimezone(pytz.timezone("US/Pacific"))
-    key_date = storage_date.strftime(S3_KEY_DATE_FORMAT)
+    key_date = StorageManager.get_storage_key_date()
     key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/arxiv-{key_date}.json"
     logger.info("Storage key", method=get_storage_key.__name__, key=key)
     return key

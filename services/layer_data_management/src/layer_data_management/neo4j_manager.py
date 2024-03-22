@@ -2,7 +2,9 @@ import uuid
 from datetime import date, datetime
 
 import structlog
+from constants import DEFAULT_NEO4J_DB
 from neo4j import GraphDatabase
+from storage_manager import StorageManager
 
 structlog.configure(
     [
@@ -16,11 +18,6 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-
-NEO4J = "neo4j"
-NEO4J_PASSWORD = "NEO4J_PASSWORD"
-NEO4J_URI = "NEO4J_URI"
-NEO4J_USERNAME = "NEO4J_USERNAME"
 
 
 class Neo4jDatabase:
@@ -75,7 +72,7 @@ class Neo4jDatabase:
                 driver.verify_connectivity()
                 records, _, _ = driver.execute_query(
                     "MATCH (d:DataSource {name: 'arXiv'}) RETURN d.uuid AS uuid, d.name AS name, d.url AS url, d.description AS description",
-                    database_=NEO4J,
+                    database_=DEFAULT_NEO4J_DB,
                 )
                 if len(records) == 1:
                     logger.info("arXiv DataSource node found.", method=self.check_arxiv_node_exists.__name__)
@@ -152,7 +149,7 @@ class Neo4jDatabase:
                     name=name,
                     url=url,
                     description=description,
-                    database_=NEO4J,
+                    database_=DEFAULT_NEO4J_DB,
                 )
 
                 if summary.counters.nodes_created != 1:
@@ -292,7 +289,7 @@ class Neo4jDatabase:
                     method_name=method_name,
                     method_version=method_version,
                     dop_name=data_op_name,
-                    database_=NEO4J,
+                    database_=DEFAULT_NEO4J_DB,
                 )
                 if (
                     summary.counters.nodes_created != 2 and summary.counters.nodes_created != 3
@@ -322,3 +319,274 @@ class Neo4jDatabase:
                     error=str(e),
                 )
                 raise e
+
+    def store_arxiv_records(self, parse_uuid: str, records: list) -> dict:
+        """
+        Stores arxiv research summary records in the neo4j database.
+
+        Args:
+            parse_uuid (str): The UUID of the parse operation. Required to associate records.
+            records (list): A list of arXiv records to store. Records must be in the parse_arxiv_summaries output format.
+            data_bucket (str): The S3 bucket where arXiv records data such as abstracts or full text are stored.
+            abstract_storage_prefix (str): The S3 key prefix for abstracts. Required.
+            full_text_storage_prefix (str): The S3 key prefix for full text. Defaults to "".
+
+        Returns:
+            dict: with the UUIDs of stored records and any that could not be stored.
+
+        Raises:
+            ValueError: If records is not a list.
+        """
+        if not parse_uuid or not isinstance(parse_uuid, str):
+            message = "Parse UUID is required and must be a string."
+            logger.error(
+                message,
+                method=self.store_arxiv_records.__name__,
+                parse_uuid=parse_uuid,
+            )
+            raise ValueError(message)
+        if not records or not isinstance(records, list):
+            message = "Records must be present and be a list of dict."
+            logger.error(
+                message,
+                method=self.store_arxiv_records.__name__,
+                records_type=type(records),
+                records=records,
+            )
+            raise ValueError(message)
+
+        results = {"stored": [], "failed": []}
+        if len(records) == 0:
+            return results
+        logger.info(
+            "Storing parsed arXiv records to neo4j.", method=self.store_arxiv_records.__name__, num_records=len(records)
+        )
+        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+            try:
+                with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+                    driver.verify_connectivity()
+                    for record in records:
+                        try:
+                            arXiv_identifier = record.get("identifier")
+                            if not arXiv_identifier:
+                                raise ValueError("ArXiv identifier is required.")
+                            node = self.create_arxiv_node(record, parse_uuid)
+                            results.get("stored").append(node.get("title"))
+                        except Exception as e:
+                            message = "An error occurred while trying to store an arXiv record."
+                            logger.error(
+                                message,
+                                method=self.store_arxiv_records.__name__,
+                                error=str(e),
+                                record=record,
+                            )
+                            results.get("failed").append(record.get("title"))
+
+                logger.info(
+                    "Stored arXiv records in neo4j.",
+                    method=self.store_arxiv_records.__name__,
+                    num_stored=len(len(results.get("stored"))),
+                    num_failed=len(results.get("failed")),
+                )
+            except Exception as e:
+                message = "An error occurred while trying to store arXiv records."
+                logger.error(
+                    message,
+                    method=self.store_arxiv_records.__name__,
+                    error=str(e),
+                )
+                raise e
+        return results
+
+    def check_arxiv_research_exists(self, arXiv_identifier: str) -> dict:
+        """
+        Checks if an arXiv research record exists in the database. A record is considered duplicate if the
+        arXiv identifier matches another record as these are invariant across arXiv submission updates for the
+        same paper.
+
+        Args:
+            date_created (str): The date the record was created.
+            first_parse_uuid (str): The UUID of the first parse operation that created the record.
+
+        Returns:
+            dict: The record data if it exists, otherwise an empty dict.
+
+        Raises:
+            ValueError: If arXiv_identifier is not provided or is not a string.
+            RuntimeError: If the database connection fails.
+            RuntimeError: If multiple records are found with the same arXiv identifier.
+        """
+        if not arXiv_identifier or not isinstance(arXiv_identifier, str):
+            message = "arXiv identifier is required and must be a string."
+            logger.error(
+                message,
+                method=self.check_arxiv_record_exists.__name__,
+                arXiv_identifier=arXiv_identifier,
+            )
+            raise ValueError(message)
+        try:
+            with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+                driver.verify_connectivity()
+                records, _, _ = driver.execute_query(
+                    "MATCH (n:ArxivRecord {arxivId: $arxivId}) RETURN n",
+                    arxivId=arXiv_identifier,
+                    database_=DEFAULT_NEO4J_DB,
+                )
+                if len(records) == 1:
+                    logger.debug(
+                        "Found arXiv record.",
+                        method=self.check_arxiv_record_exists.__name__,
+                        arXiv_identifier=arXiv_identifier,
+                    )
+                    return records[0].data()
+                if len(records) > 1:
+                    message = "Multiple arXiv records found with the same title and date. Investigate."
+                    logger.error(
+                        message,
+                        method=self.check_arxiv_record_exists.__name__,
+                        arXiv_identifier=arXiv_identifier,
+                    )
+                    raise RuntimeError(message)
+                return {}
+        except Exception as e:
+            message = "An error occurred while trying to check if an arXiv record exists."
+            logger.error(
+                message,
+                method=self.check_arxiv_record_exists.__name__,
+                error=str(e),
+            )
+            raise e
+
+    def get_node_by_uuid(self, node_uuid: str) -> dict:
+        """
+        Get a node by its UUID.
+
+        Args:
+            none_uuid (str): The UUID of the node to get.
+
+        Returns:
+            dict: The node data.
+        """
+        if not node_uuid or not isinstance(uuid, str):
+            message = "UUID is required and must be a string."
+            logger.error(
+                message,
+                method=self.get_node_by_uuid.__name__,
+                uuid=node_uuid,
+            )
+            raise ValueError(message)
+        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+            try:
+                driver.verify_connectivity()
+                records, _, _ = driver.execute_query(
+                    "MATCH (n) WHERE n.uuid = $uuid RETURN n",
+                    uuid=node_uuid,
+                    database_=DEFAULT_NEO4J_DB,
+                )
+                if len(records) == 1:
+                    logger.debug("Found node by UUID.", method=self.get_node_by_uuid.__name__, uuid=node_uuid)
+                    return records[0].data()
+                if len(records) > 1:
+                    message = "Multiple nodes found with the same UUID. Investigate."
+                    logger.error(
+                        message,
+                        method=self.get_node_by_uuid.__name__,
+                        uuid=node_uuid,
+                    )
+                    raise ValueError(message)
+                return {}
+            except Exception as e:
+                message = "An error occurred while trying to get a node by UUID."
+                logger.error(
+                    message,
+                    method=self.get_node_by_uuid.__name__,
+                    error=str(e),
+                )
+                raise e
+
+    def create_arxiv_node(self, record: dict, parse_uuid: str) -> dict:
+        if not record or not isinstance(record, dict):
+            message = "Record is required and must be a dict."
+            logger.error(
+                message,
+                method=self.create_arxiv_node.__name__,
+                record=record,
+            )
+            raise ValueError(message)
+        if not parse_uuid or not isinstance(parse_uuid, str):
+            message = "Parse UUID is required and must be a string."
+            logger.error(
+                message,
+                method=self.create_arxiv_node.__name__,
+                parse_uuid=parse_uuid,
+            )
+            raise ValueError(message)
+        try:
+            with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+                driver.verify_connectivity()
+
+                node_uuid = uuid.uuid4().__str__()
+                abstract = record.get("abstract")
+                abstract_url = record.get("abstract_url")
+                arXiv_identifier = record.get("identifier")
+                authors = record.get("authors")
+                categories = record.get("categories")
+                date = StorageManager.get_storage_key_datetime(record.get("date"))
+                date_created = StorageManager.get_storage_key_date()
+                full_text_url = record.get("full_text_url").replace("/abs/", "/pdf/")
+                group = record.get("group")
+                parsed_by_uuid = uuid.uuid4().__str__()
+                parsed_uuid = uuid.uuid4().__str__()
+                primary_category = record.get("primary_category")
+                title = record.get("title")
+                records, summary, _ = driver.execute_query(
+                    """
+                    MERGE (n:ArxivRecord {uuid: $uuid})
+                    SET n.abstract = $abstract, n.abstractUrl = $abstract_url, n.arxivId = $arxiv_id
+                    SET n.authors = $authors, n.categories = $categories, n.date = $date
+                    SET n.dateCreated = $date_created, n.fullTextUrl = $full_text_url, n.group = $group
+                    SET n.lastModified = $date_created, n.primaryCategory = $primary_category, n.title = $title
+                    MERGE (n)-[:PARSED_BY {parsed_by_uuid: $parsed_by_uuid}]->(p:DataOperation {uuid: $parse_uuid})
+                    MERGE (p)-[:PARSED {parsed_uuid: $parsed_uuid}]->(n)
+
+                    RETURN n
+                    """,
+                    uuid=node_uuid,
+                    abstract=abstract,
+                    abstract_url=abstract_url,
+                    arxiv_id=arXiv_identifier,
+                    authors=authors,
+                    categories=categories,
+                    date=date,
+                    date_created=date_created,
+                    full_text_url=full_text_url,
+                    group=group,
+                    last_modified=date_created,
+                    parsed_by_uuid=parsed_by_uuid,
+                    parsed_uuid=parsed_uuid,
+                    primary_category=primary_category,
+                    title=title,
+                )
+
+                if summary.counters.nodes_created != 1:
+                    message = "Failed to create arXiv record node or multiple nodes were created."
+                    logger.error(
+                        message,
+                        method=self.create_arxiv_node.__name__,
+                        records_created=summary.counters.nodes_created,
+                    )
+                    raise RuntimeError(message)
+                logger.debug(
+                    "Created arXiv record node in {time} ms.".format(time=summary.result_available_after),
+                    method=self.create_arxiv_node.__name__,
+                    uuid=node_uuid,
+                )
+                return records[0].data()
+        except Exception as e:
+            message = "An error occurred while trying to create an arXiv record."
+            logger.error(
+                message,
+                method=self.create_arxiv_node.__name__,
+                error=str(e),
+            )
+            raise e
