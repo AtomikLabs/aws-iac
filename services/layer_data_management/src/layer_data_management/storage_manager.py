@@ -1,5 +1,9 @@
+from datetime import datetime
+
 import boto3
+import pytz
 import structlog
+from constants import DEFAULT_TIMEZONE, S3_KEY_DATE_FORMAT
 
 structlog.configure(
     [
@@ -29,6 +33,17 @@ class StorageManager:
             logger.error("Invalid bucket_name", bucket_name=bucket_name)
             raise ValueError("bucket_name must be a non-empty string")
         self.bucket_name = bucket_name
+
+    @staticmethod
+    def get_storage_key_date(self) -> str:
+        """
+        Get the current date in the format used for S3 keys using the default timezone.
+
+        Returns:
+            The current date in the format used for S3 keys.
+        """
+        storage_date = datetime.now().astimezone(pytz.timezone(DEFAULT_TIMEZONE))
+        return storage_date.strftime(S3_KEY_DATE_FORMAT)
 
     def load(self, key: str):
         """

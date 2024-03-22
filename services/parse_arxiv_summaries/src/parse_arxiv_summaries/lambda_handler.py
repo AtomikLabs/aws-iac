@@ -1,10 +1,8 @@
 import json
 import os
 import urllib.parse
-from datetime import datetime
 
 import defusedxml.ElementTree as ET
-import pytz
 import structlog
 from constants import APP_NAME,CS_CATEGORIES_INVERTED, DATA_BUCKET, ENVIRONMENT_NAME, ETL_KEY_PREFIX, INTERNAL_SERVER_ERROR, S3_KEY_DATE_FORMAT, SERVICE_NAME, SERVICE_VERSION
 from storage_manager import StorageManager
@@ -172,6 +170,5 @@ def get_output_key(config) -> str:
     Returns:
         str: The output key.
     """
-    storage_date = datetime.now().astimezone(pytz.timezone("US/Pacific"))
-    key_date = storage_date.strftime(S3_KEY_DATE_FORMAT)
+    key_date = StorageManager.get_storage_key_date()
     return f"{config[ETL_KEY_PREFIX]}/parsed_arxiv_summaries-{key_date}.json"

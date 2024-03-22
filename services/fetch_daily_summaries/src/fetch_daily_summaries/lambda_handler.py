@@ -1,9 +1,8 @@
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import defusedxml.ElementTree as ET
-import pytz
 import requests
 import structlog
 from constants import APP_NAME, ARXIV_BASE_URL, ARXIV_SUMMARY_SET, DATA_BUCKET, DATA_INGESTION_KEY_PREFIX, ENVIRONMENT_NAME, MAX_RETRIES, NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, SERVICE_NAME, S3_KEY_DATE_FORMAT, SERVICE_VERSION
@@ -51,7 +50,7 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-        date_obtained = datetime.now().astimezone(pytz.timezone("US/Pacific"))
+        date_obtained = StorageManager.get_storage_key_date()
         today = date_obtained.date()
         earliest = today - timedelta(days=DAY_SPAN)
 
@@ -243,9 +242,7 @@ def get_storage_key(config: dict) -> str:
     if not config:
         logger.error("Config is required", method=get_storage_key.__name__)
         raise ValueError("Config is required")
-
-    storage_date = datetime.now().astimezone(pytz.timezone("US/Pacific"))
-    key_date = storage_date.strftime(S3_KEY_DATE_FORMAT)
+    key_date = StorageManager.get_storage_key_date()
     key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/arxiv-{key_date}.json"
     logger.info("Storage key", method=get_storage_key.__name__, key=key)
     return key
