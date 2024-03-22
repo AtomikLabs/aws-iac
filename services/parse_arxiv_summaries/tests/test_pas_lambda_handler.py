@@ -54,21 +54,9 @@ class TestLambdaHandler(unittest.TestCase):
                 "SERVICE_VERSION": "test-version",
             },
         )
-
-    def test_log_initial_info(self):
-        log_initial_info(self.event)
-
+        
     # TODO: Add tests for parse_xml_data
 
-    @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.datetime")
-    def test_get_output_key(self, mock_datetime):
-        config = {"ETL_KEY_PREFIX": "test-prefix"}
-        mock_datetime.now.return_value = datetime(2023, 1, 1, 0, 0, 0, 0)
-        mock_datetime.now.astimezone.return_value = datetime(2023, 1, 1, 0, 0, 0, 0)
-        expected = f"test-prefix/parsed_arxiv_summaries-{datetime(2023, 1, 1, 0, 0, 0, 0).astimezone(pytz.timezone('US/Pacific')).strftime(S3_KEY_DATE_FORMAT)}.json"
-        with patch.dict(os.environ, {"ETL_KEY_PREFIX": "test-prefix"}):
-            output_key = get_output_key(config)
-            assert output_key == expected
 
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.StorageManager")
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.parse_xml_data")

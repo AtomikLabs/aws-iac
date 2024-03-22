@@ -19,6 +19,7 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
+
 class Neo4jDatabase:
     """
     A class to interact with the AtomikLabs Neo4j database.
@@ -319,22 +320,20 @@ class Neo4jDatabase:
                 )
                 raise e
 
-    def store_arxiv_records(self,
-                            parse_uuid: str,
-                            records: list) -> dict:
+    def store_arxiv_records(self, parse_uuid: str, records: list) -> dict:
         """
         Stores arxiv research summary records in the neo4j database.
-        
+
         Args:
             parse_uuid (str): The UUID of the parse operation. Required to associate records.
             records (list): A list of arXiv records to store. Records must be in the parse_arxiv_summaries output format.
             data_bucket (str): The S3 bucket where arXiv records data such as abstracts or full text are stored.
             abstract_storage_prefix (str): The S3 key prefix for abstracts. Required.
             full_text_storage_prefix (str): The S3 key prefix for full text. Defaults to "".
-            
+
         Returns:
             dict: with the UUIDs of stored records and any that could not be stored.
-            
+
         Raises:
             ValueError: If records is not a list.
         """
@@ -355,14 +354,12 @@ class Neo4jDatabase:
                 records=records,
             )
             raise ValueError(message)
-  
+
         results = {"stored": [], "failed": []}
         if len(records) == 0:
             return results
         logger.info(
-            "Storing parsed arXiv records to neo4j.",
-            method=self.store_arxiv_records.__name__,
-            num_records=len(records)
+            "Storing parsed arXiv records to neo4j.", method=self.store_arxiv_records.__name__, num_records=len(records)
         )
         with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
             try:
@@ -385,10 +382,12 @@ class Neo4jDatabase:
                             )
                             results.get("failed").append(record.get("title"))
 
-                logger.info("Stored arXiv records in neo4j.",
-                                method=self.store_arxiv_records.__name__,
-                                num_stored=len(len(results.get("stored"))),
-                                num_failed=len(results.get("failed")))
+                logger.info(
+                    "Stored arXiv records in neo4j.",
+                    method=self.store_arxiv_records.__name__,
+                    num_stored=len(len(results.get("stored"))),
+                    num_failed=len(results.get("failed")),
+                )
             except Exception as e:
                 message = "An error occurred while trying to store arXiv records."
                 logger.error(
@@ -398,13 +397,13 @@ class Neo4jDatabase:
                 )
                 raise e
         return results
-    
+
     def check_arxiv_research_exists(self, arXiv_identifier: str) -> dict:
         """
         Checks if an arXiv research record exists in the database. A record is considered duplicate if the
         arXiv identifier matches another record as these are invariant across arXiv submission updates for the
         same paper.
-        
+
         Args:
             date_created (str): The date the record was created.
             first_parse_uuid (str): The UUID of the first parse operation that created the record.
@@ -427,42 +426,44 @@ class Neo4jDatabase:
             raise ValueError(message)
         try:
             with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
-                    driver.verify_connectivity()
-                    records, _, _ = driver.execute_query(
-                        "MATCH (n:ArxivRecord {arxivId: $arxivId}) RETURN n",
-                        arxivId=arXiv_identifier,
-                        database_=DEFAULT_NEO4J_DB,
-                    )
-                    if len(records) == 1:
-                        logger.debug("Found arXiv record.",
-                                     method=self.check_arxiv_record_exists.__name__,
-                                     arXiv_identifier=arXiv_identifier)
-                        return records[0].data()
-                    if len(records) > 1:
-                        message = "Multiple arXiv records found with the same title and date. Investigate."
-                        logger.error(
-                            message,
-                            method=self.check_arxiv_record_exists.__name__,
-                            arXiv_identifier=arXiv_identifier,
-                        )
-                        raise RuntimeError(message)
-                    return {}
-        except Exception as e:
-                message = "An error occurred while trying to check if an arXiv record exists."
-                logger.error(
-                    message,
-                    method=self.check_arxiv_record_exists.__name__,
-                    error=str(e),
+                driver.verify_connectivity()
+                records, _, _ = driver.execute_query(
+                    "MATCH (n:ArxivRecord {arxivId: $arxivId}) RETURN n",
+                    arxivId=arXiv_identifier,
+                    database_=DEFAULT_NEO4J_DB,
                 )
-                raise e
+                if len(records) == 1:
+                    logger.debug(
+                        "Found arXiv record.",
+                        method=self.check_arxiv_record_exists.__name__,
+                        arXiv_identifier=arXiv_identifier,
+                    )
+                    return records[0].data()
+                if len(records) > 1:
+                    message = "Multiple arXiv records found with the same title and date. Investigate."
+                    logger.error(
+                        message,
+                        method=self.check_arxiv_record_exists.__name__,
+                        arXiv_identifier=arXiv_identifier,
+                    )
+                    raise RuntimeError(message)
+                return {}
+        except Exception as e:
+            message = "An error occurred while trying to check if an arXiv record exists."
+            logger.error(
+                message,
+                method=self.check_arxiv_record_exists.__name__,
+                error=str(e),
+            )
+            raise e
 
     def get_node_by_uuid(self, node_uuid: str) -> dict:
         """
         Get a node by its UUID.
-        
+
         Args:
             none_uuid (str): The UUID of the node to get.
-            
+
         Returns:
             dict: The node data.
         """
@@ -502,7 +503,7 @@ class Neo4jDatabase:
                     error=str(e),
                 )
                 raise e
-            
+
     def create_arxiv_node(self, record: dict, parse_uuid: str) -> dict:
         if not record or not isinstance(record, dict):
             message = "Record is required and must be a dict."
@@ -523,7 +524,7 @@ class Neo4jDatabase:
         try:
             with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
                 driver.verify_connectivity()
-            
+
                 node_uuid = uuid.uuid4().__str__()
                 abstract = record.get("abstract")
                 abstract_url = record.get("abstract_url")
@@ -562,11 +563,11 @@ class Neo4jDatabase:
                     group=group,
                     last_modified=date_created,
                     parsed_by_uuid=parsed_by_uuid,
-                    parsed_by_uuid=parsed_uuid,
+                    parsed_uuid=parsed_uuid,
                     primary_category=primary_category,
                     title=title,
                 )
-                                
+
                 if summary.counters.nodes_created != 1:
                     message = "Failed to create arXiv record node or multiple nodes were created."
                     logger.error(

@@ -65,4 +65,4 @@ S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 INTERNAL_SERVER_ERROR = "Internal server error"
 
 # Databases
-DEFAULT_NEO4J_DB = "neo4j" # supposed to be lower case
+DEFAULT_NEO4J_DB = "neo4j"  # supposed to be lower case

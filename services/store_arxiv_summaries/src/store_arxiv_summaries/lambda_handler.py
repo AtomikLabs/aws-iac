@@ -1,10 +1,17 @@
 import json
 import os
+import urllib.parse
 from typing import Dict, List
 
 import structlog
-import urllib.parse
-from constants import APP_NAME, DATA_BUCKET, ENVIRONMENT_NAME, ETL_KEY_PREFIX, S3_KEY_DATE_FORMAT, SERVICE_NAME, SERVICE_VERSION
+from constants import (
+    APP_NAME,
+    DATA_BUCKET,
+    ENVIRONMENT_NAME,
+    ETL_KEY_PREFIX,
+    SERVICE_NAME,
+    SERVICE_VERSION,
+)
 from neo4j_manager import Neo4jDatabase
 from storage_manager import StorageManager
 
@@ -21,6 +28,7 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
+
 def lambda_handler(event, context):
     """
     The main entry point for the Lambda function.
@@ -34,7 +42,6 @@ def lambda_handler(event, context):
     """
     try:
         log_initial_info(event)
-        config = get_config()
         bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
         key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
         storage_manager = StorageManager(bucket_name, logger)
@@ -102,7 +109,7 @@ def get_config() -> dict:
     return config
 
 
-def store_records(records: List[Dict], bucket_name:str, key: str) -> int:
+def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
     """
     Stores arxiv research summary records in the neo4j database.
 

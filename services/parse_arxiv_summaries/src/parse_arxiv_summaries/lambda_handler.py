@@ -4,7 +4,16 @@ import urllib.parse
 
 import defusedxml.ElementTree as ET
 import structlog
-from constants import APP_NAME,CS_CATEGORIES_INVERTED, DATA_BUCKET, ENVIRONMENT_NAME, ETL_KEY_PREFIX, INTERNAL_SERVER_ERROR, S3_KEY_DATE_FORMAT, SERVICE_NAME, SERVICE_VERSION
+from constants import (
+    APP_NAME,
+    CS_CATEGORIES_INVERTED,
+    DATA_BUCKET,
+    ENVIRONMENT_NAME,
+    ETL_KEY_PREFIX,
+    INTERNAL_SERVER_ERROR,
+    SERVICE_NAME,
+    SERVICE_VERSION,
+)
 from storage_manager import StorageManager
 
 structlog.configure(
@@ -19,6 +28,7 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
+
 
 def lambda_handler(event, context):
     """
