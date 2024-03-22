@@ -63,7 +63,7 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-        date_obtained = StorageManager.get_storage_key_date()
+        date_obtained = StorageManager.get_storage_key_datetime()
         today = date_obtained.date()
         earliest = today - timedelta(days=DAY_SPAN)
 
