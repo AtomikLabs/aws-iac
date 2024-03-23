@@ -152,7 +152,7 @@ resource "aws_iam_policy" "parse_arxiv_summaries_lambda_s3_access" {
   })
 }
 
-resource "aws_iam_policy" "parse_arxiv_summaries_kms_decrypt" {
+resource "aws_iam_policy" "parse_arxivc_summaries_kms_decrypt" {
   name        = "${local.environment}-${local.service_name}-kms-decrypt"
   description = "Allow Lambda to decrypt KMS keys"
 
@@ -202,5 +202,5 @@ resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_vpc_access_atta
 
 resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_kms_decrypt_attachment" {
   role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
-  policy_arn = aws_iam_policy.parse_arxiv_summaries_kms_decrypt.arn
+  policy_arn = aws_iam_policy.parse_arxivc_summaries_kms_decrypt.arn
 }
