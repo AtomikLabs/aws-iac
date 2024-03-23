@@ -163,6 +163,28 @@ module "parse_arxiv_summaries" {
   service_version           = local.parse_arxiv_summaries_service_version
 }
 
+module "store_arxiv_summaries" {
+  source = "./services/store_arxiv_summaries"
+
+  app_name                  = local.app_name
+  aws_region                = local.aws_region
+  aws_vpc_id                = module.networking.main_vpc_id
+  basic_execution_role_arn  = local.basic_execution_role_arn
+  data_bucket               = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  data_bucket_arn           = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
+  environment               = local.environment
+  etl_key_prefix            = local.etl_key_prefix
+  lambda_vpc_access_role    = local.lambda_vpc_access_role
+  layer_data_management_arn = module.layer_data_management.layer_data_management_arn
+  neo4j_password            = local.neo4j_password
+  neo4j_uri                 = local.neo4j_uri
+  neo4j_username            = local.neo4j_username
+  private_subnets           = module.networking.aws_private_subnet_ids
+  runtime                   = local.default_lambda_runtime
+  service_name              = local.parse_arxiv_summaries_service_name
+  service_version           = local.parse_arxiv_summaries_service_version
+}
+
 module "data_management" {
   source = "./data_management"
 
@@ -181,7 +203,8 @@ module "data_management" {
   neo4j_source_security_group_ids                 = [
                                                       module.security.bastion_host_security_group_id,
                                                       module.fetch_daily_summaries.fetch_daily_summaries_security_group_id,
-                                                      module.parse_arxiv_summaries.parse_arxiv_summaries_security_group_id
+                                                      module.parse_arxiv_summaries.parse_arxiv_summaries_security_group_id,
+                                                      module.store_arxiv_summaries.store_arxiv_summaries_security_group_id
                                                     ]
   private_subnets                                 = module.networking.aws_private_subnet_ids
   region                                          = local.aws_region
