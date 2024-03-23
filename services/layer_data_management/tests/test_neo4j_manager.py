@@ -479,3 +479,168 @@ def test_create_raw_data_node_neo4j_fields_missing(neo4j_db):
             ARXIV_RAW_DATA_PARAMS["bucket_name"],
             ARXIV_RAW_DATA_PARAMS["storage_uri"],
         )
+
+@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+def test_create_arxiv_parsed_node_success(mock_driver, neo4j_db):
+    arxiv_node = MagicMock()
+    neo4j_db.check_arxiv_node_exists = MagicMock(return_value=ARXIV_NODE_RESPONSE)
+    arxiv_node.data = MagicMock(return_value=ARXIV_RAW_DATA_RESPONSE)
+    mock_driver.return_value.__enter__.return_value.execute_query.return_value = (
+        [MagicMock(data=lambda: ARXIV_RAW_DATA_RESPONSE)],
+        MagicMock(counters=MagicMock(nodes_created=2, relationships_created=6)),
+        None,
+    )
+    result = neo4j_db.create_arxiv_parsed_node(
+        ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        ARXIV_RAW_DATA_PARAMS["size_bytes"],
+        ARXIV_RAW_DATA_PARAMS["method_name"],
+        ARXIV_RAW_DATA_PARAMS["method_version"],
+        datetime.now(),
+        ARXIV_RAW_DATA_PARAMS["bucket_name"],
+        ARXIV_RAW_DATA_PARAMS["storage_uri"],
+    )
+
+    assert result[0].data() == ARXIV_RAW_DATA_RESPONSE
+
+def test_create_arxiv_parsed_node_missing_or_wrong_type(neo4j_db):
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            123,
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            None,
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            "123",
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            None,
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            123,
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            None,
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            123,
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            None,
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            123,
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            None,
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            123,
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            None,
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            123,
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            datetime.now(),
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            None,
+        )
+        
