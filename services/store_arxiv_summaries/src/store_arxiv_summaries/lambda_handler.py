@@ -4,14 +4,7 @@ import urllib.parse
 from typing import Dict, List
 
 import structlog
-from constants import (
-    APP_NAME,
-    DATA_BUCKET,
-    ENVIRONMENT_NAME,
-    ETL_KEY_PREFIX,
-    SERVICE_NAME,
-    SERVICE_VERSION,
-)
+from constants import APP_NAME, DATA_BUCKET, ENVIRONMENT_NAME, ETL_KEY_PREFIX, SERVICE_NAME, SERVICE_VERSION
 from neo4j_manager import Neo4jDatabase
 from storage_manager import StorageManager
 

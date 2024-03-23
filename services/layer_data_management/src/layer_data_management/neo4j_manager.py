@@ -19,6 +19,8 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
+# TODO: Generalize defensive programming checks
+
 
 class Neo4jDatabase:
     """
@@ -97,6 +99,65 @@ class Neo4jDatabase:
                 )
                 raise e
 
+    def check_arxiv_research_exists(self, arXiv_identifier: str) -> dict:
+        """
+        Checks if an arXiv research record exists in the database. A record is considered duplicate if the
+        arXiv identifier matches another record as these are invariant across arXiv submission updates for the
+        same paper.
+
+        Args:
+            date_created (str): The date the record was created.
+            first_parse_uuid (str): The UUID of the first parse operation that created the record.
+
+        Returns:
+            dict: The record data if it exists, otherwise an empty dict.
+
+        Raises:
+            ValueError: If arXiv_identifier is not provided or is not a string.
+            RuntimeError: If the database connection fails.
+            RuntimeError: If multiple records are found with the same arXiv identifier.
+        """
+        if not arXiv_identifier or not isinstance(arXiv_identifier, str):
+            message = "arXiv identifier is required and must be a string."
+            logger.error(
+                message,
+                method=self.check_arxiv_record_exists.__name__,
+                arXiv_identifier=arXiv_identifier,
+            )
+            raise ValueError(message)
+        try:
+            with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+                driver.verify_connectivity()
+                records, _, _ = driver.execute_query(
+                    "MATCH (n:ArxivRecord {arxivId: $arxivId}) RETURN n",
+                    arxivId=arXiv_identifier,
+                    database_=DEFAULT_NEO4J_DB,
+                )
+                if len(records) == 1:
+                    logger.debug(
+                        "Found arXiv record.",
+                        method=self.check_arxiv_record_exists.__name__,
+                        arXiv_identifier=arXiv_identifier,
+                    )
+                    return records[0].data()
+                if len(records) > 1:
+                    message = "Multiple arXiv records found with the same title and date. Investigate."
+                    logger.error(
+                        message,
+                        method=self.check_arxiv_record_exists.__name__,
+                        arXiv_identifier=arXiv_identifier,
+                    )
+                    raise RuntimeError(message)
+                return {}
+        except Exception as e:
+            message = "An error occurred while trying to check if an arXiv record exists."
+            logger.error(
+                message,
+                method=self.check_arxiv_record_exists.__name__,
+                error=str(e),
+            )
+            raise e
+
     def create_arxiv_datasource_node(self, arxiv_base_url: str) -> dict:
         """
         Creates the arXiv DataSource node in the Neo4j database.
@@ -174,332 +235,6 @@ class Neo4jDatabase:
                     method=self.create_arxiv_datasource_node.__name__,
                     uri=self.uri,
                     username=self.username,
-                    error=str(e),
-                )
-                raise e
-
-    def create_arxiv_raw_data_node(
-        self,
-        date_from: date,
-        date_to: date,
-        date_obtained: datetime,
-        method_name: str,
-        method_version: str,
-        size: int,
-        storage_uri: str,
-    ) -> dict:
-        """
-        Creates a data node in the Neo4j database.
-
-        Args:
-            date_from (date): The earliest date of the data.
-            date_to (date): The latest date of the data.
-            date_obtained (date): The date the data was obtained.
-            method_name (str): The name of the method used to obtain the data.
-            method_version (str): The version of the method used to obtain the data.
-            size (int): The size of the data.
-            storage_uri (str): The URI where the data is stored.
-        Raises:
-            ValueError: If config, raw_data_key, today, or earliest are not provided.
-        """
-        if not self.uri or not self.username or not self.password:
-            message = "URI, username, and password are required but one or more are not set."
-            logger.error(message, method=self.create_arxiv_raw_data_node.__name__, uri=self.uri, username=self.username)
-            raise ValueError(message)
-        if (
-            not date_from
-            or not date_to
-            or not date_obtained
-            or not isinstance(date_from, date)
-            or not isinstance(date_to, date)
-            or not isinstance(date_obtained, datetime)
-        ):
-            message = "Date from, date to, and date obtained are required and must be dates."
-            logger.error(
-                message,
-                method=self.create_arxiv_raw_data_node.__name__,
-                date_from=date_from,
-                date_to=date_to,
-                date_obtained=date_obtained,
-            )
-            raise ValueError(message)
-        if (
-            not method_name
-            or not method_version
-            or not isinstance(method_name, str)
-            or not isinstance(method_version, str)
-        ):
-            message = "Method name and method version are required and must be strings."
-            logger.error(
-                message,
-                method=self.create_arxiv_raw_data_node.__name__,
-                method_named=method_name,
-                method_version=method_version,
-            )
-            raise ValueError(message)
-        if not size or not storage_uri or not isinstance(size, int) or not isinstance(storage_uri, str):
-            message = "Size and storage URI are required and must be integers and strings, respectively."
-            logger.error(message, method=self.create_arxiv_raw_data_node.__name__, size=size, storage_uri=storage_uri)
-            raise ValueError(message)
-
-        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
-            try:
-                driver.verify_connectivity()
-                arxiv = self.check_arxiv_node_exists()
-                if not arxiv or not arxiv.get("uuid"):
-                    message = "arXiv DataSource node does not exist. Must create it first."
-                    logger.error(
-                        message,
-                        method=self.create_arxiv_raw_data_node.__name__,
-                        uri=self.uri,
-                        username=self.username,
-                        data=arxiv,
-                    )
-                    raise ValueError(message)
-
-                data_uuid = uuid.uuid4().__str__()
-                data_desc = "raw arXiv daily summaries for one or more days and sets."
-                data_format = "xml"
-                data_op_uuid = uuid.uuid4().__str__()
-                data_op_name = "Data Ingestion"
-
-                records, summary, _ = driver.execute_query(
-                    """
-                    MATCH (s:DataSource {uuid: $data_source_uuid})
-                    MERGE (d:Data {uuid: $data_uuid, date_from: $date_from, date_to: $date_to, description: $description,  format: $format, storage_uri: $storage_uri, size_bytes: $size_bytes})
-                    MERGE (dop:DataOperation {uuid: $dop_uuid, date: $dop_date, method_name: $method_name, method_version: $method_version, name: $dop_name})
-                    MERGE (s)-[:CREATES]->(d)
-                    MERGE (d)-[:CREATED_BY]->(s)
-                    MERGE (d)-[:INGESTED_BY]->(dop)
-                    MERGE (dop)-[:INGESTS]->(d)
-                    MERGE (dop)-[:OBTAINS_FROM]->(s)
-                    MERGE (s)-[:PROVIDES]->(dop)
-                    RETURN d, dop, s
-                    """,
-                    data_source_uuid=arxiv["uuid"],
-                    data_uuid=data_uuid,
-                    date_from=date_from,
-                    date_to=date_to,
-                    description=data_desc,
-                    format=data_format,
-                    storage_uri=storage_uri,
-                    size_bytes=size,
-                    dop_uuid=data_op_uuid,
-                    dop_date=date_obtained,
-                    method_name=method_name,
-                    method_version=method_version,
-                    dop_name=data_op_name,
-                    database_=DEFAULT_NEO4J_DB,
-                )
-                if (
-                    summary.counters.nodes_created != 2 and summary.counters.nodes_created != 3
-                ) or summary.counters.relationships_created != 6:
-                    message = "Failed to create arXiv raw data node or multiple nodes were created."
-                    logger.error(
-                        message,
-                        method=self.create_arxiv_raw_data_node.__name__,
-                        uri=self.uri,
-                        username=self.username,
-                        records_created=summary.counters.nodes_created,
-                    )
-                    raise RuntimeError(message)
-                logger.info(
-                    "Created arXiv raw data nodes in {time} ms.".format(time=summary.result_available_after),
-                    method=self.create_arxiv_raw_data_node.__name__,
-                )
-
-                return records
-
-            except Exception as e:
-                logger.error(
-                    "Failed to create arXiv raw data node.",
-                    method=self.create_arxiv_datasource_node.__name__,
-                    uri=self.uri,
-                    username=self.username,
-                    error=str(e),
-                )
-                raise e
-
-    def store_arxiv_records(self, parse_uuid: str, records: list) -> dict:
-        """
-        Stores arxiv research summary records in the neo4j database.
-
-        Args:
-            parse_uuid (str): The UUID of the parse operation. Required to associate records.
-            records (list): A list of arXiv records to store. Records must be in the parse_arxiv_summaries output format.
-            data_bucket (str): The S3 bucket where arXiv records data such as abstracts or full text are stored.
-            abstract_storage_prefix (str): The S3 key prefix for abstracts. Required.
-            full_text_storage_prefix (str): The S3 key prefix for full text. Defaults to "".
-
-        Returns:
-            dict: with the UUIDs of stored records and any that could not be stored.
-
-        Raises:
-            ValueError: If records is not a list.
-        """
-        if not parse_uuid or not isinstance(parse_uuid, str):
-            message = "Parse UUID is required and must be a string."
-            logger.error(
-                message,
-                method=self.store_arxiv_records.__name__,
-                parse_uuid=parse_uuid,
-            )
-            raise ValueError(message)
-        if not records or not isinstance(records, list):
-            message = "Records must be present and be a list of dict."
-            logger.error(
-                message,
-                method=self.store_arxiv_records.__name__,
-                records_type=type(records),
-                records=records,
-            )
-            raise ValueError(message)
-
-        results = {"stored": [], "failed": []}
-        if len(records) == 0:
-            return results
-        logger.info(
-            "Storing parsed arXiv records to neo4j.", method=self.store_arxiv_records.__name__, num_records=len(records)
-        )
-        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
-            try:
-                with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
-                    driver.verify_connectivity()
-                    for record in records:
-                        try:
-                            arXiv_identifier = record.get("identifier")
-                            if not arXiv_identifier:
-                                raise ValueError("ArXiv identifier is required.")
-                            node = self.create_arxiv_node(record, parse_uuid)
-                            results.get("stored").append(node.get("title"))
-                        except Exception as e:
-                            message = "An error occurred while trying to store an arXiv record."
-                            logger.error(
-                                message,
-                                method=self.store_arxiv_records.__name__,
-                                error=str(e),
-                                record=record,
-                            )
-                            results.get("failed").append(record.get("title"))
-
-                logger.info(
-                    "Stored arXiv records in neo4j.",
-                    method=self.store_arxiv_records.__name__,
-                    num_stored=len(len(results.get("stored"))),
-                    num_failed=len(results.get("failed")),
-                )
-            except Exception as e:
-                message = "An error occurred while trying to store arXiv records."
-                logger.error(
-                    message,
-                    method=self.store_arxiv_records.__name__,
-                    error=str(e),
-                )
-                raise e
-        return results
-
-    def check_arxiv_research_exists(self, arXiv_identifier: str) -> dict:
-        """
-        Checks if an arXiv research record exists in the database. A record is considered duplicate if the
-        arXiv identifier matches another record as these are invariant across arXiv submission updates for the
-        same paper.
-
-        Args:
-            date_created (str): The date the record was created.
-            first_parse_uuid (str): The UUID of the first parse operation that created the record.
-
-        Returns:
-            dict: The record data if it exists, otherwise an empty dict.
-
-        Raises:
-            ValueError: If arXiv_identifier is not provided or is not a string.
-            RuntimeError: If the database connection fails.
-            RuntimeError: If multiple records are found with the same arXiv identifier.
-        """
-        if not arXiv_identifier or not isinstance(arXiv_identifier, str):
-            message = "arXiv identifier is required and must be a string."
-            logger.error(
-                message,
-                method=self.check_arxiv_record_exists.__name__,
-                arXiv_identifier=arXiv_identifier,
-            )
-            raise ValueError(message)
-        try:
-            with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
-                driver.verify_connectivity()
-                records, _, _ = driver.execute_query(
-                    "MATCH (n:ArxivRecord {arxivId: $arxivId}) RETURN n",
-                    arxivId=arXiv_identifier,
-                    database_=DEFAULT_NEO4J_DB,
-                )
-                if len(records) == 1:
-                    logger.debug(
-                        "Found arXiv record.",
-                        method=self.check_arxiv_record_exists.__name__,
-                        arXiv_identifier=arXiv_identifier,
-                    )
-                    return records[0].data()
-                if len(records) > 1:
-                    message = "Multiple arXiv records found with the same title and date. Investigate."
-                    logger.error(
-                        message,
-                        method=self.check_arxiv_record_exists.__name__,
-                        arXiv_identifier=arXiv_identifier,
-                    )
-                    raise RuntimeError(message)
-                return {}
-        except Exception as e:
-            message = "An error occurred while trying to check if an arXiv record exists."
-            logger.error(
-                message,
-                method=self.check_arxiv_record_exists.__name__,
-                error=str(e),
-            )
-            raise e
-
-    def get_node_by_uuid(self, node_uuid: str) -> dict:
-        """
-        Get a node by its UUID.
-
-        Args:
-            none_uuid (str): The UUID of the node to get.
-
-        Returns:
-            dict: The node data.
-        """
-        if not node_uuid or not isinstance(uuid, str):
-            message = "UUID is required and must be a string."
-            logger.error(
-                message,
-                method=self.get_node_by_uuid.__name__,
-                uuid=node_uuid,
-            )
-            raise ValueError(message)
-        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
-            try:
-                driver.verify_connectivity()
-                records, _, _ = driver.execute_query(
-                    "MATCH (n) WHERE n.uuid = $uuid RETURN n",
-                    uuid=node_uuid,
-                    database_=DEFAULT_NEO4J_DB,
-                )
-                if len(records) == 1:
-                    logger.debug("Found node by UUID.", method=self.get_node_by_uuid.__name__, uuid=node_uuid)
-                    return records[0].data()
-                if len(records) > 1:
-                    message = "Multiple nodes found with the same UUID. Investigate."
-                    logger.error(
-                        message,
-                        method=self.get_node_by_uuid.__name__,
-                        uuid=node_uuid,
-                    )
-                    raise ValueError(message)
-                return {}
-            except Exception as e:
-                message = "An error occurred while trying to get a node by UUID."
-                logger.error(
-                    message,
-                    method=self.get_node_by_uuid.__name__,
                     error=str(e),
                 )
                 raise e
@@ -590,3 +325,459 @@ class Neo4jDatabase:
                 error=str(e),
             )
             raise e
+
+    def create_arxiv_parsed_node(
+        self,
+        output_key: str,
+        size_bytes: int,
+        service_name: str,
+        service_version: str,
+        parsed_date: datetime,
+        raw_data_bucket_name: str,
+        raw_data_key: str,
+    ) -> dict:
+        """
+        Creates a parsed node in the Neo4j database.
+
+        Args:
+            output_key (str): The key where the parsed data is stored.
+            service_name (str): The name of the service that parsed the data.
+            service_version (str): The version of the service that parsed the data.
+            parsed_date (datetime): The date the data was parsed.
+            raw_data_bucket_name (str): The name of the bucket where the raw data is stored.
+            raw_data_key (str): The key where the raw data is stored.
+
+        Returns:
+            dict: The parsed node data.
+
+        Raises:
+            ValueError: If output_key, service_name, service_version, parsed_date, raw_data_bucket_name, or raw_data_key are not provided.
+            RuntimeError: If the database connection fails.
+            RuntimeError: If the node is not created.
+        """
+        if not self.uri or not self.username or not self.password:
+            message = "URI, username, and password are required but one or more are not set."
+            logger.error(message, method=self.create_arxiv_raw_data_node.__name__, uri=self.uri, username=self.username)
+            raise ValueError(message)
+        if (
+            not output_key
+            or not size_bytes
+            or not service_name
+            or not service_version
+            or not parsed_date
+            or not raw_data_bucket_name
+            or not raw_data_key
+        ):
+            message = "Output key, size_bytes, service name, service version, parsed date, raw data bucket name, and raw data key are required."
+            logger.error(
+                message,
+                method=self.create_arxiv_parsed_node.__name__,
+                output_key=output_key,
+                service_name=service_name,
+                service_version=service_version,
+                parsed_date=parsed_date,
+                raw_data_bucket_name=raw_data_bucket_name,
+                raw_data_key=raw_data_key,
+            )
+            raise ValueError(message)
+        if (
+            not isinstance(output_key, str)
+            or not isinstance(service_name, str)
+            or not isinstance(service_version, str)
+            or not isinstance(raw_data_bucket_name, str)
+            or not isinstance(raw_data_key, str)
+        ):
+            message = (
+                "Output key, service name, service version, raw data bucket name, and raw data key must be strings."
+            )
+            logger.error(
+                message,
+                method=self.create_arxiv_parsed_node.__name__,
+                output_key=output_key,
+                service_name=service_name,
+                service_version=service_version,
+                raw_data_bucket_name=raw_data_bucket_name,
+                raw_data_key=raw_data_key,
+            )
+            raise ValueError(message)
+        if not isinstance(size_bytes, int):
+            message = "Size bytes must be an integer."
+            logger.error(
+                message,
+                method=self.create_arxiv_parsed_node.__name__,
+                size_bytes=size_bytes,
+            )
+            raise ValueError(message)
+        if not isinstance(parsed_date, datetime):
+            message = "Parsed date must be a datetime."
+            logger.error(
+                message,
+                method=self.create_arxiv_parsed_node.__name__,
+                parsed_date=parsed_date,
+            )
+            raise ValueError(message)
+
+        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+            try:
+                driver.verify_connectivity()
+
+                parsed_uuid = uuid.uuid4().__str__()
+                parsed_desc = "Parsed arXiv research summaries."
+                parsed_format = "json"
+                parsed_bucket = raw_data_bucket_name
+
+                dop_uuid = uuid.uuid4().__str__()
+                dop_date = parsed_date
+                dop_name = "Parse raw arXiv XML to json."
+
+                parsed_by_uuid = uuid.uuid4().__str__()
+                parses_uuid = uuid.uuid4().__str__()
+                created_by_uuid = uuid.uuid4().__str__()
+                creates_uuid = uuid.uuid4().__str__()
+
+                records, summary, _ = driver.execute_query(
+                    """
+                    MATCH (d:Data {storage_uri: $data_output_key})
+                    MERGE (p:Data {uuid: $parsed_uuid, description: $parsed_desc, format: $format, bucket: $parsed_bucket, storage_uri: $output_key, size_bytes: $size_bytes})
+                    MERGE (dop:DataOperation {uuid: $dop_uuid, date: $dop_date, name: $dop_name, method_name: $service_name, method_version: $service_version})
+                    MERGE (d)-[:PARSED_BY {uuid: $parsed_by_uuid}]->(dop)
+                    MERGE (dop)-[:PARSES {uuid: $parses_uuid}]->(d)
+                    MERGE (p)-[:CREATED_BY {uuid: $created_by_uuid}]->(dop)
+                    MERGE (dop)-[:CREATES {uuid: $creates_uuid}]->(p)
+                    RETURN p, dop
+                    """,
+                    data_output_key=output_key,
+                    parsed_uuid=parsed_uuid,
+                    parsed_desc=parsed_desc,
+                    format=parsed_format,
+                    parsed_bucket=parsed_bucket,
+                    output_key=output_key,
+                    size_bytes=size_bytes,
+                    dop_uuid=dop_uuid,
+                    dop_date=dop_date,
+                    dop_name=dop_name,
+                    service_name=service_name,
+                    service_version=service_version,
+                    parsed_by_uuid=parsed_by_uuid,
+                    parses_uuid=parses_uuid,
+                    created_by_uuid=created_by_uuid,
+                    creates_uuid=creates_uuid,
+                    database_=DEFAULT_NEO4J_DB,
+                )
+
+                if summary.counters.nodes_created != 2:
+                    message = "Failed to create arXiv parsed node or multiple nodes were created."
+                    logger.error(
+                        message,
+                        method=self.create_arxiv_parsed_node.__name__,
+                        records_created=summary.counters.nodes_created,
+                    )
+                    raise RuntimeError(message)
+                logger.info(
+                    "Created arXiv parsed nodes in {time} ms.".format(time=summary.result_available_after),
+                    method=self.create_arxiv_parsed_node.__name__,
+                )
+
+                return records
+
+            except Exception as e:
+                logger.error(
+                    "Failed to create arXiv parsed node.",
+                    method=self.create_arxiv_parsed_node.__name__,
+                    uri=self.uri,
+                    username=self.username,
+                    error=str(e),
+                )
+                raise e
+
+    def create_arxiv_raw_data_node(
+        self,
+        date_from: date,
+        date_to: date,
+        date_obtained: datetime,
+        method_name: str,
+        method_version: str,
+        size: int,
+        bucket_name: str,
+        storage_uri: str,
+    ) -> dict:
+        """
+        Creates a data node in the Neo4j database.
+
+        Args:
+            date_from (date): The earliest date of the data.
+            date_to (date): The latest date of the data.
+            date_obtained (date): The date the data was obtained.
+            method_name (str): The name of the method used to obtain the data.
+            method_version (str): The version of the method used to obtain the data.
+            size (int): The size of the data.
+            bucket_name (str): The name of the bucket where the data is stored.
+            storage_uri (str): The URI where the data is stored.
+        Raises:
+            ValueError: If config, raw_data_key, today, or earliest are not provided.
+        """
+        if not self.uri or not self.username or not self.password:
+            message = "URI, username, and password are required but one or more are not set."
+            logger.error(message, method=self.create_arxiv_raw_data_node.__name__, uri=self.uri, username=self.username)
+            raise ValueError(message)
+        if (
+            not date_from
+            or not date_to
+            or not date_obtained
+            or not method_name
+            or not method_version
+            or not size
+            or not bucket_name
+            or not storage_uri
+        ):
+            message = "Date from, date to, date obtained, method name, method version, size, bucket name, and storage URI are required."
+            logger.error(
+                message,
+                method=self.create_arxiv_raw_data_node.__name__,
+                date_from=date_from,
+                date_to=date_to,
+                date_obtained=date_obtained,
+                dop_method_name=method_name,
+                dop_method_version=method_version,
+                size=size,
+                bucket_name=bucket_name,
+                storage_uri=storage_uri,
+            )
+            raise ValueError(message)
+        if not isinstance(date_from, date) or not isinstance(date_to, date) or not isinstance(date_obtained, datetime):
+            message = "Date from, date to, and date obtained must be dates."
+            logger.error(
+                message,
+                method=self.create_arxiv_raw_data_node.__name__,
+                date_from=date_from,
+                date_to=date_to,
+                date_obtained=date_obtained,
+            )
+            raise ValueError(message)
+        if (
+            not isinstance(method_name, str)
+            or not isinstance(method_version, str)
+            or not isinstance(bucket_name, str)
+            or not isinstance(storage_uri, str)
+        ):
+            message = "Method name, method version, bucket name, and storage URI must be strings."
+            logger.error(
+                message,
+                method=self.create_arxiv_raw_data_node.__name__,
+                dop_method_name=method_name,
+                dop_method_version=method_version,
+                bucket_name=bucket_name,
+                storage_uri=storage_uri,
+            )
+            raise ValueError(message)
+        if not isinstance(size, int):
+            message = "Size must be an integer."
+            logger.error(
+                message,
+                method=self.create_arxiv_raw_data_node.__name__,
+                size=size,
+            )
+            raise ValueError(message)
+
+        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+            try:
+                driver.verify_connectivity()
+                arxiv = self.check_arxiv_node_exists()
+                if not arxiv or not arxiv.get("uuid"):
+                    message = "arXiv DataSource node does not exist. Must create it first."
+                    logger.error(
+                        message,
+                        method=self.create_arxiv_raw_data_node.__name__,
+                        uri=self.uri,
+                        username=self.username,
+                        data=arxiv,
+                    )
+                    raise ValueError(message)
+
+                data_uuid = uuid.uuid4().__str__()
+                data_desc = "raw arXiv daily summaries for one or more days and sets."
+                data_format = "xml"
+                data_op_uuid = uuid.uuid4().__str__()
+                data_op_name = "Data Ingestion"
+
+                records, summary, _ = driver.execute_query(
+                    """
+                    MATCH (s:DataSource {uuid: $data_source_uuid})
+                    MERGE (d:Data {uuid: $data_uuid, date_from: $date_from, date_to: $date_to, description: $description,  format: $format, storage_uri: $storage_uri, size_bytes: $size_bytes})
+                    MERGE (dop:DataOperation {uuid: $dop_uuid, date: $dop_date, method_name: $method_name, method_version: $method_version, name: $dop_name})
+                    MERGE (s)-[:CREATES]->(d)
+                    MERGE (d)-[:CREATED_BY]->(s)
+                    MERGE (d)-[:INGESTED_BY]->(dop)
+                    MERGE (dop)-[:INGESTS]->(d)
+                    MERGE (dop)-[:OBTAINS_FROM]->(s)
+                    MERGE (s)-[:PROVIDES]->(dop)
+                    RETURN d, dop, s
+                    """,
+                    data_source_uuid=arxiv["uuid"],
+                    data_uuid=data_uuid,
+                    date_from=date_from,
+                    date_to=date_to,
+                    description=data_desc,
+                    format=data_format,
+                    storage_uri=storage_uri,
+                    size_bytes=size,
+                    dop_uuid=data_op_uuid,
+                    dop_date=date_obtained,
+                    method_name=method_name,
+                    method_version=method_version,
+                    dop_name=data_op_name,
+                    database_=DEFAULT_NEO4J_DB,
+                )
+                if (
+                    summary.counters.nodes_created != 2 and summary.counters.nodes_created != 3
+                ) or summary.counters.relationships_created != 6:
+                    message = "Failed to create arXiv raw data node or multiple nodes were created."
+                    logger.error(
+                        message,
+                        method=self.create_arxiv_raw_data_node.__name__,
+                        uri=self.uri,
+                        username=self.username,
+                        records_created=summary.counters.nodes_created,
+                    )
+                    raise RuntimeError(message)
+                logger.info(
+                    "Created arXiv raw data nodes in {time} ms.".format(time=summary.result_available_after),
+                    method=self.create_arxiv_raw_data_node.__name__,
+                )
+
+                return records
+
+            except Exception as e:
+                logger.error(
+                    "Failed to create arXiv raw data node.",
+                    method=self.create_arxiv_datasource_node.__name__,
+                    uri=self.uri,
+                    username=self.username,
+                    error=str(e),
+                )
+                raise e
+
+    def get_node_by_uuid(self, node_uuid: str) -> dict:
+        """
+        Get a node by its UUID.
+
+        Args:
+            none_uuid (str): The UUID of the node to get.
+
+        Returns:
+            dict: The node data.
+        """
+        if not node_uuid or not isinstance(uuid, str):
+            message = "UUID is required and must be a string."
+            logger.error(
+                message,
+                method=self.get_node_by_uuid.__name__,
+                uuid=node_uuid,
+            )
+            raise ValueError(message)
+        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+            try:
+                driver.verify_connectivity()
+                records, _, _ = driver.execute_query(
+                    "MATCH (n) WHERE n.uuid = $uuid RETURN n",
+                    uuid=node_uuid,
+                    database_=DEFAULT_NEO4J_DB,
+                )
+                if len(records) == 1:
+                    logger.debug("Found node by UUID.", method=self.get_node_by_uuid.__name__, uuid=node_uuid)
+                    return records[0].data()
+                if len(records) > 1:
+                    message = "Multiple nodes found with the same UUID. Investigate."
+                    logger.error(
+                        message,
+                        method=self.get_node_by_uuid.__name__,
+                        uuid=node_uuid,
+                    )
+                    raise ValueError(message)
+                return {}
+            except Exception as e:
+                message = "An error occurred while trying to get a node by UUID."
+                logger.error(
+                    message,
+                    method=self.get_node_by_uuid.__name__,
+                    error=str(e),
+                )
+                raise e
+
+    def store_arxiv_records(self, parse_uuid: str, records: list) -> dict:
+        """
+        Stores arxiv research summary records in the neo4j database.
+
+        Args:
+            parse_uuid (str): The UUID of the parse operation. Required to associate records.
+            records (list): A list of arXiv records to store. Records must be in the parse_arxiv_summaries output format.
+            data_bucket (str): The S3 bucket where arXiv records data such as abstracts or full text are stored.
+            abstract_storage_prefix (str): The S3 key prefix for abstracts. Required.
+            full_text_storage_prefix (str): The S3 key prefix for full text. Defaults to "".
+
+        Returns:
+            dict: with the UUIDs of stored records and any that could not be stored.
+
+        Raises:
+            ValueError: If records is not a list.
+        """
+        if not parse_uuid or not isinstance(parse_uuid, str):
+            message = "Parse UUID is required and must be a string."
+            logger.error(
+                message,
+                method=self.store_arxiv_records.__name__,
+                parse_uuid=parse_uuid,
+            )
+            raise ValueError(message)
+        if not records or not isinstance(records, list):
+            message = "Records must be present and be a list of dict."
+            logger.error(
+                message,
+                method=self.store_arxiv_records.__name__,
+                records_type=type(records),
+                records=records,
+            )
+            raise ValueError(message)
+
+        results = {"stored": [], "failed": []}
+        if len(records) == 0:
+            return results
+        logger.info(
+            "Storing parsed arXiv records to neo4j.", method=self.store_arxiv_records.__name__, num_records=len(records)
+        )
+        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+            try:
+                with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
+                    driver.verify_connectivity()
+                    for record in records:
+                        try:
+                            arXiv_identifier = record.get("identifier")
+                            if not arXiv_identifier:
+                                raise ValueError("ArXiv identifier is required.")
+                            node = self.create_arxiv_node(record, parse_uuid)
+                            results.get("stored").append(node.get("title"))
+                        except Exception as e:
+                            message = "An error occurred while trying to store an arXiv record."
+                            logger.error(
+                                message,
+                                method=self.store_arxiv_records.__name__,
+                                error=str(e),
+                                record=record,
+                            )
+                            results.get("failed").append(record.get("title"))
+
+                logger.info(
+                    "Stored arXiv records in neo4j.",
+                    method=self.store_arxiv_records.__name__,
+                    num_stored=len(len(results.get("stored"))),
+                    num_failed=len(results.get("failed")),
+                )
+            except Exception as e:
+                message = "An error occurred while trying to store arXiv records."
+                logger.error(
+                    message,
+                    method=self.store_arxiv_records.__name__,
+                    error=str(e),
+                )
+                raise e
+        return results

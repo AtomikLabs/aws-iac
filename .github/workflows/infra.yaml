@@ -1,4 +1,4 @@
-name: Infra CI/CD
+name: Build
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
     paths:
       - "infra/core/**"
       - ".github/workflows/infra.yaml"
+      - "services/**"
   pull_request:
     branches:
       - dev
@@ -16,6 +17,7 @@ on:
     paths:
       - "infra/core/**"
       - ".github/workflows/infra.yaml"
+      - "services/**"
   workflow_dispatch:
 
 jobs:

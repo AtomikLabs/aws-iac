@@ -63,7 +63,7 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-        date_obtained = StorageManager.get_storage_key_date()
+        date_obtained = StorageManager.get_storage_key_datetime()
         today = date_obtained.date()
         earliest = today - timedelta(days=DAY_SPAN)
 
@@ -75,11 +75,17 @@ def lambda_handler(event: dict, context) -> dict:
         content_str = json.dumps(xml_data_list)
         storage_manager = StorageManager(config.get(DATA_BUCKET), logger)
         storage_manager.upload_to_s3(raw_data_key, content_str)
-        neo4j_uri = f"neo4j://{config.get(NEO4J_URI)}:7687"
-        neo4j = Neo4jDatabase(neo4j_uri, config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+        neo4j = Neo4jDatabase(config.get(NEO4J_URI), config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         neo4j.create_arxiv_datasource_node(config.get(ARXIV_BASE_URL))
         neo4j.create_arxiv_raw_data_node(
-            earliest, today, date_obtained, SERVICE_NAME, SERVICE_VERSION, len(content_str), raw_data_key
+            earliest,
+            today,
+            date_obtained,
+            SERVICE_NAME,
+            SERVICE_VERSION,
+            len(content_str),
+            config.get(DATA_BUCKET),
+            raw_data_key,
         )
         logger.info("Fetching arXiv summaries succeeded", method=lambda_handler.__name__, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
