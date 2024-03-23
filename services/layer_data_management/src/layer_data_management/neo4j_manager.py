@@ -439,10 +439,10 @@ class Neo4jDatabase:
                     """
                     MATCH (d:Data {storage_uri: $data_output_key})
                     MERGE (p:Data {uuid: $parsed_uuid, description: $parsed_desc, format: $format, bucket: $parsed_bucket, storage_uri: $output_key, size_bytes: $size_bytes})
-                    MERGE (dop:DataOperation {uuid: $dop_uuid, date: $dop_date,  name: $dop_name, method_name: $service_name, method_version: $service_version})
+                    MERGE (dop:DataOperation {uuid: $dop_uuid, date: $dop_date, name: $dop_name, method_name: $service_name, method_version: $service_version})
                     MERGE (d)-[:PARSED_BY {uuid: $parsed_by_uuid}]->(dop)
                     MERGE (dop)-[:PARSES {uuid: $parses_uuid}]->(d)
-                    MERGE (p)-[:CREATED_BY {uuid: $creaetd_by_uuid}]->(dop)
+                    MERGE (p)-[:CREATED_BY {uuid: $created_by_uuid}]->(dop)
                     MERGE (dop)-[:CREATES {uuid: $creates_uuid}]->(p)
                     RETURN p, dop
                     """,

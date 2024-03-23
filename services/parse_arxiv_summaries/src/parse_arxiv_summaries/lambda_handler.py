@@ -47,6 +47,7 @@ def lambda_handler(event, context):
     """
     try:
         log_initial_info(event)
+        print(event)
         config = get_config()
         bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
         key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
@@ -59,13 +60,13 @@ def lambda_handler(event, context):
         content_str = json.dumps(extracted_data)
         output_key = get_output_key(config)
         storage_manager.upload_to_s3(output_key, content_str)
-        neo4j = Neo4jDatabase(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)
+        neo4j = Neo4jDatabase(config.get(NEO4J_URI), config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         neo4j.create_arxiv_parsed_node(
             output_key,
             len(content_str),
             config.get(SERVICE_NAME),
             config.get(SERVICE_VERSION),
-            StorageManager.get_storage_key_date(),
+            StorageManager.get_storage_key_datetime(),
             bucket_name,
             key,
         )
@@ -110,6 +111,9 @@ def get_config() -> dict:
             DATA_BUCKET: os.environ[DATA_BUCKET],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
             ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
+            NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
+            NEO4J_URI: os.environ[NEO4J_URI],
+            NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }

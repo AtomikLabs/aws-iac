@@ -70,7 +70,7 @@ locals {
   default_lambda_runtime    = var.default_lambda_runtime
   lambda_vpc_access_role    = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
   neo4j_password            = var.neo4j_password
-  neo4j_uri                 = module.data_management.neo4j_instance_private_ip
+  neo4j_uri                 = "neo4j://${module.data_management.neo4j_instance_private_ip}:7687"
   neo4j_username            = var.neo4j_username
 
   layer_data_management_service_name      = var.layer_data_management_service_name
