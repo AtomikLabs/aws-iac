@@ -102,7 +102,7 @@ def get_config() -> dict:
     return config
 
 
-def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
+def store_records(records: List[Dict], bucket_name: str, key: str) -> Dict:
     """
     Stores arxiv research summary records in the neo4j database.
 
@@ -112,7 +112,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
         key (str): The S3 key for the parsed arXiv records.
 
     Returns:
-        int: The number of records stored.
+        Dict: The stored and failed records for further processing.
     """
     if not records or not isinstance(records, list):
         logger.error(
@@ -171,7 +171,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
             if (total != len(well_formed_records) + len(malformed_records)):
                 # set alerting for unprocessed records
                 logger.error("Some records were not processed", method=store_records.__name__, num_records=len(records), num_well_formed_records=len(well_formed_records), num_malformed_records=len(malformed_records))
-
+        return {"stored": well_formed_records, "failed": malformed_records}
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
