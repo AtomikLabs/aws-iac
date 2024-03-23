@@ -265,14 +265,14 @@ class Neo4jDatabase:
                 abstract_url = record.get("abstract_url")
                 arXiv_identifier = record.get("identifier")
                 authors = record.get("authors")
-                categories = record.get("categories")
+                categories = record.get("categories", [])
                 date = StorageManager.get_storage_key_datetime(record.get("date"))
                 date_created = StorageManager.get_storage_key_date()
-                full_text_url = record.get("full_text_url").replace("/abs/", "/pdf/")
-                group = record.get("group")
+                full_text_url = record.get("abstract_url").replace("/abs/", "/pdf/")
+                group = record.get("group", "")
                 parsed_by_uuid = uuid.uuid4().__str__()
                 parsed_uuid = uuid.uuid4().__str__()
-                primary_category = record.get("primary_category")
+                primary_category = record.get("primary_category", "")
                 title = record.get("title")
                 records, summary, _ = driver.execute_query(
                     """
