@@ -599,18 +599,20 @@ class Neo4jDatabase:
                 data_format = "xml"
                 data_op_uuid = uuid.uuid4().__str__()
                 data_op_name = "Data Ingestion"
+                ingested_by_uuid = uuid.uuid4().__str__()
+                ingests_uuid = uuid.uuid4().__str__()
+                obtains_from_uuid = uuid.uuid4().__str__()
+                provides_uuid = uuid.uuid4().__str__()
 
                 records, summary, _ = driver.execute_query(
                     """
                     MATCH (s:DataSource {uuid: $data_source_uuid})
                     MERGE (d:Data {uuid: $data_uuid, date_from: $date_from, date_to: $date_to, description: $description,  format: $format, storage_uri: $storage_uri, size_bytes: $size_bytes})
                     MERGE (dop:DataOperation {uuid: $dop_uuid, date: $dop_date, method_name: $method_name, method_version: $method_version, name: $dop_name})
-                    MERGE (s)-[:CREATES]->(d)
-                    MERGE (d)-[:CREATED_BY]->(s)
-                    MERGE (d)-[:INGESTED_BY]->(dop)
-                    MERGE (dop)-[:INGESTS]->(d)
-                    MERGE (dop)-[:OBTAINS_FROM]->(s)
-                    MERGE (s)-[:PROVIDES]->(dop)
+                    MERGE (d)-[:INGESTED_BY {uuid: $ingested_by_uuid}]->(dop)
+                    MERGE (dop)-[:INGESTS {uuid: $ingests_uuid}]->(d)
+                    MERGE (dop)-[:OBTAINS_FROM {uuid: $obtains_from_uuid}]->(s)
+                    MERGE (s)-[:PROVIDES {uuid: $provides_uuid}]->(dop)
                     RETURN d, dop, s
                     """,
                     data_source_uuid=arxiv["uuid"],
@@ -626,6 +628,10 @@ class Neo4jDatabase:
                     method_name=method_name,
                     method_version=method_version,
                     dop_name=data_op_name,
+                    ingested_by_uuid=ingested_by_uuid,
+                    ingests_uuid=ingests_uuid,
+                    obtains_from_uuid=obtains_from_uuid,
+                    provides_uuid=provides_uuid,
                     database_=DEFAULT_NEO4J_DB,
                 )
                 if (
