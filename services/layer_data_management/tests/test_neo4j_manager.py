@@ -480,6 +480,7 @@ def test_create_raw_data_node_neo4j_fields_missing(neo4j_db):
             ARXIV_RAW_DATA_PARAMS["storage_uri"],
         )
 
+
 @patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_parsed_node_success(mock_driver, neo4j_db):
     arxiv_node = MagicMock()
@@ -501,6 +502,7 @@ def test_create_arxiv_parsed_node_success(mock_driver, neo4j_db):
     )
 
     assert result[0].data() == ARXIV_RAW_DATA_RESPONSE
+
 
 def test_create_arxiv_parsed_node_missing_or_wrong_type(neo4j_db):
     with pytest.raises(ValueError):
@@ -643,4 +645,3 @@ def test_create_arxiv_parsed_node_missing_or_wrong_type(neo4j_db):
             ARXIV_RAW_DATA_PARAMS["bucket_name"],
             None,
         )
-        
