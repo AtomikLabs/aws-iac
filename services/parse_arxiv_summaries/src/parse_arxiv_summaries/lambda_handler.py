@@ -62,13 +62,13 @@ def lambda_handler(event, context):
         storage_manager.upload_to_s3(output_key, content_str)
         neo4j = Neo4jDatabase(config.get(NEO4J_URI), config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         neo4j.create_arxiv_parsed_node(
-            output_key,
+            key,
             len(content_str),
             config.get(SERVICE_NAME),
             config.get(SERVICE_VERSION),
             StorageManager.get_storage_key_datetime(),
             bucket_name,
-            key,
+            output_key,
         )
         logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
         return {"statusCode": 200, "body": "Success"}
