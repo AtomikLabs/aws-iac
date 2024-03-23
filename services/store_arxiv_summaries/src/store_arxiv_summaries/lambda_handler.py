@@ -4,7 +4,7 @@ import urllib.parse
 from typing import Dict, List
 
 import structlog
-from constants import APP_NAME, DATA_BUCKET, ENVIRONMENT_NAME, ETL_KEY_PREFIX, SERVICE_NAME, SERVICE_VERSION
+from constants import DATA_BUCKET, NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, SERVICE_NAME, SERVICE_VERSION
 from neo4j_manager import Neo4jDatabase
 from storage_manager import StorageManager
 
@@ -87,10 +87,10 @@ def get_config() -> dict:
     """
     try:
         config = {
-            APP_NAME: os.environ[APP_NAME],
             DATA_BUCKET: os.environ[DATA_BUCKET],
-            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
-            ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
+            NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
+            NEO4J_URI: os.environ[NEO4J_URI],
+            NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
@@ -122,6 +122,14 @@ def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
             records=records,
         )
         raise ValueError("Records must be present and be a list of dict.")
+    if not bucket_name or not isinstance(bucket_name, str):
+        logger.error(
+            "Bucket name for parsed records must be present and be a string.",
+            method=store_records.__name__,
+            bucket_name_type=type(bucket_name),
+            bucket_name=bucket_name,
+        )
+        raise ValueError("Bucket name must be present and be a string.")
     if not key or not isinstance(key, str):
         logger.error(
             "Key for parsed records must be present and be a string.",
@@ -155,9 +163,14 @@ def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
                 method=store_records.__name__,
                 num_well_formed_records=len(well_formed_records),
             )
-            db = Neo4jDatabase(logger)
+            db = Neo4jDatabase(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)
             db.store_arxiv_records(well_formed_records)
             logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
+            # TODO: set alerting for malformed records
+            logger.info("Malfored records found", method=store_records.__name__, num_records=len(malformed_records), malformed_records=malformed_records)
+            if (total != len(well_formed_records) + len(malformed_records)):
+                # set alerting for unprocessed records
+                logger.error("Some records were not processed", method=store_records.__name__, num_records=len(records), num_well_formed_records=len(well_formed_records), num_malformed_records=len(malformed_records))
 
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
