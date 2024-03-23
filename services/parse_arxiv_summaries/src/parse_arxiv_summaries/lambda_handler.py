@@ -11,9 +11,13 @@ from constants import (
     ENVIRONMENT_NAME,
     ETL_KEY_PREFIX,
     INTERNAL_SERVER_ERROR,
+    NEO4J_PASSWORD,
+    NEO4J_URI,
+    NEO4J_USERNAME,
     SERVICE_NAME,
     SERVICE_VERSION,
 )
+from neo4j_manager import Neo4jDatabase
 from storage_manager import StorageManager
 
 structlog.configure(
@@ -55,6 +59,16 @@ def lambda_handler(event, context):
         content_str = json.dumps(extracted_data)
         output_key = get_output_key(config)
         storage_manager.upload_to_s3(output_key, content_str)
+        neo4j = Neo4jDatabase(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)
+        neo4j.create_arxiv_parsed_node(
+            output_key,
+            len(content_str),
+            config.get(SERVICE_NAME),
+            config.get(SERVICE_VERSION),
+            StorageManager.get_storage_key_date(),
+            bucket_name,
+            key,
+        )
         logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
         return {"statusCode": 200, "body": "Success"}
 
