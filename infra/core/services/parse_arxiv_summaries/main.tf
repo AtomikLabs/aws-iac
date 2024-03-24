@@ -49,7 +49,8 @@ resource "aws_s3_bucket_notification" "parse_arxiv_summaries_s3_trigger" {
   }
 
   depends_on = [
-    aws_lambda_permission.allow_s3_bucket
+    aws_lambda_permission.allow_s3_bucket,
+    aws_lambda_function.parse_arxiv_summaries
   ]
 }
 

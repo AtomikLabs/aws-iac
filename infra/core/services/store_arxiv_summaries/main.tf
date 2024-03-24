@@ -39,7 +39,6 @@ data "archive_file" "store_arxiv_summaries_lambda_function" {
 # **********************************************************
 resource "aws_s3_bucket_notification" "store_arxiv_summaries_s3_trigger" {
   bucket = local.data_bucket
-
   lambda_function {
     lambda_function_arn = "arn:aws:lambda:us-east-1:758145997264:function:${local.environment}-${local.service_name}"
     events              = ["s3:ObjectCreated:*"]
@@ -48,7 +47,8 @@ resource "aws_s3_bucket_notification" "store_arxiv_summaries_s3_trigger" {
   }
 
   depends_on = [
-    aws_lambda_permission.allow_s3_bucket
+    aws_lambda_permission.allow_s3_bucket,
+    aws_lambda_function.store_arxiv_summaries
   ]
 }
 
