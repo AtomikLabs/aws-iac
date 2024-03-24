@@ -182,3 +182,13 @@ variable "parse_arxiv_summaries_service_version" {
   description = "Service version for the parse arxiv summaries"
   type        = string
 }
+
+variable "store_arxiv_summaries_service_name" {
+  description = "Service name for the store arxiv summaries"
+  type        = string
+}
+
+variable "store_arxiv_summaries_service_version" {
+  description = "Service version for the store arxiv summaries"
+  type        = string
+}

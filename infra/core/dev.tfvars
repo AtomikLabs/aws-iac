@@ -48,12 +48,14 @@ layer_data_management_service_name = "layer_data_management"
 layer_data_management_service_version = "0.0.1"
 
 # fetch_daily_summaries
-
 fetch_daily_summaries_max_retries = 10
 fetch_daily_summaries_service_name = "fetch_daily_summaries"
-fetch_daily_summaries_service_version = "0.0.2"
+fetch_daily_summaries_service_version = "0.0.4"
 
 # parase_arxiv_summaries
-
 parse_arxiv_summaries_service_name = "parse_arxiv_summaries"
-parse_arxiv_summaries_service_version = "0.0.2"
+parse_arxiv_summaries_service_version = "0.0.4"
+
+# store_arxiv_summaries
+store_arxiv_summaries_service_name = "store_arxiv_summaries"
+store_arxiv_summaries_service_version = "0.0.1"

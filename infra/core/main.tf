@@ -82,6 +82,9 @@ locals {
 
   parse_arxiv_summaries_service_name      = var.parse_arxiv_summaries_service_name
   parse_arxiv_summaries_service_version   = var.parse_arxiv_summaries_service_version
+
+  store_arxiv_summaries_service_name      = var.store_arxiv_summaries_service_name
+  store_arxiv_summaries_service_version   = var.store_arxiv_summaries_service_version
 }
 
 module "networking" {
@@ -181,8 +184,8 @@ module "store_arxiv_summaries" {
   neo4j_username            = local.neo4j_username
   private_subnets           = module.networking.aws_private_subnet_ids
   runtime                   = local.default_lambda_runtime
-  service_name              = local.parse_arxiv_summaries_service_name
-  service_version           = local.parse_arxiv_summaries_service_version
+  service_name              = local.store_arxiv_summaries_service_name
+  service_version           = local.store_arxiv_summaries_service_version
 }
 
 module "data_management" {
