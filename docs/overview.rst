@@ -36,7 +36,6 @@ AtomikLabs is a serverless microservices application built on AWS. The architect
 - **AWS Fargate**: Provides a serverless compute engine for running containers, allowing for the efficient deployment and scaling of microservices.
 - **Kafka**: Provides a distributed streaming platform that allows for the ingestion and processing of large volumes of data.
 - **Spark**: Enables the processing of large-scale data, providing the ability to perform complex analytics and machine learning tasks.
-- **AWS Glue Schema Registry**: Provides a centralized location for the management of schemas, allowing for the seamless integration of data across different services.
 - **AWS Lambda**: Executes the serverless functions that power the application, providing a scalable and cost-effective solution for handling requests.
 - **Amazon S3**: Serves as the primary storage for the application, providing a durable and scalable solution for storing large volumes of data.
 - **Amazon RDS**: Provides a managed database service that allows for the storage and retrieval of structured data.
