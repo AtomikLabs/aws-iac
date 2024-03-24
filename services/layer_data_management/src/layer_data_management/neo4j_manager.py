@@ -636,7 +636,7 @@ class Neo4jDatabase:
                 )
                 if (
                     summary.counters.nodes_created != 2 and summary.counters.nodes_created != 3
-                ) or summary.counters.relationships_created != 6:
+                ) or summary.counters.relationships_created != 4:
                     message = "Failed to create arXiv raw data node or multiple nodes were created."
                     logger.error(
                         message,

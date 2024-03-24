@@ -189,7 +189,7 @@ resource "aws_security_group" "parse_arxiv_summaries_security_group" {
   }
 }
 
-
+# keep mispelling - there is a bug where the properly spelled version always comes back as duplicate even though none can be found
 resource "aws_iam_role_policy_attachment" "parse_arxivc_summaries_lambda_s3_access_attachment" {
   role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
   policy_arn = aws_iam_policy.parse_arxivc_summaries_lambda_s3_access.arn
