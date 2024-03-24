@@ -239,7 +239,7 @@ def test_create_arxiv_raw_data_node_success(mock_driver, neo4j_db):
     arxiv_node.data = MagicMock(return_value=ARXIV_RAW_DATA_RESPONSE)
     mock_driver.return_value.__enter__.return_value.execute_query.return_value = (
         [MagicMock(data=lambda: ARXIV_RAW_DATA_RESPONSE)],
-        MagicMock(counters=MagicMock(nodes_created=2, relationships_created=6)),
+        MagicMock(counters=MagicMock(nodes_created=2, relationships_created=4)),
         None,
     )
     result = neo4j_db.create_arxiv_raw_data_node(
