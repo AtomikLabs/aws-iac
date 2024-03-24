@@ -33,14 +33,13 @@ resource "aws_s3_bucket_notification" "store_arxiv_summaries_s3_trigger" {
   depends_on = [
     aws_lambda_permission.allow_s3_bucket_parse_arxiv_summaries,
     aws_lambda_permission.allow_s3_bucket_store_arxiv_summaries,
-    aws_lambda_function.store_arxiv_summaries_name
   ]
 }
 
 resource "aws_lambda_permission" "allow_s3_bucket_parse_arxiv_summaries" {
   statement_id  = "AllowExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
-  function_name = local.parse_arxiv_summaries.function_name
+  function_name = local.parse_arxiv_summaries_name
   principal     = "s3.amazonaws.com"
   source_arn    = "${local.data_bucket_arn}"
 }
@@ -48,7 +47,7 @@ resource "aws_lambda_permission" "allow_s3_bucket_parse_arxiv_summaries" {
 resource "aws_lambda_permission" "allow_s3_bucket_store_arxiv_summaries" {
   statement_id  = "AllowExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
-  function_name = local.store_arxiv_summaries.function_name
+  function_name = local.store_arxiv_summaries_name
   principal     = "s3.amazonaws.com"
   source_arn    = "${local.data_bucket_arn}"
 }

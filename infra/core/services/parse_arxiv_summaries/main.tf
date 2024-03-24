@@ -1,13 +1,3 @@
-terraform {
-  backend "s3" {
-    bucket         = "atomiklabs-infra-config-bucket"
-    dynamodb_table = "atomiklabs-parse-arxiv-summaries-locks"
-    encrypt        = true
-    key            = "terraform/services/parse_arxiv_summaries.state"
-    region         = "us-east-1"
-  }
-}
-
 locals {
   app_name                    = var.app_name
   aws_region                  = var.aws_region
