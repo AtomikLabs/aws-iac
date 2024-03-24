@@ -35,35 +35,6 @@ data "archive_file" "store_arxiv_summaries_lambda_function" {
 }
 
 # **********************************************************
-# * TRIGGER                                                *
-# **********************************************************
-resource "aws_s3_bucket_notification" "store_arxiv_summaries_s3_trigger" {
-
-  bucket = local.data_bucket
-  lambda_function {
-    id = "${local.environment}-${local.service_name}-s3-trigger"
-    lambda_function_arn = "arn:aws:lambda:us-east-1:758145997264:function:${local.environment}-${local.service_name}"
-    events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = local.etl_key_prefix
-    filter_suffix       = ".json"
-  }
-
-  depends_on = [
-    aws_lambda_permission.allow_s3_bucket,
-    aws_lambda_function.store_arxiv_summaries
-  ]
-}
-
-resource "aws_lambda_permission" "allow_s3_bucket" {
-  id            = "${local.environment}-${local.service_name}-s3-bucket-permission"
-  statement_id  = "AllowExecutionFromS3Bucket"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.store_arxiv_summaries.function_name
-  principal     = "s3.amazonaws.com"
-  source_arn    = "${local.data_bucket_arn}"
-}
-
-# **********************************************************
 # * SERVICE                                                *
 # **********************************************************
 resource "aws_lambda_function" "store_arxiv_summaries" {
