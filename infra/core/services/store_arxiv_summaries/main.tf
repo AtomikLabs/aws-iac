@@ -55,6 +55,7 @@ resource "aws_s3_bucket_notification" "store_arxiv_summaries_s3_trigger" {
 }
 
 resource "aws_lambda_permission" "allow_s3_bucket" {
+  id            = "${local.environment}-${local.service_name}-s3-bucket-permission"
   statement_id  = "AllowExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.store_arxiv_summaries.function_name
