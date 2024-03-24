@@ -119,7 +119,7 @@ resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_lambda_basic_ex
   policy_arn = local.basic_execution_role_arn
 }
 
-resource "aws_iam_policy" "parse_arxiv_summaries_lambda_s3_access" {
+resource "aws_iam_policy" "parse_arxivc_summaries_lambda_s3_access" {
   name        = "${local.environment}-${local.service_name}-lambda-s3-access"
   description = "Allow Lambda to put objects in S3"
 
@@ -190,9 +190,9 @@ resource "aws_security_group" "parse_arxiv_summaries_security_group" {
 }
 
 
-resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_lambda_s3_access_attachment" {
+resource "aws_iam_role_policy_attachment" "parse_arxivc_summaries_lambda_s3_access_attachment" {
   role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
-  policy_arn = aws_iam_policy.parse_arxiv_summaries_lambda_s3_access.arn
+  policy_arn = aws_iam_policy.parse_arxivc_summaries_lambda_s3_access.arn
 }
 
 resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_vpc_access_attachment" {

@@ -3,7 +3,11 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import get_config, lambda_handler, store_records
+from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import (
+    get_config,
+    store_records,
+)
+
 
 class TestLambdaHandler(unittest.TestCase):
     def setUp(self):
@@ -18,7 +22,7 @@ class TestLambdaHandler(unittest.TestCase):
             ]
         }
         self.context = MagicMock()
-    
+
     @patch.dict(
         os.environ,
         {
@@ -46,7 +50,7 @@ class TestLambdaHandler(unittest.TestCase):
                 "SERVICE_VERSION": "test-version",
             },
         )
-    
+
     def test_store_records_with_params_missing_or_wrong_type(self):
         records_param = [{"test": "test"}, {"test": "test"}]
         bucket_name_param = "test-bucket"
@@ -65,14 +69,8 @@ class TestLambdaHandler(unittest.TestCase):
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
     def test_store_records_with_valid_params(self, mock_neo4j_database):
         expected_results = {
-            "stored": [
-                {"test": "test"},
-                {"test": "test"}
-            ],
-            "failed": [
-                {"test": "test"},
-                {"test": "test"}
-            ],
+            "stored": [{"test": "test"}, {"test": "test"}],
+            "failed": [{"test": "test"}, {"test": "test"}],
         }
         records_param = [{"test": "test"}, {"test": "test"}]
         bucket_name_param = "test-bucket"
@@ -85,5 +83,7 @@ class TestLambdaHandler(unittest.TestCase):
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.store_records")
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.StorageManager")
-    def test_lambda_handler_with_valid_params(self, mock_storage_manager, mock_neo4j_database, mock_store_records, mock_get_config):
+    def test_lambda_handler_with_valid_params(
+        self, mock_storage_manager, mock_neo4j_database, mock_store_records, mock_get_config
+    ):
         mock_storage_manager().load.return_value = json.dumps([{"test": "test"}, {"test": "test"}])

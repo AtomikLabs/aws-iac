@@ -167,10 +167,21 @@ def store_records(records: List[Dict], bucket_name: str, key: str) -> Dict:
             db.store_arxiv_records(well_formed_records)
             logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
             # TODO: set alerting for malformed records
-            logger.info("Malfored records found", method=store_records.__name__, num_records=len(malformed_records), malformed_records=malformed_records)
-            if (total != len(well_formed_records) + len(malformed_records)):
+            logger.info(
+                "Malfored records found",
+                method=store_records.__name__,
+                num_records=len(malformed_records),
+                malformed_records=malformed_records,
+            )
+            if total != len(well_formed_records) + len(malformed_records):
                 # set alerting for unprocessed records
-                logger.error("Some records were not processed", method=store_records.__name__, num_records=len(records), num_well_formed_records=len(well_formed_records), num_malformed_records=len(malformed_records))
+                logger.error(
+                    "Some records were not processed",
+                    method=store_records.__name__,
+                    num_records=len(records),
+                    num_well_formed_records=len(well_formed_records),
+                    num_malformed_records=len(malformed_records),
+                )
         return {"stored": well_formed_records, "failed": malformed_records}
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
