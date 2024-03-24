@@ -42,6 +42,7 @@ resource "aws_s3_bucket_notification" "parse_arxiv_summaries_s3_trigger" {
   bucket = local.data_bucket
 
   lambda_function {
+    id = "${local.environment}-${local.service_name}-s3-trigger"
     lambda_function_arn = "arn:aws:lambda:us-east-1:758145997264:function:${local.environment}-${local.service_name}"
     events              = ["s3:ObjectCreated:*"]
     filter_prefix       = local.data_ingestion_key_prefix
