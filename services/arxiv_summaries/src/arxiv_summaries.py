@@ -27,6 +27,11 @@ DATABASE = ""
 SUMMARY_SET = ""
 OPENAI_KEY = ""
 
+CREATE_AUDIO = False
+# CATEGORIES = ["CL", "CV", "RO"]
+CATEGORIES = ["CR", "MA", "SY"]
+BACK_DATE = 6
+
 cs_categories_inverted = {
     "Computer Science - Artifical Intelligence": "AI",
     "Computer Science - Hardware Architecture": "AR",
@@ -456,7 +461,8 @@ def create_script(categories, records, research_date, group):
         create_pod_notes([category], research_date, themes)
         create_post_text([category], research_date, themes)
         create_li_seo_lines(category, research_date)
-        create_polly_audio("\n".join(full_text), file_name, research_date)
+        if CREATE_AUDIO:
+            create_polly_audio("\n".join(full_text), file_name, research_date)
 
 
 def create_pod_notes(categories: list, research_date: str, themes: str):
@@ -1021,41 +1027,12 @@ def config_for_test():
     load_dotenv()
     OPENAI_KEY = os.environ.get("OPENAI_KEY")
 
-
-def run_test():
-    config_for_test()
-
-    FROM_DATE = "2024-01-09"
-
-    xml_data_list = fetch_data(BASE_URL, FROM_DATE, "cs")
-
-    extracted_data = []
-
-    for xml_data in xml_data_list:
-        extracted_data.append(parse_xml_data(xml_data, FROM_DATE))
-
-    print(len(extracted_data))
-    if len(extracted_data) < 1:
-        print("No data")
-        return
-
-    FILE_PATHS = {"records": "records.json"}
-
-    write_to_files(extracted_data, FILE_PATHS)
-    persist_research_summaries(extracted_data[1]["records"], AURORA_CLUSTER_ARN, DB_CREDENTIALS_SECRET_ARN, DATABASE)
-
-    records = [record for data in extracted_data for record in data.get("records", [])]
-
-    create_full_show_notes(["CL", "CV", "RO"], records, "2024-01-10", "cs")
-    create_script(["CL", "CV", "RO"], records, "2024-01-10", "cs")
-
-
 def run_aws_test():
     config_for_test()
     earliest = datetime.today().date() - timedelta(days=5)
     print(f"Earliest: {earliest}")
     date_list = [datetime.today().date()]
-    for i in range(1, 2):
+    for i in range(1, BACK_DATE):
         date_list.append(datetime.today().date() - timedelta(days=i))
     print(f"Date List: {date_list}")
     xml_data_list = fetch_data(BASE_URL, earliest, SUMMARY_SET)
@@ -1075,7 +1052,7 @@ def run_aws_test():
     print(f"Records: {len(records)}")
     for research_date in date_list:
         r = research_date.strftime("%Y-%m-%d")
-        create_script(["CL", "CV", "RO"], records, r, "cs")
+        create_script(CATEGORIES, records, r, "cs")
 
 
 if __name__ == "__main__":
