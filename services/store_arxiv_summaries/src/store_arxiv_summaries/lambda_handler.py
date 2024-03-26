@@ -40,26 +40,19 @@ def lambda_handler(event, context):
         storage_manager = StorageManager(bucket_name, logger)
         json_data = json.loads(storage_manager.load(key))
         if not json_data or not json_data.get("records"):
-            logger.error("No records found",
-                         method=lambda_handler.__name__,
-                         records_key=key,
-                         bucket_name=bucket_name)
+            logger.error("No records found", method=lambda_handler.__name__, records_key=key, bucket_name=bucket_name)
             return {"statusCode": 400, "body": "No records found"}
         logger.info(
             "Storing parsed arXiv summary records)} records",
             method=lambda_handler.__name__,
-            num_records=len(json_data["records"]))
+            num_records=len(json_data["records"]),
+        )
         store_records(json_data.get("records"), bucket_name, key)
         return {"statusCode": 200, "body": "Success"}
     except Exception as e:
-        logger.error(
-            "An error occurred",
-            method=lambda_handler.__name__,
-            error=str(e))
-        return {"statusCode": 500,
-                "body": "Internal server error",
-                "error": str(e),
-                "event": event}
+        logger.error("An error occurred", method=lambda_handler.__name__, error=str(e))
+        return {"statusCode": 500, "body": "Internal server error", "error": str(e), "event": event}
+
 
 def log_initial_info(event: dict) -> None:
     """
@@ -75,16 +68,10 @@ def log_initial_info(event: dict) -> None:
             log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
             log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
         )
-        logger.debug("Running on",
-                     method=log_initial_info.__name__,
-                     platform="AWS")
+        logger.debug("Running on", method=log_initial_info.__name__, platform="AWS")
     except KeyError:
-        logger.debug("Running on",
-                     method=log_initial_info.__name__,
-                     platform="CI/CD or local")
-    logger.debug("Event received",
-                 method=log_initial_info.__name__,
-                 trigger_event=event)
+        logger.debug("Running on", method=log_initial_info.__name__, platform="CI/CD or local")
+    logger.debug("Event received", method=log_initial_info.__name__, trigger_event=event)
 
 
 def get_config() -> dict:
@@ -103,23 +90,15 @@ def get_config() -> dict:
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
-        logger.debug("Config",
-                     method=get_config.__name__,
-                     config=config)
+        logger.debug("Config", method=get_config.__name__, config=config)
     except KeyError as e:
-        logger.error("Missing environment variable",
-                     method=get_config.__name__,
-                     error=str(e))
+        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
         raise e
     logger.debug("Config", method=get_config.__name__, config=config)
     return config
 
 
-def store_records(records: List[Dict],
-                  bucket_name: str,
-                  key: str,
-                  service_name: str,
-                  service_version: str) -> Dict:
+def store_records(records: List[Dict], bucket_name: str, key: str, service_name: str, service_version: str) -> Dict:
     """
     Stores arxiv research summary records in the neo4j database.
 
@@ -149,9 +128,14 @@ def store_records(records: List[Dict],
             bucket_name=bucket_name,
         )
         raise ValueError("Bucket name must be present and be a string.")
-    if not key or not isinstance(key, str) or not service_name or \
-        not isinstance(service_name, str) or not service_version or \
-        not isinstance(service_version, str):
+    if (
+        not key
+        or not isinstance(key, str)
+        or not service_name
+        or not isinstance(service_name, str)
+        or not service_version
+        or not isinstance(service_version, str)
+    ):
         logger.error(
             "Key, service name, and service version must be present and be strings.",
             method=store_records.__name__,
@@ -162,26 +146,19 @@ def store_records(records: List[Dict],
             service_version_type=type(service_version),
             service_version=service_version,
         )
-        raise ValueError("Key, service name, and service version must be present \
-                         and be strings.")
+        raise ValueError(
+            "Key, service name, and service version must be present \
+                         and be strings."
+        )
     total = len(records)
     malformed_records = []
     well_formed_records = []
-    required_fields = ["identifier",
-                       "title",
-                       "authors",
-                       "group",
-                       "abstract",
-                       "date",
-                       "abstract_url"
-                    ]
+    required_fields = ["identifier", "title", "authors", "group", "abstract", "date", "abstract_url"]
     try:
         for record in records:
             if not all(record.get(field) for field in required_fields) or len(record.get("authors", [])) < 1:
                 malformed_records.append(record)
-                logger.error("Malformed record",
-                             method=store_records.__name__,
-                             record=record)
+                logger.error("Malformed record", method=store_records.__name__, record=record)
             else:
                 well_formed_records.append(record)
 
@@ -199,13 +176,8 @@ def store_records(records: List[Dict],
                 num_well_formed_records=len(well_formed_records),
             )
             db = Neo4jDatabase(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)
-            db.store_arxiv_records(key,
-                                   well_formed_records,
-                                   service_name,
-                                   service_version)
-            logger.info("Stored records",
-                        method=store_records.__name__,
-                        num_records=len(well_formed_records))
+            db.store_arxiv_records(key, well_formed_records, service_name, service_version)
+            logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
             # TODO: set alerting for malformed records
             logger.info(
                 "Malfored records found",
@@ -224,9 +196,7 @@ def store_records(records: List[Dict],
                 )
         return {"stored": well_formed_records, "failed": malformed_records}
     except Exception as e:
-        logger.error("An error occurred",
-                     method=store_records.__name__,
-                     error=str(e))
+        logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
     finally:
         logger.info(
