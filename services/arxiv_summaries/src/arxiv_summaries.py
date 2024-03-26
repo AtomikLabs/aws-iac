@@ -1027,6 +1027,7 @@ def config_for_test():
     load_dotenv()
     OPENAI_KEY = os.environ.get("OPENAI_KEY")
 
+
 def run_aws_test():
     config_for_test()
     earliest = datetime.today().date() - timedelta(days=5)

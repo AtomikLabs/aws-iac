@@ -3,10 +3,7 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import (
-    get_config,
-    store_records,
-)
+from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import get_config, store_records
 
 
 class TestLambdaHandler(unittest.TestCase):

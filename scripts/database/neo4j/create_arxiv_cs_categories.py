@@ -1,12 +1,11 @@
+import argparse
 import json
 import uuid
-from datetime import date, datetime
+from datetime import datetime
 
-import argparse
 import boto3
 import pytz
 import structlog
-
 from neo4j import GraphDatabase
 
 structlog.configure(
@@ -79,37 +78,44 @@ if env not in ["dev", "prod", "stage", "test"]:
 
 neo4j_uri = args.neo4j_uri
 
+
 def get_storage_key_datetime(date: str = "") -> datetime:
-        """
-        Get the date in the format used for S3 keys.
+    """
+    Get the date in the format used for S3 keys.
 
-        Args:
-            date: The date to format.
+    Args:
+        date: The date to format.
 
-        Returns:
-            The date in the format used for S3 keys.
-        """
-        if not date:
-            return datetime.now().astimezone(pytz.timezone(DEFAULT_TIMEZONE))
-        return datetime.strptime(date, S3_KEY_DATE_FORMAT).astimezone(pytz.timezone(DEFAULT_TIMEZONE))
+    Returns:
+        The date in the format used for S3 keys.
+    """
+    if not date:
+        return datetime.now().astimezone(pytz.timezone(DEFAULT_TIMEZONE))
+    return datetime.strptime(date, S3_KEY_DATE_FORMAT).astimezone(pytz.timezone(DEFAULT_TIMEZONE))
+
 
 secret = boto3.client("secretsmanager").get_secret_value(SecretId=f"{env}/neo4j-credentials")
 neo4j_creds = json.loads(secret["SecretString"])
 print(neo4j_creds)
 
-with GraphDatabase.driver(neo4j_uri, auth=(neo4j_creds['neo4j_username'], neo4j_creds['neo4j_password'])) as driver:
+with GraphDatabase.driver(neo4j_uri, auth=(neo4j_creds["neo4j_username"], neo4j_creds["neo4j_password"])) as driver:
     with driver.session() as session:
         driver.verify_connectivity()
         logger.info("Connected to Neo4j")
-        
+
         category_nodes = []
         for category, code in CS_CATEGORIES_INVERTED.items():
             q = f"MERGE (c:ArxivCategory {{name: '{category}', code: '{code}'}})"
             category_nodes.append({"name": category, "code": code})
-        category_query = "\n".join([f"""
+        category_query = "\n".join(
+            [
+                f"""
                                     MERGE ({category['code']}:ArxivCategory {{uuid: '{uuid.uuid4().__str__()}', name: '{category['name']}', code: '{category['code']}'}})
                                     MERGE (s)-[:CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({category['code']})
-                                    MERGE ({category['code']})-[:CATEGORIZED_IN {{uuid: '{uuid.uuid4().__str__()}'}}]->(s)""" for category in category_nodes])
+                                    MERGE ({category['code']})-[:CATEGORIZED_IN {{uuid: '{uuid.uuid4().__str__()}'}}]->(s)"""
+                for category in category_nodes
+            ]
+        )
 
         print(category_query)
         driver = driver.execute_query(
@@ -124,4 +130,3 @@ with GraphDatabase.driver(neo4j_uri, auth=(neo4j_creds['neo4j_username'], neo4j_
             set_last_modified=get_storage_key_datetime(),
             database_="neo4j",
         )
-
