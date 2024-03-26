@@ -5,7 +5,6 @@ locals {
   basic_execution_role_arn    = var.basic_execution_role_arn
   data_bucket                 = var.data_bucket
   data_bucket_arn             = var.data_bucket_arn
-  data_ingestion_key_prefix   = var.data_ingestion_key_prefix
   environment                 = var.environment
   etl_key_prefix              = var.etl_key_prefix
   lambda_vpc_access_role      = var.lambda_vpc_access_role
@@ -19,7 +18,7 @@ locals {
   service_version             = var.service_version
 }
 
-data "archive_file" "parse_arxiv_summaries_lambda_function" {
+data "archive_file" "store_arxiv_summaries_lambda_function" {
   type       = "zip"
   source_dir = "../../build/${local.service_name}"
   output_path = "../../build/${local.service_name}/${local.service_name}.zip"
@@ -28,23 +27,20 @@ data "archive_file" "parse_arxiv_summaries_lambda_function" {
 # **********************************************************
 # * SERVICE                                                *
 # **********************************************************
-resource "aws_lambda_function" "parse_arxiv_summaries" {
+resource "aws_lambda_function" "store_arxiv_summaries" {
   function_name     = "${local.environment}-${local.service_name}"
-  filename          = data.archive_file.parse_arxiv_summaries_lambda_function.output_path
+  filename          = data.archive_file.store_arxiv_summaries_lambda_function.output_path
   package_type      = "Zip"
   handler           = "lambda_handler.lambda_handler"
-  role              = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.arn
-  source_code_hash  = data.archive_file.parse_arxiv_summaries_lambda_function.output_base64sha256
+  role              = aws_iam_role.store_arxiv_summaries_lambda_execution_role.arn
+  source_code_hash  = data.archive_file.store_arxiv_summaries_lambda_function.output_base64sha256
   timeout           = 900
   memory_size       = 256
   runtime           = local.runtime
 
   environment {
     variables = {
-      APP_NAME                              = local.app_name
       DATA_BUCKET                           = local.data_bucket
-      ENVIRONMENT                           = local.environment
-      ETL_KEY_PREFIX                        = local.etl_key_prefix
       NEO4J_PASSWORD                        = local.neo4j_password
       NEO4J_URI                             = local.neo4j_uri
       NEO4J_USERNAME                        = local.neo4j_username
@@ -57,11 +53,11 @@ resource "aws_lambda_function" "parse_arxiv_summaries" {
 
   vpc_config {
     subnet_ids         = local.private_subnets
-    security_group_ids = [aws_security_group.parse_arxiv_summaries_security_group.id]
+    security_group_ids = [aws_security_group.store_arxiv_summaries_security_group.id]
   }
 }
 
-resource "aws_iam_role" "parse_arxiv_summaries_lambda_execution_role" {
+resource "aws_iam_role" "store_arxiv_summaries_lambda_execution_role" {
   name = "${local.environment}-${local.service_name}-lambda-execution-role"
 
   assume_role_policy = jsonencode({
@@ -78,12 +74,12 @@ resource "aws_iam_role" "parse_arxiv_summaries_lambda_execution_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_lambda_basic_execution" {
-  role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
+resource "aws_iam_role_policy_attachment" "store_arxiv_summaries_lambda_basic_execution" {
+  role       = aws_iam_role.store_arxiv_summaries_lambda_execution_role.name
   policy_arn = local.basic_execution_role_arn
 }
 
-resource "aws_iam_policy" "parse_arxivc_summaries_lambda_s3_access" {
+resource "aws_iam_policy" "store_arxiv_summaries_lambda_s3_access" {
   name        = "${local.environment}-${local.service_name}-lambda-s3-access"
   description = "Allow Lambda to put objects in S3"
 
@@ -99,7 +95,6 @@ resource "aws_iam_policy" "parse_arxivc_summaries_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${local.data_bucket_arn}/${local.data_ingestion_key_prefix}/*",
           "${local.data_bucket_arn}/${local.etl_key_prefix}/*",
         ]
       },
@@ -116,7 +111,7 @@ resource "aws_iam_policy" "parse_arxivc_summaries_lambda_s3_access" {
   })
 }
 
-resource "aws_iam_policy" "parse_arxivc_summaries_kms_decrypt" {
+resource "aws_iam_policy" "store_arxiv_summaries_kms_decrypt" {
   name        = "${local.environment}-${local.service_name}-kms-decrypt"
   description = "Allow Lambda to decrypt KMS keys"
 
@@ -136,9 +131,9 @@ resource "aws_iam_policy" "parse_arxivc_summaries_kms_decrypt" {
   })
 }
 
-resource "aws_security_group" "parse_arxiv_summaries_security_group" {
+resource "aws_security_group" "store_arxiv_summaries_security_group" {
   name        = "${local.environment}-${local.service_name}-security-group"
-  description = "Security group for the parse arXiv summaries service"
+  description = "Security group for the store arXiv summaries service"
   vpc_id      = local.aws_vpc_id
 
   egress {
@@ -153,18 +148,17 @@ resource "aws_security_group" "parse_arxiv_summaries_security_group" {
   }
 }
 
-# keep mispelling - there is a bug where the properly spelled version always comes back as duplicate even though none can be found
-resource "aws_iam_role_policy_attachment" "parse_arxivc_summaries_lambda_s3_access_attachment" {
-  role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
-  policy_arn = aws_iam_policy.parse_arxivc_summaries_lambda_s3_access.arn
+resource "aws_iam_role_policy_attachment" "store_arxiv_summaries_lambda_s3_access_attachment" {
+  role       = aws_iam_role.store_arxiv_summaries_lambda_execution_role.name
+  policy_arn = aws_iam_policy.store_arxiv_summaries_lambda_s3_access.arn
 }
 
-resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_vpc_access_attachment" {
-  role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
+resource "aws_iam_role_policy_attachment" "store_arxiv_summaries_vpc_access_attachment" {
+  role       = aws_iam_role.store_arxiv_summaries_lambda_execution_role.name
   policy_arn = local.lambda_vpc_access_role
 }
 
-resource "aws_iam_role_policy_attachment" "parse_arxiv_summaries_kms_decrypt_attachment" {
-  role       = aws_iam_role.parse_arxiv_summaries_lambda_execution_role.name
-  policy_arn = aws_iam_policy.parse_arxivc_summaries_kms_decrypt.arn
+resource "aws_iam_role_policy_attachment" "store_arxiv_summaries_kms_decrypt_attachment" {
+  role       = aws_iam_role.store_arxiv_summaries_lambda_execution_role.name
+  policy_arn = aws_iam_policy.store_arxiv_summaries_kms_decrypt.arn
 }

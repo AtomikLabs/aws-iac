@@ -97,8 +97,8 @@ jobs:
         with:
           python-version: ${{matrix.python-version}}
 
-      - name: Zip data management layer package
-        id: zip-data-management-layer
+      - name: Build data management layer package
+        id: build-data-management-layer
         run: |
           mkdir -p build/layer_data_management/python
           cp services/layer_data_management/src/requirements.txt build/layer_data_management/python/
@@ -107,21 +107,29 @@ jobs:
           cp services/layer_data_management/src/layer_data_management/constants.py build/layer_data_management/python/
           pip install -r build/layer_data_management/python/requirements.txt -t build/layer_data_management/python/
 
-      - name: Zip Fetch Daily Summaries Lambda Function
-        id: zip-fetch-daily-summaries
+      - name: Build Fetch Daily Summaries Lambda Function
+        id: build-fetch-daily-summaries
         run: |
           mkdir -p build/fetch_daily_summaries
           cp services/fetch_daily_summaries/src/requirements.txt build/fetch_daily_summaries/
           cp services/fetch_daily_summaries/src/fetch_daily_summaries/lambda_handler.py build/fetch_daily_summaries/
           pip install -r build/fetch_daily_summaries/requirements.txt -t build/fetch_daily_summaries/
 
-      - name: Zip Parse arXiv Summaries Lambda Function
-        id: zip-parse-arxiv-summaries
+      - name: Build Parse arXiv Summaries Lambda Function
+        id: build-parse-arxiv-summaries
         run: |
           mkdir -p build/parse_arxiv_summaries
           cp services/parse_arxiv_summaries/src/requirements.txt build/parse_arxiv_summaries/
           cp services/parse_arxiv_summaries/src/parse_arxiv_summaries/lambda_handler.py build/parse_arxiv_summaries/
           pip install -r build/parse_arxiv_summaries/requirements.txt -t build/parse_arxiv_summaries/
+
+      - name: Build Store arXiv Summaries Lambda Function
+        id: build-store-arxiv-summaries
+        run: |
+          mkdir -p build/store_arxiv_summaries
+          cp services/store_arxiv_summaries/src/requirements.txt build/store_arxiv_summaries/
+          cp services/store_arxiv_summaries/src/store_arxiv_summaries/lambda_handler.py build/store_arxiv_summaries/
+          pip install -r build/store_arxiv_summaries/requirements.txt -t build/store_arxiv_summaries/
 
       - name: Ensure S3 bucket exists
         run: |

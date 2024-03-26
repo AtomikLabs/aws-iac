@@ -2,36 +2,6 @@
 # **********************************************************
 # DATA MANAGEMENT                                          *
 # **********************************************************
-output "aws_glue_catalog_database_data_catalog_database_arn" {
-  description = "AWS Glue Catalog Database ARN for data catalog"
-  value       = module.data_management.aws_glue_catalog_database_data_catalog_database_arn
-}
-
-output "aws_glue_catalog_database_data_catalog_database_id" {
-  description = "AWS Glue Catalog Database ID for data catalog"
-  value       = module.data_management.aws_glue_catalog_database_data_catalog_database_id
-}
-
-output "aws_glue_catalog_database_data_catalog_database_name" {
-  description = "AWS Glue Catalog Database for data catalog"
-  value       = module.data_management.aws_glue_catalog_database_data_catalog_database_name
-}
-
-output "aws_glue_catalog_table_data_catalog_table_data_ingestion_metadata_table_arn" {
-    description = "AWS Glue Catalog Table ARN for data ingestion metadata"
-    value       = module.data_management.aws_glue_catalog_table_data_catalog_table_data_ingestion_metadata_table_arn
-}
-
-output "aws_glue_catalog_table_data_catalog_table_data_ingestion_metadata_table_id" {
-  description = "AWS Glue Catalog Table ID for data ingestion metadata"
-  value       = module.data_management.aws_glue_catalog_table_data_catalog_table_data_ingestion_metadata_table_id
-}
-
-output "aws_glue_catalog_table_data_catalog_table_data_ingestion_metadata_table_name" {
-  description = "AWS Glue Catalog Table for data ingestion metadata"
-  value       = module.data_management.aws_glue_catalog_table_data_catalog_table_data_ingestion_metadata_table_name
-}
-
 output "aws_iam_policy_s3_infra_config_bucket_access" {
     description = "IAM policy for S3 infra config bucket access"
     value       = module.data_management.aws_iam_policy_s3_infra_config_bucket_access

@@ -47,7 +47,6 @@ def lambda_handler(event, context):
     """
     try:
         log_initial_info(event)
-        print(event)
         config = get_config()
         bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
         key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")

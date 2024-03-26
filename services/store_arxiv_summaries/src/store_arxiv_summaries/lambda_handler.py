@@ -4,7 +4,7 @@ import urllib.parse
 from typing import Dict, List
 
 import structlog
-from constants import APP_NAME, DATA_BUCKET, ENVIRONMENT_NAME, ETL_KEY_PREFIX, SERVICE_NAME, SERVICE_VERSION
+from constants import DATA_BUCKET, NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, SERVICE_NAME, SERVICE_VERSION
 from neo4j_manager import Neo4jDatabase
 from storage_manager import StorageManager
 
@@ -50,11 +50,7 @@ def lambda_handler(event, context):
         store_records(json_data.get("records"), bucket_name, key)
         return {"statusCode": 200, "body": "Success"}
     except Exception as e:
-        logger.error(
-            "An error occurred",
-            method=lambda_handler.__name__,
-            error=str(e),
-        )
+        logger.error("An error occurred", method=lambda_handler.__name__, error=str(e))
         return {"statusCode": 500, "body": "Internal server error", "error": str(e), "event": event}
 
 
@@ -87,10 +83,10 @@ def get_config() -> dict:
     """
     try:
         config = {
-            APP_NAME: os.environ[APP_NAME],
             DATA_BUCKET: os.environ[DATA_BUCKET],
-            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
-            ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
+            NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
+            NEO4J_URI: os.environ[NEO4J_URI],
+            NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
@@ -102,7 +98,7 @@ def get_config() -> dict:
     return config
 
 
-def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
+def store_records(records: List[Dict], bucket_name: str, key: str, service_name: str, service_version: str) -> Dict:
     """
     Stores arxiv research summary records in the neo4j database.
 
@@ -110,9 +106,11 @@ def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
         records (List[Dict]): The arXiv records to store.
         bucket_name (str): The S3 bucket name for the parsed arXiv records.
         key (str): The S3 key for the parsed arXiv records.
+        service_name (str): The name of the service storing the records.
+        service_version (str): The version of the service storing the records.
 
     Returns:
-        int: The number of records stored.
+        Dict: The stored and failed records for further processing.
     """
     if not records or not isinstance(records, list):
         logger.error(
@@ -122,14 +120,36 @@ def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
             records=records,
         )
         raise ValueError("Records must be present and be a list of dict.")
-    if not key or not isinstance(key, str):
+    if not bucket_name or not isinstance(bucket_name, str):
         logger.error(
-            "Key for parsed records must be present and be a string.",
+            "Bucket name for parsed records must be present and be a string.",
+            method=store_records.__name__,
+            bucket_name_type=type(bucket_name),
+            bucket_name=bucket_name,
+        )
+        raise ValueError("Bucket name must be present and be a string.")
+    if (
+        not key
+        or not isinstance(key, str)
+        or not service_name
+        or not isinstance(service_name, str)
+        or not service_version
+        or not isinstance(service_version, str)
+    ):
+        logger.error(
+            "Key, service name, and service version must be present and be strings.",
             method=store_records.__name__,
             key_type=type(key),
             key=key,
+            service_name_type=type(service_name),
+            service_name=service_name,
+            service_version_type=type(service_version),
+            service_version=service_version,
         )
-        raise ValueError("Key must be present and be a string.")
+        raise ValueError(
+            "Key, service name, and service version must be present \
+                         and be strings."
+        )
     total = len(records)
     malformed_records = []
     well_formed_records = []
@@ -155,10 +175,26 @@ def store_records(records: List[Dict], bucket_name: str, key: str) -> int:
                 method=store_records.__name__,
                 num_well_formed_records=len(well_formed_records),
             )
-            db = Neo4jDatabase(logger)
-            db.store_arxiv_records(well_formed_records)
+            db = Neo4jDatabase(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)
+            db.store_arxiv_records(key, well_formed_records, service_name, service_version)
             logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
-
+            # TODO: set alerting for malformed records
+            logger.info(
+                "Malfored records found",
+                method=store_records.__name__,
+                num_records=len(malformed_records),
+                malformed_records=malformed_records,
+            )
+            if total != len(well_formed_records) + len(malformed_records):
+                # set alerting for unprocessed records
+                logger.error(
+                    "Some records were not processed",
+                    method=store_records.__name__,
+                    num_records=len(records),
+                    num_well_formed_records=len(well_formed_records),
+                    num_malformed_records=len(malformed_records),
+                )
+        return {"stored": well_formed_records, "failed": malformed_records}
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
