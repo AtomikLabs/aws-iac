@@ -164,7 +164,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str) -> Dict:
                 num_well_formed_records=len(well_formed_records),
             )
             db = Neo4jDatabase(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)
-            db.store_arxiv_records(well_formed_records)
+            db.store_arxiv_records(key, well_formed_records)
             logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
             # TODO: set alerting for malformed records
             logger.info(
