@@ -787,7 +787,7 @@ class Neo4jDatabase:
                     MERGE (ab:Abstract {{uuid: $abstract_uuid, text: $abstract, url: $abstract_url, created: $current_date, last_modified: $current_date}})
                     MERGE (f:FullText {{uuid: $full_text_uuid, url: $full_text_url, created: $current_date, last_modified: $current_date}})
                     MERGE (ar)-[:CREATED_BY {{uuid: $created_by_uuid}}]->(d)
-                    MERGE (d)-[:CREATES {{uuid: $creates_from_uuid}}]->(ar)
+                    MERGE (d)-[:CREATES {{uuid: $creates_uuid}}]->(ar)
                     MERGE (ar)-[:HAS_ABSTRACT {{uuid: $has_abstract_uuid}}]->(ab)
                     MERGE (ar)-[:HAS_FULL_TEXT {{uuid: $has_full_text_uuid}}]->(f)
                     MERGE (ab)-[:ABSTRACT_OF {{uuid: $abstract_of_uuid}}]->(ar)
@@ -801,7 +801,7 @@ class Neo4jDatabase:
                     primary_category=primary_category,
                     group=group,
                     research_uuid=research_uuid,
-                    arxivId=arxiv_identifier,
+                    arxiv_identifier=arxiv_identifier,
                     research_date=research_date,
                     title=title,
                     current_date=current_date,
