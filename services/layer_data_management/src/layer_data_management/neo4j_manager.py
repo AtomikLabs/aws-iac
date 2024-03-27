@@ -825,7 +825,7 @@ class Neo4jDatabase:
                     database_=DEFAULT_NEO4J_DB,
                 )
 
-                if summary.counters.nodes_created != 4:
+                if summary.counters.nodes_created < 2 or summary.counters.relationships_created > 4:
                     message = "Failed to create arXiv record node or multiple nodes were created."
                     logger.error(
                         message,
