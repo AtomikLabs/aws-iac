@@ -414,24 +414,24 @@ class Neo4jDatabase:
 
     def create_arxiv_parsed_node(
         self,
-        output_key: str,
+        raw_data_key: str,
         size_bytes: int,
         service_name: str,
         service_version: str,
         parsed_date: datetime,
         raw_data_bucket_name: str,
-        raw_data_key: str,
+        output_key: str,
     ) -> dict:
         """
         Creates a parsed node in the Neo4j database.
 
         Args:
-            output_key (str): The key where the parsed data is stored.
+            raw_data_key (str): The key where the raw data is stored.
             service_name (str): The name of the service that parsed the data.
             service_version (str): The version of the service that parsed the data.
             parsed_date (datetime): The date the data was parsed.
             raw_data_bucket_name (str): The name of the bucket where the raw data is stored.
-            raw_data_key (str): The key where the raw data is stored.
+            output_key (str): The key where the parsed data is stored.
 
         Returns:
             dict: The parsed node data.
@@ -523,7 +523,7 @@ class Neo4jDatabase:
 
                 records, summary, _ = driver.execute_query(
                     """
-                    MATCH (d:Data {storage_uri: $data_output_key})
+                    MATCH (d:Data {storage_uri: $raw_data_key})
                     MERGE (p:Data {uuid: $parsed_uuid, description: $parsed_desc, format: $format, bucket: $parsed_bucket, storage_uri: $output_key, size_bytes: $size_bytes})
                     MERGE (dop:DataOperation {uuid: $dop_uuid, date: $dop_date, name: $dop_name, method_name: $service_name, method_version: $service_version})
                     MERGE (d)-[:PARSED_BY {uuid: $parsed_by_uuid}]->(dop)
@@ -532,7 +532,7 @@ class Neo4jDatabase:
                     MERGE (dop)-[:CREATES {uuid: $creates_uuid}]->(p)
                     RETURN p, dop
                     """,
-                    data_output_key=output_key,
+                    raw_data_key=raw_data_key,
                     parsed_uuid=parsed_uuid,
                     parsed_desc=parsed_desc,
                     format=parsed_format,
@@ -629,23 +629,23 @@ class Neo4jDatabase:
             try:
                 with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
                     driver.verify_connectivity()
-                    records, summary, _ = driver.execute_query(
+                    parsed_records, summary, _ = driver.execute_query(
                         """
                         MATCH (d:Data {storage_uri: $parse_key}) RETURN d.uuid AS uuid
                         """,
                         parse_key=parse_key,
                         database_=DEFAULT_NEO4J_DB,
                     )
-                    if len(records) != 1:
+                    if len(parsed_records) != 1:
                         message = "Data node not found for parse key. Must create it first."
                         logger.error(
                             message,
                             method=self.store_arxiv_records.__name__,
                             parse_key=parse_key,
-                            records=records,
+                            records=parsed_records,
                         )
                         raise ValueError(message)
-                    parsed_data_uuid = records[0].data().get("uuid")
+                    parsed_data_uuid = parsed_records[0].data().get("uuid")
                     now = StorageManager.get_storage_key_datetime()
                     dop_uuid = uuid.uuid4().__str__()
                     dop_name = "Load arXiv records."
@@ -682,10 +682,10 @@ class Neo4jDatabase:
                         )
                         raise RuntimeError(message)
                     load_uuid = r[0].data().get("uuid")
-                for record in records[:3]:
+                for record in records[:1]:
                     try:
-                        arXiv_identifier = record.get("identifier")
-                        if not arXiv_identifier:
+                        arxiv_identifier = record.get("identifier")
+                        if not arxiv_identifier:
                             raise ValueError("ArXiv identifier is required.")
                         node = self.create_arxiv_node(record, parsed_data_uuid, load_uuid)
                         results.get("stored").append(node.get("title"))
@@ -702,7 +702,7 @@ class Neo4jDatabase:
                 logger.info(
                     "Stored arXiv records in neo4j.",
                     method=self.store_arxiv_records.__name__,
-                    num_stored=len(len(results.get("stored"))),
+                    num_stored=len(results.get("stored")),
                     num_failed=len(results.get("failed")),
                 )
             except Exception as e:
@@ -746,7 +746,7 @@ class Neo4jDatabase:
 
                 research_uuid = uuid.uuid4().__str__()
                 arxiv_identifier = record.get("identifier")
-                research_date = StorageManager.get_storage_key_datetime(record.get("date"))
+                research_date = record.get("date")
                 title = record.get("title")
 
                 abstract_uuid = uuid.uuid4().__str__()
@@ -757,15 +757,18 @@ class Neo4jDatabase:
                 full_text_url = record.get("abstract_url").replace("/abs/", "/pdf/")
 
                 # authors = record.get("authors")
-
+                primary_category = record.get("primary_category", "")
                 categories = record.get("categories", [])
                 categories_query = "\n".join(
                     [
-                        f"MERGE (ar)-[:ArxivCategory {{uuid: '{uuid.uuid4().__str__()}'}}]->(:ArxivCategory {{code: '{cat}'}})"
+                        f"""
+                        MERGE (ar)-[:BELONGS_TO {{uuid: '{uuid.uuid4().__str__()}'}}]->(:ArxivCategory {{code: '{cat}'}})
+                        MERGE (:ArxivCategory {{code: '{cat}'}})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)
+                        """
                         for cat in categories
+                        if cat != primary_category
                     ]
                 )
-                primary_category = record.get("primary_category", "")
 
                 group = record.get("group", "")
 
@@ -787,21 +790,21 @@ class Neo4jDatabase:
                     MERGE (ab:Abstract {{uuid: $abstract_uuid, text: $abstract, url: $abstract_url, created: $current_date, last_modified: $current_date}})
                     MERGE (f:FullText {{uuid: $full_text_uuid, url: $full_text_url, created: $current_date, last_modified: $current_date}})
                     MERGE (ar)-[:CREATED_BY {{uuid: $created_by_uuid}}]->(d)
-                    MERGE (d)-[:CREATES {{uuid: $creates_from_uuid}}]->(ar)
+                    MERGE (d)-[:CREATES {{uuid: $creates_uuid}}]->(ar)
                     MERGE (ar)-[:HAS_ABSTRACT {{uuid: $has_abstract_uuid}}]->(ab)
                     MERGE (ar)-[:HAS_FULL_TEXT {{uuid: $has_full_text_uuid}}]->(f)
                     MERGE (ab)-[:ABSTRACT_OF {{uuid: $abstract_of_uuid}}]->(ar)
                     MERGE (f)-[:FULL_TEXT_OF {{uuid: $full_text_of_uuid}}]->(ar)
-                    MERGE (ar)-[:BELONGS_TO {{uuid: belongs_to_uuid}}]->(ac)
+                    MERGE (ar)-[:BELONGS_TO {{uuid: $belongs_to_uuid}}]->(ac)
                     MERGE (ac)-[:HAS_RESEARCH {{uuid: $research_uuid}}]->(ar)
                     {categories_query}
-                    RETURN n
+                    RETURN ar
                     """,
                     load_uuid=load_uuid,
                     primary_category=primary_category,
                     group=group,
                     research_uuid=research_uuid,
-                    arxivId=arxiv_identifier,
+                    arxiv_identifier=arxiv_identifier,
                     research_date=research_date,
                     title=title,
                     current_date=current_date,
@@ -821,8 +824,8 @@ class Neo4jDatabase:
                     has_research_uuid=has_research_uuid,
                     database_=DEFAULT_NEO4J_DB,
                 )
-
-                if summary.counters.nodes_created != 1:
+                # TODO: fix this check to reflect all cases, no existing nodes, some existing nodes, etc.
+                if summary.counters.nodes_created < 2:
                     message = "Failed to create arXiv record node or multiple nodes were created."
                     logger.error(
                         message,

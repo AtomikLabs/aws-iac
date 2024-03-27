@@ -3,7 +3,11 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import get_config, store_records
+from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import (
+    get_config,
+    store_records,
+    lambda_handler,
+)
 
 
 class TestLambdaHandler(unittest.TestCase):
@@ -52,16 +56,24 @@ class TestLambdaHandler(unittest.TestCase):
         records_param = [{"test": "test"}, {"test": "test"}]
         bucket_name_param = "test-bucket"
         key_param = "test-key"
+        mock_config = {
+            "DATA_BUCKET": "test-bucket",
+            "NEO4J_PASSWORD": "test-password",
+            "NEO4J_URI": "test-uri",
+            "NEO4J_USERNAME": "test-username",
+            "SERVICE_NAME": "test-service",
+            "SERVICE_VERSION": "test-version",
+        }
         with self.assertRaises(ValueError):
-            store_records(None, bucket_name_param, key_param)
+            store_records(None, bucket_name_param, key_param, mock_config)
         with self.assertRaises(ValueError):
-            store_records(123, bucket_name_param, key_param)
+            store_records(123, bucket_name_param, key_param, mock_config)
         with self.assertRaises(ValueError):
-            store_records(records_param, None, key_param)
+            store_records(records_param, None, key_param, mock_config)
         with self.assertRaises(ValueError):
-            store_records(records_param, 123, key_param)
+            store_records(records_param, 123, key_param, mock_config)
         with self.assertRaises(ValueError):
-            store_records(records_param, bucket_name_param, None)
+            store_records(records_param, bucket_name_param, None, mock_config)
 
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
     def test_store_records_with_valid_params(self, mock_neo4j_database):
@@ -73,7 +85,15 @@ class TestLambdaHandler(unittest.TestCase):
         bucket_name_param = "test-bucket"
         key_param = "test-key"
         mock_neo4j_database().store_records.return_value = expected_results
-        result = store_records(records_param, bucket_name_param, key_param)
+        mock_config = {
+            "DATA_BUCKET": "test-bucket",
+            "NEO4J_PASSWORD": "test-password",
+            "NEO4J_URI": "test-uri",
+            "NEO4J_USERNAME": "test-username",
+            "SERVICE_NAME": "test-service",
+            "SERVICE_VERSION": "test-version",
+        }
+        result = store_records(records_param, bucket_name_param, key_param, mock_config)
         self.assertEqual(len(expected_results), len(result))
 
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.get_config")
@@ -84,3 +104,63 @@ class TestLambdaHandler(unittest.TestCase):
         self, mock_storage_manager, mock_neo4j_database, mock_store_records, mock_get_config
     ):
         mock_storage_manager().load.return_value = json.dumps([{"test": "test"}, {"test": "test"}])
+
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.urllib.parse.unquote_plus")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.json.loads")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.get_config")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.StorageManager")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.store_records")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.log_initial_info")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.structlog")
+    def test_lambda_handler_success(
+        self,
+        mock_structlog,
+        mock_log_initial_info,
+        mock_store_records,
+        mock_storage_manager_cls,
+        mock_get_config,
+        mock_json_loads,
+        mock_unquote_plus,
+    ):
+        mock_unquote_plus.return_value = "test-key.json"
+        mock_get_config.return_value = {"key": "value"}
+        mock_storage_manager = MagicMock()
+        mock_storage_manager_cls.return_value = mock_storage_manager
+        mock_json_loads.return_value = {"records": [{"id": 1}, {"id": 2}]}
+
+        response = lambda_handler(self.event, self.context)
+
+        mock_log_initial_info.assert_called_once_with(self.event)
+        mock_unquote_plus.assert_called_once_with(self.event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
+        mock_get_config.assert_called_once()
+        self.assertEqual(response, {"statusCode": 200, "body": "Success"})
+
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.urllib.parse.unquote_plus")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.json.loads")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.get_config")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.StorageManager")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.log_initial_info")
+    def test_lambda_handler_no_records(
+        self, mock_log_initial_info, mock_storage_manager_cls, mock_get_config, mock_json_loads, mock_unquote_plus
+    ):
+        mock_unquote_plus.return_value = "test-key.json"
+        mock_get_config.return_value = {}
+        mock_storage_manager = MagicMock()
+        mock_storage_manager_cls.return_value = mock_storage_manager
+        mock_json_loads.return_value = {}
+        response = lambda_handler(self.event, self.context)
+        self.assertEqual(response, {"statusCode": 400, "body": "No records found"})
+
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.urllib.parse.unquote_plus")
+    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.log_initial_info")
+    def test_lambda_handler_exception(self, mock_log_initial_info, mock_unquote_plus):
+        mock_unquote_plus.side_effect = Exception("Test exception")
+
+        response = lambda_handler(self.event, self.context)
+
+        mock_log_initial_info.assert_called_once_with(self.event)
+        mock_unquote_plus.assert_called_once_with(self.event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
+        self.assertEqual(
+            response,
+            {"statusCode": 500, "body": "Internal server error", "error": "Test exception", "event": self.event},
+        )
