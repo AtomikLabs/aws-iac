@@ -682,10 +682,11 @@ class Neo4jDatabase:
                         )
                         raise RuntimeError(message)
                     load_uuid = r[0].data().get("uuid")
-                for record in records[:3]:
+                for record in records[:1]:
                     try:
-                        arXiv_identifier = record.get("identifier")
-                        if not arXiv_identifier:
+                        print(record)
+                        arxiv_identifier = record.get("identifier")
+                        if not arxiv_identifier:
                             raise ValueError("ArXiv identifier is required.")
                         node = self.create_arxiv_node(record, parsed_data_uuid, load_uuid)
                         results.get("stored").append(node.get("title"))
@@ -702,7 +703,7 @@ class Neo4jDatabase:
                 logger.info(
                     "Stored arXiv records in neo4j.",
                     method=self.store_arxiv_records.__name__,
-                    num_stored=len(len(results.get("stored"))),
+                    num_stored=len(results.get("stored")),
                     num_failed=len(results.get("failed")),
                 )
             except Exception as e:
