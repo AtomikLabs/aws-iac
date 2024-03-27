@@ -682,7 +682,7 @@ class Neo4jDatabase:
                         )
                         raise RuntimeError(message)
                     load_uuid = r[0].data().get("uuid")
-                for record in records[:1]:
+                for record in records:
                     try:
                         arxiv_identifier = record.get("identifier")
                         if not arxiv_identifier:
