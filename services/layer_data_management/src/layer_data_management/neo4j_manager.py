@@ -629,23 +629,23 @@ class Neo4jDatabase:
             try:
                 with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
                     driver.verify_connectivity()
-                    records, summary, _ = driver.execute_query(
+                    parsed_records, summary, _ = driver.execute_query(
                         """
                         MATCH (d:Data {storage_uri: $parse_key}) RETURN d.uuid AS uuid
                         """,
                         parse_key=parse_key,
                         database_=DEFAULT_NEO4J_DB,
                     )
-                    if len(records) != 1:
+                    if len(parsed_records) != 1:
                         message = "Data node not found for parse key. Must create it first."
                         logger.error(
                             message,
                             method=self.store_arxiv_records.__name__,
                             parse_key=parse_key,
-                            records=records,
+                            records=parsed_records,
                         )
                         raise ValueError(message)
-                    parsed_data_uuid = records[0].data().get("uuid")
+                    parsed_data_uuid = parsed_records[0].data().get("uuid")
                     now = StorageManager.get_storage_key_datetime()
                     dop_uuid = uuid.uuid4().__str__()
                     dop_name = "Load arXiv records."
@@ -684,7 +684,6 @@ class Neo4jDatabase:
                     load_uuid = r[0].data().get("uuid")
                 for record in records[:1]:
                     try:
-                        print(record)
                         arxiv_identifier = record.get("identifier")
                         if not arxiv_identifier:
                             raise ValueError("ArXiv identifier is required.")
