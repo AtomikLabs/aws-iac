@@ -178,3 +178,6 @@ show_notes/
 # Node
 node_modules/
 coverage/
+
+# Custom docs
+**/custom_newsletter.docx

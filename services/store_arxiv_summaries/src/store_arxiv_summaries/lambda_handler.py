@@ -37,6 +37,7 @@ def lambda_handler(event, context):
         log_initial_info(event)
         bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
         key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
+        config = get_config()
         storage_manager = StorageManager(bucket_name, logger)
         json_data = json.loads(storage_manager.load(key))
         if not json_data or not json_data.get("records"):
@@ -47,7 +48,7 @@ def lambda_handler(event, context):
             method=lambda_handler.__name__,
             num_records=len(json_data["records"]),
         )
-        store_records(json_data.get("records"), bucket_name, key)
+        store_records(json_data.get("records"), bucket_name, key, config)
         return {"statusCode": 200, "body": "Success"}
     except Exception as e:
         logger.error("An error occurred", method=lambda_handler.__name__, error=str(e))
@@ -98,7 +99,7 @@ def get_config() -> dict:
     return config
 
 
-def store_records(records: List[Dict], bucket_name: str, key: str, service_name: str, service_version: str) -> Dict:
+def store_records(records: List[Dict], bucket_name: str, key: str, config: dict) -> Dict:
     """
     Stores arxiv research summary records in the neo4j database.
 
@@ -106,8 +107,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, service_name:
         records (List[Dict]): The arXiv records to store.
         bucket_name (str): The S3 bucket name for the parsed arXiv records.
         key (str): The S3 key for the parsed arXiv records.
-        service_name (str): The name of the service storing the records.
-        service_version (str): The version of the service storing the records.
+        config (dict): The configuration for the service.
 
     Returns:
         Dict: The stored and failed records for further processing.
@@ -128,6 +128,11 @@ def store_records(records: List[Dict], bucket_name: str, key: str, service_name:
             bucket_name=bucket_name,
         )
         raise ValueError("Bucket name must be present and be a string.")
+    service_name = config.get(SERVICE_NAME)
+    service_version = config.get(SERVICE_VERSION)
+    neo4j_uri = config.get(NEO4J_URI)
+    neo4j_username = config.get(NEO4J_USERNAME)
+    neo4j_password = config.get(NEO4J_PASSWORD)
     if (
         not key
         or not isinstance(key, str)
@@ -175,7 +180,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, service_name:
                 method=store_records.__name__,
                 num_well_formed_records=len(well_formed_records),
             )
-            db = Neo4jDatabase(NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)
+            db = Neo4jDatabase(neo4j_uri, neo4j_username, neo4j_password)
             db.store_arxiv_records(key, well_formed_records, service_name, service_version)
             logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
             # TODO: set alerting for malformed records

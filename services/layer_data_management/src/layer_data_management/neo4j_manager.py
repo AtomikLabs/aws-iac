@@ -414,24 +414,24 @@ class Neo4jDatabase:
 
     def create_arxiv_parsed_node(
         self,
-        output_key: str,
+        raw_data_key: str,
         size_bytes: int,
         service_name: str,
         service_version: str,
         parsed_date: datetime,
         raw_data_bucket_name: str,
-        raw_data_key: str,
+        output_key: str,
     ) -> dict:
         """
         Creates a parsed node in the Neo4j database.
 
         Args:
-            output_key (str): The key where the parsed data is stored.
+            raw_data_key (str): The key where the raw data is stored.
             service_name (str): The name of the service that parsed the data.
             service_version (str): The version of the service that parsed the data.
             parsed_date (datetime): The date the data was parsed.
             raw_data_bucket_name (str): The name of the bucket where the raw data is stored.
-            raw_data_key (str): The key where the raw data is stored.
+            output_key (str): The key where the parsed data is stored.
 
         Returns:
             dict: The parsed node data.
@@ -523,7 +523,7 @@ class Neo4jDatabase:
 
                 records, summary, _ = driver.execute_query(
                     """
-                    MATCH (d:Data {storage_uri: $data_output_key})
+                    MATCH (d:Data {storage_uri: $raw_data_key})
                     MERGE (p:Data {uuid: $parsed_uuid, description: $parsed_desc, format: $format, bucket: $parsed_bucket, storage_uri: $output_key, size_bytes: $size_bytes})
                     MERGE (dop:DataOperation {uuid: $dop_uuid, date: $dop_date, name: $dop_name, method_name: $service_name, method_version: $service_version})
                     MERGE (d)-[:PARSED_BY {uuid: $parsed_by_uuid}]->(dop)
@@ -532,7 +532,7 @@ class Neo4jDatabase:
                     MERGE (dop)-[:CREATES {uuid: $creates_uuid}]->(p)
                     RETURN p, dop
                     """,
-                    data_output_key=output_key,
+                    raw_data_key=raw_data_key,
                     parsed_uuid=parsed_uuid,
                     parsed_desc=parsed_desc,
                     format=parsed_format,
