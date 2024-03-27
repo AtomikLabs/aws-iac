@@ -761,8 +761,11 @@ class Neo4jDatabase:
                 categories = record.get("categories", [])
                 categories_query = "\n".join(
                     [
-                        f"MERGE (ar)-[:ArxivCategory {{uuid: '{uuid.uuid4().__str__()}'}}]->(:ArxivCategory {{code: '{cat}'}})"
-                        for cat in categories
+                        f"""
+                        MERGE (ar)-[:BELONGS_TO {{uuid: '{uuid.uuid4().__str__()}'}}]->(:ArxivCategory {{code: '{cat}'}})
+                        MERGE (:ArxivCategory {{code: '{cat}'}})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)
+                        """
+                        for cat in categories if cat != primary_category
                     ]
                 )
                 primary_category = record.get("primary_category", "")
@@ -822,7 +825,7 @@ class Neo4jDatabase:
                     database_=DEFAULT_NEO4J_DB,
                 )
 
-                if summary.counters.nodes_created != 1:
+                if summary.counters.nodes_created != 4:
                     message = "Failed to create arXiv record node or multiple nodes were created."
                     logger.error(
                         message,
