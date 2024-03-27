@@ -795,7 +795,7 @@ class Neo4jDatabase:
                     MERGE (ar)-[:BELONGS_TO {{uuid: $belongs_to_uuid}}]->(ac)
                     MERGE (ac)-[:HAS_RESEARCH {{uuid: $research_uuid}}]->(ar)
                     {categories_query}
-                    RETURN n
+                    RETURN ar
                     """,
                     load_uuid=load_uuid,
                     primary_category=primary_category,
