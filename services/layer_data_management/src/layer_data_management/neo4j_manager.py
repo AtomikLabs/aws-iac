@@ -757,7 +757,7 @@ class Neo4jDatabase:
                 full_text_url = record.get("abstract_url").replace("/abs/", "/pdf/")
 
                 # authors = record.get("authors")
-
+                primary_category = record.get("primary_category", "")
                 categories = record.get("categories", [])
                 categories_query = "\n".join(
                     [
@@ -768,7 +768,7 @@ class Neo4jDatabase:
                         for cat in categories if cat != primary_category
                     ]
                 )
-                primary_category = record.get("primary_category", "")
+                
 
                 group = record.get("group", "")
 
