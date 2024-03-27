@@ -765,10 +765,10 @@ class Neo4jDatabase:
                         MERGE (ar)-[:BELONGS_TO {{uuid: '{uuid.uuid4().__str__()}'}}]->(:ArxivCategory {{code: '{cat}'}})
                         MERGE (:ArxivCategory {{code: '{cat}'}})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)
                         """
-                        for cat in categories if cat != primary_category
+                        for cat in categories
+                        if cat != primary_category
                     ]
                 )
-                
 
                 group = record.get("group", "")
 
