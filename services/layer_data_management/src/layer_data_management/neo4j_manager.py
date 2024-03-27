@@ -746,7 +746,7 @@ class Neo4jDatabase:
 
                 research_uuid = uuid.uuid4().__str__()
                 arxiv_identifier = record.get("identifier")
-                research_date = StorageManager.get_storage_key_datetime(record.get("date"))
+                research_date = record.get("date")
                 title = record.get("title")
 
                 abstract_uuid = uuid.uuid4().__str__()
