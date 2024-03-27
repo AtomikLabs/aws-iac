@@ -792,7 +792,7 @@ class Neo4jDatabase:
                     MERGE (ar)-[:HAS_FULL_TEXT {{uuid: $has_full_text_uuid}}]->(f)
                     MERGE (ab)-[:ABSTRACT_OF {{uuid: $abstract_of_uuid}}]->(ar)
                     MERGE (f)-[:FULL_TEXT_OF {{uuid: $full_text_of_uuid}}]->(ar)
-                    MERGE (ar)-[:BELONGS_TO {{uuid: belongs_to_uuid}}]->(ac)
+                    MERGE (ar)-[:BELONGS_TO {{uuid: $belongs_to_uuid}}]->(ac)
                     MERGE (ac)-[:HAS_RESEARCH {{uuid: $research_uuid}}]->(ar)
                     {categories_query}
                     RETURN n
