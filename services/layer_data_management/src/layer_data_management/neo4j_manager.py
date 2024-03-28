@@ -761,12 +761,13 @@ class Neo4jDatabase:
                 # authors = record.get("authors")
                 primary_category = record.get("primary_category", "")
                 categories = record.get("categories", [])
+                categories_match = ""
                 categories_query = ""
                 i = 0
                 for cat in categories:
                     if cat == primary_category:
                         continue
-                    categories_query += f"\n\nMATCH ({'ac' + str(i)}:ArxivCategory {{code: '{cat}'}})"
+                    categories_match += f"\nMATCH ({'ac' + str(i)}:ArxivCategory {{code: '{cat}'}})"
                     categories_query += (
                         f"\nMERGE (ar)-[:SECONDARY_CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({'ac' + str(i)})"
                     )
@@ -791,6 +792,7 @@ class Neo4jDatabase:
                     MATCH (d:DataOperation {{uuid: $load_uuid}})
                     MATCH (ac:ArxivCategory {{code: $primary_category}})
                     MATCH (as:ArxivSet {{code: $group}})
+                    {categories_match}
                     MERGE (ar:ArxivRecord {{uuid: $research_uuid, arxivId: $arxiv_identifier, date: $research_date, title: $title, created: $current_date, last_modified: $last_modified}})
                     MERGE (ab:Abstract {{uuid: $abstract_uuid, description: $abstract_description, text: $abstract, url: $abstract_url, created: $current_date, last_modified: $current_date}})
                     MERGE (f:FullText {{uuid: $full_text_uuid, description: $full_text_description, url: $full_text_url, created: $current_date, last_modified: $current_date}})
