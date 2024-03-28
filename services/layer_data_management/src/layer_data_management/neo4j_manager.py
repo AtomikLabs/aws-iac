@@ -750,25 +750,31 @@ class Neo4jDatabase:
                 title = record.get("title")
 
                 abstract_uuid = uuid.uuid4().__str__()
+                abstract_description = "Abstract of arXiv research summary."
                 abstract = record.get("abstract")
                 abstract_url = record.get("abstract_url")
 
                 full_text_uuid = uuid.uuid4().__str__()
+                full_text_description = "Full text of arXiv research summary."
                 full_text_url = record.get("abstract_url").replace("/abs/", "/pdf/")
 
                 # authors = record.get("authors")
                 primary_category = record.get("primary_category", "")
                 categories = record.get("categories", [])
-                categories_query = "\n".join(
-                    [
-                        f"""
-                        MERGE (ar)-[:BELONGS_TO {{uuid: '{uuid.uuid4().__str__()}'}}]->(:ArxivCategory {{code: '{cat}'}})
-                        MERGE (:ArxivCategory {{code: '{cat}'}})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)
-                        """
-                        for cat in categories
-                        if cat != primary_category
-                    ]
-                )
+                categories_match = ""
+                categories_query = ""
+                i = 0
+                for cat in categories:
+                    if cat == primary_category:
+                        continue
+                    categories_match += f"\nMATCH ({'ac' + str(i)}:ArxivCategory {{code: '{cat}'}})"
+                    categories_query += (
+                        f"\nMERGE (ar)-[:SECONDARY_CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({'ac' + str(i)})"
+                    )
+                    categories_query += (
+                        f"\nMERGE ({'ac' + str(i)})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)"
+                    )
+                    i += 1
 
                 group = record.get("group", "")
 
@@ -786,16 +792,17 @@ class Neo4jDatabase:
                     MATCH (d:DataOperation {{uuid: $load_uuid}})
                     MATCH (ac:ArxivCategory {{code: $primary_category}})
                     MATCH (as:ArxivSet {{code: $group}})
+                    {categories_match}
                     MERGE (ar:ArxivRecord {{uuid: $research_uuid, arxivId: $arxiv_identifier, date: $research_date, title: $title, created: $current_date, last_modified: $last_modified}})
-                    MERGE (ab:Abstract {{uuid: $abstract_uuid, text: $abstract, url: $abstract_url, created: $current_date, last_modified: $current_date}})
-                    MERGE (f:FullText {{uuid: $full_text_uuid, url: $full_text_url, created: $current_date, last_modified: $current_date}})
+                    MERGE (ab:Abstract {{uuid: $abstract_uuid, description: $abstract_description, text: $abstract, url: $abstract_url, created: $current_date, last_modified: $current_date}})
+                    MERGE (f:FullText {{uuid: $full_text_uuid, description: $full_text_description, url: $full_text_url, created: $current_date, last_modified: $current_date}})
                     MERGE (ar)-[:CREATED_BY {{uuid: $created_by_uuid}}]->(d)
                     MERGE (d)-[:CREATES {{uuid: $creates_uuid}}]->(ar)
                     MERGE (ar)-[:HAS_ABSTRACT {{uuid: $has_abstract_uuid}}]->(ab)
                     MERGE (ar)-[:HAS_FULL_TEXT {{uuid: $has_full_text_uuid}}]->(f)
                     MERGE (ab)-[:ABSTRACT_OF {{uuid: $abstract_of_uuid}}]->(ar)
                     MERGE (f)-[:FULL_TEXT_OF {{uuid: $full_text_of_uuid}}]->(ar)
-                    MERGE (ar)-[:BELONGS_TO {{uuid: $belongs_to_uuid}}]->(ac)
+                    MERGE (ar)-[:PRIMARY_CATEGORIZED_BY {{uuid: $belongs_to_uuid}}]->(ac)
                     MERGE (ac)-[:HAS_RESEARCH {{uuid: $research_uuid}}]->(ar)
                     {categories_query}
                     RETURN ar
@@ -810,9 +817,11 @@ class Neo4jDatabase:
                     current_date=current_date,
                     last_modified=current_date,
                     abstract_uuid=abstract_uuid,
+                    abstract_description=abstract_description,
                     abstract=abstract,
                     abstract_url=abstract_url,
                     full_text_uuid=full_text_uuid,
+                    full_text_description=full_text_description,
                     full_text_url=full_text_url,
                     created_by_uuid=created_by_uuid,
                     creates_uuid=creates_uuid,
