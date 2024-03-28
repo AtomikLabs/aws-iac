@@ -762,7 +762,7 @@ class Neo4jDatabase:
                 categories_query = "\n".join(
                     [
                         f"""
-                        MERGE (ar)-[:BELONGS_TO {{uuid: '{uuid.uuid4().__str__()}'}}]->(:ArxivCategory {{code: '{cat}'}})
+                        \n\nMERGE (ar)-[:BELONGS_TO {{uuid: '{uuid.uuid4().__str__()}'}}]->(:ArxivCategory {{code: '{cat}'}})
                         MERGE (:ArxivCategory {{code: '{cat}'}})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)
                         """
                         for cat in categories
