@@ -2,6 +2,7 @@ from datetime import date, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
+import unittest
 from neo4j.exceptions import ServiceUnavailable
 
 from services.layer_data_management.src.layer_data_management.neo4j_manager import Neo4jDatabase
@@ -270,8 +271,30 @@ def test_create_arxiv_raw_data_node_dates_missing_or_wrong_type(neo4j_db):
         )
     with pytest.raises(ValueError):
         neo4j_db.create_arxiv_raw_data_node(
+            123,
+            ARXIV_RAW_DATA_PARAMS["date_to"],
+            ARXIV_RAW_DATA_PARAMS["date_obtained"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_raw_data_node(
             ARXIV_RAW_DATA_PARAMS["date_from"],
             None,
+            ARXIV_RAW_DATA_PARAMS["date_obtained"],
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_raw_data_node(
+            ARXIV_RAW_DATA_PARAMS["date_from"],
+            123,
             ARXIV_RAW_DATA_PARAMS["date_obtained"],
             ARXIV_RAW_DATA_PARAMS["method_name"],
             ARXIV_RAW_DATA_PARAMS["method_version"],
@@ -290,6 +313,18 @@ def test_create_arxiv_raw_data_node_dates_missing_or_wrong_type(neo4j_db):
             ARXIV_RAW_DATA_PARAMS["bucket_name"],
             ARXIV_RAW_DATA_PARAMS["storage_uri"],
         )
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_raw_data_node(
+            ARXIV_RAW_DATA_PARAMS["date_from"],
+            ARXIV_RAW_DATA_PARAMS["date_to"],
+            123,
+            ARXIV_RAW_DATA_PARAMS["method_name"],
+            ARXIV_RAW_DATA_PARAMS["method_version"],
+            ARXIV_RAW_DATA_PARAMS["size_bytes"],
+            ARXIV_RAW_DATA_PARAMS["bucket_name"],
+            ARXIV_RAW_DATA_PARAMS["storage_uri"],
+        )
+    
 
 
 def test_create_arxiv_raw_data_node_method_name_version_missing_or_wrong_type(neo4j_db):
@@ -644,4 +679,134 @@ def test_create_arxiv_parsed_node_missing_or_wrong_type(neo4j_db):
             datetime.now(),
             ARXIV_RAW_DATA_PARAMS["bucket_name"],
             None,
+        )
+
+def test_check_arxiv_research_exists_with_missing_params(neo4j_db):
+    with pytest.raises(ValueError):
+        neo4j_db.check_arxiv_research_exists(None)
+    with pytest.raises(ValueError):
+        neo4j_db.check_arxiv_research_exists(1)
+
+def test_check_arxiv_research_exists_with_valid_identifier(neo4j_db):
+    with patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver") as mock_driver:
+        mock_session = MagicMock()
+        mock_driver.return_value.__enter__.return_value = mock_session
+        mock_session.execute_query.return_value = ([MagicMock(data=lambda: {"arxivId": "1234.5678"})], None, None)
+
+        result = neo4j_db.check_arxiv_research_exists("1234.5678")
+        assert result == {"arxivId": "1234.5678"}
+
+def test_check_arxiv_research_exists_with_non_existent_identifier(neo4j_db):
+    with patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver") as mock_driver:
+        mock_session = MagicMock()
+        mock_driver.return_value.__enter__.return_value = mock_session
+        mock_session.execute_query.return_value = ([], None, None)
+
+        result = neo4j_db.check_arxiv_research_exists("non_existent_id")
+        assert result == {}
+
+def test_check_arxiv_research_exists_with_multiple_records(neo4j_db):
+    with patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver") as mock_driver:
+        mock_session = MagicMock()
+        mock_driver.return_value.__enter__.return_value = mock_session
+        mock_session.execute_query.return_value = ([MagicMock(), MagicMock()], None, None)
+
+        with pytest.raises(RuntimeError):
+            neo4j_db.check_arxiv_research_exists("duplicate_id")
+
+def test_check_arxiv_research_exists_with_database_error(neo4j_db):
+    with patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver") as mock_driver:
+        mock_driver.side_effect = Exception("Database connection error")
+
+        with pytest.raises(Exception):
+            neo4j_db.check_arxiv_research_exists("1234.5678")
+
+@patch('services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver')
+def test_create_arxiv_parsed_node_success(mock_driver, neo4j_db):
+    mock_driver.return_value.verify_connectivity.return_value = None
+    mock_driver.return_value.__enter__.return_value.execute_query.return_value = mock_driver.return_value.execute_query.return_value = (
+        ARXIV_RAW_DATA_RESPONSE,
+        MagicMock(counters=MagicMock(nodes_created=2, relationships_created=0)),
+        None,
+    )
+    
+    result = neo4j_db.create_arxiv_parsed_node(
+        raw_data_key="raw_key", 
+        size_bytes=100,
+        service_name="parser",
+        service_version="1.0",
+        parsed_date=datetime(2023, 3, 28),
+        raw_data_bucket_name="raw-bucket",
+        output_key="output_key"
+    )
+    assert isinstance(result, dict)
+    assert result == ARXIV_RAW_DATA_RESPONSE
+
+def test_create_arxiv_parsed_node_missing_credentials(neo4j_db):
+    neo4j_db.username = None
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            raw_data_key="raw_key",
+            size_bytes=100, 
+            service_name="parser",
+            service_version="1.0",
+            parsed_date=datetime(2023, 3, 28),
+            raw_data_bucket_name="raw-bucket",
+            output_key="output_key"
+        )
+    neo4j_db.username = "neo4j"
+    neo4j_db.password = None
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            raw_data_key="raw_key",
+            size_bytes=100, 
+            service_name="parser",
+            service_version="1.0",
+            parsed_date=datetime(2023, 3, 28),
+            raw_data_bucket_name="raw-bucket",
+            output_key="output_key"
+        )
+
+def test_create_arxiv_parsed_node_missing_required_params(neo4j_db):
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            raw_data_key=None,
+            size_bytes=100,
+            service_name="parser", 
+            service_version="1.0",
+            parsed_date=datetime(2023, 3, 28),
+            raw_data_bucket_name="raw-bucket",
+            output_key="output_key"
+        )
+
+def test_create_arxiv_parsed_node_invalid_param_types(neo4j_db):
+    with pytest.raises(ValueError):
+        neo4j_db.create_arxiv_parsed_node(
+            raw_data_key=123, 
+            size_bytes="100",
+            service_name="parser",
+            service_version="1.0", 
+            parsed_date="2023-03-28",
+            raw_data_bucket_name="raw-bucket",
+            output_key="output_key"  
+        )
+    
+@patch('services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver')
+def test_create_arxiv_parsed_node_incorrect_nodes_created(mock_driver, neo4j_db):
+    mock_driver.return_value.verify_connectivity.return_value = None  
+    mock_driver.return_value.__enter__.return_value.execute_query.return_value = (
+        [MagicMock(data=lambda: ARXIV_RAW_DATA_RESPONSE)],
+        MagicMock(counters=MagicMock(nodes_created=0, relationships_created=0)),
+        None,
+    )
+
+    with pytest.raises(RuntimeError):
+        neo4j_db.create_arxiv_parsed_node(
+            raw_data_key="raw_key",
+            size_bytes=100,
+            service_name="parser",
+            service_version="1.0",
+            parsed_date=datetime(2023, 3, 28), 
+            raw_data_bucket_name="raw-bucket",
+            output_key="output_key"
         )

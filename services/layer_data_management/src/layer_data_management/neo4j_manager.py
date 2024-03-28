@@ -375,7 +375,7 @@ class Neo4jDatabase:
             message = "arXiv identifier is required and must be a string."
             logger.error(
                 message,
-                method=self.check_arxiv_record_exists.__name__,
+                method=self.check_arxiv_research_exists.__name__,
                 arXiv_identifier=arXiv_identifier,
             )
             raise ValueError(message)
@@ -390,7 +390,7 @@ class Neo4jDatabase:
                 if len(records) == 1:
                     logger.debug(
                         "Found arXiv record.",
-                        method=self.check_arxiv_record_exists.__name__,
+                        method=self.check_arxiv_research_exists.__name__,
                         arXiv_identifier=arXiv_identifier,
                     )
                     return records[0].data()
@@ -398,7 +398,7 @@ class Neo4jDatabase:
                     message = "Multiple arXiv records found with the same title and date. Investigate."
                     logger.error(
                         message,
-                        method=self.check_arxiv_record_exists.__name__,
+                        method=self.check_arxiv_research_exists.__name__,
                         arXiv_identifier=arXiv_identifier,
                     )
                     raise RuntimeError(message)
@@ -407,7 +407,7 @@ class Neo4jDatabase:
             message = "An error occurred while trying to check if an arXiv record exists."
             logger.error(
                 message,
-                method=self.check_arxiv_record_exists.__name__,
+                method=self.check_arxiv_research_exists.__name__,
                 error=str(e),
             )
             raise e
