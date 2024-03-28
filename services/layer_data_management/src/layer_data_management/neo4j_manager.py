@@ -766,12 +766,12 @@ class Neo4jDatabase:
                 for cat in categories:
                     if cat == primary_category:
                         continue
-                    categories_query += f"\n\nMATCH ({'ac' + i}:ArxivCategory {{code: '{cat}'}})"
+                    categories_query += f"\n\nMATCH ({'ac' + str(i)}:ArxivCategory {{code: '{cat}'}})"
                     categories_query += (
-                        f"\nMERGE (ar)-[:SECONDARY_CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({'ac' + i})"
+                        f"\nMERGE (ar)-[:SECONDARY_CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({'ac' + str(i)})"
                     )
                     categories_query += (
-                        f"\nMERGE ({'ac' + i})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)"
+                        f"\nMERGE ({'ac' + str(i)})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)"
                     )
                     i += 1
 
