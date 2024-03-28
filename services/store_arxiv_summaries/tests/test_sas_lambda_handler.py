@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import (
     get_config,
-    store_records,
     lambda_handler,
+    store_records,
 )
 
 

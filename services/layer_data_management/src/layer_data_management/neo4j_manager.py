@@ -766,9 +766,7 @@ class Neo4jDatabase:
                     if cat == primary_category:
                         continue
                     categories_match += f"\nMATCH ({'ac' + str(i)}:ArxivCategory {{code: '{cat}'}})"
-                    categories_query += (
-                        f"\nMERGE (ar)-[:SECONDARY_CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({'ac' + str(i)})"
-                    )
+                    categories_query += f"\nMERGE (ar)-[:SECONDARY_CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({'ac' + str(i)})"
                     categories_query += (
                         f"\nMERGE ({'ac' + str(i)})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)"
                     )

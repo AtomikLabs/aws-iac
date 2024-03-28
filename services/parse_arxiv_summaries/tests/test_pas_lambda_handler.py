@@ -4,9 +4,11 @@ import unittest
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
-import xml.etree.ElementTree as ET
-
-from services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler import get_config, lambda_handler, parse_xml_data
+from services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler import (
+    get_config,
+    lambda_handler,
+    parse_xml_data,
+)
 
 S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
@@ -184,6 +186,7 @@ class TestParseXMLData:
         result = parse_xml_data(xml_data)
 
         assert result == []
+
 
 if __name__ == "__main__":
     unittest.main()
