@@ -761,16 +761,15 @@ class Neo4jDatabase:
                 # authors = record.get("authors")
                 primary_category = record.get("primary_category", "")
                 categories = record.get("categories", [])
-                categories_query = "\n".join(
-                    [
-                        f"""
-                        \n\nMERGE (ar)-[:BELONGS_TO {{uuid: '{uuid.uuid4().__str__()}'}}]->(:ArxivCategory {{code: '{cat}'}})
-                        MERGE (:ArxivCategory {{code: '{cat}'}})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)
-                        """
-                        for cat in categories
-                        if cat != primary_category
-                    ]
-                )
+                categories_query = ""
+                i = 0
+                for cat in categories:
+                    if cat == primary_category:
+                        continue
+                    categories_query += f"\n\nMATCH ({"ac" + i}:ArxivCategory {{code: '{cat}'}})"
+                    categories_query += f"\nMERGE (ar)-[:SECONDARY_CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({"ac" + i})"
+                    categories_query += f"\nMERGE ({"ac" + i})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)"
+                    i += 1
 
                 group = record.get("group", "")
 
@@ -797,7 +796,7 @@ class Neo4jDatabase:
                     MERGE (ar)-[:HAS_FULL_TEXT {{uuid: $has_full_text_uuid}}]->(f)
                     MERGE (ab)-[:ABSTRACT_OF {{uuid: $abstract_of_uuid}}]->(ar)
                     MERGE (f)-[:FULL_TEXT_OF {{uuid: $full_text_of_uuid}}]->(ar)
-                    MERGE (ar)-[:BELONGS_TO {{uuid: $belongs_to_uuid}}]->(ac)
+                    MERGE (ar)-[:PRIMARY_CATEGORIZED_BY {{uuid: $belongs_to_uuid}}]->(ac)
                     MERGE (ac)-[:HAS_RESEARCH {{uuid: $research_uuid}}]->(ar)
                     {categories_query}
                     RETURN ar
