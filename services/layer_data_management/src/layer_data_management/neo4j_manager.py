@@ -375,7 +375,7 @@ class Neo4jDatabase:
             message = "arXiv identifier is required and must be a string."
             logger.error(
                 message,
-                method=self.check_arxiv_record_exists.__name__,
+                method=self.check_arxiv_research_exists.__name__,
                 arXiv_identifier=arXiv_identifier,
             )
             raise ValueError(message)
@@ -390,7 +390,7 @@ class Neo4jDatabase:
                 if len(records) == 1:
                     logger.debug(
                         "Found arXiv record.",
-                        method=self.check_arxiv_record_exists.__name__,
+                        method=self.check_arxiv_research_exists.__name__,
                         arXiv_identifier=arXiv_identifier,
                     )
                     return records[0].data()
@@ -398,7 +398,7 @@ class Neo4jDatabase:
                     message = "Multiple arXiv records found with the same title and date. Investigate."
                     logger.error(
                         message,
-                        method=self.check_arxiv_record_exists.__name__,
+                        method=self.check_arxiv_research_exists.__name__,
                         arXiv_identifier=arXiv_identifier,
                     )
                     raise RuntimeError(message)
@@ -407,7 +407,7 @@ class Neo4jDatabase:
             message = "An error occurred while trying to check if an arXiv record exists."
             logger.error(
                 message,
-                method=self.check_arxiv_record_exists.__name__,
+                method=self.check_arxiv_research_exists.__name__,
                 error=str(e),
             )
             raise e
@@ -619,8 +619,6 @@ class Neo4jDatabase:
             raise ValueError(message)
 
         results = {"stored": [], "failed": []}
-        if len(records) == 0:
-            return results
         logger.info(
             "Storing parsed arXiv records to neo4j.", method=self.store_arxiv_records.__name__, num_records=len(records)
         )
@@ -768,9 +766,7 @@ class Neo4jDatabase:
                     if cat == primary_category:
                         continue
                     categories_match += f"\nMATCH ({'ac' + str(i)}:ArxivCategory {{code: '{cat}'}})"
-                    categories_query += (
-                        f"\nMERGE (ar)-[:SECONDARY_CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({'ac' + str(i)})"
-                    )
+                    categories_query += f"\nMERGE (ar)-[:SECONDARY_CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({'ac' + str(i)})"
                     categories_query += (
                         f"\nMERGE ({'ac' + str(i)})-[:HAS_RESEARCH {{uuid: '{uuid.uuid4().__str__()}'}}]->(ar)"
                     )
@@ -871,50 +867,3 @@ class Neo4jDatabase:
 
     def create_arxiv_set_node(self, record: dict, parsed_data_node: str) -> dict:
         raise NotImplementedError
-
-    def get_node_by_uuid(self, node_uuid: str) -> dict:
-        """
-        Get a node by its UUID.
-
-        Args:
-            none_uuid (str): The UUID of the node to get.
-
-        Returns:
-            dict: The node data.
-        """
-        if not node_uuid or not isinstance(uuid, str):
-            message = "UUID is required and must be a string."
-            logger.error(
-                message,
-                method=self.get_node_by_uuid.__name__,
-                uuid=node_uuid,
-            )
-            raise ValueError(message)
-        with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
-            try:
-                driver.verify_connectivity()
-                records, _, _ = driver.execute_query(
-                    "MATCH (n) WHERE n.uuid = $uuid RETURN n",
-                    uuid=node_uuid,
-                    database_=DEFAULT_NEO4J_DB,
-                )
-                if len(records) == 1:
-                    logger.debug("Found node by UUID.", method=self.get_node_by_uuid.__name__, uuid=node_uuid)
-                    return records[0].data()
-                if len(records) > 1:
-                    message = "Multiple nodes found with the same UUID. Investigate."
-                    logger.error(
-                        message,
-                        method=self.get_node_by_uuid.__name__,
-                        uuid=node_uuid,
-                    )
-                    raise ValueError(message)
-                return {}
-            except Exception as e:
-                message = "An error occurred while trying to get a node by UUID."
-                logger.error(
-                    message,
-                    method=self.get_node_by_uuid.__name__,
-                    error=str(e),
-                )
-                raise e
