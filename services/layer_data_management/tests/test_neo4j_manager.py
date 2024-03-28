@@ -810,3 +810,23 @@ def test_create_arxiv_parsed_node_incorrect_nodes_created(mock_driver, neo4j_db)
             raw_data_bucket_name="raw-bucket",
             output_key="output_key"
         )
+
+
+def test_store_arxiv_records_missing_params(neo4j_db):
+    # store_arxiv_records(self, parse_key: str, records: list, service_name: str, service_version: str)
+    with pytest.raises(ValueError):
+        neo4j_db.store_arxiv_records(None, [], "parser", "1.0")
+    with pytest.raises(ValueError):   
+        neo4j_db.store_arxiv_records(123, [], "parser", "1.0")
+    with pytest.raises(ValueError):
+        neo4j_db.store_arxiv_records("parse_key", None, "parser", "1.0")
+    with pytest.raises(ValueError):
+        neo4j_db.store_arxiv_records("parse_key", 123, "parser", "1.0")
+    with pytest.raises(ValueError):
+        neo4j_db.store_arxiv_records("parse_key", [], None, "1.0")
+    with pytest.raises(ValueError):
+        neo4j_db.store_arxiv_records("parse_key", [], 123, "1.0")
+    with pytest.raises(ValueError):
+        neo4j_db.store_arxiv_records("parse_key", [], "parser", None)
+    with pytest.raises(ValueError):
+        neo4j_db.store_arxiv_records("parse_key", [], "parser", 123)
