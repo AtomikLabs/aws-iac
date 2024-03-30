@@ -125,7 +125,7 @@ with GraphDatabase.driver(neo4j_uri, auth=(neo4j_creds["neo4j_username"], neo4j_
             """,
             set_uuid=str(uuid.uuid4().__str__()),
             set_name="Computer Science",
-            set_code="cs",
+            set_code="CS",
             set_created=get_storage_key_datetime(),
             set_last_modified=get_storage_key_datetime(),
             database_="neo4j",

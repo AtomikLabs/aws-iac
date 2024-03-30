@@ -25,3 +25,10 @@ def get_storage_key_datetime() -> datetime:
         ValueError: If date_str is not a string.
     """
     return datetime.now().astimezone(pytz.timezone(DEFAULT_TIMEZONE))
+
+
+def validate_strings(*args):
+    for arg in args:
+        if not arg or not isinstance(arg, str):
+            return False
+    return True
