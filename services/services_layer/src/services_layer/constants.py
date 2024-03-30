@@ -62,6 +62,7 @@ DEFAULT_TIMEZONE = "US/Pacific"
 S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 # Error Messages
+FAILED_TO_CREATE_ARXIV_SET = "Failed to create ArxivSet"
 INTERNAL_SERVER_ERROR = "Internal server error"
 
 # Databases
