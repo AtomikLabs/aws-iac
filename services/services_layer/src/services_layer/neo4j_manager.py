@@ -4,7 +4,7 @@ from datetime import date, datetime
 import structlog
 from constants import DEFAULT_NEO4J_DB
 from neo4j import GraphDatabase
-from storage_manager import StorageManager
+from utils import get_storage_key_date, get_storage_key_datetime
 
 structlog.configure(
     [
@@ -18,8 +18,6 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-
-# TODO: Generalize defensive programming checks
 
 
 class Neo4jDatabase:
@@ -353,7 +351,7 @@ class Neo4jDatabase:
                 )
                 raise e
 
-    def check_arxiv_research_exists(self, arXiv_identifier: str) -> dict:
+    def check_arxiv_research_exists(self, arxiv_identifier: str) -> dict:
         """
         Checks if an arXiv research record exists in the database. A record is considered duplicate if the
         arXiv identifier matches another record as these are invariant across arXiv submission updates for the
@@ -371,12 +369,12 @@ class Neo4jDatabase:
             RuntimeError: If the database connection fails.
             RuntimeError: If multiple records are found with the same arXiv identifier.
         """
-        if not arXiv_identifier or not isinstance(arXiv_identifier, str):
+        if not arxiv_identifier or not isinstance(arxiv_identifier, str):
             message = "arXiv identifier is required and must be a string."
             logger.error(
                 message,
                 method=self.check_arxiv_research_exists.__name__,
-                arXiv_identifier=arXiv_identifier,
+                arXiv_identifier=arxiv_identifier,
             )
             raise ValueError(message)
         try:
@@ -384,14 +382,14 @@ class Neo4jDatabase:
                 driver.verify_connectivity()
                 records, _, _ = driver.execute_query(
                     "MATCH (n:ArxivRecord {arxivId: $arxivId}) RETURN n",
-                    arxivId=arXiv_identifier,
+                    arxivId=arxiv_identifier,
                     database_=DEFAULT_NEO4J_DB,
                 )
                 if len(records) == 1:
                     logger.debug(
                         "Found arXiv record.",
                         method=self.check_arxiv_research_exists.__name__,
-                        arXiv_identifier=arXiv_identifier,
+                        arXiv_identifier=arxiv_identifier,
                     )
                     return records[0].data()
                 if len(records) > 1:
@@ -399,7 +397,7 @@ class Neo4jDatabase:
                     logger.error(
                         message,
                         method=self.check_arxiv_research_exists.__name__,
-                        arXiv_identifier=arXiv_identifier,
+                        arXiv_identifier=arxiv_identifier,
                     )
                     raise RuntimeError(message)
                 return {}
@@ -644,7 +642,7 @@ class Neo4jDatabase:
                         )
                         raise ValueError(message)
                     parsed_data_uuid = parsed_records[0].data().get("uuid")
-                    now = StorageManager.get_storage_key_datetime()
+                    now = get_storage_key_datetime()
                     dop_uuid = uuid.uuid4().__str__()
                     dop_name = "Load arXiv records."
                     loaded_by_uuid = uuid.uuid4().__str__()
@@ -740,7 +738,7 @@ class Neo4jDatabase:
             with GraphDatabase.driver(self.uri, auth=(self.username, self.password)) as driver:
                 driver.verify_connectivity()
 
-                current_date = StorageManager.get_storage_key_date()
+                current_date = get_storage_key_date()
 
                 research_uuid = uuid.uuid4().__str__()
                 arxiv_identifier = record.get("identifier")

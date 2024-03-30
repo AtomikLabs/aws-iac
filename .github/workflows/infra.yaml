@@ -100,12 +100,12 @@ jobs:
       - name: Build data management layer package
         id: build-data-management-layer
         run: |
-          mkdir -p build/layer_data_management/python
-          cp services/layer_data_management/src/requirements.txt build/layer_data_management/python/
-          cp services/layer_data_management/src/layer_data_management/neo4j_manager.py build/layer_data_management/python/
-          cp services/layer_data_management/src/layer_data_management/storage_manager.py build/layer_data_management/python/
-          cp services/layer_data_management/src/layer_data_management/constants.py build/layer_data_management/python/
-          pip install -r build/layer_data_management/python/requirements.txt -t build/layer_data_management/python/
+          mkdir -p build/services_layer/python
+          cp services/services_layer/src/requirements.txt build/services_layer/python/
+          cp services/services_layer/src/services_layer/neo4j_manager.py build/services_layer/python/
+          cp services/services_layer/src/services_layer/storage_manager.py build/services_layer/python/
+          cp services/services_layer/src/services_layer/constants.py build/services_layer/python/
+          pip install -r build/services_layer/python/requirements.txt -t build/services_layer/python/
 
       - name: Build Fetch Daily Summaries Lambda Function
         id: build-fetch-daily-summaries

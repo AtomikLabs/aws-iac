@@ -43,9 +43,9 @@ arxiv_base_url = "http://export.arxiv.org/oai2"
 arxiv_summary_set = "cs"
 default_lambda_runtime = "python3.10"
 
-# layer_data_management
-layer_data_management_service_name = "layer_data_management"
-layer_data_management_service_version = "0.0.1"
+# services_layer
+services_layer_service_name = "services_layer"
+services_layer_service_version = "0.0.1"
 
 # fetch_daily_summaries
 fetch_daily_summaries_max_retries = 10
