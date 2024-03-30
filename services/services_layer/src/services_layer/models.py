@@ -128,11 +128,11 @@ class ArxivSet(BaseModel):
             )
             if records:
                 self.logger.debug("ArxivSet loaded", method=self.load.__name__, code=self.code, name=self.name)
-                self.code = records[0]["a"]["code"]
-                self.name = records[0]["a"]["name"]
-                self.uuid = records[0]["a"]["uuid"]
-                self.created = records[0]["a"]["created"]
-                self.last_modified = records[0]["a"]["last_modified"]
+                self.code = records[0].data()["a"]["code"]
+                self.name = records[0].data()["a"]["name"]
+                self.uuid = records[0].data()["a"]["uuid"]
+                self.created = records[0].data()["a"]["created"]
+                self.last_modified = records[0].data()["a"]["last_modified"]
                 if not validate_strings(self.code, self.name, self.uuid, self.created, self.last_modified):
                     self.logger.error(
                         "Failed to properly load ArxivSet",
