@@ -9,7 +9,7 @@ locals {
   environment                 = var.environment
   etl_key_prefix              = var.etl_key_prefix
   lambda_vpc_access_role      = var.lambda_vpc_access_role
-  layer_data_management_arn   = var.layer_data_management_arn
+  services_layer_arn          = var.services_layer_arn
   neo4j_password              = var.neo4j_password
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
@@ -53,7 +53,7 @@ resource "aws_lambda_function" "parse_arxiv_summaries" {
     }  
   }
 
-  layers = [local.layer_data_management_arn]
+  layers = [local.services_layer_arn]
 
   vpc_config {
     subnet_ids         = local.private_subnets

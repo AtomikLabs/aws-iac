@@ -73,8 +73,8 @@ locals {
   neo4j_uri                 = "neo4j://${module.data_management.neo4j_instance_private_ip}:7687"
   neo4j_username            = var.neo4j_username
 
-  layer_data_management_service_name      = var.layer_data_management_service_name
-  layer_data_management_service_version   = var.layer_data_management_service_version
+  services_layer_service_name      = var.services_layer_service_name
+  services_layer_service_version   = var.services_layer_service_version
 
   fetch_daily_summaries_max_retries       = var.fetch_daily_summaries_max_retries
   fetch_daily_summaries_service_name      = var.fetch_daily_summaries_service_name
@@ -106,20 +106,20 @@ module "networking" {
   vpc_id                            = module.networking.main_vpc_id
  }
 
-module "layer_data_management" {
-  source = "./services/layer_data_management"
+module "services_layer" {
+  source = "./services/services_layer"
 
   app_name        = local.app_name
   aws_region      = local.aws_region
   environment     = local.environment
   runtime         = local.default_lambda_runtime
-  service_name    = local.layer_data_management_service_name
-  service_version = local.layer_data_management_service_version
+  service_name    = local.services_layer_service_name
+  service_version = local.services_layer_service_version
 }
 
 module "fetch_daily_summaries" {
   source = "./services/fetch_daily_summaries"
-  
+
   app_name                  = local.app_name
   arxiv_base_url            = local.arxiv_base_url
   arxiv_summary_set         = local.arxiv_summary_set
@@ -132,7 +132,7 @@ module "fetch_daily_summaries" {
   environment               = local.environment
   infra_config_bucket       = local.infra_config_bucket
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  layer_data_management_arn = module.layer_data_management.layer_data_management_arn
+  services_layer_arn = module.services_layer.services_layer_arn
   max_retries               = local.fetch_daily_summaries_max_retries
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
@@ -156,7 +156,7 @@ module "parse_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  layer_data_management_arn = module.layer_data_management.layer_data_management_arn
+  services_layer_arn = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
@@ -168,7 +168,7 @@ module "parse_arxiv_summaries" {
 
 module "store_arxiv_summaries" {
   source = "./services/store_arxiv_summaries"
-
+  
   app_name                  = local.app_name
   aws_region                = local.aws_region
   aws_vpc_id                = module.networking.main_vpc_id
@@ -178,7 +178,7 @@ module "store_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  layer_data_management_arn = module.layer_data_management.layer_data_management_arn
+  services_layer_arn = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username

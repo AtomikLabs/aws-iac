@@ -148,12 +148,12 @@ variable "neo4j_username" {
   type        = string
 }
 
-variable "layer_data_management_service_name" {
+variable "services_layer_service_name" {
   description = "Service name for the layer data management"
   type        = string
 }
 
-variable "layer_data_management_service_version" {
+variable "services_layer_service_version" {
   description = "Service version for the layer data management"
   type        = string
 }

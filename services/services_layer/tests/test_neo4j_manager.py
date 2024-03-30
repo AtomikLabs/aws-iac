@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from neo4j.exceptions import ServiceUnavailable
 
-from services.layer_data_management.src.layer_data_management.neo4j_manager import Neo4jDatabase
+from services.services_layer.src.services_layer.neo4j_manager import Neo4jDatabase
 
 URI = "neo4j://localhost:7687"
 USERNAME = "neo4j"
@@ -84,7 +84,7 @@ def test_neo4j_database_manager_should_raise_exception_with_wrong_param_type():
     assert str(e.value) == param_wrong_type_message
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_missing_credentials(mock_driver):
     with pytest.raises(ValueError):
         db = Neo4jDatabase(URI, USERNAME, PASSWORD)
@@ -100,7 +100,7 @@ def test_missing_credentials(mock_driver):
         db.check_arxiv_node_exists()
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_check_arxiv_node_exists_success(mock_driver, neo4j_db):
     mock_driver.return_value.__enter__.return_value.execute_query.return_value = (
         [MagicMock(data=lambda: ARXIV_NODE_RESPONSE)],
@@ -111,14 +111,14 @@ def test_check_arxiv_node_exists_success(mock_driver, neo4j_db):
     assert result == ARXIV_NODE_RESPONSE
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_check_arxiv_node_not_found(mock_driver, neo4j_db):
     mock_driver.return_value.__enter__.return_value.execute_query.return_value = ([], None, None)
     result = neo4j_db.check_arxiv_node_exists()
     assert result == {}
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_check_arxiv_node_multiple_arxiv_nodes_found(mock_driver, neo4j_db):
     mock_driver.return_value.__enter__.return_value.execute_query.return_value = (
         [MagicMock(), MagicMock()],
@@ -129,15 +129,15 @@ def test_check_arxiv_node_multiple_arxiv_nodes_found(mock_driver, neo4j_db):
         neo4j_db.check_arxiv_node_exists()
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_check_arxiv_node_database_connection_failure(mock_driver, neo4j_db):
     mock_driver.side_effect = ServiceUnavailable("Failed to connect")
     with pytest.raises(ServiceUnavailable):
         neo4j_db.check_arxiv_node_exists()
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.logger")
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.logger")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_datasource_node_success(mock_driver, mock_logger, neo4j_db):
     neo4j_db.check_arxiv_node_exists = MagicMock(return_value={})
     mock_driver.return_value.__enter__.return_value.execute_query.return_value = (
@@ -149,8 +149,8 @@ def test_create_arxiv_datasource_node_success(mock_driver, mock_logger, neo4j_db
     assert result == ARXIV_NODE_RESPONSE
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.logger")
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.logger")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_datasource_node_already_exists(mock_driver, mock_logger, neo4j_db):
     neo4j_db.check_arxiv_node_exists = MagicMock(return_value=ARXIV_NODE_RESPONSE)
     result = neo4j_db.create_arxiv_datasource_node(ARXIV_URL)
@@ -158,21 +158,21 @@ def test_create_arxiv_datasource_node_already_exists(mock_driver, mock_logger, n
     assert result == ARXIV_NODE_RESPONSE
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.logger")
+@patch("services.services_layer.src.services_layer.neo4j_manager.logger")
 def test_create_arxiv_datasource_node_missing_params(mock_logger, neo4j_db):
     with pytest.raises(ValueError):
         neo4j_db.create_arxiv_datasource_node(None)
     mock_logger.error.assert_called_once()
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.logger")
+@patch("services.services_layer.src.services_layer.neo4j_manager.logger")
 def test_create_arxiv_datasource_node_wrong_param_type(mock_logger, neo4j_db):
     with pytest.raises(ValueError):
         neo4j_db.create_arxiv_datasource_node(1)
     mock_logger.error.assert_called_once()
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.logger")
+@patch("services.services_layer.src.services_layer.neo4j_manager.logger")
 def test_create_arxiv_datasource_node_with_missing_params(mock_logger):
     tests = [
         (None, "arXiv base URL is required and must be a string."),
@@ -185,14 +185,14 @@ def test_create_arxiv_datasource_node_with_missing_params(mock_logger):
         mock_logger.reset_mock()
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.logger")
+@patch("services.services_layer.src.services_layer.neo4j_manager.logger")
 def test_create_arxiv_datasource_node_with_wrong_param_type(mock_logger):
     with pytest.raises(ValueError):
         Neo4jDatabase(URI, USERNAME, PASSWORD).create_arxiv_datasource_node(1)
     mock_logger.error.assert_called_once()
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.logger")
+@patch("services.services_layer.src.services_layer.neo4j_manager.logger")
 def test_create_arxiv_datasource_missing_neo4j_fields(mock_logger, neo4j_db):
     neo4j_db.check_arxiv_node_exists = MagicMock(return_value={})
     with pytest.raises(ValueError):
@@ -213,7 +213,7 @@ def test_create_arxiv_datasource_missing_neo4j_fields(mock_logger, neo4j_db):
     mock_logger.error.assert_called_once()
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_datasource_node_failed(mock_driver, neo4j_db):
     neo4j_db.check_arxiv_node_exists = MagicMock(return_value={})
     mock_driver.return_value.__enter__.return_value.execute_query.return_value = (
@@ -232,7 +232,7 @@ def test_create_arxiv_datasource_node_failed(mock_driver, neo4j_db):
         neo4j_db.create_arxiv_datasource_node(ARXIV_URL)
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_raw_data_node_success(mock_driver, neo4j_db):
     arxiv_node = MagicMock()
     neo4j_db.check_arxiv_node_exists = MagicMock(return_value=ARXIV_NODE_RESPONSE)
@@ -350,7 +350,7 @@ def test_create_arxiv_raw_data_node_method_name_version_missing_or_wrong_type(ne
         )
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_raw_data_node_sizebytes_or_storage_missing_or_wrong_type(mock_driver, neo4j_db):
     with pytest.raises(ValueError):
         neo4j_db.create_arxiv_raw_data_node(
@@ -420,7 +420,7 @@ def test_create_arxiv_raw_data_node_sizebytes_or_storage_missing_or_wrong_type(m
         )
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_raw_data_node_arxiv_node_not_found(mock_driver, neo4j_db):
     neo4j_db.check_arxiv_node_exists = MagicMock(return_value={})
     with pytest.raises(ValueError):
@@ -436,7 +436,7 @@ def test_create_arxiv_raw_data_node_arxiv_node_not_found(mock_driver, neo4j_db):
         )
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_raw_data_node_failed(mock_driver, neo4j_db):
     neo4j_db.check_arxiv_node_exists = MagicMock(return_value=ARXIV_NODE_RESPONSE)
     mock_driver.return_value.__enter__.return_value.execute_query.return_value = (
@@ -514,7 +514,7 @@ def test_create_raw_data_node_neo4j_fields_missing(neo4j_db):
         )
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_parsed_node_success(mock_driver, neo4j_db):
     arxiv_node = MagicMock()
     neo4j_db.check_arxiv_node_exists = MagicMock(return_value=ARXIV_NODE_RESPONSE)
@@ -688,9 +688,7 @@ def test_check_arxiv_research_exists_with_missing_params(neo4j_db):
 
 
 def test_check_arxiv_research_exists_with_valid_identifier(neo4j_db):
-    with patch(
-        "services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver"
-    ) as mock_driver:
+    with patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver") as mock_driver:
         mock_session = MagicMock()
         mock_driver.return_value.__enter__.return_value = mock_session
         mock_session.execute_query.return_value = ([MagicMock(data=lambda: {"arxivId": "1234.5678"})], None, None)
@@ -700,9 +698,7 @@ def test_check_arxiv_research_exists_with_valid_identifier(neo4j_db):
 
 
 def test_check_arxiv_research_exists_with_non_existent_identifier(neo4j_db):
-    with patch(
-        "services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver"
-    ) as mock_driver:
+    with patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver") as mock_driver:
         mock_session = MagicMock()
         mock_driver.return_value.__enter__.return_value = mock_session
         mock_session.execute_query.return_value = ([], None, None)
@@ -712,9 +708,7 @@ def test_check_arxiv_research_exists_with_non_existent_identifier(neo4j_db):
 
 
 def test_check_arxiv_research_exists_with_multiple_records(neo4j_db):
-    with patch(
-        "services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver"
-    ) as mock_driver:
+    with patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver") as mock_driver:
         mock_session = MagicMock()
         mock_driver.return_value.__enter__.return_value = mock_session
         mock_session.execute_query.return_value = ([MagicMock(), MagicMock()], None, None)
@@ -724,9 +718,7 @@ def test_check_arxiv_research_exists_with_multiple_records(neo4j_db):
 
 
 def test_check_arxiv_research_exists_with_database_error(neo4j_db):
-    with patch(
-        "services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver"
-    ) as mock_driver:
+    with patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver") as mock_driver:
         mock_driver.side_effect = Exception("Database connection error")
 
         with pytest.raises(Exception):
@@ -785,7 +777,7 @@ def test_create_arxiv_parsed_node_invalid_param_types(neo4j_db):
         )
 
 
-@patch("services.layer_data_management.src.layer_data_management.neo4j_manager.GraphDatabase.driver")
+@patch("services.services_layer.src.services_layer.neo4j_manager.GraphDatabase.driver")
 def test_create_arxiv_parsed_node_incorrect_nodes_created(mock_driver, neo4j_db):
     mock_driver.return_value.verify_connectivity.return_value = None
     mock_driver.return_value.__enter__.return_value.execute_query.return_value = (
