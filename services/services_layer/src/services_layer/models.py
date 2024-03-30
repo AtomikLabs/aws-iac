@@ -12,7 +12,8 @@ structlog.configure(
     logger_factory=structlog.stdlib.LoggerFactory(),
 )
 
-class BaseModel:   
+
+class BaseModel:
     def __init__(self, driver: GraphDatabase.driver):
         self.driver = driver
         self.logger = structlog.get_logger()
