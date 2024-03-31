@@ -48,6 +48,43 @@ class BaseModel(ABC):
     def load(cls) -> bool:
         pass
 
+    def relate(self, driver: Driver, label: str, start_node_uuid: str, end_node_uuid: str, **properties):
+        if not validate_strings(label, start_node_uuid, end_node_uuid):
+            raise ValueError("label, start_node, and end_node must be valid strings")
+        if not driver and not isinstance(driver, Driver):
+            raise ValueError("Invalid driver")
+        self.verify_connection()
+        try:
+            with driver.session(database=self.db) as session:
+                query = (
+                    f"MATCH (start:{label}),(end:{label}) "
+                    f"WHERE start.uuid = $start_node_uuid AND end.uuid = $end_node_uuid "
+                    f"CREATE (start)-[r:RELATED_TO]->(end) "
+                    f"SET r = $properties "
+                    f"RETURN r"
+                )
+                result = session.run(query, start_node_uuid=start_node_uuid, end_node_uuid=end_node_uuid, properties=properties)
+                self.logger.debug(
+                    "Relationship created",
+                    method=self.relate.__name__,
+                    label=label,
+                    start_node_uuid=start_node_uuid,
+                    end_node_uuid=end_node_uuid,
+                    properties=properties,
+                )
+                return result
+        except Exception as e:
+            self.logger.error(
+                "Failed to create relationship",
+                method=self.relate.__name__,
+                label=label,
+                start_node_uuid=start_node_uuid,
+                end_node_uuid=end_node_uuid,
+                properties=properties,
+                error=str(e),
+            )
+            raise e
+
     def verify_connection(self):
         try:
             self.driver.verify_connectivity()

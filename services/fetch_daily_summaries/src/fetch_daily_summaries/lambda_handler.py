@@ -5,6 +5,7 @@ from datetime import timedelta
 import defusedxml.ElementTree as ET
 import requests
 import structlog
+import utils
 from constants import (
     APP_NAME,
     ARXIV_BASE_URL,
@@ -63,7 +64,7 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-        date_obtained = StorageManager.get_storage_key_datetime()
+        date_obtained = utils.get_storage_key_datetime()
         today = date_obtained.date()
         earliest = today - timedelta(days=DAY_SPAN)
 
@@ -261,7 +262,7 @@ def get_storage_key(config: dict) -> str:
     if not config:
         logger.error("Config is required", method=get_storage_key.__name__)
         raise ValueError("Config is required")
-    key_date = StorageManager.get_storage_key_date()
+    key_date = utils.get_storage_key_date()
     key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/arxiv-{key_date}.json"
     logger.info("Storage key", method=get_storage_key.__name__, key=key)
     return key
