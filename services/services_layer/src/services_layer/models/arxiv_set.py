@@ -4,7 +4,7 @@ import structlog
 from constants import FAILED_TO_CREATE_ARXIV_SET
 from models.base_model import BaseModel
 from neo4j import Driver
-from utils import validate_strings
+from utils import get_storage_key_datetime, validate_strings
 
 structlog.configure(
     [
@@ -39,14 +39,23 @@ class ArxivSet(BaseModel):
             self.name = name if name else self.name
             self.verify_connection()
             self.logger.debug("Creating ArxivSet", method=self.create.__name__, code=self.code, name=self.name)
+            now = get_storage_key_datetime()
+            properties = {
+                "props":
+                    {
+                        "uuid": str(uuid.uuid4()),
+                        "name": self.name,
+                        "created": now,
+                        "last_modified": now,
+                    }
+            }
             records, summary, _ = self.driver.execute_query(
                 """
                 MERGE (a:ArxivSet {code: $code})
-                ON CREATE SET a.created=TIMESTAMP(), a.last_modified=TIMESTAMP(), a.uuid=$uuid, a.name=$name
+                ON CREATE SET a = $props
                 RETURN a""",
-                name=self.name,
                 code=self.code,
-                uuid=str(uuid.uuid4()),
+                properties=properties,
                 database_=self.db,
             )
             if records and summary.counters.nodes_created == 1:

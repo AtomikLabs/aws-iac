@@ -48,7 +48,7 @@ class BaseModel(ABC):
     def load(cls) -> bool:
         pass
 
-    def relate(self, driver: Driver, label: str, start_node_uuid: str, end_node_uuid: str, **properties):
+    def relate(self, driver: Driver, label: str, start_node_uuid: str, end_node_uuid: str, properties: dict):
         if not validate_strings(label, start_node_uuid, end_node_uuid):
             raise ValueError("label, start_node, and end_node must be valid strings")
         if not driver and not isinstance(driver, Driver):
