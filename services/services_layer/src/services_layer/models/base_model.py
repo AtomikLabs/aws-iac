@@ -63,7 +63,9 @@ class BaseModel(ABC):
                     f"SET r = $properties "
                     f"RETURN r"
                 )
-                result = session.run(query, start_node_uuid=start_node_uuid, end_node_uuid=end_node_uuid, properties=properties)
+                result = session.run(
+                    query, start_node_uuid=start_node_uuid, end_node_uuid=end_node_uuid, properties=properties
+                )
                 self.logger.debug(
                     "Relationship created",
                     method=self.relate.__name__,

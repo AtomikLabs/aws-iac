@@ -41,13 +41,12 @@ class ArxivSet(BaseModel):
             self.logger.debug("Creating ArxivSet", method=self.create.__name__, code=self.code, name=self.name)
             now = get_storage_key_datetime()
             properties = {
-                "props":
-                    {
-                        "uuid": str(uuid.uuid4()),
-                        "name": self.name,
-                        "created": now,
-                        "last_modified": now,
-                    }
+                "props": {
+                    "uuid": str(uuid.uuid4()),
+                    "name": self.name,
+                    "created": now,
+                    "last_modified": now,
+                }
             }
             records, summary, _ = self.driver.execute_query(
                 """
