@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "AtomikLabs"
-copyright = "2023, Brad Edwards"
+copyright = "2023-2024, Brad Edwards"
 author = "Brad Edwards"
 release = "0.2.0"
 
