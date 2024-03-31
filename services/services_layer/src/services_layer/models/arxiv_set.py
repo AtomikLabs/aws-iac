@@ -1,10 +1,10 @@
-import structlog
 import uuid
+
+import structlog
 from constants import FAILED_TO_CREATE_ARXIV_SET
+from models.base_model import BaseModel
 from neo4j import Driver
 from utils import validate_strings
-
-from models.base_model import BaseModel
 
 structlog.configure(
     [
@@ -16,6 +16,7 @@ structlog.configure(
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
 )
+
 
 class ArxivSet(BaseModel):
 
@@ -78,7 +79,7 @@ class ArxivSet(BaseModel):
         except Exception as e:
             self.logger.error("Error while creating ArxivSet", method=self.create.__name__, error=str(e))
             raise e
-        
+
     @classmethod
     def find(cls, driver: Driver, code: str):
         if not driver or not isinstance(driver, Driver):
@@ -100,13 +101,15 @@ class ArxivSet(BaseModel):
                 arxiv_set.uuid = data.get("a", {}).get("uuid", "")
                 arxiv_set.created = data.get("a", {}).get("created", "")
                 arxiv_set.last_modified = data.get("a", {}).get("last_modified", "")
-                if not validate_strings(arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified):
+                if not validate_strings(
+                    arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified
+                ):
                     raise ValueError("Failed to load ArxivSet")
                 return arxiv_set
             return None
         except Exception as e:
             raise e
-    
+
     @classmethod
     def find_all(cls, driver: Driver):
         try:
@@ -124,7 +127,9 @@ class ArxivSet(BaseModel):
                     arxiv_set.uuid = data["uuid"]
                     arxiv_set.created = data["created"]
                     arxiv_set.last_modified = data["last_modified"]
-                    if not validate_strings(arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified):
+                    if not validate_strings(
+                        arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified
+                    ):
                         raise ValueError("Failed to load ArxivSet")
                     arxiv_sets.append(arxiv_set)
                 return arxiv_sets

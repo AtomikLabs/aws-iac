@@ -5,17 +5,18 @@ from neo4j import Driver
 
 from services.services_layer.src.services_layer.models.base_model import BaseModel
 
+
 class BaseModelChild(BaseModel):
     def create(self):
         pass  # required to test instantiate abstract class
 
     @classmethod
     def find(cls, driver: Driver):
-        pass # required to test instantiate abstract class
+        pass  # required to test instantiate abstract class
 
     @classmethod
     def find_all(cls, driver: Driver):
-        pass # required to test instantiate abstract class
+        pass  # required to test instantiate abstract class
 
     def load(self):
         pass  # required to test instantiate abstract class

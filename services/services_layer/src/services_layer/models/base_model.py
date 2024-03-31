@@ -62,5 +62,3 @@ class BaseModel(ABC):
         except Exception as e:
             self.logger.error("Connection failed", method=self.verify_connection.__name__, error=str(e))
             raise e
-
-
