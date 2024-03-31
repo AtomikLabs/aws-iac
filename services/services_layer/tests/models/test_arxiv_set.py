@@ -3,63 +3,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from neo4j import Driver
 
-from services.services_layer.src.services_layer.models import ArxivSet, BaseModel
+from services.services_layer.src.services_layer.models.arxiv_set import ArxivSet
 
 
-class BaseModelChild(BaseModel):
-    def create(self):
-        pass  # required to test instantiate abstract class
-
-    def load(self):
-        pass  # required to test instantiate abstract class
-
-
-class TestBaseModel:
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.driver_mock = MagicMock(spec=Driver)
-        self.driver_mock.verify_connectivity = MagicMock()
-        self.base_model = BaseModelChild(self.driver_mock)
-
-    def test_init(self):
-        assert self.base_model.driver == self.driver_mock
-        assert hasattr(self.base_model, "logger")
-
-    def test_verify_connection_should_success_with_working_driver(self):
-        self.base_model.verify_connection()
-        self.driver_mock.verify_connectivity.assert_called_once()
-
-    def test_verify_connection_should_raise_exception_when_connection_error(self):
-        self.driver_mock.verify_connectivity.side_effect = Exception("Connection error")
-        with pytest.raises(Exception, match="Connection error"):
-            self.base_model.verify_connection()
-        self.driver_mock.verify_connectivity.assert_called_once()
-
-    def test_verify_connection_should_use_logger(self):
-        with patch.object(self.base_model.logger, "debug") as logger_debug_mock:
-            self.base_model.verify_connection()
-            logger_debug_mock.assert_called_once_with(
-                "Connection verified", method=self.base_model.verify_connection.__name__
-            )
-
-    def test_verify_connection_should_log_errors(self):
-        self.driver_mock.verify_connectivity.side_effect = Exception("Connection error")
-        with patch.object(self.base_model.logger, "error") as logger_error_mock:
-            with pytest.raises(Exception):
-                self.base_model.verify_connection()
-            logger_error_mock.assert_called_once_with(
-                "Connection failed", method=self.base_model.verify_connection.__name__, error="Connection error"
-            )
-
-    def test_verify_connection_should_raise_exception_on_init_with_invalid_driver(self):
-        invalid_driver = {}
-        base_model_invalid = BaseModelChild(self.driver_mock)
-        base_model_invalid.driver = invalid_driver
-        with pytest.raises(AttributeError):
-            base_model_invalid.verify_connection()
-
-
-class TestArixSet:
+class TestArxivSet:
 
     CS = "CS"
     COMPUTER_SCIENCE = "Computer Science"
@@ -70,18 +17,18 @@ class TestArixSet:
     SINGLE_CREATE_RECORDS_RETURN = MagicMock(
         data=lambda: {
             "a": {
-                "code": TestArixSet.CS,
-                "name": TestArixSet.COMPUTER_SCIENCE,
-                "uuid": TestArixSet.UUID,
-                "created": TestArixSet.CREATED,
-                "last_modified": TestArixSet.LAST_MODIFIED,
+                "code": TestArxivSet.CS,
+                "name": TestArxivSet.COMPUTER_SCIENCE,
+                "uuid": TestArxivSet.UUID,
+                "created": TestArxivSet.CREATED,
+                "last_modified": TestArxivSet.LAST_MODIFIED,
             }
         }
     )
 
     @pytest.fixture
     def code(self):
-        return TestArixSet.CS
+        return TestArxivSet.CS
 
     @pytest.fixture
     def driver(self):
@@ -91,19 +38,19 @@ class TestArixSet:
 
     @pytest.fixture
     def name(self):
-        return TestArixSet.COMPUTER_SCIENCE
+        return TestArxivSet.COMPUTER_SCIENCE
 
     @pytest.fixture
     def uuid_fixture(self):
-        return TestArixSet.UUID
+        return TestArxivSet.UUID
 
     @pytest.fixture
     def created_fixture(self):
-        return TestArixSet.CREATED
+        return TestArxivSet.CREATED
 
     @pytest.fixture
     def last_modified_fixture(self):
-        return TestArixSet.LAST_MODIFIED
+        return TestArxivSet.LAST_MODIFIED
 
     def test_init_should_succeed_with_valid_params(self, driver, code, name):
         arxiv_set = ArxivSet(driver, code, name)
@@ -129,7 +76,7 @@ class TestArixSet:
         with pytest.raises(ValueError):
             ArxivSet(d, c, n)
 
-    @patch("services.services_layer.src.services_layer.models.uuid")
+    @patch("services.services_layer.src.services_layer.models.arxiv_set.uuid")
     def test_create_should_succeed_with_valid_params(self, mock_uuid, driver, code, name, uuid_fixture):
         mock_uuid.uuid4 = MagicMock(return_value=uuid_fixture)
         driver.execute_query.return_value = (
@@ -357,3 +304,81 @@ class TestArixSet:
             arxiv_set.load()
         driver.execute_query.assert_called_once()
         driver.reset_mock()
+
+    def test_find_should_return_arxiv_set(self, driver, code, name):
+        driver.execute_query.return_value = (
+            [self.SINGLE_CREATE_RECORDS_RETURN],
+            MagicMock(counters=MagicMock(nodes_created=1)),
+            ["a"],
+        )
+        arxiv_set = ArxivSet.find(driver, code)
+        driver.execute_query.assert_called_once()
+        assert arxiv_set.code == self.CS
+        assert arxiv_set.name == name
+        assert arxiv_set.uuid == self.UUID
+        assert arxiv_set.created
+        assert arxiv_set.last_modified
+
+    def test_find_should_return_none_if_no_record(self, driver, code, name):
+        driver.execute_query.return_value = (
+            [MagicMock(data=lambda: {})],
+            MagicMock(counters=MagicMock(nodes_created=0)),
+            [],
+        )
+        arxiv_set = ArxivSet.find(driver, code)
+        driver.execute_query.assert_called_once()
+        assert arxiv_set is None
+
+    @pytest.mark.parametrize(
+        "d, c",
+        [
+            (None, "CS"),
+            (123, "CS"),
+            (MagicMock(), None),
+            (MagicMock(), 123),
+        ],
+    )
+    def test_find_should_raise_exception_if_invalid_params(self, d, c):
+        with pytest.raises(ValueError):
+            ArxivSet.find(d, c)
+
+    def test_find_should_raise_exception_if_driver_not_connected(self, driver, code):
+        driver.verify_connectivity.side_effect = Exception("Connection error")
+        with pytest.raises(Exception):
+            ArxivSet.find(driver, code)
+        driver.verify_connectivity.assert_called_once()
+
+    def test_find_all_should_return_arxiv_sets(self, driver, code, name):
+        driver.execute_query.return_value = (
+            [
+                MagicMock(
+                    data=lambda: {
+                        "a": {
+                            "code": code,
+                            "name": name,
+                            "uuid": self.UUID,
+                            "created": self.CREATED,
+                            "last_modified": self.LAST_MODIFIED,
+                        },
+                        "b": {
+                            "code": code,
+                            "name": name,
+                            "uuid": self.UUID,
+                            "created": self.CREATED,
+                            "last_modified": self.LAST_MODIFIED,
+                        },
+                    }
+                )
+            ],
+            MagicMock(counters=MagicMock(nodes_created=1)),
+            ["a"],
+        )
+        arxiv_sets = ArxivSet.find_all(driver)
+        driver.execute_query.assert_called_once()
+        assert len(arxiv_sets) == 1
+        arxiv_set = arxiv_sets[0]
+        assert arxiv_set.code == code
+        assert arxiv_set.name == name
+        assert arxiv_set.uuid == self.UUID
+        assert arxiv_set.created
+        assert arxiv_set.last_modified
