@@ -102,7 +102,11 @@ class ArxivCategory(BaseModel):
                 ARXIV_CATEGORY.created = data.get("a", {}).get("created", "")
                 ARXIV_CATEGORY.last_modified = data.get("a", {}).get("last_modified", "")
                 if not validate_strings(
-                    ARXIV_CATEGORY.code, ARXIV_CATEGORY.name, ARXIV_CATEGORY.uuid, ARXIV_CATEGORY.created, ARXIV_CATEGORY.last_modified
+                    ARXIV_CATEGORY.code,
+                    ARXIV_CATEGORY.name,
+                    ARXIV_CATEGORY.uuid,
+                    ARXIV_CATEGORY.created,
+                    ARXIV_CATEGORY.last_modified,
                 ):
                     raise ValueError("Failed to load ArxivCategory")
                 return ARXIV_CATEGORY
@@ -128,7 +132,11 @@ class ArxivCategory(BaseModel):
                     ARXIV_CATEGORY.created = data["created"]
                     ARXIV_CATEGORY.last_modified = data["last_modified"]
                     if not validate_strings(
-                        ARXIV_CATEGORY.code, ARXIV_CATEGORY.name, ARXIV_CATEGORY.uuid, ARXIV_CATEGORY.created, ARXIV_CATEGORY.last_modified
+                        ARXIV_CATEGORY.code,
+                        ARXIV_CATEGORY.name,
+                        ARXIV_CATEGORY.uuid,
+                        ARXIV_CATEGORY.created,
+                        ARXIV_CATEGORY.last_modified,
                     ):
                         raise ValueError("Failed to load ArxivCategory")
                     ARXIV_CATEGORYs.append(ARXIV_CATEGORY)
