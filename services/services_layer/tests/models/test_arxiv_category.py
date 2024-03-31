@@ -3,10 +3,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from neo4j import Driver
 
-from services.services_layer.src.services_layer.models.arxiv_set import ArxivSet
+from services.services_layer.src.services_layer.models.arxiv_category import ArxivCategory
 
 
-class TestArxivSet:
+class TestArxivCategory:
 
     CS = "CS"
     COMPUTER_SCIENCE = "Computer Science"
@@ -17,18 +17,18 @@ class TestArxivSet:
     SINGLE_CREATE_RECORDS_RETURN = MagicMock(
         data=lambda: {
             "a": {
-                "code": TestArxivSet.CS,
-                "name": TestArxivSet.COMPUTER_SCIENCE,
-                "uuid": TestArxivSet.UUID,
-                "created": TestArxivSet.CREATED,
-                "last_modified": TestArxivSet.LAST_MODIFIED,
+                "code": TestArxivCategory.CS,
+                "name": TestArxivCategory.COMPUTER_SCIENCE,
+                "uuid": TestArxivCategory.UUID,
+                "created": TestArxivCategory.CREATED,
+                "last_modified": TestArxivCategory.LAST_MODIFIED,
             }
         }
     )
 
     @pytest.fixture
     def code(self):
-        return TestArxivSet.CS
+        return TestArxivCategory.CS
 
     @pytest.fixture
     def driver(self):
@@ -38,28 +38,28 @@ class TestArxivSet:
 
     @pytest.fixture
     def name(self):
-        return TestArxivSet.COMPUTER_SCIENCE
+        return TestArxivCategory.COMPUTER_SCIENCE
 
     @pytest.fixture
     def uuid_fixture(self):
-        return TestArxivSet.UUID
+        return TestArxivCategory.UUID
 
     @pytest.fixture
     def created_fixture(self):
-        return TestArxivSet.CREATED
+        return TestArxivCategory.CREATED
 
     @pytest.fixture
     def last_modified_fixture(self):
-        return TestArxivSet.LAST_MODIFIED
+        return TestArxivCategory.LAST_MODIFIED
 
     def test_init_should_succeed_with_valid_params(self, driver, code, name):
-        arxiv_set = ArxivSet(driver, code, name)
-        assert arxiv_set.driver == driver
-        assert arxiv_set.code == code
-        assert arxiv_set.name == name
-        assert arxiv_set.uuid is None
-        assert arxiv_set.created is None
-        assert arxiv_set.last_modified is None
+        arxiv_category = ArxivCategory(driver, code, name)
+        assert arxiv_category.driver == driver
+        assert arxiv_category.code == code
+        assert arxiv_category.name == name
+        assert arxiv_category.uuid is None
+        assert arxiv_category.created is None
+        assert arxiv_category.last_modified is None
 
     @pytest.mark.parametrize(
         "d, c, n",
@@ -74,9 +74,9 @@ class TestArxivSet:
     )
     def test_init_should_raise_exception_with_invalid_params(self, d, c, n):
         with pytest.raises(ValueError):
-            ArxivSet(d, c, n)
+            ArxivCategory(d, c, n)
 
-    @patch("services.services_layer.src.services_layer.models.arxiv_set.uuid")
+    @patch("services.services_layer.src.services_layer.models.arxiv_category.uuid")
     def test_create_should_succeed_with_valid_params(self, mock_uuid, driver, code, name, uuid_fixture):
         mock_uuid.uuid4 = MagicMock(return_value=uuid_fixture)
         driver.execute_query.return_value = (
@@ -96,13 +96,13 @@ class TestArxivSet:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        arxiv_set = ArxivSet(driver, code, name)
-        arxiv_set.create()
+        arxiv_category = ArxivCategory(driver, code, name)
+        arxiv_category.create()
         driver.execute_query.assert_called_once()
-        assert arxiv_set.uuid == self.UUID
-        assert arxiv_set.created
-        assert arxiv_set.last_modified
-        print(arxiv_set.created)
+        assert arxiv_category.uuid == self.UUID
+        assert arxiv_category.created
+        assert arxiv_category.last_modified
+        print(arxiv_category.created)
 
     @pytest.mark.parametrize(
         "d, c, n",
@@ -116,31 +116,31 @@ class TestArxivSet:
         ],
     )
     def test_create_should_raise_exception_with_invalid_params(self, d, c, n, driver, code, name):
-        arxiv_set = ArxivSet(driver, code, name)
+        arxiv_category = ArxivCategory(driver, code, name)
         with pytest.raises(ValueError):
-            arxiv_set.driver = driver
-            arxiv_set.code = code
-            arxiv_set.name = name
-            arxiv_set.create()
+            arxiv_category.driver = driver
+            arxiv_category.code = code
+            arxiv_category.name = name
+            arxiv_category.create()
 
     def test_create_should_raise_exception_when_no_records_returned(self, driver, code, name):
         driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])
-        arxiv_set = ArxivSet(driver, code, name)
+        arxiv_category = ArxivCategory(driver, code, name)
         with pytest.raises(RuntimeError):
-            arxiv_set.create()
+            arxiv_category.create()
         driver.execute_query.assert_called_once()
 
-    def test_create_should_not_duplicate_arxivset(self, driver, code):
+    def test_create_should_not_duplicate_ArxivCategory(self, driver, code):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN],
             MagicMock(counters=MagicMock(nodes_created=0)),
             ["a"],
         )
         name = "C0mput3r Sc13nc3"
-        arxiv_set = ArxivSet(driver, code, name)
-        arxiv_set.create()
+        arxiv_category = ArxivCategory(driver, code, name)
+        arxiv_category.create()
         driver.execute_query.assert_called_once()
-        assert arxiv_set.name == self.COMPUTER_SCIENCE
+        assert arxiv_category.name == self.COMPUTER_SCIENCE
 
     def test_create_should_raise_exception_if_record_improperly_created(self, driver, code, name):
         driver.execute_query.return_value = (
@@ -160,9 +160,9 @@ class TestArxivSet:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        arxiv_set = ArxivSet(driver, code, name)
+        arxiv_category = ArxivCategory(driver, code, name)
         with pytest.raises(ValueError):
-            arxiv_set.create()
+            arxiv_category.create()
         driver.execute_query.assert_called_once()
         driver.reset_mock()
         driver.execute_query.return_value = (
@@ -183,7 +183,7 @@ class TestArxivSet:
             ["a"],
         )
         with pytest.raises(ValueError):
-            arxiv_set.create()
+            arxiv_category.create()
         driver.execute_query.assert_called_once()
         driver.reset_mock()
         driver.execute_query.return_value = (
@@ -204,7 +204,7 @@ class TestArxivSet:
             ["a"],
         )
         with pytest.raises(ValueError):
-            arxiv_set.create()
+            arxiv_category.create()
         driver.execute_query.assert_called_once()
 
     def test_load_should_succeed_if_record_exists(self, driver, code, name):
@@ -213,40 +213,40 @@ class TestArxivSet:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        arxiv_set = ArxivSet(driver, code, name)
-        assert arxiv_set.load()
-        assert "MATCH (a:ArxivSet {code: $code}) RETURN a" in driver.execute_query.call_args[0]
-        assert arxiv_set.code == self.CS
-        assert arxiv_set.name == name
-        assert arxiv_set.uuid == self.UUID
-        assert arxiv_set.created
-        assert arxiv_set.last_modified
+        arxiv_category = ArxivCategory(driver, code, name)
+        assert arxiv_category.load()
+        assert "MATCH (a:ArxivCategory {code: $code}) RETURN a" in driver.execute_query.call_args[0]
+        assert arxiv_category.code == self.CS
+        assert arxiv_category.name == name
+        assert arxiv_category.uuid == self.UUID
+        assert arxiv_category.created
+        assert arxiv_category.last_modified
 
     def test_load_should_return_false_if_record_does_not_exist(self, driver, code, name):
         driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])
-        arxiv_set = ArxivSet(driver, code, name)
-        assert not arxiv_set.load()
-        assert "MATCH (a:ArxivSet {code: $code}) RETURN a" in driver.execute_query.call_args[0]
-        assert arxiv_set.code == code
-        assert arxiv_set.name == name
-        assert arxiv_set.uuid is None
-        assert arxiv_set.created is None
-        assert arxiv_set.last_modified is None
+        arxiv_category = ArxivCategory(driver, code, name)
+        assert not arxiv_category.load()
+        assert "MATCH (a:ArxivCategory {code: $code}) RETURN a" in driver.execute_query.call_args[0]
+        assert arxiv_category.code == code
+        assert arxiv_category.name == name
+        assert arxiv_category.uuid is None
+        assert arxiv_category.created is None
+        assert arxiv_category.last_modified is None
 
     def test_load_should_raise_exception_if_invalid_code(self, driver, code, name):
-        arxiv_set = ArxivSet(driver, code, name)
-        arxiv_set.code = None
+        arxiv_category = ArxivCategory(driver, code, name)
+        arxiv_category.code = None
         with pytest.raises(ValueError):
-            arxiv_set.load()
-        arxiv_set.code = 123
+            arxiv_category.load()
+        arxiv_category.code = 123
         with pytest.raises(ValueError):
-            arxiv_set.load()
+            arxiv_category.load()
 
     def test_load_should_raise_exception_if_driver_not_connected(self, driver, code, name):
         driver.verify_connectivity.side_effect = Exception("Connection error")
-        arxiv_set = ArxivSet(driver, code, name)
+        arxiv_category = ArxivCategory(driver, code, name)
         with pytest.raises(Exception):
-            arxiv_set.load()
+            arxiv_category.load()
         driver.verify_connectivity.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -299,25 +299,25 @@ class TestArxivSet:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        arxiv_set = ArxivSet(driver, code, name)
+        arxiv_category = ArxivCategory(driver, code, name)
         with pytest.raises(ValueError):
-            arxiv_set.load()
+            arxiv_category.load()
         driver.execute_query.assert_called_once()
         driver.reset_mock()
 
-    def test_find_should_return_arxiv_set(self, driver, code, name):
+    def test_find_should_return_arxiv_category(self, driver, code, name):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN],
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        arxiv_set = ArxivSet.find(driver, code)
+        arxiv_category = ArxivCategory.find(driver, code)
         driver.execute_query.assert_called_once()
-        assert arxiv_set.code == self.CS
-        assert arxiv_set.name == name
-        assert arxiv_set.uuid == self.UUID
-        assert arxiv_set.created
-        assert arxiv_set.last_modified
+        assert arxiv_category.code == self.CS
+        assert arxiv_category.name == name
+        assert arxiv_category.uuid == self.UUID
+        assert arxiv_category.created
+        assert arxiv_category.last_modified
 
     def test_find_should_return_none_if_no_record(self, driver, code, name):
         driver.execute_query.return_value = (
@@ -325,9 +325,9 @@ class TestArxivSet:
             MagicMock(counters=MagicMock(nodes_created=0)),
             [],
         )
-        arxiv_set = ArxivSet.find(driver, code)
+        arxiv_category = ArxivCategory.find(driver, code)
         driver.execute_query.assert_called_once()
-        assert arxiv_set is None
+        assert arxiv_category is None
 
     @pytest.mark.parametrize(
         "d, c",
@@ -340,15 +340,15 @@ class TestArxivSet:
     )
     def test_find_should_raise_exception_if_invalid_params(self, d, c):
         with pytest.raises(ValueError):
-            ArxivSet.find(d, c)
+            ArxivCategory.find(d, c)
 
     def test_find_should_raise_exception_if_driver_not_connected(self, driver, code):
         driver.verify_connectivity.side_effect = Exception("Connection error")
         with pytest.raises(Exception):
-            ArxivSet.find(driver, code)
+            ArxivCategory.find(driver, code)
         driver.verify_connectivity.assert_called_once()
 
-    def test_find_all_should_return_arxiv_sets(self, driver, code, name):
+    def test_find_all_should_return_arxiv_categories(self, driver, code, name):
         driver.execute_query.return_value = (
             [
                 MagicMock(
@@ -373,12 +373,12 @@ class TestArxivSet:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        arxiv_sets = ArxivSet.find_all(driver)
+        arxiv_categories = ArxivCategory.find_all(driver)
         driver.execute_query.assert_called_once()
-        assert len(arxiv_sets) == 1
-        arxiv_set = arxiv_sets[0]
-        assert arxiv_set.code == code
-        assert arxiv_set.name == name
-        assert arxiv_set.uuid == self.UUID
-        assert arxiv_set.created
-        assert arxiv_set.last_modified
+        assert len(arxiv_categories) == 1
+        arxiv_category = arxiv_categories[0]
+        assert arxiv_category.code == code
+        assert arxiv_category.name == name
+        assert arxiv_category.uuid == self.UUID
+        assert arxiv_category.created
+        assert arxiv_category.last_modified
