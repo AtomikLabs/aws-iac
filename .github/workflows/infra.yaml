@@ -102,8 +102,7 @@ jobs:
         run: |
           mkdir -p build/services_layer/python/models
           cp services/services_layer/src/requirements.txt build/services_layer/python/
-          cp services/services_layer/src/services_layer/* build/services_layer/python/
-          cp services/services_layer/src/services_layer/models/* build/services_layer/python/models/
+          cp -r services/services_layer/src/services_layer/* build/services_layer/python/
           pip install -r build/services_layer/python/requirements.txt -t build/services_layer/python/
 
       - name: Build Fetch Daily Summaries Lambda Function
