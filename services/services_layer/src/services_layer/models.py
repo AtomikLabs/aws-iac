@@ -33,11 +33,21 @@ class BaseModel(ABC):
         self.uuid = None
 
     @abstractmethod
-    def create(self) -> dict:
+    def create(self):
         pass
 
     @abstractmethod
-    def load(self) -> dict:
+    def find(self, driver: Driver):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def find_all(cls, driver: Driver):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def load(cls) -> bool:
         pass
 
     def verify_connection(self):
@@ -57,22 +67,24 @@ class BaseModel(ABC):
 
 
 class ArxivSet(BaseModel):
-    def __init__(self, driver: Driver, code: str, name: str):
+
+    LABEL = "ArxivSet"
+
+    def __init__(self, driver: Driver = None, code: str = "", name: str = ""):
         super().__init__(driver)
-        if not validate_strings(code):
-            self.logger.error("Invalid code", method=self.__init__.__name__, code=code)
-            raise ValueError("Invalid code")
         self.code = code
         self.name = name
         self.uuid = None
         self.created = None
         self.last_modified = None
 
-    def create(self):
-        if not validate_strings(self.code, self.name):
-            self.logger.error("Invalid code or name", method=self.create.__name__, code=self.code, name=self.name)
+    def create(self, code: str = "", name: str = ""):
+        if not validate_strings(self.code, self.name) and not validate_strings(code, name):
+            self.logger.error("Invalid code or name", method=self.create.__name__)
             raise ValueError("Invalid code or name")
         try:
+            self.code = code if code else self.code
+            self.name = name if name else self.name
             self.verify_connection()
             self.logger.debug("Creating ArxivSet", method=self.create.__name__, code=self.code, name=self.name)
             records, summary, _ = self.driver.execute_query(
@@ -115,6 +127,58 @@ class ArxivSet(BaseModel):
         except Exception as e:
             self.logger.error("Error while creating ArxivSet", method=self.create.__name__, error=str(e))
             raise e
+        
+    @classmethod
+    def find(cls, driver: Driver, code: str):
+        if not driver or not isinstance(driver, Driver):
+            raise ValueError("Invalid driver")
+        if not validate_strings(code):
+            raise ValueError("Invalid code")
+        try:
+            driver.verify_connectivity()
+            records, _, _ = driver.execute_query(
+                f"MATCH (a:{cls.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
+            )
+            if records and records[0] and records[0].data():
+                data = records[0].data()
+                arxiv_set = cls(
+                    driver=driver,
+                    code=data.get("a", {}).get("code", ""),
+                    name=data.get("a", {}).get("name", ""),
+                )
+                arxiv_set.uuid = data.get("a", {}).get("uuid", "")
+                arxiv_set.created = data.get("a", {}).get("created", "")
+                arxiv_set.last_modified = data.get("a", {}).get("last_modified", "")
+                if not validate_strings(arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified):
+                    raise ValueError("Failed to load ArxivSet")
+                return arxiv_set
+            return None
+        except Exception as e:
+            raise e
+    
+    @classmethod
+    def find_all(cls, driver: Driver):
+        try:
+            driver.verify_connectivity()
+            records, _, _ = driver.execute_query(f"MATCH (a:{cls.LABEL}) RETURN a", database_="neo4j")
+            if records:
+                arxiv_sets = []
+                for record in records:
+                    data = record.data()["a"]
+                    arxiv_set = cls(
+                        driver=driver,
+                        code=data["code"],
+                        name=data["name"],
+                    )
+                    arxiv_set.uuid = data["uuid"]
+                    arxiv_set.created = data["created"]
+                    arxiv_set.last_modified = data["last_modified"]
+                    if not validate_strings(arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified):
+                        raise ValueError("Failed to load ArxivSet")
+                    arxiv_sets.append(arxiv_set)
+                return arxiv_sets
+        except Exception as e:
+            raise e
 
     def load(self) -> bool:
         if not validate_strings(self.code):
@@ -124,7 +188,7 @@ class ArxivSet(BaseModel):
             self.verify_connection()
             self.logger.debug("Loading ArxivSet", method=self.load.__name__, code=self.code, name=self.name)
             records, _, _ = self.driver.execute_query(
-                "MATCH (a:ArxivSet {code: $code}) RETURN a", code=self.code, database_=self.db
+                f"MATCH (a:{self.LABEL} {{code: $code}}) RETURN a", code=self.code, database_=self.db
             )
             if records:
                 self.logger.debug("ArxivSet loaded", method=self.load.__name__, code=self.code, name=self.name)

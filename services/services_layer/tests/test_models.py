@@ -10,6 +10,14 @@ class BaseModelChild(BaseModel):
     def create(self):
         pass  # required to test instantiate abstract class
 
+    @classmethod
+    def find(cls, driver: Driver):
+        pass # required to test instantiate abstract class
+
+    @classmethod
+    def find_all(cls, driver: Driver):
+        pass # required to test instantiate abstract class
+
     def load(self):
         pass  # required to test instantiate abstract class
 
@@ -357,3 +365,72 @@ class TestArixSet:
             arxiv_set.load()
         driver.execute_query.assert_called_once()
         driver.reset_mock()
+
+    def test_find_should_return_arxiv_set(self, driver, code, name):
+        driver.execute_query.return_value = (
+            [self.SINGLE_CREATE_RECORDS_RETURN],
+            MagicMock(counters=MagicMock(nodes_created=1)),
+            ["a"],
+        )
+        arxiv_set = ArxivSet.find(driver, code)
+        driver.execute_query.assert_called_once()
+        assert arxiv_set.code == self.CS
+        assert arxiv_set.name == name
+        assert arxiv_set.uuid == self.UUID
+        assert arxiv_set.created
+        assert arxiv_set.last_modified
+
+    def test_find_should_return_none_if_no_record(self, driver, code, name):
+        driver.execute_query.return_value = ([MagicMock(data=lambda: {})], MagicMock(counters=MagicMock(nodes_created=0)), [])
+        arxiv_set = ArxivSet.find(driver, code)
+        driver.execute_query.assert_called_once()
+        assert arxiv_set is None
+    
+    @pytest.mark.parametrize(
+        "d, c",
+        [
+            (None, "CS"),
+            (123, "CS"),
+            (MagicMock(), None),
+            (MagicMock(), 123),
+        ],
+    )
+    def test_find_should_raise_exception_if_invalid_params(self, d, c):
+        with pytest.raises(ValueError):
+            ArxivSet.find(d, c)
+    
+    def test_find_should_raise_exception_if_driver_not_connected(self, driver, code):
+        driver.verify_connectivity.side_effect = Exception("Connection error")
+        with pytest.raises(Exception):
+            ArxivSet.find(driver, code)
+        driver.verify_connectivity.assert_called_once()
+    
+    def test_find_all_should_return_arxiv_sets(self, driver, code, name):
+        driver.execute_query.return_value = (
+            [MagicMock(data=lambda: {
+                "a": {
+                    "code": code,
+                    "name": name,
+                    "uuid": self.UUID,
+                    "created": self.CREATED,
+                    "last_modified": self.LAST_MODIFIED
+                },
+                "b": {
+                    "code": code,
+                    "name": name,
+                    "uuid": self.UUID,
+                    "created": self.CREATED,
+                    "last_modified": self.LAST_MODIFIED
+                }})],
+            MagicMock(counters=MagicMock(nodes_created=1)),
+            ["a"],
+        )
+        arxiv_sets = ArxivSet.find_all(driver)
+        driver.execute_query.assert_called_once()
+        assert len(arxiv_sets) == 1
+        arxiv_set = arxiv_sets[0]
+        assert arxiv_set.code == code
+        assert arxiv_set.name == name
+        assert arxiv_set.uuid == self.UUID
+        assert arxiv_set.created
+        assert arxiv_set.last_modified
