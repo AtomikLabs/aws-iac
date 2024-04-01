@@ -47,7 +47,6 @@ class ArxivSet(BaseModel):
                 "created": now,
                 "last_modified": now,
             }
-            print(self.code)
             records, summary, _ = self.driver.execute_query(
                 """
                 MERGE (a:ArxivSet {code: $code})
