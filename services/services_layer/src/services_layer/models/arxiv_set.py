@@ -1,10 +1,10 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_ARXIV_SET
+from constants import FAILED_TO_CREATE_ARXIV_SET, S3_KEY_DATE_FORMAT
 from models.base_model import BaseModel
 from neo4j import Driver
-from utils import validate_strings
+from utils import get_storage_key_datetime, validate_strings
 
 structlog.configure(
     [
@@ -35,18 +35,26 @@ class ArxivSet(BaseModel):
             self.logger.error("Invalid code or name", method=self.create.__name__)
             raise ValueError("Invalid code or name")
         try:
-            self.code = code if code else self.code
+            self.code = self.code if self.code else code
             self.name = name if name else self.name
             self.verify_connection()
             self.logger.debug("Creating ArxivSet", method=self.create.__name__, code=self.code, name=self.name)
+            now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
+            properties = {
+                "code": self.code,
+                "uuid": str(uuid.uuid4()),
+                "name": self.name,
+                "created": now,
+                "last_modified": now,
+            }
+            print(self.code)
             records, summary, _ = self.driver.execute_query(
                 """
                 MERGE (a:ArxivSet {code: $code})
-                ON CREATE SET a.created=TIMESTAMP(), a.last_modified=TIMESTAMP(), a.uuid=$uuid, a.name=$name
+                ON CREATE SET a += $props
                 RETURN a""",
-                name=self.name,
                 code=self.code,
-                uuid=str(uuid.uuid4()),
+                props=properties,
                 database_=self.db,
             )
             if records and summary.counters.nodes_created == 1:
@@ -60,11 +68,11 @@ class ArxivSet(BaseModel):
                     FAILED_TO_CREATE_ARXIV_SET, method=self.create.__name__, code=self.code, name=self.name
                 )
                 raise RuntimeError()
-            data = records[0].data()
-            self.name = data["a"]["name"]
-            self.uuid = data["a"]["uuid"]
-            self.created = data["a"]["created"]
-            self.last_modified = data["a"]["last_modified"]
+            data = records[0].data().get("a", {})
+            self.name = data.get("name", "")
+            self.uuid = data.get("uuid", "")
+            self.created = data.get("created", "")
+            self.last_modified = data.get("last_modified", "")
             if not validate_strings(self.uuid, self.created, self.last_modified):
                 self.logger.error(
                     "Failed to properly create ArxivSet",
@@ -92,15 +100,11 @@ class ArxivSet(BaseModel):
                 f"MATCH (a:{cls.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
             )
             if records and records[0] and records[0].data():
-                data = records[0].data()
-                arxiv_set = cls(
-                    driver=driver,
-                    code=data.get("a", {}).get("code", ""),
-                    name=data.get("a", {}).get("name", ""),
-                )
-                arxiv_set.uuid = data.get("a", {}).get("uuid", "")
-                arxiv_set.created = data.get("a", {}).get("created", "")
-                arxiv_set.last_modified = data.get("a", {}).get("last_modified", "")
+                data = records[0].data().get("a", {})
+                arxiv_set = ArxivSet(driver=driver, code=data.get("code", ""), name=data.get("name", ""))
+                arxiv_set.uuid = data.get("uuid", "")
+                arxiv_set.created = data.get("created", "")
+                arxiv_set.last_modified = data.get("last_modified", "")
                 if not validate_strings(
                     arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified
                 ):
@@ -148,11 +152,12 @@ class ArxivSet(BaseModel):
             )
             if records:
                 self.logger.debug("ArxivSet loaded", method=self.load.__name__, code=self.code, name=self.name)
-                self.code = records[0].data()["a"]["code"]
-                self.name = records[0].data()["a"]["name"]
-                self.uuid = records[0].data()["a"]["uuid"]
-                self.created = records[0].data()["a"]["created"]
-                self.last_modified = records[0].data()["a"]["last_modified"]
+                data = records[0].data().get("a", {})
+                self.code = data.get("code", "")
+                self.name = data.get("name", "")
+                self.uuid = data.get("uuid", "")
+                self.created = data.get("created", "")
+                self.last_modified = data.get("last_modified", "")
                 if not validate_strings(self.code, self.name, self.uuid, self.created, self.last_modified):
                     self.logger.error(
                         "Failed to properly load ArxivSet",
@@ -170,3 +175,16 @@ class ArxivSet(BaseModel):
                 "Failed to load ArxivSet", method=self.load.__name__, error=str(e), code=self.code, name=self.name
             )
             raise e
+
+    def relate(
+        self,
+        driver: Driver,
+        label: str,
+        start_label: str,
+        start_uuid: str,
+        end_label: str,
+        end_uuid: str,
+        unique: bool = True,
+        properties: dict = None,
+    ):
+        super()._relate(driver, label, start_label, start_uuid, end_label, end_uuid, True)

@@ -4,6 +4,7 @@ import urllib.parse
 
 import defusedxml.ElementTree as ET
 import structlog
+import utils
 from constants import (
     APP_NAME,
     CS_CATEGORIES_INVERTED,
@@ -65,7 +66,7 @@ def lambda_handler(event, context):
             len(content_str),
             config.get(SERVICE_NAME),
             config.get(SERVICE_VERSION),
-            StorageManager.get_storage_key_datetime(),
+            utils.get_storage_key_datetime(),
             bucket_name,
             output_key,
         )
@@ -197,5 +198,5 @@ def get_output_key(config) -> str:
     Returns:
         str: The output key.
     """
-    key_date = StorageManager.get_storage_key_date()
+    key_date = utils.get_storage_key_date()
     return f"{config[ETL_KEY_PREFIX]}/parsed_arxiv_summaries-{key_date}.json"

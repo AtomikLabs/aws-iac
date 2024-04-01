@@ -21,6 +21,19 @@ class BaseModelChild(BaseModel):
     def load(self):
         pass  # required to test instantiate abstract class
 
+    def relate(
+        self,
+        driver: Driver,
+        label: str,
+        start_label: str,
+        start_uuid: str,
+        end_label: str,
+        end_uuid: str,
+        unique: bool = True,
+        properties: dict = None,
+    ):
+        pass  # required to test instantiate abstract class
+
 
 class TestBaseModel:
     @pytest.fixture(autouse=True)

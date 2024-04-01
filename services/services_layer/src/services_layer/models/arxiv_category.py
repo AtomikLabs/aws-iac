@@ -1,10 +1,10 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_ARXIV_CATEGORY
+from constants import FAILED_TO_CREATE_ARXIV_CATEGORY, S3_KEY_DATE_FORMAT
 from models.base_model import BaseModel
 from neo4j import Driver
-from utils import validate_strings
+from utils import get_storage_key_datetime, validate_strings
 
 structlog.configure(
     [
@@ -39,14 +39,21 @@ class ArxivCategory(BaseModel):
             self.name = name if name else self.name
             self.verify_connection()
             self.logger.debug("Creating ArxivCategory", method=self.create.__name__, code=self.code, name=self.name)
+            now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
+            properties = {
+                "code": self.code,
+                "uuid": str(uuid.uuid4()),
+                "name": self.name,
+                "created": now,
+                "last_modified": now,
+            }
             records, summary, _ = self.driver.execute_query(
                 """
                 MERGE (a:ArxivCategory {code: $code})
-                ON CREATE SET a.created=TIMESTAMP(), a.last_modified=TIMESTAMP(), a.uuid=$uuid, a.name=$name
+                ON CREATE SET a = $props
                 RETURN a""",
-                name=self.name,
                 code=self.code,
-                uuid=str(uuid.uuid4()),
+                props=properties,
                 database_=self.db,
             )
             if records and summary.counters.nodes_created == 1:
@@ -60,11 +67,12 @@ class ArxivCategory(BaseModel):
                     FAILED_TO_CREATE_ARXIV_CATEGORY, method=self.create.__name__, code=self.code, name=self.name
                 )
                 raise RuntimeError()
-            data = records[0].data()
-            self.name = data["a"]["name"]
-            self.uuid = data["a"]["uuid"]
-            self.created = data["a"]["created"]
-            self.last_modified = data["a"]["last_modified"]
+            data = records[0].data().get("a", {})
+            print(data)
+            self.name = data.get("name", "")
+            self.uuid = data.get("uuid", "")
+            self.created = data.get("created", "")
+            self.last_modified = data.get("last_modified", "")
             if not validate_strings(self.uuid, self.created, self.last_modified):
                 self.logger.error(
                     "Failed to properly create ArxivCategory",
@@ -74,6 +82,7 @@ class ArxivCategory(BaseModel):
                     uuid=self.uuid,
                     created=self.created,
                     last_modified=self.last_modified,
+                    node=data,
                 )
                 raise ValueError("Failed to create ArxivCategory")
         except Exception as e:
@@ -112,6 +121,7 @@ class ArxivCategory(BaseModel):
                 return ARXIV_CATEGORY
             return None
         except Exception as e:
+            structlog.get_logger().error("Failed to find ArxivCategory", method=cls.find.__name__, error=str(e))
             raise e
 
     @classmethod
@@ -120,7 +130,7 @@ class ArxivCategory(BaseModel):
             driver.verify_connectivity()
             records, _, _ = driver.execute_query(f"MATCH (a:{cls.LABEL}) RETURN a", database_="neo4j")
             if records:
-                ARXIV_CATEGORYs = []
+                ARXIV_CATEGORIES = []
                 for record in records:
                     data = record.data()["a"]
                     ARXIV_CATEGORY = cls(
@@ -139,9 +149,12 @@ class ArxivCategory(BaseModel):
                         ARXIV_CATEGORY.last_modified,
                     ):
                         raise ValueError("Failed to load ArxivCategory")
-                    ARXIV_CATEGORYs.append(ARXIV_CATEGORY)
-                return ARXIV_CATEGORYs
+                    ARXIV_CATEGORIES.append(ARXIV_CATEGORY)
+                return ARXIV_CATEGORIES
         except Exception as e:
+            structlog.get_logger().error(
+                "Failed to find all ArxivCategories", method=cls.find_all.__name__, error=str(e)
+            )
             raise e
 
     def load(self) -> bool:
@@ -156,11 +169,12 @@ class ArxivCategory(BaseModel):
             )
             if records:
                 self.logger.debug("ArxivCategory loaded", method=self.load.__name__, code=self.code, name=self.name)
-                self.code = records[0].data()["a"]["code"]
-                self.name = records[0].data()["a"]["name"]
-                self.uuid = records[0].data()["a"]["uuid"]
-                self.created = records[0].data()["a"]["created"]
-                self.last_modified = records[0].data()["a"]["last_modified"]
+                data = records[0].data().get("a", {})
+                self.code = data.get("code", "")
+                self.name = data.get("name", "")
+                self.uuid = data.get("uuid", "")
+                self.created = data.get("created", "")
+                self.last_modified = data.get("last_modified", "")
                 if not validate_strings(self.code, self.name, self.uuid, self.created, self.last_modified):
                     self.logger.error(
                         "Failed to properly load ArxivCategory",
@@ -178,3 +192,16 @@ class ArxivCategory(BaseModel):
                 "Failed to load ArxivCategory", method=self.load.__name__, error=str(e), code=self.code, name=self.name
             )
             raise e
+
+    def relate(
+        self,
+        driver: Driver,
+        label: str,
+        start_label: str,
+        start_uuid: str,
+        end_label: str,
+        end_uuid: str,
+        unique: bool = True,
+        properties: dict = None,
+    ):
+        super()._relate(driver, label, start_label, start_uuid, end_label, end_uuid, unique, properties)
