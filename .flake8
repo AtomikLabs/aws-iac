@@ -6,7 +6,8 @@ exclude =
     build,
     dist,
     .venv,
-    notes
+    notes,
+    experiment.py
 ignore =
     E203,
     E266,

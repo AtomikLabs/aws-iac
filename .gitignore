@@ -181,3 +181,5 @@ coverage/
 
 # Custom docs
 scripts/**/*.docx
+
+**/experiment.py

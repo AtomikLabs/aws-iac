@@ -1,3 +1,4 @@
+import uuid
 from abc import ABC, abstractmethod
 
 import structlog
@@ -48,40 +49,113 @@ class BaseModel(ABC):
     def load(cls) -> bool:
         pass
 
-    def relate(self, driver: Driver, label: str, start_node_uuid: str, end_node_uuid: str, properties: dict):
-        if not validate_strings(label, start_node_uuid, end_node_uuid):
-            raise ValueError("label, start_node, and end_node must be valid strings")
+    @abstractmethod
+    def relate(
+        self,
+        driver: Driver,
+        label: str,
+        start_label: str,
+        start_uuid: str,
+        end_label: str,
+        end_uuid: str,
+        unique: bool = True,
+        properties: dict = None,
+    ):
+        pass
+
+    def _relate(
+        self,
+        driver: Driver,
+        label: str,
+        start_label: str,
+        start_uuid: str,
+        end_label: str,
+        end_uuid: str,
+        unique: bool = True,
+        properties: dict = None,
+    ):
+        if not validate_strings(label, start_label, start_uuid, end_label, end_uuid):
+            raise ValueError("labels, start_node, and end_node must be valid strings")
         if not driver and not isinstance(driver, Driver):
             raise ValueError("Invalid driver")
         self.verify_connection()
         try:
-            with driver.session(database=self.db) as session:
-                query = (
-                    f"MATCH (start:{label}),(end:{label}) "
-                    f"WHERE start.uuid = $start_node_uuid AND end.uuid = $end_node_uuid "
-                    f"CREATE (start)-[r:RELATED_TO]->(end) "
-                    f"SET r = $properties "
-                    f"RETURN r"
+            result, summary = None, None
+            properties = properties if properties else {}
+            properties["uuid"] = str(uuid.uuid4())
+            if unique:
+                result, summary, _ = driver.execute_query(
+                    f"""
+                    MATCH (start:{start_label} {{uuid: $start_uuid}})
+                    MATCH (end:{end_label} {{uuid: $end_uuid}})
+                    MERGE (start)-[r:{label}]->(end)
+                    ON CREATE SET r += $props
+                    RETURN r
+                    """,
+                    start_label=start_label,
+                    end_label=end_label,
+                    label=label,
+                    start_uuid=start_uuid,
+                    end_uuid=end_uuid,
+                    props=properties,
                 )
-                result = session.run(
-                    query, start_node_uuid=start_node_uuid, end_node_uuid=end_node_uuid, properties=properties
+            else:
+                result, summary, _ = driver.execute_query(
+                    f"""
+                    MATCH (start:{start_label} {{uuid: $start_uuid}})
+                    MATCH (end:{end_label} {{uuid: $end_uuid}})
+                    CREATE (start)-[r:{label}]->(end)
+                    SET r += $props
+                    RETURN r
+                    """,
+                    start_label=start_label,
+                    end_label=end_label,
+                    label=label,
+                    start_uuid=start_uuid,
+                    end_uuid=end_uuid,
+                    props=properties,
                 )
+
+            if result and summary.counters.relationships_created == 1:
                 self.logger.debug(
                     "Relationship created",
                     method=self.relate.__name__,
-                    label=label,
-                    start_node_uuid=start_node_uuid,
-                    end_node_uuid=end_node_uuid,
+                    start_label=start_label,
+                    start_node_uuid=start_uuid,
+                    end_label=end_label,
+                    end_node_uuid=end_uuid,
                     properties=properties,
                 )
                 return result
+            elif result and summary.counters.relationships_created == 0:
+                self.logger.debug(
+                    "Relationship already exists",
+                    method=self.relate.__name__,
+                    start_label=start_label,
+                    start_node_uuid=start_uuid,
+                    end_label=end_label,
+                    end_node_uuid=end_uuid,
+                    properties=properties,
+                )
+                return result
+            else:
+                self.logger.error(
+                    "Failed to create relationship",
+                    method=self.relate.__name__,
+                    start_label=start_label,
+                    start_node_uuid=start_uuid,
+                    end_label=end_label,
+                    end_node_uuid=end_uuid,
+                    properties=properties,
+                )
+                raise RuntimeError()
         except Exception as e:
             self.logger.error(
                 "Failed to create relationship",
                 method=self.relate.__name__,
                 label=label,
-                start_node_uuid=start_node_uuid,
-                end_node_uuid=end_node_uuid,
+                start_node_uuid=start_uuid,
+                end_node_uuid=end_uuid,
                 properties=properties,
                 error=str(e),
             )
