@@ -119,8 +119,8 @@ class TestArxivCategory:
         arxiv_category = ArxivCategory(driver, code, name)
         with pytest.raises(ValueError):
             arxiv_category.driver = driver
-            arxiv_category.code = code
-            arxiv_category.name = name
+            arxiv_category.code = c
+            arxiv_category.name = n
             arxiv_category.create()
 
     def test_create_should_raise_exception_when_no_records_returned(self, driver, code, name):
