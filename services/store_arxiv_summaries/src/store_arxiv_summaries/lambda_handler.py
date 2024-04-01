@@ -200,8 +200,16 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                         )
                         arxiv_category = ArxivCategory.find(driver, "NULL")
                     arxiv_record.create()
-                    arxiv_record.relate(driver, "BELONGS_TO", arxiv_record.LABEL, arxiv_record.uuid, arxiv_category.LABEL, arxiv_category.uuid, True)
-                    
+                    arxiv_record.relate(
+                        driver,
+                        "BELONGS_TO",
+                        arxiv_record.LABEL,
+                        arxiv_record.uuid,
+                        arxiv_category.LABEL,
+                        arxiv_category.uuid,
+                        True,
+                    )
+
             logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
             # TODO: set alerting for malformed records
             logger.info(
