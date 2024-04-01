@@ -167,11 +167,11 @@ class TestLambdaHandler(unittest.TestCase):
 
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
     def test_store_records_with_well_formed_records(self, mock_neo4j_database):
-        pass # TODO: implement after models are all implemented
+        pass  # TODO: implement after models are all implemented
 
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
     def test_store_records_with_malformed_records(self, mock_neo4j_database):
-        pass # TODO: implement after models are all implemented
+        pass  # TODO: implement after models are all implemented
 
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
     def test_store_records_with_exception(self, mock_neo4j_database):
