@@ -129,8 +129,8 @@ class ArxivSet(BaseModel):
                         name=data.get("name"),
                     )
                     arxiv_set.uuid = data.get("uuid")
-                    arxiv_set.created = data.get("created").strftime(S3_KEY_DATE_FORMAT)
-                    arxiv_set.last_modified = data.get("last_modified").strftime(S3_KEY_DATE_FORMAT)
+                    arxiv_set.created = data.get("created")
+                    arxiv_set.last_modified = data.get("last_modified")
                     if not validate_strings(
                         arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified
                     ):

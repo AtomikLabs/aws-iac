@@ -184,33 +184,40 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
             )
             with Neo4jDatabase(neo4j_uri, neo4j_username, neo4j_password).driver() as driver:
                 for record in well_formed_records[:2]:
-                    arxiv_record = ArxivRecord(
-                        driver=driver,
-                        arxiv_id=record.get("identifier"),
-                        title=record.get("title"),
-                        date=record.get("date"),
-                    )
-                    arxiv_category = ArxivCategory.find(
-                        driver, record.get("primary_category") if record.get("primary_category") else "NULL"
-                    )
-                    if not arxiv_category:
-                        # TODO: Monitoring alert here
-                        logger.warn(
-                            "Failed to find ArxivCategory",
-                            method=store_records.__name__,
-                            arxiv_category=record.get("primary_category").upper(),
+                    try:
+                        arxiv_record = ArxivRecord(
+                            driver=driver,
+                            arxiv_id=record.get("identifier"),
+                            title=record.get("title"),
+                            date=record.get("date"),
                         )
-                        raise RuntimeError("Failed to find ArxivCategory")
-                    arxiv_record.create()
-                    arxiv_record.relate(
-                        driver,
-                        "BELONGS_TO",
-                        ArxivRecord.LABEL,
-                        arxiv_record.uuid,
-                        ArxivCategory.LABEL,
-                        arxiv_category.uuid,
-                        True,
-                    )
+                        arxiv_category = ArxivCategory.find(
+                            driver, record.get("primary_category") if record.get("primary_category") else "NULL"
+                        )
+                        if not arxiv_category:
+                            # TODO: Monitoring alert here
+                            logger.warn(
+                                "Failed to find ArxivCategory",
+                                method=store_records.__name__,
+                                arxiv_category=record.get("primary_category").upper(),
+                            )
+                            raise RuntimeError("Failed to find ArxivCategory")
+                        arxiv_record.create()
+                        arxiv_record.relate(
+                            driver,
+                            "BELONGS_TO",
+                            ArxivRecord.LABEL,
+                            arxiv_record.uuid,
+                            ArxivCategory.LABEL,
+                            arxiv_category.uuid,
+                            True,
+                        )
+                    except Exception as e:
+                        logger.error(
+                            "Error during record and relationship creation",
+                            method=store_records.__name__,
+                            record=record,
+                        )
 
             logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
             # TODO: set alerting for malformed records
