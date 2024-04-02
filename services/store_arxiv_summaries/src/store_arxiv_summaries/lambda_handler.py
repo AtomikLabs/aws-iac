@@ -190,22 +190,23 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                         title=record.get("title"),
                         date=record.get("date"),
                     )
-                    arxiv_category = ArxivCategory.find(driver, record.get("group"))
+                    print("Record: ", record.get("primary_category"))
+                    arxiv_category = ArxivCategory.find(driver, record.get("primary_category"))
                     if not arxiv_category:
                         # TODO: Monitoring alert here
                         logger.warn(
                             "Failed to find ArxivCategory",
                             method=store_records.__name__,
-                            arxiv_category=record.get("group"),
+                            arxiv_category=record.get("primary_category").upper(),
                         )
                         arxiv_category = ArxivCategory.find(driver, "NULL")
                     arxiv_record.create()
                     arxiv_record.relate(
                         driver,
                         "BELONGS_TO",
-                        arxiv_record.LABEL,
+                        ArxivRecord.LABEL,
                         arxiv_record.uuid,
-                        arxiv_category.LABEL,
+                        ArxivCategory.LABEL,
                         arxiv_category.uuid,
                         True,
                     )
@@ -229,7 +230,9 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                 )
         return {"stored": well_formed_records, "failed": malformed_records}
     except Exception as e:
-        logger.error("An error occurred", method=store_records.__name__, error=str(e))
+        logger.error("An error occurred",
+                     method=store_records.__name__,
+                     error=str(e))
         raise e
     finally:
         logger.info(
