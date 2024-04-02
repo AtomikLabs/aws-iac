@@ -182,7 +182,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                 method=store_records.__name__,
                 num_well_formed_records=len(well_formed_records),
             )
-            with Neo4jDatabase(neo4j_uri, neo4j_username, neo4j_password).driver as driver:
+            with Neo4jDatabase(neo4j_uri, neo4j_username, neo4j_password).driver() as driver:
                 for record in well_formed_records[:2]:
                     arxiv_record = ArxivRecord(
                         driver=driver,

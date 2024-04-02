@@ -102,7 +102,7 @@ class ArxivRecord(BaseModel):
         try:
             driver.verify_connectivity()
             records, _, _ = driver.execute_query(
-                f"MATCH (a:{cls.LABEL} {{arxiv_id: $arxiv_id}}) RETURN a", arxiv_id=arxiv_id, database_="neo4j"
+                f"MATCH (a:{ArxivRecord.LABEL} {{arxiv_id: $arxiv_id}}) RETURN a", arxiv_id=arxiv_id, database_="neo4j"
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
@@ -138,7 +138,7 @@ class ArxivRecord(BaseModel):
             self.verify_connection()
             self.logger.debug("Loading ArxivRecord", method=self.load.__name__, arxiv_id=self.arxiv_id)
             records, _, _ = self.driver.execute_query(
-                f"MATCH (a:{self.LABEL} {{arxiv_id: $arxiv_id}}) RETURN a", arxiv_id=self.arxiv_id, database_=self.db
+                f"MATCH (a:{ArxivRecord.LABEL} {{arxiv_id: $arxiv_id}}) RETURN a", arxiv_id=self.arxiv_id, database_=self.db
             )
             if records:
                 self.logger.debug("ArxivRecord loaded", method=self.load.__name__, arxiv_id=self.arxiv_id)
