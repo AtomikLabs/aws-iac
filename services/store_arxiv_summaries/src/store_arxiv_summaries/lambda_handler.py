@@ -190,8 +190,9 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                         title=record.get("title"),
                         date=record.get("date"),
                     )
-                    print("Record: ", record.get("primary_category"))
-                    arxiv_category = ArxivCategory.find(driver, record.get("primary_category"))
+                    arxiv_category = ArxivCategory.find(
+                        driver, record.get("primary_category") if record.get("primary_category") else "NULL"
+                    )
                     if not arxiv_category:
                         # TODO: Monitoring alert here
                         logger.warn(
@@ -199,7 +200,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                             method=store_records.__name__,
                             arxiv_category=record.get("primary_category").upper(),
                         )
-                        arxiv_category = ArxivCategory.find(driver, "NULL")
+                        raise RuntimeError("Failed to find ArxivCategory")
                     arxiv_record.create()
                     arxiv_record.relate(
                         driver,

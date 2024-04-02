@@ -100,6 +100,7 @@ class ArxivSet(BaseModel):
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
+                print(data)
                 arxiv_set = ArxivSet(driver=driver, code=data.get("code", ""), name=data.get("name", ""))
                 arxiv_set.uuid = data.get("uuid", "")
                 arxiv_set.created = data.get("created", "")
@@ -121,15 +122,15 @@ class ArxivSet(BaseModel):
             if records:
                 arxiv_sets = []
                 for record in records:
-                    data = record.data()["a"]
+                    data = record.data().get("a", {})
                     arxiv_set = ArxivSet(
                         driver=driver,
-                        code=data["code"],
-                        name=data["name"],
+                        code=data.get("code"),
+                        name=data.get("name"),
                     )
-                    arxiv_set.uuid = data["uuid"]
-                    arxiv_set.created = data["created"]
-                    arxiv_set.last_modified = data["last_modified"]
+                    arxiv_set.uuid = data.get("uuid")
+                    arxiv_set.created = data.get("created").strftime(S3_KEY_DATE_FORMAT)
+                    arxiv_set.last_modified = data.get("last_modified").strftime(S3_KEY_DATE_FORMAT)
                     if not validate_strings(
                         arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified
                     ):

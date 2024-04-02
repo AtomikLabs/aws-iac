@@ -102,6 +102,7 @@ class ArxivCategory(BaseModel):
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
+                print(data)
                 arxiv_category = ArxivCategory(
                     driver=driver,
                     code=data.get("code", ""),

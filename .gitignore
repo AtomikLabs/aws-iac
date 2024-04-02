@@ -183,3 +183,4 @@ coverage/
 scripts/**/*.docx
 
 **/experiment.py
+**/create_arxiv_cs_categories.py

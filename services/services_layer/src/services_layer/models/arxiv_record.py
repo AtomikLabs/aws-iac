@@ -74,8 +74,8 @@ class ArxivRecord(BaseModel):
             self.title = data.get("title", "")
             self.date = data.get("date", "")
             self.uuid = data.get("uuid", "")
-            self.created = data.get("created", "")
-            self.last_modified = data.get("last_modified", "")
+            self.created = data.get("created", "").strftime(S3_KEY_DATE_FORMAT)
+            self.last_modified = data.get("last_modified", "").strftime(S3_KEY_DATE_FORMAT)
 
             if not validate_strings(self.arxiv_id, self.title, self.date, self.uuid, self.created, self.last_modified):
                 self.logger.error(
@@ -110,8 +110,8 @@ class ArxivRecord(BaseModel):
                 arxiv_record.uuid = data.get("uuid", "")
                 arxiv_record.title = data.get("title", "")
                 arxiv_record.date = data.get("date", "")
-                arxiv_record.created = data.get("created", "")
-                arxiv_record.last_modified = data.get("last_modified", "")
+                arxiv_record.created = data.get("created", "").strftime(S3_KEY_DATE_FORMAT)
+                arxiv_record.last_modified = data.get("last_modified", "").strftime(S3_KEY_DATE_FORMAT)
                 if not validate_strings(
                     arxiv_record.arxiv_id,
                     arxiv_record.title,
@@ -149,8 +149,8 @@ class ArxivRecord(BaseModel):
                 self.title = data.get("title", "")
                 self.date = data.get("date", "")
                 self.uuid = data.get("uuid", "")
-                self.created = data.get("created", "")
-                self.last_modified = data.get("last_modified", "")
+                self.created = data.get("created", "").strftime(S3_KEY_DATE_FORMAT)
+                self.last_modified = data.get("last_modified", "").strftime(S3_KEY_DATE_FORMAT)
                 if not validate_strings(
                     self.arxiv_id, self.title, self.date, self.uuid, self.created, self.last_modified
                 ):
