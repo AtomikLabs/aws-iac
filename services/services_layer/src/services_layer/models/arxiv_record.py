@@ -138,7 +138,9 @@ class ArxivRecord(BaseModel):
             self.verify_connection()
             self.logger.debug("Loading ArxivRecord", method=self.load.__name__, arxiv_id=self.arxiv_id)
             records, _, _ = self.driver.execute_query(
-                f"MATCH (a:{ArxivRecord.LABEL} {{arxiv_id: $arxiv_id}}) RETURN a", arxiv_id=self.arxiv_id, database_=self.db
+                f"MATCH (a:{ArxivRecord.LABEL} {{arxiv_id: $arxiv_id}}) RETURN a",
+                arxiv_id=self.arxiv_id,
+                database_=self.db,
             )
             if records:
                 self.logger.debug("ArxivRecord loaded", method=self.load.__name__, arxiv_id=self.arxiv_id)
