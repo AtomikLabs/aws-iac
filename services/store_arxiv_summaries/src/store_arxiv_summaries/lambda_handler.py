@@ -183,7 +183,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                 num_well_formed_records=len(well_formed_records),
             )
             with Neo4jDatabase(neo4j_uri, neo4j_username, neo4j_password).driver() as driver:
-                for record in well_formed_records[:2]:
+                for record in well_formed_records:
                     try:
                         arxiv_record = ArxivRecord(
                             driver=driver,
@@ -205,11 +205,20 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                         arxiv_record.create()
                         arxiv_record.relate(
                             driver,
-                            "BELONGS_TO",
+                            "HAS_CATEGORY",
                             ArxivRecord.LABEL,
                             arxiv_record.uuid,
                             ArxivCategory.LABEL,
                             arxiv_category.uuid,
+                            True,
+                        )
+                        arxiv_record.relate(
+                            driver,
+                            "HAS_RESEARCH",
+                            ArxivCategory.LABEL,
+                            arxiv_category.uuid,
+                            ArxivRecord.LABEL,
+                            arxiv_record.uuid,
                             True,
                         )
                     except Exception as e:
@@ -217,8 +226,8 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                             "Error during record and relationship creation",
                             method=store_records.__name__,
                             record=record,
+                            error=str(e),
                         )
-
             logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
             # TODO: set alerting for malformed records
             logger.info(
