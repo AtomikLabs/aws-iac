@@ -96,7 +96,7 @@ class ArxivSet(BaseModel):
         try:
             driver.verify_connectivity()
             records, _, _ = driver.execute_query(
-                f"MATCH (a:{cls.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
+                f"MATCH (a:{ArxivSet.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
@@ -117,12 +117,12 @@ class ArxivSet(BaseModel):
     def find_all(cls, driver: Driver):
         try:
             driver.verify_connectivity()
-            records, _, _ = driver.execute_query(f"MATCH (a:{cls.LABEL}) RETURN a", database_="neo4j")
+            records, _, _ = driver.execute_query(f"MATCH (a:{ArxivSet.LABEL}) RETURN a", database_="neo4j")
             if records:
                 arxiv_sets = []
                 for record in records:
                     data = record.data()["a"]
-                    arxiv_set = cls(
+                    arxiv_set = ArxivSet(
                         driver=driver,
                         code=data["code"],
                         name=data["name"],

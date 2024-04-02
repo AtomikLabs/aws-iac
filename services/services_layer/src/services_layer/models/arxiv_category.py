@@ -98,11 +98,11 @@ class ArxivCategory(BaseModel):
         try:
             driver.verify_connectivity()
             records, _, _ = driver.execute_query(
-                f"MATCH (a:{cls.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
+                f"MATCH (a:{ArxivCategory.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
             )
             if records and records[0] and records[0].data():
                 data = records[0].data()
-                ARXIV_CATEGORY = cls(
+                ARXIV_CATEGORY = ArxivCategory(
                     driver=driver,
                     code=data.get("a", {}).get("code", ""),
                     name=data.get("a", {}).get("name", ""),
@@ -128,12 +128,12 @@ class ArxivCategory(BaseModel):
     def find_all(cls, driver: Driver):
         try:
             driver.verify_connectivity()
-            records, _, _ = driver.execute_query(f"MATCH (a:{cls.LABEL}) RETURN a", database_="neo4j")
+            records, _, _ = driver.execute_query(f"MATCH (a:{ArxivCategory.LABEL}) RETURN a", database_="neo4j")
             if records:
                 ARXIV_CATEGORIES = []
                 for record in records:
                     data = record.data()["a"]
-                    ARXIV_CATEGORY = cls(
+                    ARXIV_CATEGORY = ArxivCategory(
                         driver=driver,
                         code=data["code"],
                         name=data["name"],
