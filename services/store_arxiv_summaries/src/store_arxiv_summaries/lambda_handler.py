@@ -230,9 +230,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                 )
         return {"stored": well_formed_records, "failed": malformed_records}
     except Exception as e:
-        logger.error("An error occurred",
-                     method=store_records.__name__,
-                     error=str(e))
+        logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
     finally:
         logger.info(
