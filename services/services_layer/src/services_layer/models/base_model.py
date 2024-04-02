@@ -2,8 +2,9 @@ import uuid
 from abc import ABC, abstractmethod
 
 import structlog
+from constants import S3_KEY_DATE_FORMAT
 from neo4j import Driver
-from utils import validate_strings
+from utils import get_storage_key_datetime, validate_strings
 
 structlog.configure(
     [
@@ -82,7 +83,10 @@ class BaseModel(ABC):
         try:
             result, summary = None, None
             properties = properties if properties else {}
+            now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
             properties["uuid"] = str(uuid.uuid4())
+            properties["created"] = now
+            properties["last_modified"] = now
             if unique:
                 result, summary, _ = driver.execute_query(
                     f"""

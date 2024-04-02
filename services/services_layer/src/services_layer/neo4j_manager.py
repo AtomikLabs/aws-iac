@@ -865,3 +865,6 @@ class Neo4jDatabase:
 
     def create_arxiv_set_node(self, record: dict, parsed_data_node: str) -> dict:
         raise NotImplementedError
+
+    def driver(self):
+        return GraphDatabase.driver(self.uri, auth=(self.username, self.password))

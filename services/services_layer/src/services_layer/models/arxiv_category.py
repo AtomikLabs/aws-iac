@@ -98,27 +98,28 @@ class ArxivCategory(BaseModel):
         try:
             driver.verify_connectivity()
             records, _, _ = driver.execute_query(
-                f"MATCH (a:{cls.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
+                f"MATCH (a:{ArxivCategory.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
             )
             if records and records[0] and records[0].data():
-                data = records[0].data()
-                ARXIV_CATEGORY = cls(
+                data = records[0].data().get("a", {})
+                print(data)
+                arxiv_category = ArxivCategory(
                     driver=driver,
-                    code=data.get("a", {}).get("code", ""),
-                    name=data.get("a", {}).get("name", ""),
+                    code=data.get("code", ""),
+                    name=data.get("name", ""),
                 )
-                ARXIV_CATEGORY.uuid = data.get("a", {}).get("uuid", "")
-                ARXIV_CATEGORY.created = data.get("a", {}).get("created", "")
-                ARXIV_CATEGORY.last_modified = data.get("a", {}).get("last_modified", "")
+                arxiv_category.uuid = data.get("uuid", "")
+                arxiv_category.created = data.get("created", "")
+                arxiv_category.last_modified = data.get("last_modified", "")
                 if not validate_strings(
-                    ARXIV_CATEGORY.code,
-                    ARXIV_CATEGORY.name,
-                    ARXIV_CATEGORY.uuid,
-                    ARXIV_CATEGORY.created,
-                    ARXIV_CATEGORY.last_modified,
+                    arxiv_category.code,
+                    arxiv_category.name,
+                    arxiv_category.uuid,
+                    arxiv_category.created,
+                    arxiv_category.last_modified,
                 ):
                     raise ValueError("Failed to load ArxivCategory")
-                return ARXIV_CATEGORY
+                return arxiv_category
             return None
         except Exception as e:
             structlog.get_logger().error("Failed to find ArxivCategory", method=cls.find.__name__, error=str(e))
@@ -128,29 +129,29 @@ class ArxivCategory(BaseModel):
     def find_all(cls, driver: Driver):
         try:
             driver.verify_connectivity()
-            records, _, _ = driver.execute_query(f"MATCH (a:{cls.LABEL}) RETURN a", database_="neo4j")
+            records, _, _ = driver.execute_query(f"MATCH (a:{ArxivCategory.LABEL}) RETURN a", database_="neo4j")
             if records:
-                ARXIV_CATEGORIES = []
+                arxiv_categories = []
                 for record in records:
-                    data = record.data()["a"]
-                    ARXIV_CATEGORY = cls(
+                    data = record.data().get("a", {})
+                    arxiv_category = ArxivCategory(
                         driver=driver,
-                        code=data["code"],
-                        name=data["name"],
+                        code=data.get("code", ""),
+                        name=data.get("name", ""),
                     )
-                    ARXIV_CATEGORY.uuid = data["uuid"]
-                    ARXIV_CATEGORY.created = data["created"]
-                    ARXIV_CATEGORY.last_modified = data["last_modified"]
+                    arxiv_category.uuid = data.get("uuid", "")
+                    arxiv_category.created = data.get("created", "")
+                    arxiv_category.last_modified = data.get("last_modified", "")
                     if not validate_strings(
-                        ARXIV_CATEGORY.code,
-                        ARXIV_CATEGORY.name,
-                        ARXIV_CATEGORY.uuid,
-                        ARXIV_CATEGORY.created,
-                        ARXIV_CATEGORY.last_modified,
+                        arxiv_category.code,
+                        arxiv_category.name,
+                        arxiv_category.uuid,
+                        arxiv_category.created,
+                        arxiv_category.last_modified,
                     ):
                         raise ValueError("Failed to load ArxivCategory")
-                    ARXIV_CATEGORIES.append(ARXIV_CATEGORY)
-                return ARXIV_CATEGORIES
+                    arxiv_categories.append(arxiv_category)
+                return arxiv_categories
         except Exception as e:
             structlog.get_logger().error(
                 "Failed to find all ArxivCategories", method=cls.find_all.__name__, error=str(e)

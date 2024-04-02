@@ -47,7 +47,6 @@ class ArxivSet(BaseModel):
                 "created": now,
                 "last_modified": now,
             }
-            print(self.code)
             records, summary, _ = self.driver.execute_query(
                 """
                 MERGE (a:ArxivSet {code: $code})
@@ -97,10 +96,11 @@ class ArxivSet(BaseModel):
         try:
             driver.verify_connectivity()
             records, _, _ = driver.execute_query(
-                f"MATCH (a:{cls.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
+                f"MATCH (a:{ArxivSet.LABEL} {{code: $code}}) RETURN a", code=code, database_="neo4j"
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
+                print(data)
                 arxiv_set = ArxivSet(driver=driver, code=data.get("code", ""), name=data.get("name", ""))
                 arxiv_set.uuid = data.get("uuid", "")
                 arxiv_set.created = data.get("created", "")
@@ -118,19 +118,19 @@ class ArxivSet(BaseModel):
     def find_all(cls, driver: Driver):
         try:
             driver.verify_connectivity()
-            records, _, _ = driver.execute_query(f"MATCH (a:{cls.LABEL}) RETURN a", database_="neo4j")
+            records, _, _ = driver.execute_query(f"MATCH (a:{ArxivSet.LABEL}) RETURN a", database_="neo4j")
             if records:
                 arxiv_sets = []
                 for record in records:
-                    data = record.data()["a"]
-                    arxiv_set = cls(
+                    data = record.data().get("a", {})
+                    arxiv_set = ArxivSet(
                         driver=driver,
-                        code=data["code"],
-                        name=data["name"],
+                        code=data.get("code"),
+                        name=data.get("name"),
                     )
-                    arxiv_set.uuid = data["uuid"]
-                    arxiv_set.created = data["created"]
-                    arxiv_set.last_modified = data["last_modified"]
+                    arxiv_set.uuid = data.get("uuid")
+                    arxiv_set.created = data.get("created")
+                    arxiv_set.last_modified = data.get("last_modified")
                     if not validate_strings(
                         arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified
                     ):

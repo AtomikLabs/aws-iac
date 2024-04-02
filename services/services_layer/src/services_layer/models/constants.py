@@ -40,6 +40,7 @@ CS_CATEGORIES_INVERTED = {
     "Computer Science - Software Engineering": "SE",
     "Computer Science - Social and Information Networks": "SI",
     "Computer Science - Systems and Control": "SY",
+    "NULL": "NULL",
 }
 
 # Services Environment
@@ -63,6 +64,7 @@ S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 # Error Messages
 FAILED_TO_CREATE_ARXIV_CATEGORY = "Failed to create ArxivCategory"
+FAILED_TO_CREATE_ARXIV_RECORD = "Failed to create ArxivRecord"
 FAILED_TO_CREATE_ARXIV_SET = "Failed to create ArxivSet"
 INTERNAL_SERVER_ERROR = "Internal server error"
 
