@@ -109,10 +109,10 @@ class TestArxivCategory:
         [
             (None, "cs", "name"),
             (123, "cs", "name"),
-            (MagicMock(), None, "name"),
-            (MagicMock(), 123, "name"),
-            (MagicMock(), "cs", None),
-            (MagicMock(), "cs", 123),
+            (MagicMock(spec=Driver), None, "name"),
+            (MagicMock(spec=Driver), 123, "name"),
+            (MagicMock(spec=Driver), "cs", None),
+            (MagicMock(spec=Driver), "cs", 123),
         ],
     )
     def test_create_should_raise_exception_with_invalid_params(self, d, c, n, driver, code, name):

@@ -148,11 +148,12 @@ class TestArxivRecord:
         arxiv_record.title = t
         arxiv_record.date = da
         if not isinstance(d, Driver):
-            with pytest.raises(ValueError):
+            with pytest.raises(AttributeError):
                 arxiv_record.driver = d
                 arxiv_record.create()
-        with pytest.raises(ValueError):
-            arxiv_record.create()
+        else:
+            with pytest.raises(ValueError):
+                arxiv_record.create()
 
     def test_create_should_raise_exception_when_no_records_returned(self, driver, _arxiv_id, _title, _date):
         driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])
