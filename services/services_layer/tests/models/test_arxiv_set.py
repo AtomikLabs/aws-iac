@@ -109,19 +109,24 @@ class TestArxivSet:
         [
             (None, "cs", "name"),
             (123, "cs", "name"),
-            (MagicMock(), None, "name"),
-            (MagicMock(), 123, "name"),
-            (MagicMock(), "cs", None),
-            (MagicMock(), "cs", 123),
+            (MagicMock(spec=Driver), None, "name"),
+            (MagicMock(spec=Driver), 123, "name"),
+            (MagicMock(spec=Driver), "cs", None),
+            (MagicMock(spec=Driver), "cs", 123),
         ],
     )
     def test_create_should_raise_exception_with_invalid_params(self, d, c, n, driver, code, name):
         arxiv_set = ArxivSet(driver, code, name)
-        with pytest.raises(ValueError):
-            arxiv_set.driver = driver
-            arxiv_set.code = code
-            arxiv_set.name = name
-            arxiv_set.create()
+        arxiv_set.code = c
+        arxiv_set.name = n
+        if not isinstance(d, Driver):
+            with pytest.raises(AttributeError):
+                arxiv_set.driver = d
+                arxiv_set.create()
+        else:
+            with pytest.raises(ValueError):
+                arxiv_set.driver = driver
+                arxiv_set.create()
 
     def test_create_should_raise_exception_when_no_records_returned(self, driver, code, name):
         driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])
