@@ -24,6 +24,18 @@ class ArxivRecord(BaseModel):
 
     def __init__(self, driver: Driver = None, arxiv_id: str = "", title: str = "", date: str = ""):
         super().__init__(driver)
+        if arxiv_id and not validate_strings(arxiv_id):
+            message = "Arxiv ID must be a valid string if provided"
+            self.logger.error(message, method=self.__init__.__name__)
+            raise ValueError(message)
+        if title and not validate_strings(title):
+            message = "Title must be a valid string if provided"
+            self.logger.error(message, method=self.__init__.__name__)
+            raise ValueError(message)
+        if date and not validate_strings(date):
+            message = "Date must be a valid string if provided"
+            self.logger.error(message, method=self.__init__.__name__)
+            raise ValueError(message)
         self.arxiv_id = arxiv_id
         self.uuid = None
         self.title = title
