@@ -117,11 +117,15 @@ class TestArxivCategory:
     )
     def test_create_should_raise_exception_with_invalid_params(self, d, c, n, driver, code, name):
         arxiv_category = ArxivCategory(driver, code, name)
-        with pytest.raises(ValueError):
-            arxiv_category.driver = driver
-            arxiv_category.code = c
-            arxiv_category.name = n
-            arxiv_category.create()
+        arxiv_category.code = c
+        arxiv_category.name = n
+        if not isinstance(d, Driver):
+            with pytest.raises(AttributeError):
+                arxiv_category.driver = d
+                arxiv_category.create()
+        else:
+            with pytest.raises(ValueError):
+                arxiv_category.create()
 
     def test_create_should_raise_exception_when_no_records_returned(self, driver, code, name):
         driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])

@@ -134,20 +134,24 @@ class TestArxivRecord:
         [
             (None, "oai:arXiv.org:1906.11285", "Cool Science Paper", "2021-01-01"),
             (123, "oai:arXiv.org:1906.11285", "Cool Science Paper", "2021-01-01"),
-            (MagicMock(), None, "Cool Science Paper", "2021-01-01"),
-            (MagicMock(), 123, "Cool Science Paper", "2021-01-01"),
-            (MagicMock(), "oai:arXiv.org:1906.11285", None, "2021-01-01"),
-            (MagicMock(), "oai:arXiv.org:1906.11285", 123, "2021-01-01"),
-            (MagicMock(), "oai:arXiv.org:1906.11285", "Cool Science Paper", None),
-            (MagicMock(), "oai:arXiv.org:1906.11285", "Cool Science Paper", 123),
+            (MagicMock(spec=Driver), None, "Cool Science Paper", "2021-01-01"),
+            (MagicMock(spec=Driver), 123, "Cool Science Paper", "2021-01-01"),
+            (MagicMock(spec=Driver), "oai:arXiv.org:1906.11285", None, "2021-01-01"),
+            (MagicMock(spec=Driver), "oai:arXiv.org:1906.11285", 123, "2021-01-01"),
+            (MagicMock(spec=Driver), "oai:arXiv.org:1906.11285", "Cool Science Paper", None),
+            (MagicMock(spec=Driver), "oai:arXiv.org:1906.11285", "Cool Science Paper", 123),
         ],
     )
     def test_create_should_raise_exception_with_invalid_params(self, d, a, t, da, driver, _arxiv_id):
         arxiv_record = ArxivRecord(driver, _arxiv_id)
+        arxiv_record.arxiv_id = a
+        arxiv_record.title = t
+        arxiv_record.date = da
+        if not isinstance(d, Driver):
+            with pytest.raises(ValueError):
+                arxiv_record.driver = d
+                arxiv_record.create()
         with pytest.raises(ValueError):
-            arxiv_record.arxiv_id = a
-            arxiv_record.title = t
-            arxiv_record.date = da
             arxiv_record.create()
 
     def test_create_should_raise_exception_when_no_records_returned(self, driver, _arxiv_id, _title, _date):
