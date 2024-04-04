@@ -51,7 +51,7 @@ class ArxivRecord(BaseModel):
             )
             raise ValueError(message)
         try:
-            self.arxiv_id = self.arxiv_id if self.arxiv_id else arxiv_id
+            self.arxiv_id = self.arxiv_id if validate_strings(self.arxiv_id) else arxiv_id
             self.verify_connection()
             self.logger.debug("Creating ArxivRecord", method=self.create.__name__, arxiv_id=self.arxiv_id)
             now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)

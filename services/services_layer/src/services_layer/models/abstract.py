@@ -49,9 +49,9 @@ class Abstract(BaseModel):
             self.logger.error(message, method=self.create.__name__)
             raise ValueError(message)
         try:
-            self.text = text if text else self.text
-            self.storage_url = storage_url if storage_url else self.storage_url
-            self.url = url if url else self.url
+            self.text = text if validate_strings(text) else self.text
+            self.storage_url = storage_url if validate_strings(storage_url) else self.storage_url
+            self.url = url if validate_strings(url) else self.url
             self.verify_connection()
             self.logger.debug(
                 "Creating Abstract",
