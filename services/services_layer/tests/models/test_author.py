@@ -8,10 +8,10 @@ from services.services_layer.src.services_layer.models.author import Author
 
 class TestAuthor:
 
-    TEXT = "This is a test author"
-    STORAGE_URL = "s3://test-bucket/test-key"
-    URL = "https://arxiv.org/abs/1906.11285"
-    DATE = "2019-06-26"
+    LAST_NAME = "Doe"
+    FIRST_NAME = "John"
+    LAST_NAME_2 = "Smith"
+    FIRST_NAME_2 = "Jane"
     UUID = "1234-5678-9012-3456"
     CREATED = "2021-01-01T00:00:00"
     LAST_MODIFIED = "2021-01-01T00:00:00"
@@ -19,9 +19,8 @@ class TestAuthor:
     SINGLE_CREATE_RECORDS_RETURN = MagicMock(
         data=lambda: {
             "a": {
-                "text": TestAuthor.TEXT,
-                "storage_url": TestAuthor.STORAGE_URL,
-                "url": TestAuthor.URL,
+                "last_name": TestAuthor.LAST_NAME,
+                "first_name": TestAuthor.FIRST_NAME,
                 "uuid": TestAuthor.UUID,
                 "created": TestAuthor.CREATED,
                 "last_modified": TestAuthor.LAST_MODIFIED,
@@ -44,53 +43,54 @@ class TestAuthor:
         return TestAuthor.LAST_MODIFIED
 
     @pytest.fixture
-    def _storage_url(self):
-        return TestAuthor.STORAGE_URL
+    def _last_name(self):
+        return TestAuthor.LAST_NAME
 
     @pytest.fixture
-    def _text(self):
-        return TestAuthor.TEXT
+    def _first_name(self):
+        return TestAuthor.FIRST_NAME
 
     @pytest.fixture
-    def _url(self):
-        return TestAuthor.URL
+    def _last_name_2(self):
+        return TestAuthor.LAST_NAME_2
+
+    @pytest.fixture
+    def _first_name_2(self):
+        return TestAuthor.FIRST_NAME_2
 
     @pytest.fixture
     def _uuid(self):
         return TestAuthor.UUID
 
-    def test_init_should_succeed_with_valid_params(self, driver, _url, _text, _storage_url):
-        author = Author(driver, _url, _text, _storage_url)
+    def test_init_should_succeed_with_valid_params(self, driver, _last_name, _first_name):
+        author = Author(driver, _last_name, _first_name)
         assert author.driver == driver
-        assert author.url == _url
-        assert author.text == _text
-        assert author.storage_url == _storage_url
+        assert author.last_name == _last_name
+        assert author.first_name == _first_name
         assert author.uuid is None
         assert author.created is None
         assert author.last_modified is None
 
     @pytest.mark.parametrize(
-        "d, u, t, s",
+        "d, la, f",
         [
-            (None, "https://arxiv.org/abs/1906.11285", "This is a test author", "s3://test-bucket/test-key"),
-            (123, "https://arxiv.org/abs/1906.11285", "This is a test author", "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), 123, "This is a test author", "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", 123, "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", "This is a test author", 123),
+            (None, "Doe", "John"),
+            (123, "Smith", "Jane"),
+            (MagicMock(spec=Driver), 123, "Jane"),
+            (MagicMock(spec=Driver), "Smith", 123),
         ],
     )
-    def test_init_should_raise_exception_with_invalid_params(self, d, u, t, s):
+    def test_init_should_raise_exception_with_invalid_params(self, d, la, f):
         with pytest.raises(ValueError):
-            Author(d, u, t, s)
+            Author(d, la, f)
 
     @patch("services.services_layer.src.services_layer.models.author.uuid")
     def test_create_should_succeed_with_valid_params(
         self,
         mock_uuid,
         driver,
-        _url,
-        _text,
-        _storage_url,
+        _last_name,
+        _first_name,
         _uuid,
         _created,
         _last_modified,
@@ -101,9 +101,8 @@ class TestAuthor:
                 MagicMock(
                     data=lambda: {
                         "a": {
-                            "url": _url,
-                            "text": _text,
-                            "storage_url": _storage_url,
+                            "last_name": _last_name,
+                            "first_name": _first_name,
                             "uuid": _uuid,
                             "created": _created,
                             "last_modified": _last_modified,
@@ -114,31 +113,28 @@ class TestAuthor:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        author = Author(driver, _url, _text, _storage_url)
+        author = Author(driver, _last_name, _first_name)
         author.create()
         driver.execute_query.assert_called_once()
-        assert author.url == _url
-        assert author.text == _text
-        assert author.storage_url == _storage_url
+        assert author.last_name == _last_name
+        assert author.first_name == _first_name
         assert author.uuid == _uuid
         assert author.created == _created
         assert author.last_modified == _last_modified
 
     @pytest.mark.parametrize(
-        "d, u, t, s",
+        "d, ln, f",
         [
-            (None, "https://arxiv.org/abs/1906.11285", "This is a test author", "s3://test-bucket/test-key"),
-            (123, "https://arxiv.org/abs/1906.11285", "This is a test author", "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), 123, "This is a test author", "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", 123, "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", "This is a test author", 123),
+            (None, "Doe", "John"),
+            (123, "Smith", "Jane"),
+            (MagicMock(spec=Driver), 123, "Jane"),
+            (MagicMock(spec=Driver), "Smith", 123),
         ],
     )
-    def test_create_should_raise_exception_with_invalid_params(self, d, u, t, s, driver, _url):
-        author = Author(driver, _url)
-        author.url = u
-        author.text = t
-        author.storage_url = s
+    def test_create_should_raise_exception_with_invalid_params(self, d, ln, f, driver, _last_name, _first_name):
+        author = Author(driver, _last_name, _first_name)
+        author.last_name = ln
+        author.first_name = f
         if not isinstance(d, Driver):
             with pytest.raises(AttributeError):
                 author.driver = d
@@ -147,37 +143,36 @@ class TestAuthor:
             with pytest.raises(ValueError):
                 author.create()
 
-    def test_create_should_raise_exception_when_no_records_returned(self, driver, _url, _text, _storage_url):
+    def test_create_should_raise_exception_when_no_records_returned(self, driver, _last_name, _first_name):
         driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])
-        author = Author(driver, _url, _text, _storage_url)
+        author = Author(driver, _last_name, _first_name)
         with pytest.raises(RuntimeError):
             author.create()
         driver.execute_query.assert_called_once()
 
-    def test_create_should_not_duplicate_Author(self, driver, _url, _text, _storage_url):
+    def test_create_should_not_duplicate_Author(self, driver, _last_name, _first_name):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN],
             MagicMock(counters=MagicMock(nodes_created=0)),
             ["a"],
         )
-        text = "A Møøse once bit my sister... No realli!"
-        author = Author(driver, _url, _text, _storage_url)
-        author.text = text
+        first_name = "Møøse"
+        author = Author(driver, _last_name, _first_name)
+        author.first_name = first_name
         author.create()
         driver.execute_query.assert_called_once()
-        assert author.text == _text
+        assert author.first_name == _first_name
 
     def test_create_should_raise_exception_if_record_improperly_created(
-        self, driver, _url, _text, _storage_url, _uuid, _created, _last_modified
+        self, driver, _last_name, _first_name, _uuid, _created, _last_modified
     ):
         driver.execute_query.return_value = (
             [
                 MagicMock(
                     data=lambda: {
                         "a": {
-                            "url": _url,
-                            "text": _text,
-                            "storage_url": _storage_url,
+                            "last_name": _last_name,
+                            "first_name": _first_name,
                             "uuid": "",
                             "created": _created,
                             "last_modified": _last_modified,
@@ -188,7 +183,7 @@ class TestAuthor:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        author = Author(driver, _url, _text, _storage_url)
+        author = Author(driver, _last_name, _first_name)
         with pytest.raises(ValueError):
             author.create()
         driver.execute_query.assert_called_once()
@@ -198,9 +193,8 @@ class TestAuthor:
                 MagicMock(
                     data=lambda: {
                         "a": {
-                            "url": _url,
-                            "text": _text,
-                            "storage_url": _storage_url,
+                            "last_name": _last_name,
+                            "first_name": _first_name,
                             "uuid": _uuid,
                             "created": "",
                             "last_modified": _last_modified,
@@ -220,9 +214,8 @@ class TestAuthor:
                 MagicMock(
                     data=lambda: {
                         "a": {
-                            "url": _url,
-                            "text": _text,
-                            "storage_url": _storage_url,
+                            "last_name": _last_name,
+                            "first_name": _first_name,
                             "uuid": _uuid,
                             "created": _created,
                             "last_modified": "",
@@ -240,9 +233,8 @@ class TestAuthor:
     def test_load_should_succeed_if_record_exists(
         self,
         driver,
-        _url,
-        _text,
-        _storage_url,
+        _last_name,
+        _first_name,
         _uuid,
         _created,
         _last_modified,
@@ -252,40 +244,44 @@ class TestAuthor:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        author = Author(driver, _url)
+        author = Author(driver, _last_name, _first_name)
         assert author.load()
-        assert "MATCH (a:Author {url: $url}) RETURN a" in driver.execute_query.call_args[0]
-        assert author.url == _url
-        assert author.text == _text
-        assert author.storage_url == _storage_url
+        assert (
+            "MATCH (a:Author {last_name: $last_name, first_name: $first_name}) RETURN a"
+            in driver.execute_query.call_args[0]
+        )
+        assert author.last_name == _last_name
+        assert author.first_name == _first_name
         assert author.uuid == _uuid
         assert author.created == _created
         assert author.last_modified == _last_modified
 
-    def test_load_should_return_false_if_record_does_not_exist(self, driver, _url):
+    def test_load_should_return_false_if_record_does_not_exist(self, driver, _last_name, _first_name):
         driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])
-        author = Author(driver, _url)
+        author = Author(driver, _last_name, _first_name)
         assert not author.load()
-        assert "MATCH (a:Author {url: $url}) RETURN a" in driver.execute_query.call_args[0]
-        assert author.url == _url
-        assert author.text == ""
-        assert author.storage_url == ""
+        assert (
+            "MATCH (a:Author {last_name: $last_name, first_name: $first_name}) RETURN a"
+            in driver.execute_query.call_args[0]
+        )
+        assert author.last_name == _last_name
+        assert author.first_name == _first_name
         assert author.uuid is None
         assert author.created is None
         assert author.last_modified is None
 
-    def test_load_should_raise_exception_if_invalid_url(self, driver, _url):
-        author = Author(driver, _url)
-        author.url = None
+    def test_load_should_raise_exception_if_invalid_last_name(self, driver, _last_name, _first_name):
+        author = Author(driver, _last_name, _first_name)
+        author.last_name = None
         with pytest.raises(ValueError):
             author.load()
-        author.url = 123
+        author.last_name = 123
         with pytest.raises(ValueError):
             author.load()
 
-    def test_load_should_raise_exception_if_driver_not_connected(self, driver, _url):
+    def test_load_should_raise_exception_if_driver_not_connected(self, driver, _last_name, _first_name):
         driver.verify_connectivity.side_effect = Exception("Connection error")
-        author = Author(driver, _url)
+        author = Author(driver, _last_name, _first_name)
         with pytest.raises(Exception):
             author.load()
         driver.verify_connectivity.assert_called_once()
@@ -297,9 +293,8 @@ class TestAuthor:
                 MagicMock(
                     data=lambda: {
                         "a": {
-                            "url": "",
-                            "text": "This is a test author",
-                            "storage_url": "s3://test-bucket/test-key",
+                            "last_name": "",
+                            "first_name": "This is a test author",
                             "uuid": "1234-5678-9012-3456",
                             "created": "2021-01-01T00:00:00",
                             "last_modified": "2021-01-01T00:00:00",
@@ -311,9 +306,8 @@ class TestAuthor:
                 MagicMock(
                     data=lambda: {
                         "a": {
-                            "url": "",
-                            "text": "This is a test author",
-                            "storage_url": "s3://test-bucket/test-key",
+                            "last_name": "",
+                            "first_name": "This is a test author",
                             "uuid": "1234-5678-9012-3456",
                             "created": "2021-01-01T00:00:00",
                             "last_modified": "2021-01-01T00:00:00",
@@ -325,9 +319,8 @@ class TestAuthor:
                 MagicMock(
                     data=lambda: {
                         "a": {
-                            "url": "",
-                            "text": "This is a test author",
-                            "storage_url": "s3://test-bucket/test-key",
+                            "last_name": "",
+                            "first_name": "This is a test author",
                             "uuid": "1234-5678-9012-3456",
                             "created": "2021-01-01T00:00:00",
                             "last_modified": "2021-01-01T00:00:00",
@@ -337,63 +330,62 @@ class TestAuthor:
             ),
         ],
     )
-    def test_load_should_raise_exception_if_returned_values_not_valid(self, query, driver, _url):
+    def test_load_should_raise_exception_if_returned_values_not_valid(self, query, driver, _last_name, _first_name):
         driver.execute_query.return_value = (
             [query],
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        author = Author(driver, _url)
+        author = Author(driver, _last_name, _first_name)
         with pytest.raises(ValueError):
             author.load()
         driver.execute_query.assert_called_once()
         driver.reset_mock()
 
-    def test_find_should_return_author(self, driver, _url, _text, _storage_url, _uuid, _created, _last_modified):
+    def test_find_should_return_author(self, driver, _last_name, _first_name, _uuid, _created, _last_modified):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN],
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        author = Author.find(driver, _url)
+        author = Author.find(driver, _last_name, _first_name)
         driver.execute_query.assert_called_once()
-        assert author.url == _url
-        assert author.text == _text
-        assert author.storage_url == _storage_url
+        assert author.last_name == _last_name
+        assert author.first_name == _first_name
         assert author.uuid == _uuid
         assert author.created == _created
         assert author.last_modified == _last_modified
 
-    def test_find_should_return_none_if_no_record(self, driver, _url):
+    def test_find_should_return_none_if_no_record(self, driver, _last_name, _first_name):
         driver.execute_query.return_value = (
             [MagicMock(data=lambda: {})],
             MagicMock(counters=MagicMock(nodes_created=0)),
             [],
         )
-        author = Author.find(driver, _url)
+        author = Author.find(driver, _last_name, _first_name)
         driver.execute_query.assert_called_once()
         assert author is None
 
     @pytest.mark.parametrize(
-        "d, u",
+        "d, ln, f",
         [
-            (None, "https://arxiv.org/abs/1906.11285"),
-            (123, "https://arxiv.org/abs/1906.11285"),
-            (MagicMock(spec=Driver), 123),
+            (None, "Doe", "John"),
+            (MagicMock(spec=Driver), 123, "Jane"),
+            (MagicMock(spec=Driver), "Smith", 123),
         ],
     )
-    def test_find_should_raise_exception_if_invalid_params(self, d, u):
+    def test_find_should_raise_exception_if_invalid_params(self, d, ln, f):
         with pytest.raises(ValueError):
-            Author.find(d, u)
+            Author.find(d, ln, f)
 
-    def test_find_should_raise_exception_if_driver_not_connected(self, driver, _url):
+    def test_find_should_raise_exception_if_driver_not_connected(self, driver, _last_name, _first_name):
         driver.verify_connectivity.side_effect = Exception("Connection error")
         with pytest.raises(Exception):
-            Author.find(driver, _url)
+            Author.find(driver, _last_name, _first_name)
         driver.verify_connectivity.assert_called_once()
 
     def test_find_all_should_should_turn_all_found_records(
-        self, driver, _url, _text, _storage_url, _uuid, _created, _last_modified
+        self, driver, _last_name, _first_name, _uuid, _created, _last_modified
     ):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN, self.SINGLE_CREATE_RECORDS_RETURN],
@@ -404,9 +396,8 @@ class TestAuthor:
         driver.execute_query.assert_called_once()
         assert len(authors) == 2
         for author in authors:
-            assert author.url == _url
-            assert author.text == _text
-            assert author.storage_url == _storage_url
+            assert author.last_name == _last_name
+            assert author.first_name == _first_name
             assert author.uuid == _uuid
             assert author.created == _created
             assert author.last_modified == _last_modified

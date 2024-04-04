@@ -22,79 +22,76 @@ class Author(BaseModel):
 
     LABEL = "Author"
 
-    def __init__(self, driver: Driver = None, url: str = "", text: str = "", storage_url: str = ""):
+    def __init__(self, driver: Driver = None, last_name: str = "", first_name: str = ""):
         super().__init__(driver)
-        if url and not validate_strings(url):
-            message = "URL must be a valid string if provided"
+        if last_name and not validate_strings(last_name):
+            message = "last_name must be a valid string if provided"
             self.logger.error(message, method=self.__init__.__name__)
             raise ValueError(message)
-        if text and not validate_strings(text):
-            message = "Text must be a valid string if provided"
+        if first_name and not validate_strings(first_name):
+            message = "first_name must be a valid string if provided"
             self.logger.error(message, method=self.__init__.__name__)
             raise ValueError(message)
-        if storage_url and not validate_strings(storage_url):
-            message = "Storage URL must be a valid string if provided"
-            self.logger.error(message, method=self.__init__.__name__)
-            raise ValueError(message)
-        self.text = text
-        self.storage_url = storage_url
-        self.url = url
+        self.first_name = first_name
+        self.last_name = last_name
         self.uuid = None
         self.created = None
         self.last_modified = None
 
-    def create(self, url: str = "", text: str = "", storage_url: str = ""):
-        if not validate_strings(self.text, self.url) and not validate_strings(text, url):
-            message = "Invalid text, storage url, or url"
+    def create(self, last_name: str = "", first_name: str = ""):
+        if not validate_strings(self.first_name, self.last_name) and not validate_strings(first_name, last_name):
+            message = "Invalid first_name, storage last_name,"
             self.logger.error(message, method=self.create.__name__)
             raise ValueError(message)
         try:
-            self.text = text if text else self.text
-            self.storage_url = storage_url if storage_url else self.storage_url
-            self.url = url if url else self.url
+            self.first_name = first_name if validate_strings(first_name) else self.first_name
+            self.last_name = last_name if validate_strings(last_name) else self.last_name
             self.verify_connection()
             self.logger.debug(
                 "Creating Author",
                 method=self.create.__name__,
-                text=self.text,
-                storage_url=self.storage_url,
-                url=self.url,
+                first_name=self.first_name,
+                last_name=self.last_name,
             )
             now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
             properties = {
-                "text": self.text,
+                "first_name": self.first_name,
                 "uuid": str(uuid.uuid4()),
-                "storage_url": self.storage_url,
-                "url": self.url,
+                "last_name": self.last_name,
                 "created": now,
                 "last_modified": now,
             }
             records, summary, _ = self.driver.execute_query(
                 """
-                MERGE (a:Author {url: $url})
+                MERGE (a:Author {last_name: $last_name})
                 ON CREATE SET a += $props
                 RETURN a""",
-                url=self.url,
+                last_name=self.last_name,
                 props=properties,
                 database_=self.db,
             )
             if records and summary.counters.nodes_created == 1:
                 self.logger.debug(
-                    "Author created", method=self.create.__name__, code=self.text, name=self.storage_url
+                    "Author created", method=self.create.__name__, last_name=self.last_name, first_name=self.first_name
                 )
             elif records and summary.counters.nodes_created == 0:
                 self.logger.debug(
-                    "Author already exists", method=self.create.__name__, code=self.text, name=self.storage_url
+                    "Author already exists",
+                    method=self.create.__name__,
+                    last_name=self.last_name,
+                    first_name=self.first_name,
                 )
             else:
                 self.logger.error(
-                    FAILED_TO_CREATE_AUTHOR, method=self.create.__name__, code=self.text, name=self.storage_url
+                    FAILED_TO_CREATE_AUTHOR,
+                    method=self.create.__name__,
+                    last_name=self.last_name,
+                    first_name=self.first_name,
                 )
                 raise RuntimeError()
             data = records[0].data().get("a", {})
-            self.text = data.get("text", "")
-            self.url = data.get("url", "")
-            self.storage_url = data.get("storage_url", "")
+            self.first_name = data.get("first_name", "")
+            self.last_name = data.get("last_name", "")
             self.uuid = data.get("uuid", "")
             self.created = data.get("created", "")
             self.last_modified = data.get("last_modified", "")
@@ -102,9 +99,8 @@ class Author(BaseModel):
                 self.logger.error(
                     "Failed to properly create Author",
                     method=self.create.__name__,
-                    text=self.text,
-                    storage_url=self.storage_url,
-                    url=self.url,
+                    first_name=self.first_name,
+                    last_name=self.last_name,
                     uuid=self.uuid,
                     created=self.created,
                     last_modified=self.last_modified,
@@ -115,32 +111,33 @@ class Author(BaseModel):
             raise e
 
     @classmethod
-    def find(cls, driver: Driver, url: str):
+    def find(cls, driver: Driver, last_name: str, first_name: str = ""):
         if not driver or not isinstance(driver, Driver):
             raise ValueError("Invalid driver")
-        if not validate_strings(url):
-            raise ValueError("Invalid url")
+        if not validate_strings(last_name, first_name):
+            raise ValueError("Invalid last_name or first_name")
         try:
             driver.verify_connectivity()
             records, _, _ = driver.execute_query(
-                f"MATCH (a:{Author.LABEL} {{url: $url}}) RETURN a", url=url, database_="neo4j"
+                f"MATCH (a:{Author.LABEL} {{last_name: $last_name, first_name: $first_name}}) RETURN a",
+                last_name=last_name,
+                first_name=first_name,
+                database_="neo4j",
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
                 print(data)
                 author = Author(
                     driver=driver,
-                    url=data.get("url", ""),
-                    text=data.get("text", ""),
-                    storage_url=data.get("storage_url", ""),
+                    last_name=data.get("last_name", ""),
+                    first_name=data.get("first_name", ""),
                 )
                 author.uuid = data.get("uuid", "")
                 author.created = data.get("created", "")
                 author.last_modified = data.get("last_modified", "")
                 if not validate_strings(
-                    author.text,
-                    author.storage_url,
-                    author.url,
+                    author.first_name,
+                    author.last_name,
                     author.uuid,
                     author.created,
                     author.last_modified,
@@ -162,17 +159,15 @@ class Author(BaseModel):
                     data = record.data().get("a", {})
                     author = Author(
                         driver=driver,
-                        url=data.get("url", ""),
-                        text=data.get("text", ""),
-                        storage_url=data.get("storage_url", ""),
+                        last_name=data.get("last_name", ""),
+                        first_name=data.get("first_name", ""),
                     )
                     author.uuid = data.get("uuid")
                     author.created = data.get("created")
                     author.last_modified = data.get("last_modified")
                     if not validate_strings(
-                        author.text,
-                        author.storage_url,
-                        author.url,
+                        author.first_name,
+                        author.last_name,
                         author.uuid,
                         author.created,
                         author.last_modified,
@@ -184,47 +179,43 @@ class Author(BaseModel):
             raise e
 
     def load(self) -> bool:
-        if not validate_strings(self.url):
-            self.logger.error(
-                "Invalid url", method=self.load.__name__, text=self.text, storage_url=self.storage_url, url=self.url
-            )
-            raise ValueError("Invalid url")
+        if not validate_strings(self.last_name, self.first_name):
+            message = "Invalid last_name or first_name"
+            self.logger.error(message, method=self.load.__name__, first_name=self.first_name, last_name=self.last_name)
+            raise ValueError(message)
         try:
             self.verify_connection()
             self.logger.debug(
                 "Loading Author",
                 method=self.load.__name__,
-                text=self.text,
-                storage_url=self.storage_url,
-                url=self.url,
+                first_name=self.first_name,
+                last_name=self.last_name,
             )
             records, _, _ = self.driver.execute_query(
-                f"MATCH (a:{self.LABEL} {{url: $url}}) RETURN a", url=self.url, database_=self.db
+                f"MATCH (a:{self.LABEL} {{last_name: $last_name, first_name: $first_name}}) RETURN a",
+                last_name=self.last_name,
+                first_name=self.first_name,
+                database_=self.db,
             )
             if records:
                 self.logger.debug(
                     "Author loaded",
                     method=self.load.__name__,
-                    text=self.text,
-                    storage_url=self.storage_url,
-                    url=self.url,
+                    first_name=self.first_name,
+                    last_name=self.last_name,
                 )
                 data = records[0].data().get("a", {})
-                self.text = data.get("text", "")
-                self.storage_url = data.get("storage_url", "")
-                self.url = data.get("url", "")
+                self.first_name = data.get("first_name", "")
+                self.last_name = data.get("last_name", "")
                 self.uuid = data.get("uuid", "")
                 self.created = data.get("created", "")
                 self.last_modified = data.get("last_modified", "")
-                if not validate_strings(
-                    self.text, self.storage_url, self.url, self.uuid, self.created, self.last_modified
-                ):
+                if not validate_strings(self.first_name, self.last_name, self.uuid, self.created, self.last_modified):
                     self.logger.error(
                         "Failed to properly load Author",
                         method=self.load.__name__,
-                        text=self.text,
-                        storage_url=self.storage_url,
-                        url=self.url,
+                        first_name=self.first_name,
+                        last_name=self.last_name,
                         uuid=self.uuid,
                         created=self.created,
                         last_modified=self.last_modified,
@@ -236,9 +227,8 @@ class Author(BaseModel):
                 "Failed to load Author",
                 method=self.load.__name__,
                 error=str(e),
-                text=self.text,
-                storage_url=self.storage_url,
-                url=self.url,
+                first_name=self.first_name,
+                last_name=self.last_name,
             )
             raise e
 
