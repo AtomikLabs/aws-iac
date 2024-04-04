@@ -35,8 +35,8 @@ class ArxivSet(BaseModel):
             self.logger.error("Invalid code or name", method=self.create.__name__)
             raise ValueError("Invalid code or name")
         try:
-            self.code = self.code if self.code else code
-            self.name = name if name else self.name
+            self.code = self.code if validate_strings(self.code) else code
+            self.name = name if validate_strings(name) else self.name
             self.verify_connection()
             self.logger.debug("Creating ArxivSet", method=self.create.__name__, code=self.code, name=self.name)
             now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
