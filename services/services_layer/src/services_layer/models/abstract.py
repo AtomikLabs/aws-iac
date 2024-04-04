@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_ARXIV_SET, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_ABSTRACT, S3_KEY_DATE_FORMAT
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -88,7 +88,7 @@ class Abstract(BaseModel):
                 )
             else:
                 self.logger.error(
-                    FAILED_TO_CREATE_ARXIV_SET, method=self.create.__name__, code=self.text, name=self.storage_url
+                    FAILED_TO_CREATE_ABSTRACT, method=self.create.__name__, code=self.text, name=self.storage_url
                 )
                 raise RuntimeError()
             data = records[0].data().get("a", {})
