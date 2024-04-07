@@ -48,7 +48,9 @@ class DataOperation(BaseModel):
         self.last_modified = None
 
     def create(self, name: str = "", method_name: str = "", method_version: str = ""):
-        if not validate_strings(self.name, self.method_name, self.method_version) and not validate_strings(name, self.method_name, self.method_version):
+        if not validate_strings(self.name, self.method_name, self.method_version) and not validate_strings(
+            name, self.method_name, self.method_version
+        ):
             message = "Invalid name, method_name, or method_version"
             self.logger.error(message, method=self.create.__name__)
             raise ValueError(message)
@@ -57,11 +59,13 @@ class DataOperation(BaseModel):
             self.method_name = method_name if validate_strings(method_name) else self.method_name
             self.method_version = method_version if validate_strings(method_version) else self.method_version
             self.verify_connection()
-            self.logger.debug("Creating DataOperation",
-                              method=self.create.__name__,
-                              name=self.name,
-                              dop_method_name=self.method_name,
-                              dop_method_version=self.method_version)
+            self.logger.debug(
+                "Creating DataOperation",
+                method=self.create.__name__,
+                name=self.name,
+                dop_method_name=self.method_name,
+                dop_method_version=self.method_version,
+            )
             now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
             properties = {
                 "uuid": str(uuid.uuid4()),
@@ -81,10 +85,13 @@ class DataOperation(BaseModel):
                 database_=self.db,
             )
             if records and summary.counters.nodes_created == 1:
-                self.logger.debug("DataOperation created", method=self.create.__name__,
-                                  name=self.name,
-                                  dop_method_name=self.method_name,
-                                  dop_method_version=self.method_version)
+                self.logger.debug(
+                    "DataOperation created",
+                    method=self.create.__name__,
+                    name=self.name,
+                    dop_method_name=self.method_name,
+                    dop_method_version=self.method_version,
+                )
             elif records and summary.counters.nodes_created == 0:
                 self.logger.debug(
                     "DataOperation already exists",
@@ -95,7 +102,8 @@ class DataOperation(BaseModel):
                 )
             else:
                 self.logger.error(
-                    FAILED_TO_CREATE_ARXIV_SET, method=self.create.__name__,
+                    FAILED_TO_CREATE_ARXIV_SET,
+                    method=self.create.__name__,
                     name=self.name,
                     dop_method_name=self.method_name,
                     dop_method_version=self.method_version,
@@ -121,11 +129,13 @@ class DataOperation(BaseModel):
                 )
                 raise ValueError("Failed to create DataOperation")
         except Exception as e:
-            self.logger.error("Error while creating DataOperation",
-                              method=self.create.__name__,
-                              dop_dop_method_name=self.method_name,
-                              dop_dop_method_version=self.method_version,
-                              error=str(e))
+            self.logger.error(
+                "Error while creating DataOperation",
+                method=self.create.__name__,
+                dop_dop_method_name=self.method_name,
+                dop_dop_method_version=self.method_version,
+                error=str(e),
+            )
             raise e
 
     @classmethod
@@ -145,7 +155,7 @@ class DataOperation(BaseModel):
                         driver=driver,
                         name=data.get("name"),
                         method_name=data.get("method_name"),
-                        method_version=data.get("method_version")
+                        method_version=data.get("method_version"),
                     )
                     data_operation.uuid = data.get("uuid")
                     data_operation.created = data.get("created")
@@ -157,7 +167,7 @@ class DataOperation(BaseModel):
                         data_operation.method_version,
                         data_operation.uuid,
                         data_operation.created,
-                        data_operation.last_modified
+                        data_operation.last_modified,
                     ):
                         raise ValueError("Failed to load DataOperation")
                     data_operations.append(data_operation)

@@ -86,13 +86,9 @@ class TestDataOperation:
             DataOperation(d, n, m_n, m_v)
 
     @patch("services.services_layer.src.services_layer.models.data_operation.uuid")
-    def test_create_should_succeed_with_valid_params(self,
-                                                     mock_uuid,
-                                                     _driver,
-                                                     _name,
-                                                     _method_name,
-                                                     _method_version,
-                                                     _uuid_fixture):
+    def test_create_should_succeed_with_valid_params(
+        self, mock_uuid, _driver, _name, _method_name, _method_version, _uuid_fixture
+    ):
         mock_uuid.uuid4 = MagicMock(return_value=_uuid_fixture)
         _driver.execute_query.return_value = (
             [
@@ -133,15 +129,9 @@ class TestDataOperation:
             (MagicMock(spec=Driver), "name", "method_name", 123),
         ],
     )
-    def test_create_should_raise_exception_with_invalid_params(self,
-                                                               d,
-                                                               n,
-                                                               m_n,
-                                                               m_v,
-                                                               _driver,
-                                                               _name,
-                                                               _method_name,
-                                                               _method_version):
+    def test_create_should_raise_exception_with_invalid_params(
+        self, d, n, m_n, m_v, _driver, _name, _method_name, _method_version
+    ):
         data_operation = DataOperation(_driver, _name, _method_name, _method_version)
         data_operation.name = n
         data_operation.method_name = m_n
@@ -155,7 +145,9 @@ class TestDataOperation:
                 data_operation.driver = _driver
                 data_operation.create()
 
-    def test_create_should_raise_exception_when_no_records_returned(self, _driver, _name, _method_name, _method_version):
+    def test_create_should_raise_exception_when_no_records_returned(
+        self, _driver, _name, _method_name, _method_version
+    ):
         _driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])
         data_operation = DataOperation(_driver, _name, _method_name, _method_version)
         with pytest.raises(RuntimeError):
@@ -174,7 +166,9 @@ class TestDataOperation:
         _driver.execute_query.assert_called_once()
         assert data_operation.name == _name
 
-    def test_create_should_raise_exception_if_record_improperly_created(self, _driver, _name, _method_name, _method_version):
+    def test_create_should_raise_exception_if_record_improperly_created(
+        self, _driver, _name, _method_name, _method_version
+    ):
         _driver.execute_query.return_value = (
             [
                 MagicMock(
