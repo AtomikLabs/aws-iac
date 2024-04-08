@@ -1,8 +1,10 @@
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
 
+from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
 from services.services_layer.src.services_layer.models.abstract import Abstract
 
 
@@ -13,8 +15,8 @@ class TestAbstract:
     URL = "https://arxiv.org/abs/1906.11285"
     DATE = "2019-06-26"
     UUID = "1234-5678-9012-3456"
-    CREATED = "2021-01-01T00:00:00"
-    LAST_MODIFIED = "2021-01-01T00:00:00"
+    CREATED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
+    LAST_MODIFIED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
 
     SINGLE_CREATE_RECORDS_RETURN = MagicMock(
         data=lambda: {
@@ -202,7 +204,7 @@ class TestAbstract:
                             "text": _text,
                             "storage_url": _storage_url,
                             "uuid": _uuid,
-                            "created": "",
+                            "created": None,
                             "last_modified": _last_modified,
                         }
                     }
@@ -225,7 +227,7 @@ class TestAbstract:
                             "storage_url": _storage_url,
                             "uuid": _uuid,
                             "created": _created,
-                            "last_modified": "",
+                            "last_modified": None,
                         }
                     }
                 )
@@ -301,8 +303,8 @@ class TestAbstract:
                             "text": "This is a test abstract",
                             "storage_url": "s3://test-bucket/test-key",
                             "uuid": "1234-5678-9012-3456",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )
@@ -315,8 +317,8 @@ class TestAbstract:
                             "text": "This is a test abstract",
                             "storage_url": "s3://test-bucket/test-key",
                             "uuid": "1234-5678-9012-3456",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )
@@ -329,8 +331,8 @@ class TestAbstract:
                             "text": "This is a test abstract",
                             "storage_url": "s3://test-bucket/test-key",
                             "uuid": "1234-5678-9012-3456",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )
