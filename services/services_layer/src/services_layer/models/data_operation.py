@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_ARXIV_SET, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_DATA_OPERATION, S3_KEY_DATE_FORMAT
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -102,7 +102,7 @@ class DataOperation(BaseModel):
                 )
             else:
                 self.logger.error(
-                    FAILED_TO_CREATE_ARXIV_SET,
+                    FAILED_TO_CREATE_DATA_OPERATION,
                     method=self.create.__name__,
                     name=self.name,
                     dop_method_name=self.method_name,
