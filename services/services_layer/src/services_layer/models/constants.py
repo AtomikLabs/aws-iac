@@ -66,6 +66,7 @@ S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 FAILED_TO_CREATE_ARXIV_CATEGORY = "Failed to create ArxivCategory"
 FAILED_TO_CREATE_ARXIV_RECORD = "Failed to create ArxivRecord"
 FAILED_TO_CREATE_ARXIV_SET = "Failed to create ArxivSet"
+FAILED_TO_CREATE_DATA_SOURCE = "Failed to create DataSource"
 INTERNAL_SERVER_ERROR = "Internal server error"
 
 # Databases
