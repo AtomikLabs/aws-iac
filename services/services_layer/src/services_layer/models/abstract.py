@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_ABSTRACT, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_ABSTRACT
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -137,12 +137,16 @@ class Abstract(BaseModel):
                 abstract.uuid = data.get("uuid", "")
                 abstract.created = data.get("created", None)
                 abstract.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    abstract.text,
-                    abstract.storage_url,
-                    abstract.url,
-                    abstract.uuid,
-                ) or abstract.created is None or abstract.last_modified is None:
+                if (
+                    not validate_strings(
+                        abstract.text,
+                        abstract.storage_url,
+                        abstract.url,
+                        abstract.uuid,
+                    )
+                    or abstract.created is None
+                    or abstract.last_modified is None
+                ):
                     raise ValueError("Failed to load Abstract")
                 return abstract
             return None
@@ -167,12 +171,16 @@ class Abstract(BaseModel):
                     abstract.uuid = data.get("uuid")
                     abstract.created = data.get("created")
                     abstract.last_modified = data.get("last_modified")
-                    if not validate_strings(
-                        abstract.text,
-                        abstract.storage_url,
-                        abstract.url,
-                        abstract.uuid,
-                    ) or abstract.created is None or abstract.last_modified is None:
+                    if (
+                        not validate_strings(
+                            abstract.text,
+                            abstract.storage_url,
+                            abstract.url,
+                            abstract.uuid,
+                        )
+                        or abstract.created is None
+                        or abstract.last_modified is None
+                    ):
                         raise ValueError("Failed to load Abstract")
                     abstracts.append(abstract)
                 return abstracts
@@ -212,9 +220,11 @@ class Abstract(BaseModel):
                 self.uuid = data.get("uuid", "")
                 self.created = data.get("created", None)
                 self.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    self.text, self.storage_url, self.url, self.uuid
-                ) or self.created is None or self.last_modified is None:
+                if (
+                    not validate_strings(self.text, self.storage_url, self.url, self.uuid)
+                    or self.created is None
+                    or self.last_modified is None
+                ):
                     self.logger.error(
                         "Failed to properly load Abstract",
                         method=self.load.__name__,

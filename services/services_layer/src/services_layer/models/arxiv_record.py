@@ -90,7 +90,12 @@ class ArxivRecord(BaseModel):
             self.created = data.get("created", None)
             self.last_modified = data.get("last_modified", None)
 
-            if not validate_strings(self.arxiv_id, self.title, self.uuid) or self.date is None or self.created is None or self.last_modified is None:
+            if (
+                not validate_strings(self.arxiv_id, self.title, self.uuid)
+                or self.date is None
+                or self.created is None
+                or self.last_modified is None
+            ):
                 self.logger.error(
                     "Failed to properly create ArxivRecord",
                     method=self.create.__name__,
@@ -125,11 +130,16 @@ class ArxivRecord(BaseModel):
                 arxiv_record.date = data.get("date", None)
                 arxiv_record.created = data.get("created", None)
                 arxiv_record.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    arxiv_record.arxiv_id,
-                    arxiv_record.title,
-                    arxiv_record.uuid,
-                ) or arxiv_record.date is None or arxiv_record.created is None or arxiv_record.last_modified is None:
+                if (
+                    not validate_strings(
+                        arxiv_record.arxiv_id,
+                        arxiv_record.title,
+                        arxiv_record.uuid,
+                    )
+                    or arxiv_record.date is None
+                    or arxiv_record.created is None
+                    or arxiv_record.last_modified is None
+                ):
                     raise ValueError("Failed to load ArxivRecord")
                 return arxiv_record
             return None
@@ -161,9 +171,12 @@ class ArxivRecord(BaseModel):
                 self.uuid = data.get("uuid", "")
                 self.created = data.get("created", None)
                 self.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    self.arxiv_id, self.title, self.uuid
-                ) or self.date is None or self.created is None or self.last_modified is None:
+                if (
+                    not validate_strings(self.arxiv_id, self.title, self.uuid)
+                    or self.date is None
+                    or self.created is None
+                    or self.last_modified is None
+                ):
                     self.logger.error(
                         "Failed to properly load ArxivRecord",
                         method=self.load.__name__,

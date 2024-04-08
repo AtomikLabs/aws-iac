@@ -366,7 +366,9 @@ class TestArxivRecord:
         driver.execute_query.assert_called_once()
         driver.reset_mock()
 
-    def test_find_should_return_arxiv_record(self, driver, _arxiv_id, _title, _date, _datetime, _uuid, _created, _last_modified):
+    def test_find_should_return_arxiv_record(
+        self, driver, _arxiv_id, _title, _date, _datetime, _uuid, _created, _last_modified
+    ):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN],
             MagicMock(counters=MagicMock(nodes_created=1)),

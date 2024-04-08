@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_ARXIV_CATEGORY, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_ARXIV_CATEGORY
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -111,11 +111,15 @@ class ArxivCategory(BaseModel):
                 arxiv_category.uuid = data.get("uuid", "")
                 arxiv_category.created = data.get("created", None)
                 arxiv_category.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    arxiv_category.code,
-                    arxiv_category.name,
-                    arxiv_category.uuid,
-                ) or arxiv_category.created is None or arxiv_category.last_modified is None:
+                if (
+                    not validate_strings(
+                        arxiv_category.code,
+                        arxiv_category.name,
+                        arxiv_category.uuid,
+                    )
+                    or arxiv_category.created is None
+                    or arxiv_category.last_modified is None
+                ):
                     raise ValueError("Failed to load ArxivCategory")
                 return arxiv_category
             return None
@@ -140,11 +144,15 @@ class ArxivCategory(BaseModel):
                     arxiv_category.uuid = data.get("uuid", "")
                     arxiv_category.created = data.get("created", None)
                     arxiv_category.last_modified = data.get("last_modified", None)
-                    if not validate_strings(
-                        arxiv_category.code,
-                        arxiv_category.name,
-                        arxiv_category.uuid,
-                    ) or arxiv_category.created is None or arxiv_category.last_modified is None:
+                    if (
+                        not validate_strings(
+                            arxiv_category.code,
+                            arxiv_category.name,
+                            arxiv_category.uuid,
+                        )
+                        or arxiv_category.created is None
+                        or arxiv_category.last_modified is None
+                    ):
                         raise ValueError("Failed to load ArxivCategory")
                     arxiv_categories.append(arxiv_category)
                 return arxiv_categories
@@ -172,7 +180,11 @@ class ArxivCategory(BaseModel):
                 self.uuid = data.get("uuid", "")
                 self.created = data.get("created", None)
                 self.last_modified = data.get("last_modified", None)
-                if not validate_strings(self.code, self.name, self.uuid) or self.created is None or self.last_modified is None:
+                if (
+                    not validate_strings(self.code, self.name, self.uuid)
+                    or self.created is None
+                    or self.last_modified is None
+                ):
                     self.logger.error(
                         "Failed to properly load ArxivCategory",
                         method=self.load.__name__,
