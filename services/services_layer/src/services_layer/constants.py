@@ -63,11 +63,12 @@ S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 # Error Messages
 FAILED_TO_CREATE_ABSTRACT = "Failed to create Abstract"
-FAILED_TO_CREATE_AUTHOR = "Failed to create Author"
 FAILED_TO_CREATE_ARXIV_CATEGORY = "Failed to create ArxivCategory"
-FAILED_TO_CREATE_FULL_TEXT = "Failed to create FullText"
 FAILED_TO_CREATE_ARXIV_RECORD = "Failed to create ArxivRecord"
 FAILED_TO_CREATE_ARXIV_SET = "Failed to create ArxivSet"
+FAILED_TO_CREATE_AUTHOR = "Failed to create Author"
+FAILED_TO_CREATE_DATA_SOURCE = "Failed to create DataSource"
+FAILED_TO_CREATE_FULL_TEXT = "Failed to create FullText"
 INTERNAL_SERVER_ERROR = "Internal server error"
 
 # Databases

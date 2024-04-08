@@ -24,18 +24,18 @@ class DataSource(BaseModel):
 
     def __init__(self, driver: Driver = None, url: str = "", name: str = "", description: str = ""):
         super().__init__(driver)
-        if url and not validate_strings(url):
+        if url != "" and not validate_strings(url):
             self.logger.error("URL must be a valid string if provided", method=self.__init__.__name__)
             raise ValueError("URL must be a valid string if provided")
-        if name and not validate_strings(name):
+        if name != "" and not validate_strings(name):
             self.logger.error("Name must be a valid string if provided", method=self.__init__.__name__)
             raise ValueError("Name must be a valid string if provided")
-        if description and not validate_strings(description):
+        if description != "" and not validate_strings(description):
             self.logger.error("Description must be a valid string if provided", method=self.__init__.__name__)
             raise ValueError("Description must be a valid string if provided")
         self.url = url
         self.name = name
-        self.description = None
+        self.description = description
         self.uuid = None
         self.created = None
         self.last_modified = None
@@ -50,7 +50,13 @@ class DataSource(BaseModel):
             self.name = name if validate_strings(name) else self.name
             self.description = description if validate_strings(description) else self.description
             self.verify_connection()
-            self.logger.debug("Creating DataSource", method=self.create.__name__, url=self.url, name=self.name, description=self.description)
+            self.logger.debug(
+                "Creating DataSource",
+                method=self.create.__name__,
+                url=self.url,
+                name=self.name,
+                description=self.description,
+            )
             now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
             properties = {
                 "url": self.url,
@@ -70,14 +76,28 @@ class DataSource(BaseModel):
                 database_=self.db,
             )
             if records and summary.counters.nodes_created == 1:
-                self.logger.debug("DataSource created", method=self.create.__name__, url=self.url, name=self.name, description=self.description)
+                self.logger.debug(
+                    "DataSource created",
+                    method=self.create.__name__,
+                    url=self.url,
+                    name=self.name,
+                    description=self.description,
+                )
             elif records and summary.counters.nodes_created == 0:
                 self.logger.debug(
-                    "DataSource already exists", method=self.create.__name__, url=self.url, name=self.name, description=self.description
+                    "DataSource already exists",
+                    method=self.create.__name__,
+                    url=self.url,
+                    name=self.name,
+                    description=self.description,
                 )
             else:
                 self.logger.error(
-                    FAILED_TO_CREATE_DATA_SOURCE, method=self.create.__name__, url=self.url, name=self.name, description=self.description
+                    FAILED_TO_CREATE_DATA_SOURCE,
+                    method=self.create.__name__,
+                    url=self.url,
+                    name=self.name,
+                    description=self.description,
                 )
                 raise RuntimeError()
             data = records[0].data().get("a", {})
@@ -116,7 +136,12 @@ class DataSource(BaseModel):
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
                 print(data)
-                data_source = DataSource(driver=driver, url=data.get("url", ""), name=data.get("name", ""), description=data.get("description", ""))
+                data_source = DataSource(
+                    driver=driver,
+                    url=data.get("url", ""),
+                    name=data.get("name", ""),
+                    description=data.get("description", ""),
+                )
                 data_source.uuid = data.get("uuid", "")
                 data_source.created = data.get("created", "")
                 data_source.last_modified = data.get("last_modified", "")
@@ -148,7 +173,11 @@ class DataSource(BaseModel):
                     data_source.created = data.get("created")
                     data_source.last_modified = data.get("last_modified")
                     if not validate_strings(
-                        data_source.url, data_source.name, data_source.uuid, data_source.created, data_source.last_modified
+                        data_source.url,
+                        data_source.name,
+                        data_source.uuid,
+                        data_source.created,
+                        data_source.last_modified,
                     ):
                         raise ValueError("Failed to load DataSource")
                     data_sources.append(data_source)
@@ -158,7 +187,9 @@ class DataSource(BaseModel):
 
     def load(self) -> bool:
         if not validate_strings(self.url):
-            self.logger.error("Invalid url", method=self.load.__name__, url=self.url, name=self.name, description=self.description)
+            self.logger.error(
+                "Invalid url", method=self.load.__name__, url=self.url, name=self.name, description=self.description
+            )
             raise ValueError("Invalid url")
         try:
             self.verify_connection()
@@ -190,7 +221,12 @@ class DataSource(BaseModel):
             return True if records else False
         except Exception as e:
             self.logger.error(
-                "Failed to load DataSource", method=self.load.__name__, error=str(e), url=self.url, name=self.name, description=self.description
+                "Failed to load DataSource",
+                method=self.load.__name__,
+                error=str(e),
+                url=self.url,
+                name=self.name,
+                description=self.description,
             )
             raise e
 
