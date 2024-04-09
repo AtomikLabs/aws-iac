@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_ARXIV_SET, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_ARXIV_SET
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -39,7 +39,7 @@ class ArxivSet(BaseModel):
             self.name = name if validate_strings(name) else self.name
             self.verify_connection()
             self.logger.debug("Creating ArxivSet", method=self.create.__name__, code=self.code, name=self.name)
-            now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
+            now = get_storage_key_datetime()
             properties = {
                 "code": self.code,
                 "uuid": str(uuid.uuid4()),
@@ -70,9 +70,9 @@ class ArxivSet(BaseModel):
             data = records[0].data().get("a", {})
             self.name = data.get("name", "")
             self.uuid = data.get("uuid", "")
-            self.created = data.get("created", "")
-            self.last_modified = data.get("last_modified", "")
-            if not validate_strings(self.uuid, self.created, self.last_modified):
+            self.created = data.get("created", None)
+            self.last_modified = data.get("last_modified", None)
+            if not validate_strings(self.uuid) or self.created is None or self.last_modified is None:
                 self.logger.error(
                     "Failed to properly create ArxivSet",
                     method=self.create.__name__,
@@ -103,11 +103,11 @@ class ArxivSet(BaseModel):
                 print(data)
                 arxiv_set = ArxivSet(driver=driver, code=data.get("code", ""), name=data.get("name", ""))
                 arxiv_set.uuid = data.get("uuid", "")
-                arxiv_set.created = data.get("created", "")
-                arxiv_set.last_modified = data.get("last_modified", "")
+                arxiv_set.created = data.get("created", None)
+                arxiv_set.last_modified = data.get("last_modified", None)
                 if not validate_strings(
-                    arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified
-                ):
+                    arxiv_set.code, arxiv_set.name, arxiv_set.uuid
+                ) or arxiv_set.created is None or arxiv_set.last_modified is None:
                     raise ValueError("Failed to load ArxivSet")
                 return arxiv_set
             return None
@@ -132,8 +132,8 @@ class ArxivSet(BaseModel):
                     arxiv_set.created = data.get("created")
                     arxiv_set.last_modified = data.get("last_modified")
                     if not validate_strings(
-                        arxiv_set.code, arxiv_set.name, arxiv_set.uuid, arxiv_set.created, arxiv_set.last_modified
-                    ):
+                        arxiv_set.code, arxiv_set.name, arxiv_set.uuid
+                    ) or arxiv_set.created is None or arxiv_set.last_modified is None:
                         raise ValueError("Failed to load ArxivSet")
                     arxiv_sets.append(arxiv_set)
                 return arxiv_sets
@@ -156,9 +156,9 @@ class ArxivSet(BaseModel):
                 self.code = data.get("code", "")
                 self.name = data.get("name", "")
                 self.uuid = data.get("uuid", "")
-                self.created = data.get("created", "")
-                self.last_modified = data.get("last_modified", "")
-                if not validate_strings(self.code, self.name, self.uuid, self.created, self.last_modified):
+                self.created = data.get("created", None)
+                self.last_modified = data.get("last_modified", None)
+                if not validate_strings(self.code, self.name, self.uuid) or self.created is None or self.last_modified is None:
                     self.logger.error(
                         "Failed to properly load ArxivSet",
                         method=self.load.__name__,
