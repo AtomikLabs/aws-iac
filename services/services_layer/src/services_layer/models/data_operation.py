@@ -160,13 +160,17 @@ class DataOperation(BaseModel):
                     data_operation.uuid = data.get("uuid")
                     data_operation.created = data.get("created")
                     data_operation.last_modified = data.get("last_modified")
-                    if not validate_strings(
-                        data_operation.code,
-                        data_operation.name,
-                        data_operation.method_name,
-                        data_operation.method_version,
-                        data_operation.uuid,
-                    ) or data_operation.created is None or data_operation.last_modified is None:
+                    if (
+                        not validate_strings(
+                            data_operation.code,
+                            data_operation.name,
+                            data_operation.method_name,
+                            data_operation.method_version,
+                            data_operation.uuid,
+                        )
+                        or data_operation.created is None
+                        or data_operation.last_modified is None
+                    ):
                         raise ValueError("Failed to load DataOperation")
                     data_operations.append(data_operation)
                 return data_operations

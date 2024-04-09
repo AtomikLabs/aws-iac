@@ -105,9 +105,11 @@ class ArxivSet(BaseModel):
                 arxiv_set.uuid = data.get("uuid", "")
                 arxiv_set.created = data.get("created", None)
                 arxiv_set.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    arxiv_set.code, arxiv_set.name, arxiv_set.uuid
-                ) or arxiv_set.created is None or arxiv_set.last_modified is None:
+                if (
+                    not validate_strings(arxiv_set.code, arxiv_set.name, arxiv_set.uuid)
+                    or arxiv_set.created is None
+                    or arxiv_set.last_modified is None
+                ):
                     raise ValueError("Failed to load ArxivSet")
                 return arxiv_set
             return None
@@ -131,9 +133,11 @@ class ArxivSet(BaseModel):
                     arxiv_set.uuid = data.get("uuid")
                     arxiv_set.created = data.get("created")
                     arxiv_set.last_modified = data.get("last_modified")
-                    if not validate_strings(
-                        arxiv_set.code, arxiv_set.name, arxiv_set.uuid
-                    ) or arxiv_set.created is None or arxiv_set.last_modified is None:
+                    if (
+                        not validate_strings(arxiv_set.code, arxiv_set.name, arxiv_set.uuid)
+                        or arxiv_set.created is None
+                        or arxiv_set.last_modified is None
+                    ):
                         raise ValueError("Failed to load ArxivSet")
                     arxiv_sets.append(arxiv_set)
                 return arxiv_sets
@@ -158,7 +162,11 @@ class ArxivSet(BaseModel):
                 self.uuid = data.get("uuid", "")
                 self.created = data.get("created", None)
                 self.last_modified = data.get("last_modified", None)
-                if not validate_strings(self.code, self.name, self.uuid) or self.created is None or self.last_modified is None:
+                if (
+                    not validate_strings(self.code, self.name, self.uuid)
+                    or self.created is None
+                    or self.last_modified is None
+                ):
                     self.logger.error(
                         "Failed to properly load ArxivSet",
                         method=self.load.__name__,

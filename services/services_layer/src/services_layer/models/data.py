@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_DATA, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_DATA
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -166,11 +166,16 @@ class Data(BaseModel):
                 data_source.uuid = data.get("uuid", "")
                 data_source.created = data.get("created", None)
                 data_source.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    data_source.url,
-                    data_source.format,
-                    data_source.uuid,
-                ) or data_source.created is None or data_source.last_modified is None or data_source.size_bytes < 0:
+                if (
+                    not validate_strings(
+                        data_source.url,
+                        data_source.format,
+                        data_source.uuid,
+                    )
+                    or data_source.created is None
+                    or data_source.last_modified is None
+                    or data_source.size_bytes < 0
+                ):
                     raise ValueError("Failed to load Data")
                 return data_source
             return None
@@ -196,11 +201,16 @@ class Data(BaseModel):
                     data_source.uuid = data.get("uuid")
                     data_source.created = data.get("created")
                     data_source.last_modified = data.get("last_modified")
-                    if not validate_strings(
-                        data_source.url,
-                        data_source.format,
-                        data_source.uuid,
-                    ) or data_source.created is None or data_source.last_modified is None or data_source.size_bytes < 0:
+                    if (
+                        not validate_strings(
+                            data_source.url,
+                            data_source.format,
+                            data_source.uuid,
+                        )
+                        or data_source.created is None
+                        or data_source.last_modified is None
+                        or data_source.size_bytes < 0
+                    ):
                         raise ValueError("Failed to load Data")
                     data_sources.append(data_source)
                 return data_sources
@@ -248,7 +258,12 @@ class Data(BaseModel):
                 self.uuid = data.get("uuid", "")
                 self.created = data.get("created", None)
                 self.last_modified = data.get("last_modified", None)
-                if not validate_strings(self.url, self.format, self.uuid) or self.created is None or self.last_modified is None or self.size_bytes < 0:
+                if (
+                    not validate_strings(self.url, self.format, self.uuid)
+                    or self.created is None
+                    or self.last_modified is None
+                    or self.size_bytes < 0
+                ):
                     self.logger.error(
                         "Failed to properly load Data",
                         method=self.load.__name__,

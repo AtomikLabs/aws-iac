@@ -2,7 +2,6 @@ import uuid
 from abc import ABC, abstractmethod
 
 import structlog
-from constants import S3_KEY_DATE_FORMAT
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
 

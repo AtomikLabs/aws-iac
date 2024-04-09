@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_AUTHOR, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_AUTHOR
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -135,11 +135,15 @@ class Author(BaseModel):
                 author.uuid = data.get("uuid", "")
                 author.created = data.get("created", None)
                 author.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    author.first_name,
-                    author.last_name,
-                    author.uuid,
-                ) or author.created is None or author.last_modified is None:
+                if (
+                    not validate_strings(
+                        author.first_name,
+                        author.last_name,
+                        author.uuid,
+                    )
+                    or author.created is None
+                    or author.last_modified is None
+                ):
                     raise ValueError("Failed to load Author")
                 return author
             return None
@@ -163,11 +167,15 @@ class Author(BaseModel):
                     author.uuid = data.get("uuid")
                     author.created = data.get("created")
                     author.last_modified = data.get("last_modified")
-                    if not validate_strings(
-                        author.first_name,
-                        author.last_name,
-                        author.uuid,
-                    ) or author.created is None or author.last_modified is None:
+                    if (
+                        not validate_strings(
+                            author.first_name,
+                            author.last_name,
+                            author.uuid,
+                        )
+                        or author.created is None
+                        or author.last_modified is None
+                    ):
                         raise ValueError("Failed to load Author")
                     authors.append(author)
                 return authors
@@ -206,7 +214,11 @@ class Author(BaseModel):
                 self.uuid = data.get("uuid", "")
                 self.created = data.get("created", None)
                 self.last_modified = data.get("last_modified", None)
-                if not validate_strings(self.first_name, self.last_name, self.uuid) or self.created is None or self.last_modified is None:
+                if (
+                    not validate_strings(self.first_name, self.last_name, self.uuid)
+                    or self.created is None
+                    or self.last_modified is None
+                ):
                     self.logger.error(
                         "Failed to properly load Author",
                         method=self.load.__name__,

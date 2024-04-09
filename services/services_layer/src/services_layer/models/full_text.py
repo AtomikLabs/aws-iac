@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_FULL_TEXT, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_FULL_TEXT
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -137,12 +137,16 @@ class FullText(BaseModel):
                 full_text.uuid = data.get("uuid", "")
                 full_text.created = data.get("created", None)
                 full_text.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    full_text.text,
-                    full_text.storage_url,
-                    full_text.url,
-                    full_text.uuid,
-                ) or full_text.created is None or full_text.last_modified is None:
+                if (
+                    not validate_strings(
+                        full_text.text,
+                        full_text.storage_url,
+                        full_text.url,
+                        full_text.uuid,
+                    )
+                    or full_text.created is None
+                    or full_text.last_modified is None
+                ):
                     raise ValueError("Failed to load FullText")
                 return full_text
             return None
@@ -167,12 +171,16 @@ class FullText(BaseModel):
                     full_text.uuid = data.get("uuid")
                     full_text.created = data.get("created")
                     full_text.last_modified = data.get("last_modified")
-                    if not validate_strings(
-                        full_text.text,
-                        full_text.storage_url,
-                        full_text.url,
-                        full_text.uuid,
-                    ) or full_text.created is None or full_text.last_modified is None:
+                    if (
+                        not validate_strings(
+                            full_text.text,
+                            full_text.storage_url,
+                            full_text.url,
+                            full_text.uuid,
+                        )
+                        or full_text.created is None
+                        or full_text.last_modified is None
+                    ):
                         raise ValueError("Failed to load FullText")
                     full_texts.append(full_text)
                 return full_texts
@@ -212,9 +220,11 @@ class FullText(BaseModel):
                 self.uuid = data.get("uuid", "")
                 self.created = data.get("created", None)
                 self.last_modified = data.get("last_modified", None)
-                if not validate_strings(
-                    self.text, self.storage_url, self.url, self.uuid
-                ) or self.created is None or self.last_modified is None:
+                if (
+                    not validate_strings(self.text, self.storage_url, self.url, self.uuid)
+                    or self.created is None
+                    or self.last_modified is None
+                ):
                     self.logger.error(
                         "Failed to properly load FullText",
                         method=self.load.__name__,
