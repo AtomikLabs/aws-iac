@@ -83,7 +83,7 @@ class BaseModel(ABC):
         try:
             result, summary = None, None
             properties = properties if properties else {}
-            now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
+            now = get_storage_key_datetime()
             properties["uuid"] = str(uuid.uuid4())
             properties["created"] = now
             properties["last_modified"] = now

@@ -1,8 +1,10 @@
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
 
+from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
 from services.services_layer.src.services_layer.models.author import Author
 
 
@@ -13,8 +15,8 @@ class TestAuthor:
     LAST_NAME_2 = "Smith"
     FIRST_NAME_2 = "Jane"
     UUID = "1234-5678-9012-3456"
-    CREATED = "2021-01-01T00:00:00"
-    LAST_MODIFIED = "2021-01-01T00:00:00"
+    CREATED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
+    LAST_MODIFIED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
 
     SINGLE_CREATE_RECORDS_RETURN = MagicMock(
         data=lambda: {
@@ -196,7 +198,7 @@ class TestAuthor:
                             "last_name": _last_name,
                             "first_name": _first_name,
                             "uuid": _uuid,
-                            "created": "",
+                            "created": None,
                             "last_modified": _last_modified,
                         }
                     }
@@ -218,7 +220,7 @@ class TestAuthor:
                             "first_name": _first_name,
                             "uuid": _uuid,
                             "created": _created,
-                            "last_modified": "",
+                            "last_modified": None,
                         }
                     }
                 )
@@ -296,8 +298,8 @@ class TestAuthor:
                             "last_name": "",
                             "first_name": "This is a test author",
                             "uuid": "1234-5678-9012-3456",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )
@@ -309,8 +311,8 @@ class TestAuthor:
                             "last_name": "",
                             "first_name": "This is a test author",
                             "uuid": "1234-5678-9012-3456",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )
@@ -322,8 +324,8 @@ class TestAuthor:
                             "last_name": "",
                             "first_name": "This is a test author",
                             "uuid": "1234-5678-9012-3456",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )

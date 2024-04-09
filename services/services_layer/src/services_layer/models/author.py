@@ -53,7 +53,7 @@ class Author(BaseModel):
                 first_name=self.first_name,
                 last_name=self.last_name,
             )
-            now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
+            now = get_storage_key_datetime()
             properties = {
                 "first_name": self.first_name,
                 "uuid": str(uuid.uuid4()),
@@ -93,9 +93,9 @@ class Author(BaseModel):
             self.first_name = data.get("first_name", "")
             self.last_name = data.get("last_name", "")
             self.uuid = data.get("uuid", "")
-            self.created = data.get("created", "")
-            self.last_modified = data.get("last_modified", "")
-            if not validate_strings(self.uuid, self.created, self.last_modified):
+            self.created = data.get("created", None)
+            self.last_modified = data.get("last_modified", None)
+            if not validate_strings(self.uuid) or self.created is None or self.last_modified is None:
                 self.logger.error(
                     "Failed to properly create Author",
                     method=self.create.__name__,
@@ -133,15 +133,13 @@ class Author(BaseModel):
                     first_name=data.get("first_name", ""),
                 )
                 author.uuid = data.get("uuid", "")
-                author.created = data.get("created", "")
-                author.last_modified = data.get("last_modified", "")
+                author.created = data.get("created", None)
+                author.last_modified = data.get("last_modified", None)
                 if not validate_strings(
                     author.first_name,
                     author.last_name,
                     author.uuid,
-                    author.created,
-                    author.last_modified,
-                ):
+                ) or author.created is None or author.last_modified is None:
                     raise ValueError("Failed to load Author")
                 return author
             return None
@@ -169,9 +167,7 @@ class Author(BaseModel):
                         author.first_name,
                         author.last_name,
                         author.uuid,
-                        author.created,
-                        author.last_modified,
-                    ):
+                    ) or author.created is None or author.last_modified is None:
                         raise ValueError("Failed to load Author")
                     authors.append(author)
                 return authors
@@ -208,9 +204,9 @@ class Author(BaseModel):
                 self.first_name = data.get("first_name", "")
                 self.last_name = data.get("last_name", "")
                 self.uuid = data.get("uuid", "")
-                self.created = data.get("created", "")
-                self.last_modified = data.get("last_modified", "")
-                if not validate_strings(self.first_name, self.last_name, self.uuid, self.created, self.last_modified):
+                self.created = data.get("created", None)
+                self.last_modified = data.get("last_modified", None)
+                if not validate_strings(self.first_name, self.last_name, self.uuid) or self.created is None or self.last_modified is None:
                     self.logger.error(
                         "Failed to properly load Author",
                         method=self.load.__name__,
