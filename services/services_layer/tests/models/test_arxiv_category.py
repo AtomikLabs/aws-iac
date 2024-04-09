@@ -1,8 +1,10 @@
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
 
+from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
 from services.services_layer.src.services_layer.models.arxiv_category import ArxivCategory
 
 
@@ -11,8 +13,8 @@ class TestArxivCategory:
     CS = "CS"
     COMPUTER_SCIENCE = "Computer Science"
     UUID = "1234-5678-9012-3456"
-    CREATED = "2021-01-01T00:00:00"
-    LAST_MODIFIED = "2021-01-01T00:00:00"
+    CREATED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
+    LAST_MODIFIED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
 
     SINGLE_CREATE_RECORDS_RETURN = MagicMock(
         data=lambda: {
@@ -177,7 +179,7 @@ class TestArxivCategory:
                             "code": self.CS,
                             "name": self.COMPUTER_SCIENCE,
                             "uuid": self.UUID,
-                            "created": "",
+                            "created": None,
                             "last_modified": self.LAST_MODIFIED,
                         }
                     }
@@ -199,7 +201,7 @@ class TestArxivCategory:
                             "name": self.COMPUTER_SCIENCE,
                             "uuid": self.UUID,
                             "created": self.CREATED,
-                            "last_modified": "",
+                            "last_modified": None,
                         }
                     }
                 )
@@ -263,8 +265,8 @@ class TestArxivCategory:
                             "code": "CS",
                             "name": "Computer Science",
                             "uuid": "",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )
@@ -276,8 +278,8 @@ class TestArxivCategory:
                             "code": "CS",
                             "name": "Computer Science",
                             "uuid": "1234-5678-9012-3456",
-                            "created": "",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": None,
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )
@@ -289,8 +291,8 @@ class TestArxivCategory:
                             "code": "CS",
                             "name": "Computer Science",
                             "uuid": "1234-5678-9012-3456",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": None,
                         }
                     }
                 )

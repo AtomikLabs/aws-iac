@@ -29,6 +29,6 @@ def get_storage_key_datetime() -> datetime:
 
 def validate_strings(*args):
     for arg in args:
-        if not arg or not isinstance(arg, str):
+        if not isinstance(arg, str) or not arg.strip():
             return False
     return True

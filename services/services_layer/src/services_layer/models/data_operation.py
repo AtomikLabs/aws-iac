@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_DATA_OPERATION, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_DATA_OPERATION
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -66,7 +66,7 @@ class DataOperation(BaseModel):
                 dop_method_name=self.method_name,
                 dop_method_version=self.method_version,
             )
-            now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
+            now = get_storage_key_datetime()
             properties = {
                 "uuid": str(uuid.uuid4()),
                 "name": self.name,
@@ -114,9 +114,9 @@ class DataOperation(BaseModel):
             self.method_name = data.get("method_name", "")
             self.method_version = data.get("method_version", "")
             self.uuid = data.get("uuid", "")
-            self.created = data.get("created", "")
-            self.last_modified = data.get("last_modified", "")
-            if not validate_strings(self.uuid, self.created, self.last_modified):
+            self.created = data.get("created", None)
+            self.last_modified = data.get("last_modified", None)
+            if not validate_strings(self.uuid) or self.created is None or self.last_modified is None:
                 self.logger.error(
                     "Failed to properly create DataOperation",
                     method=self.create.__name__,
@@ -160,14 +160,16 @@ class DataOperation(BaseModel):
                     data_operation.uuid = data.get("uuid")
                     data_operation.created = data.get("created")
                     data_operation.last_modified = data.get("last_modified")
-                    if not validate_strings(
-                        data_operation.code,
-                        data_operation.name,
-                        data_operation.method_name,
-                        data_operation.method_version,
-                        data_operation.uuid,
-                        data_operation.created,
-                        data_operation.last_modified,
+                    if (
+                        not validate_strings(
+                            data_operation.code,
+                            data_operation.name,
+                            data_operation.method_name,
+                            data_operation.method_version,
+                            data_operation.uuid,
+                        )
+                        or data_operation.created is None
+                        or data_operation.last_modified is None
                     ):
                         raise ValueError("Failed to load DataOperation")
                     data_operations.append(data_operation)

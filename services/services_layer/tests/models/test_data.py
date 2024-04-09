@@ -1,8 +1,10 @@
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
 
+from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
 from services.services_layer.src.services_layer.models.data import Data
 
 
@@ -13,8 +15,8 @@ class TestData:
     DESCRIPTION = "A description"
     SIZE_BYTES = 123456789
     UUID = "1234-5678-9012-3456"
-    CREATED = "2021-01-01T00:00:00"
-    LAST_MODIFIED = "2021-01-01T00:00:00"
+    CREATED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
+    LAST_MODIFIED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
 
     SINGLE_CREATE_RECORDS_RETURN = MagicMock(
         data=lambda: {
@@ -216,7 +218,7 @@ class TestData:
                             "description": self.DESCRIPTION,
                             "size_bytes": self.SIZE_BYTES,
                             "uuid": self.UUID,
-                            "created": "",
+                            "created": None,
                             "last_modified": self.LAST_MODIFIED,
                         }
                     }
@@ -240,7 +242,7 @@ class TestData:
                             "size_bytes": self.SIZE_BYTES,
                             "uuid": self.UUID,
                             "created": self.CREATED,
-                            "last_modified": "",
+                            "last_modified": None,
                         }
                     }
                 )
@@ -312,8 +314,8 @@ class TestData:
                             "description": "A description",
                             "size_bytes": 123456789,
                             "uuid": "",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )
@@ -327,8 +329,8 @@ class TestData:
                             "description": "A description",
                             "size_bytes": 123456789,
                             "uuid": "1234-5678-9012-3456",
-                            "created": "",
-                            "last_modified": "2021-01-01T00:00:00",
+                            "created": None,
+                            "last_modified": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
                         }
                     }
                 )
@@ -342,8 +344,8 @@ class TestData:
                             "description": "A description",
                             "size_bytes": 123456789,
                             "uuid": "1234-5678-9012-3456",
-                            "created": "2021-01-01T00:00:00",
-                            "last_modified": "",
+                            "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
+                            "last_modified": None,
                         }
                     }
                 )
@@ -364,7 +366,7 @@ class TestData:
         driver.execute_query.assert_called_once()
         driver.reset_mock()
 
-    def test_find_should_return_data(self, driver, _url, _format, _description, _size_bytes):
+    def test_find_should_return_data(self, driver, _url, _format, _description, _uuid):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN],
             MagicMock(counters=MagicMock(nodes_created=1)),
@@ -372,14 +374,14 @@ class TestData:
         )
         data = Data.find(driver, _url)
         driver.execute_query.assert_called_once()
-        assert data.url == self.URL
+        assert data.url == _url
         assert data.format == _format
         assert data.description == _description
-        assert data.uuid == self.UUID
+        assert data.uuid == _uuid
         assert data.created
         assert data.last_modified
 
-    def test_find_should_return_none_if_no_record(self, driver, _url, _format, _description, _size_bytes):
+    def test_find_should_return_none_if_no_record(self, driver, _url):
         driver.execute_query.return_value = (
             [MagicMock(data=lambda: {})],
             MagicMock(counters=MagicMock(nodes_created=0)),

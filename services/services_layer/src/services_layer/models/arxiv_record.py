@@ -1,7 +1,8 @@
 import uuid
+from datetime import datetime
 
 import structlog
-from constants import FAILED_TO_CREATE_ARXIV_RECORD, S3_KEY_DATE_FORMAT
+from constants import ARXIV_RESEARCH_DATE_FORMAT, FAILED_TO_CREATE_ARXIV_RECORD
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -24,27 +25,27 @@ class ArxivRecord(BaseModel):
 
     def __init__(self, driver: Driver = None, arxiv_id: str = "", title: str = "", date: str = ""):
         super().__init__(driver)
-        if arxiv_id and not validate_strings(arxiv_id):
+        if arxiv_id.strip() and not validate_strings(arxiv_id):
             message = "Arxiv ID must be a valid string if provided"
             self.logger.error(message, method=self.__init__.__name__)
             raise ValueError(message)
-        if title and not validate_strings(title):
+        if title.strip() and not validate_strings(title):
             message = "Title must be a valid string if provided"
             self.logger.error(message, method=self.__init__.__name__)
             raise ValueError(message)
-        if date and not validate_strings(date):
+        if date.strip() and not validate_strings(date):
             message = "Date must be a valid string if provided"
             self.logger.error(message, method=self.__init__.__name__)
             raise ValueError(message)
         self.arxiv_id = arxiv_id
         self.uuid = None
         self.title = title
-        self.date = date
+        self.date = datetime.strptime(date, ARXIV_RESEARCH_DATE_FORMAT) if date.strip() else None
         self.created = None
         self.last_modified = None
 
     def create(self, arxiv_id: str = ""):
-        if not validate_strings(self.arxiv_id, self.title, self.date):
+        if not validate_strings(self.arxiv_id, self.title) or self.date is None:
             message = "Invalid arxiv_id, title, or date"
             self.logger.error(
                 message, method=self.create.__name__, arxiv_id=self.arxiv_id, title=self.title, date=self.date
@@ -54,7 +55,7 @@ class ArxivRecord(BaseModel):
             self.arxiv_id = self.arxiv_id if validate_strings(self.arxiv_id) else arxiv_id
             self.verify_connection()
             self.logger.debug("Creating ArxivRecord", method=self.create.__name__, arxiv_id=self.arxiv_id)
-            now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
+            now = get_storage_key_datetime()
             properties = {
                 "arxiv_id": self.arxiv_id,
                 "uuid": str(uuid.uuid4()),
@@ -84,12 +85,17 @@ class ArxivRecord(BaseModel):
             data = records[0].data().get("a", {})
             self.arxiv_id = data.get("arxiv_id", "")
             self.title = data.get("title", "")
-            self.date = data.get("date", "")
+            self.date = data.get("date", None)
             self.uuid = data.get("uuid", "")
-            self.created = data.get("created", "")
-            self.last_modified = data.get("last_modified", "")
+            self.created = data.get("created", None)
+            self.last_modified = data.get("last_modified", None)
 
-            if not validate_strings(self.arxiv_id, self.title, self.date, self.uuid, self.created, self.last_modified):
+            if (
+                not validate_strings(self.arxiv_id, self.title, self.uuid)
+                or self.date is None
+                or self.created is None
+                or self.last_modified is None
+            ):
                 self.logger.error(
                     "Failed to properly create ArxivRecord",
                     method=self.create.__name__,
@@ -121,16 +127,18 @@ class ArxivRecord(BaseModel):
                 arxiv_record = ArxivRecord(driver=driver, arxiv_id=data.get("arxiv_id", ""))
                 arxiv_record.uuid = data.get("uuid", "")
                 arxiv_record.title = data.get("title", "")
-                arxiv_record.date = data.get("date", "")
-                arxiv_record.created = data.get("created", "")
-                arxiv_record.last_modified = data.get("last_modified", "")
-                if not validate_strings(
-                    arxiv_record.arxiv_id,
-                    arxiv_record.title,
-                    arxiv_record.uuid,
-                    arxiv_record.date,
-                    arxiv_record.created,
-                    arxiv_record.last_modified,
+                arxiv_record.date = data.get("date", None)
+                arxiv_record.created = data.get("created", None)
+                arxiv_record.last_modified = data.get("last_modified", None)
+                if (
+                    not validate_strings(
+                        arxiv_record.arxiv_id,
+                        arxiv_record.title,
+                        arxiv_record.uuid,
+                    )
+                    or arxiv_record.date is None
+                    or arxiv_record.created is None
+                    or arxiv_record.last_modified is None
                 ):
                     raise ValueError("Failed to load ArxivRecord")
                 return arxiv_record
@@ -159,12 +167,15 @@ class ArxivRecord(BaseModel):
                 data = records[0].data().get("a", {})
                 self.arxiv_id = data.get("arxiv_id", "")
                 self.title = data.get("title", "")
-                self.date = data.get("date", "")
+                self.date = data.get("date", None)
                 self.uuid = data.get("uuid", "")
-                self.created = data.get("created", "")
-                self.last_modified = data.get("last_modified", "")
-                if not validate_strings(
-                    self.arxiv_id, self.title, self.date, self.uuid, self.created, self.last_modified
+                self.created = data.get("created", None)
+                self.last_modified = data.get("last_modified", None)
+                if (
+                    not validate_strings(self.arxiv_id, self.title, self.uuid)
+                    or self.date is None
+                    or self.created is None
+                    or self.last_modified is None
                 ):
                     self.logger.error(
                         "Failed to properly load ArxivRecord",

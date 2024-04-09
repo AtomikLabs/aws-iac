@@ -1,7 +1,7 @@
 import uuid
 
 import structlog
-from constants import FAILED_TO_CREATE_DATA_SOURCE, S3_KEY_DATE_FORMAT
+from constants import FAILED_TO_CREATE_DATA_SOURCE
 from models.base_model import BaseModel
 from neo4j import Driver
 from utils import get_storage_key_datetime, validate_strings
@@ -57,7 +57,7 @@ class DataSource(BaseModel):
                 name=self.name,
                 description=self.description,
             )
-            now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
+            now = get_storage_key_datetime()
             properties = {
                 "url": self.url,
                 "uuid": str(uuid.uuid4()),
@@ -104,9 +104,9 @@ class DataSource(BaseModel):
             self.name = data.get("name", "")
             self.uuid = data.get("uuid", "")
             self.description = data.get("description", "")
-            self.created = data.get("created", "")
-            self.last_modified = data.get("last_modified", "")
-            if not validate_strings(self.uuid, self.created, self.last_modified):
+            self.created = data.get("created", None)
+            self.last_modified = data.get("last_modified", None)
+            if not validate_strings(self.uuid) or self.created is None or self.last_modified is None:
                 self.logger.error(
                     "Failed to properly create DataSource",
                     method=self.create.__name__,
@@ -143,10 +143,12 @@ class DataSource(BaseModel):
                     description=data.get("description", ""),
                 )
                 data_source.uuid = data.get("uuid", "")
-                data_source.created = data.get("created", "")
-                data_source.last_modified = data.get("last_modified", "")
-                if not validate_strings(
-                    data_source.url, data_source.name, data_source.uuid, data_source.created, data_source.last_modified
+                data_source.created = data.get("created", None)
+                data_source.last_modified = data.get("last_modified", None)
+                if (
+                    not validate_strings(data_source.url, data_source.name, data_source.uuid)
+                    or data_source.created is None
+                    or data_source.last_modified is None
                 ):
                     raise ValueError("Failed to load DataSource")
                 return data_source
@@ -176,8 +178,6 @@ class DataSource(BaseModel):
                         data_source.url,
                         data_source.name,
                         data_source.uuid,
-                        data_source.created,
-                        data_source.last_modified,
                     ):
                         raise ValueError("Failed to load DataSource")
                     data_sources.append(data_source)
@@ -204,9 +204,13 @@ class DataSource(BaseModel):
                 self.name = data.get("name", "")
                 self.description = data.get("description", "")
                 self.uuid = data.get("uuid", "")
-                self.created = data.get("created", "")
-                self.last_modified = data.get("last_modified", "")
-                if not validate_strings(self.url, self.name, self.uuid, self.created, self.last_modified):
+                self.created = data.get("created", None)
+                self.last_modified = data.get("last_modified", None)
+                if (
+                    not validate_strings(self.url, self.name, self.uuid)
+                    or self.created is None
+                    or self.last_modified is None
+                ):
                     self.logger.error(
                         "Failed to properly load DataSource",
                         method=self.load.__name__,

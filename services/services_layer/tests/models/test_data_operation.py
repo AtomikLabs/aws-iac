@@ -1,8 +1,10 @@
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
 
+from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
 from services.services_layer.src.services_layer.models.data_operation import DataOperation
 
 
@@ -12,8 +14,8 @@ class TestDataOperation:
     METHOD_NAME = "method_name"
     METHOD_VERSION = "method_version"
     UUID = "1234-5678-9012-3456"
-    CREATED = "2021-01-01T00:00:00"
-    LAST_MODIFIED = "2021-01-01T00:00:00"
+    CREATED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
+    LAST_MODIFIED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
 
     SINGLE_CREATE_RECORDS_RETURN = MagicMock(
         data=lambda: {
@@ -201,7 +203,7 @@ class TestDataOperation:
                             "uuid": self.UUID,
                             "method_name": self.METHOD_NAME,
                             "method_version": self.METHOD_VERSION,
-                            "created": "",
+                            "created": None,
                             "last_modified": self.LAST_MODIFIED,
                         }
                     }
@@ -224,7 +226,7 @@ class TestDataOperation:
                             "method_version": self.METHOD_VERSION,
                             "uuid": self.UUID,
                             "created": self.CREATED,
-                            "last_modified": "",
+                            "last_modified": None,
                         }
                     }
                 )
