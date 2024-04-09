@@ -13,6 +13,8 @@ from constants import (
     DATA_BUCKET,
     DATA_INGESTION_KEY_PREFIX,
     ENVIRONMENT_NAME,
+    INGESTS,
+    INGESTED_BY,
     MAX_RETRIES,
     NEO4J_PASSWORD,
     NEO4J_URI,
@@ -20,7 +22,10 @@ from constants import (
     SERVICE_NAME,
     SERVICE_VERSION,
 )
-from neo4j_manager import Neo4jDatabase
+from models.arxiv_set import ArxivSet
+from models.data_source import DataSource
+from models.data import Data
+from neo4j import GraphDatabase
 from requests.adapters import HTTPAdapter
 from storage_manager import StorageManager
 from urllib3.util.retry import Retry
@@ -76,18 +81,29 @@ def lambda_handler(event: dict, context) -> dict:
         content_str = json.dumps(xml_data_list)
         storage_manager = StorageManager(config.get(DATA_BUCKET), logger)
         storage_manager.upload_to_s3(raw_data_key, content_str)
-        neo4j = Neo4jDatabase(config.get(NEO4J_URI), config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
-        neo4j.create_arxiv_datasource_node(config.get(ARXIV_BASE_URL))
-        neo4j.create_arxiv_raw_data_node(
-            earliest,
-            today,
-            date_obtained,
-            SERVICE_NAME,
-            SERVICE_VERSION,
-            len(content_str),
-            config.get(DATA_BUCKET),
-            raw_data_key,
-        )
+        with GraphDatabase.driver(config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))) as driver:
+            arxiv_set = None
+            try:
+                arxiv_set = ArxivSet.find(driver, config.get(ARXIV_SUMMARY_SET))
+            except Exception as e:
+                logger.error("Failed to find arXiv set", method=lambda_handler.__name__, error=str(e))
+                arxiv_set = ArxivSet.create(driver, config.get(ARXIV_SUMMARY_SET), config.get(ARXIV_SUMMARY_SET))
+            data_source = None
+            try:
+                data_source = DataSource.find(driver, config.get(ARXIV_BASE_URL))
+            except Exception as e:
+                logger.error("Failed to find arXiv data source", method=lambda_handler.__name__, error=str(e))
+                data_source = DataSource.create(driver, config.get(ARXIV_BASE_URL), "arXiv", "Preprint server")
+            data = None
+            try:
+                data = Data.create(driver, raw_data_key, "xml", "arXiv daily summaries", calculate_mb(len(content_str)), date_obtained, arxiv_set, data_source)
+                data.relate(driver, INGESTED_BY, data.LABEL, data.uuid, data_source.LABEL, data_source.uuid)
+                data.relate(driver, INGESTS, data_source.LABEL, data_source.uuid, data.LABEL, data.uuid)
+            except Exception as e:
+                logger.error("Failed to create data", method=lambda_handler.__name__, error=str(e))
+                if data:
+                    data.delete(driver)
+                raise e
         logger.info("Fetching arXiv summaries succeeded", method=lambda_handler.__name__, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
 

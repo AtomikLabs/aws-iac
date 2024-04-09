@@ -57,6 +57,9 @@ NEO4J_USERNAME = "NEO4J_USERNAME"
 SERVICE_NAME = "SERVICE_NAME"
 SERVICE_VERSION = "SERVICE_VERSION"
 
+# Databases
+DEFAULT_NEO4J_DB = "neo4j"  # supposed to be lower case
+
 # Dates
 ARXIV_RESEARCH_DATE_FORMAT = "%Y-%m-%d"
 DEFAULT_TIMEZONE = "US/Pacific"
@@ -74,5 +77,6 @@ FAILED_TO_CREATE_DATA_SOURCE = "Failed to create DataSource"
 FAILED_TO_CREATE_FULL_TEXT = "Failed to create FullText"
 INTERNAL_SERVER_ERROR = "Internal server error"
 
-# Databases
-DEFAULT_NEO4J_DB = "neo4j"  # supposed to be lower case
+# Neo4j
+INGESTS = "INGESTS"
+INGESTED_BY = "INGESTED_BY"
