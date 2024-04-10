@@ -13,8 +13,8 @@ from constants import (
     DATA_BUCKET,
     DATA_INGESTION_KEY_PREFIX,
     ENVIRONMENT_NAME,
-    INGESTS,
     INGESTED_BY,
+    INGESTS,
     MAX_RETRIES,
     NEO4J_PASSWORD,
     NEO4J_URI,
@@ -22,9 +22,8 @@ from constants import (
     SERVICE_NAME,
     SERVICE_VERSION,
 )
-from models.arxiv_set import ArxivSet
-from models.data_source import DataSource
 from models.data import Data
+from models.data_source import DataSource
 from neo4j import GraphDatabase
 from requests.adapters import HTTPAdapter
 from storage_manager import StorageManager
@@ -81,13 +80,9 @@ def lambda_handler(event: dict, context) -> dict:
         content_str = json.dumps(xml_data_list)
         storage_manager = StorageManager(config.get(DATA_BUCKET), logger)
         storage_manager.upload_to_s3(raw_data_key, content_str)
-        with GraphDatabase.driver(config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))) as driver:
-            arxiv_set = None
-            try:
-                arxiv_set = ArxivSet.find(driver, config.get(ARXIV_SUMMARY_SET))
-            except Exception as e:
-                logger.error("Failed to find arXiv set", method=lambda_handler.__name__, error=str(e))
-                arxiv_set = ArxivSet.create(driver, config.get(ARXIV_SUMMARY_SET), config.get(ARXIV_SUMMARY_SET))
+        with GraphDatabase.driver(
+            config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+        ) as driver:
             data_source = None
             try:
                 data_source = DataSource.find(driver, config.get(ARXIV_BASE_URL))
@@ -96,7 +91,8 @@ def lambda_handler(event: dict, context) -> dict:
                 data_source = DataSource.create(driver, config.get(ARXIV_BASE_URL), "arXiv", "Preprint server")
             data = None
             try:
-                data = Data.create(driver, raw_data_key, "xml", "arXiv daily summaries", calculate_mb(len(content_str)), date_obtained, arxiv_set, data_source)
+                data = Data(driver, raw_data_key, "arXiv daily summaries", "arXiv daily summaries", len(content_str))
+                data.create()
                 data.relate(driver, INGESTED_BY, data.LABEL, data.uuid, data_source.LABEL, data_source.uuid)
                 data.relate(driver, INGESTS, data_source.LABEL, data_source.uuid, data.LABEL, data.uuid)
             except Exception as e:
