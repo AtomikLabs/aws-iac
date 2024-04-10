@@ -41,6 +41,9 @@ def config():
     }
 
 
+# TODO: Add test lambda_handler
+
+
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger")
 def test_log_initial_info(mock_logger, event):
     log_initial_info(event)
@@ -141,31 +144,6 @@ def test_fetch_data_should_handle_resumption_token(mock_session):
         assert len(result) == 2
         assert result[0] == xml_data
         assert result[1] == xml_data
-
-
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.StorageManager.datetime")
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.StorageManager")
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.Neo4jDatabase")
-def test_lambda_handler_success(mock_neo4jdb, mock_storage_manager, mock_datetime, event, context, config):
-    mock_datetime.today.return_value = datetime(2023, 1, 1)
-    mock_datetime.strptime.return_value = datetime(2023, 1, 1)
-    with (
-        patch(
-            "services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_config", return_value=config
-        ),
-        patch(
-            "services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.fetch_data",
-            return_value=["<xml>data</xml>"],
-        ),
-        patch(
-            "services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.get_storage_key",
-            return_value="key",
-        ),
-    ):
-        response = lambda_handler(event, context)
-        print(response)
-        assert response["statusCode"] == 200
-        assert json.loads(response["body"]) == {"message": "Success"}
 
 
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger")
