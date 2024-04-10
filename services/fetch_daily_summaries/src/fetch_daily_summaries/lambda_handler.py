@@ -84,21 +84,26 @@ def lambda_handler(event: dict, context) -> dict:
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
             data_source = None
+            print(f"config.get(ARXIV_BASE_URL): {config.get(ARXIV_BASE_URL)}")
             try:
                 data_source = DataSource.find(driver, config.get(ARXIV_BASE_URL))
+                print("found")
             except Exception as e:
+                print("not found")
                 logger.error("Failed to find arXiv data source", method=lambda_handler.__name__, error=str(e))
-                data_source = DataSource.create(driver, config.get(ARXIV_BASE_URL), "arXiv", "Preprint server")
+            if not data_source:
+                data_source = DataSource(driver, config.get(ARXIV_BASE_URL), "arXiv", "Preprint server")
+                data_source = data_source.create()
+            print(data_source)
             data = None
             try:
                 data = Data(driver, raw_data_key, "arXiv daily summaries", "arXiv daily summaries", len(content_str))
                 data.create()
-                data.relate(driver, INGESTED_BY, data.LABEL, data.uuid, data_source.LABEL, data_source.uuid)
-                data.relate(driver, INGESTS, data_source.LABEL, data_source.uuid, data.LABEL, data.uuid)
+                if data_source:
+                    data.relate(driver, INGESTED_BY, data.LABEL, data.uuid, data_source.LABEL, data_source.uuid)
+                    data.relate(driver, INGESTS, data_source.LABEL, data_source.uuid, data.LABEL, data.uuid)
             except Exception as e:
                 logger.error("Failed to create data", method=lambda_handler.__name__, error=str(e))
-                if data:
-                    data.delete(driver)
                 raise e
         logger.info("Fetching arXiv summaries succeeded", method=lambda_handler.__name__, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
