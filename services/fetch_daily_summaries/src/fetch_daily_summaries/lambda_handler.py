@@ -19,10 +19,13 @@ from constants import (
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
+    OBTAINS_FROM,
+    PROVIDES,
     SERVICE_NAME,
     SERVICE_VERSION,
 )
 from models.data import Data
+from models.data_operation import DataOperation
 from models.data_source import DataSource
 from neo4j import GraphDatabase
 from requests.adapters import HTTPAdapter
@@ -43,7 +46,7 @@ structlog.configure(
 logger = structlog.get_logger()
 # TODO: Make these constants configurable
 BACKOFF_TIMES = [30, 120]
-DAY_SPAN = 5
+DAY_SPAN = 2
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -84,30 +87,59 @@ def lambda_handler(event: dict, context) -> dict:
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
             data_source = None
-            print(f"config.get(ARXIV_BASE_URL): {config.get(ARXIV_BASE_URL)}")
             try:
                 data_source = DataSource.find(driver, config.get(ARXIV_BASE_URL))
-                print("found")
             except Exception as e:
-                print("not found")
                 logger.error("Failed to find arXiv data source", method=lambda_handler.__name__, error=str(e))
             if not data_source:
                 data_source = DataSource(driver, config.get(ARXIV_BASE_URL), "arXiv", "Preprint server")
-                data_source = data_source.create()
-            print(data_source)
+                data_source.create()
             data = None
             try:
-                data = Data(driver, raw_data_key, "arXiv daily summaries", "arXiv daily summaries", len(content_str))
+                data = Data(driver, raw_data_key, "xml", "raw arXiv daily summaries", len(content_str))
                 data.create()
-                if data_source:
-                    data.relate(driver, INGESTED_BY, data.LABEL, data.uuid, data_source.LABEL, data_source.uuid)
-                    data.relate(driver, INGESTS, data_source.LABEL, data_source.uuid, data.LABEL, data.uuid)
+                if not data:
+                    message = f"Failed to create data with key: {raw_data_key}"
+                    logger.error(message, method=lambda_handler.__name__)
+                    raise RuntimeError(message)
             except Exception as e:
                 logger.error("Failed to create data", method=lambda_handler.__name__, error=str(e))
                 raise e
+            data_operation = DataOperation(
+                driver, "Fetch arXiv daily summaries", config.get(SERVICE_NAME), config.get(SERVICE_VERSION)
+            )
+            data_operation.create()
+            if data_operation:
+                data_operation.relate(
+                    driver,
+                    PROVIDES,
+                    data_source.LABEL,
+                    data_source.uuid,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    True,
+                )
+                data_operation.relate(
+                    driver,
+                    OBTAINS_FROM,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    data_source.LABEL,
+                    data_source.uuid,
+                    True,
+                )
+                data_operation.relate(
+                    driver, INGESTS, data_operation.LABEL, data_operation.uuid, data.LABEL, data.uuid, True
+                )
+                data_operation.relate(
+                    driver, INGESTED_BY, data.LABEL, data.uuid, data_operation.LABEL, data_operation.uuid, True
+                )
+            else:
+                message = f"Failed to create data operation with name: {data_operation.name}"
+                logger.error(message, method=lambda_handler.__name__)
+                raise RuntimeError(message)
         logger.info("Fetching arXiv summaries succeeded", method=lambda_handler.__name__, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
-
     except Exception as e:
         logger.exception(
             "Fetching arXiv daily summaries failed",

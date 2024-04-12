@@ -61,7 +61,6 @@ class TestLambdaHandler(unittest.TestCase):
     # TODO: Add tests for parse_xml_data
 
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.StorageManager")
-    @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.Neo4jDatabase")
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.parse_xml_data")
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.get_config")
     @patch("services.parse_arxiv_summaries.src.parse_arxiv_summaries.lambda_handler.get_output_key")
@@ -80,9 +79,7 @@ class TestLambdaHandler(unittest.TestCase):
         },
         clear=True,
     )
-    def test_lambda_handler(
-        self, mock_get_output_key, mock_get_config, mock_parse_xml_data, mock_neo4j_manager, mock_storage_manager
-    ):
+    def lambda_handler(self, mock_get_output_key, mock_get_config, mock_parse_xml_data, mock_storage_manager):
         mock_get_output_key.return_value = "test-output-key"
         mock_get_config.get("ETL_KEY_PREFIX").return_value = "test-prefix"
         mock_get_config.get("SERVICE_NAME").return_value = "test-service"
@@ -102,7 +99,6 @@ class TestLambdaHandler(unittest.TestCase):
         ]
         mock_storage_manager().load.return_value = json.dumps(["<xml>test</xml>"])
         mock_storage_manager().get_storage_key_date.return_value = "2023-04-01T00-00-00"
-        mock_neo4j_manager().create_arxiv_parsed_node.return_value = None
 
         response = lambda_handler(self.event, self.context)
         self.assertEqual(response, {"statusCode": 200, "body": "Success"})

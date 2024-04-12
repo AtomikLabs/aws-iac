@@ -7,6 +7,8 @@ import structlog
 import utils
 from constants import (
     APP_NAME,
+    CREATED_BY,
+    CREATES,
     CS_CATEGORIES_INVERTED,
     DATA_BUCKET,
     ENVIRONMENT_NAME,
@@ -15,10 +17,14 @@ from constants import (
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
+    PARSED_BY,
+    PARSES,
     SERVICE_NAME,
     SERVICE_VERSION,
 )
-from neo4j_manager import Neo4jDatabase
+from models.data import Data
+from models.data_operation import DataOperation
+from neo4j import GraphDatabase
 from storage_manager import StorageManager
 
 structlog.configure(
@@ -60,19 +66,64 @@ def lambda_handler(event, context):
         content_str = json.dumps(extracted_data)
         output_key = get_output_key(config)
         storage_manager.upload_to_s3(output_key, content_str)
-        neo4j = Neo4jDatabase(config.get(NEO4J_URI), config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
-        neo4j.create_arxiv_parsed_node(
-            key,
-            len(content_str),
-            config.get(SERVICE_NAME),
-            config.get(SERVICE_VERSION),
-            utils.get_storage_key_datetime(),
-            bucket_name,
-            output_key,
-        )
+        with GraphDatabase.driver(
+            config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+        ) as driver:
+            raw_data = None
+            try:
+                raw_data = Data.find(driver, key)
+                if not raw_data:
+                    message = f"Failed to find raw data with key: {key}"
+                    logger.error(message, method=lambda_handler.__name__)
+                    raise RuntimeError(message)
+            except Exception as e:
+                logger.error("Failed to find raw data source", method=lambda_handler.__name__, error=str(e))
+                raise e
+            parsed_data = None
+            try:
+                parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
+                parsed_data.create()
+                if not parsed_data:
+                    message = f"Failed to create parsed data with key: {output_key}"
+                    logger.error(message, method=lambda_handler.__name__)
+                    raise RuntimeError(message)
+            except Exception as e:
+                message = f"Failed to create parsed data with key: {output_key}"
+                logger.error(message, method=lambda_handler.__name__, error=str(e))
+                raise RuntimeError(message)
+            data_operation = DataOperation(driver, "Parse arXiv research summaries", "parse_arxiv_summaries", "1.0.0")
+            data_operation.create()
+            if data_operation:
+                data_operation.relate(
+                    driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
+                )
+                data_operation.relate(
+                    driver, PARSED_BY, raw_data.LABEL, raw_data.uuid, data_operation.LABEL, data_operation.uuid, True
+                )
+                data_operation.relate(
+                    driver,
+                    CREATES,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    parsed_data.LABEL,
+                    parsed_data.uuid,
+                    True,
+                )
+                data_operation.relate(
+                    driver,
+                    CREATED_BY,
+                    parsed_data.LABEL,
+                    parsed_data.uuid,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    True,
+                )
+            else:
+                message = "Failed to create DataOperation"
+                logger.error(message, method=lambda_handler.__name__)
+                raise RuntimeError(message)
         logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
         return {"statusCode": 200, "body": "Success"}
-
     except Exception as e:
         logger.error(e)
         return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e), "event": event}
