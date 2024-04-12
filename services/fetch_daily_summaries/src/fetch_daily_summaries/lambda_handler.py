@@ -105,22 +105,16 @@ def lambda_handler(event: dict, context) -> dict:
             except Exception as e:
                 logger.error("Failed to create data", method=lambda_handler.__name__, error=str(e))
                 raise e
-            data_operation = None
-            try:
-                data_operation = DataOperation(driver, "Fetch arXiv daily summaries", config.get(SERVICE_NAME), config.get(SERVICE_VERSION))
-                data_operation.create()
-                if data_operation:
-                    data_operation.relate(driver, PROVIDES, data_source.LABEL, data_source.uuid, data_operation.LABEL, data_operation.uuid, True)
-                    data_operation.relate(driver, OBTAINS_FROM, data_operation.LABEL, data_operation.uuid, data_source.LABEL, data_source.uuid, True)
-                    data_operation.relate(driver, INGESTS, data_operation.LABEL, data_operation.uuid, data.LABEL, data.uuid, True)
-                    data_operation.relate(driver, INGESTED_BY, data.LABEL, data.uuid, data_operation.LABEL, data_operation.uuid, True)
-                else:
-                    message = f"Failed to create data operation with name: {data_operation.name}"
-                    logger.error(message, method=lambda_handler.__name__)
-                    raise RuntimeError(message)
-            except Exception as e:
+            data_operation = DataOperation(driver, "Fetch arXiv daily summaries", config.get(SERVICE_NAME), config.get(SERVICE_VERSION))
+            data_operation.create()
+            if data_operation:
+                data_operation.relate(driver, PROVIDES, data_source.LABEL, data_source.uuid, data_operation.LABEL, data_operation.uuid, True)
+                data_operation.relate(driver, OBTAINS_FROM, data_operation.LABEL, data_operation.uuid, data_source.LABEL, data_source.uuid, True)
+                data_operation.relate(driver, INGESTS, data_operation.LABEL, data_operation.uuid, data.LABEL, data.uuid, True)
+                data_operation.relate(driver, INGESTED_BY, data.LABEL, data.uuid, data_operation.LABEL, data_operation.uuid, True)
+            else:
                 message = f"Failed to create data operation with name: {data_operation.name}"
-                logger.error(message, method=lambda_handler.__name__, error=str(e))
+                logger.error(message, method=lambda_handler.__name__)
                 raise RuntimeError(message)
         logger.info("Fetching arXiv summaries succeeded", method=lambda_handler.__name__, status=200, body="Success")
         return {"statusCode": 200, "body": json.dumps({"message": "Success"})}
