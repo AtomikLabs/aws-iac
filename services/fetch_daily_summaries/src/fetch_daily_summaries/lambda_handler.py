@@ -46,7 +46,7 @@ structlog.configure(
 logger = structlog.get_logger()
 # TODO: Make these constants configurable
 BACKOFF_TIMES = [30, 120]
-DAY_SPAN = 5
+DAY_SPAN = 2
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -93,10 +93,10 @@ def lambda_handler(event: dict, context) -> dict:
                 logger.error("Failed to find arXiv data source", method=lambda_handler.__name__, error=str(e))
             if not data_source:
                 data_source = DataSource(driver, config.get(ARXIV_BASE_URL), "arXiv", "Preprint server")
-                data_source = data_source.create()
+                data_source.create()
             data = None
             try:
-                data = Data(driver, raw_data_key, "arXiv daily summaries", "arXiv daily summaries", len(content_str))
+                data = Data(driver, raw_data_key, "xml", "raw arXiv daily summaries", len(content_str))
                 data.create()
                 if not data:
                     message = f"Failed to create data with key: {raw_data_key}"
