@@ -7,8 +7,8 @@ import structlog
 import utils
 from constants import (
     APP_NAME,
-    CREATES,
     CREATED_BY,
+    CREATES,
     CS_CATEGORIES_INVERTED,
     DATA_BUCKET,
     ENVIRONMENT_NAME,
@@ -17,8 +17,8 @@ from constants import (
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
-    PARSES,
     PARSED_BY,
+    PARSES,
     SERVICE_NAME,
     SERVICE_VERSION,
 )
@@ -94,10 +94,30 @@ def lambda_handler(event, context):
             data_operation = DataOperation(driver, "Parse arXiv research summaries", "parse_arxiv_summaries", "1.0.0")
             data_operation.create()
             if data_operation:
-                data_operation.relate(driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True)
-                data_operation.relate(driver, PARSED_BY, raw_data.LABEL, raw_data.uuid, data_operation.LABEL, data_operation.uuid, True)
-                data_operation.relate(driver, CREATES, data_operation.LABEL, data_operation.uuid, parsed_data.LABEL, parsed_data.uuid, True)
-                data_operation.relate(driver, CREATED_BY, parsed_data.LABEL, parsed_data.uuid, data_operation.LABEL, data_operation.uuid, True)
+                data_operation.relate(
+                    driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
+                )
+                data_operation.relate(
+                    driver, PARSED_BY, raw_data.LABEL, raw_data.uuid, data_operation.LABEL, data_operation.uuid, True
+                )
+                data_operation.relate(
+                    driver,
+                    CREATES,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    parsed_data.LABEL,
+                    parsed_data.uuid,
+                    True,
+                )
+                data_operation.relate(
+                    driver,
+                    CREATED_BY,
+                    parsed_data.LABEL,
+                    parsed_data.uuid,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    True,
+                )
             else:
                 message = "Failed to create DataOperation"
                 logger.error(message, method=lambda_handler.__name__)
