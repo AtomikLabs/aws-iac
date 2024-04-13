@@ -4,10 +4,30 @@ import urllib.parse
 from typing import Dict, List
 
 import structlog
-from constants import DATA_BUCKET, NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME, SERVICE_NAME, SERVICE_VERSION
+from constants import (
+    CATEGORIZES,
+    CATEGORIZED_BY,
+    CREATES,
+    CREATED_BY,
+    DATA_BUCKET,
+    LOADS,
+    LOADED_BY,
+    NEO4J_PASSWORD,
+    NEO4J_URI,
+    NEO4J_USERNAME,
+    PRIMARILY_CATEGORIZED_BY,
+    SERVICE_NAME,
+    SERVICE_VERSION,
+    SUMMARIZED_BY,
+    SUMMARIZES,
+)
+from models.abstract import Abstract
 from models.arxiv_category import ArxivCategory
 from models.arxiv_record import ArxivRecord
-from neo4j_manager import Neo4jDatabase
+from models.data import Data
+from models.data_operation import DataOperation
+from models.full_text import FullText
+from neo4j import GraphDatabase
 from storage_manager import StorageManager
 
 structlog.configure(
@@ -50,7 +70,144 @@ def lambda_handler(event, context):
             method=lambda_handler.__name__,
             num_records=len(json_data["records"]),
         )
-        store_records(json_data.get("records"), bucket_name, key, config)
+        with GraphDatabase.driver(
+            config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+        ) as driver:
+            parsed_data = None
+            try:
+                parsed_data = Data.find(driver, key)
+                if not parsed_data:
+                    message = f"Failed to find parsed data with key: {key}"
+                    logger.error(message, method=lambda_handler.__name__)
+                    raise RuntimeError(message)
+            except Exception as e:
+                logger.error("Failed to find parsed data source", method=lambda_handler.__name__, error=str(e))
+                raise e
+            loads_data_operation = None
+            try:
+                loads_data_operation = DataOperation(driver, "Load parsed arXiv summaries into Neo4j", "store_arxiv_summaries", "1.0.0")
+                loads_data_operation.create()
+                if loads_data_operation:
+                    parsed_data.relate(
+                        driver,
+                        LOADS,
+                        DataOperation.LABEL,
+                        loads_data_operation.uuid,
+                        Data.LABEL,
+                        parsed_data.uuid,
+                        True,
+                    )
+                    loads_data_operation.relate(
+                        driver,
+                        LOADED_BY,
+                        Data.LABEL,
+                        parsed_data.uuid,
+                        DataOperation.LABEL,
+                        loads_data_operation.uuid,
+                        True,
+                    )
+                else:
+                    message = f"Failed to create data operation for loading parsed data with key: {key}"
+                    logger.error(message, method=lambda_handler.__name__)
+                    raise RuntimeError(message)
+            except Exception as e:
+                message = f"Failed to create data operation for loading parsed data with key: {key}"
+                logger.error(message, method=lambda_handler.__name__, error=str(e))
+                raise RuntimeError(message)
+
+            categories = []
+            null_category = ArxivCategory.find(driver, "NULL")
+            if not null_category:
+                null_category = ArxivCategory(driver, "NULL", "NULL")
+                null_category.create()
+            categories.append(null_category)
+
+            for record in json_data["records"]:
+                try:
+                    arxiv_record = None
+                    arxiv_record = ArxivRecord.find(driver, record.get("identifier"))
+                    if arxiv_record:
+                        continue
+                    else:
+                        arxiv_record = ArxivRecord(driver, record.get("identifier"), record.get("title"), record.get("date"))
+                        arxiv_record.create()
+                    arxiv_category = categories.get(record.get("primary_category"), None)
+                    if not arxiv_category:
+                        arxiv_category = ArxivCategory.find(driver, record.get("primary_category"))
+                        if not arxiv_category:
+                            arxiv_category = categories.get("NULL")
+                        else:
+                            categories.append(arxiv_category)
+                    arxiv_record.relate(
+                        driver,
+                        CATEGORIZED_BY,
+                        ArxivRecord.LABEL,
+                        arxiv_record.uuid,
+                        ArxivCategory.LABEL,
+                        arxiv_category.uuid,
+                        True,
+                    )
+                    arxiv_record.relate(
+                        driver,
+                        CATEGORIZES,
+                        ArxivCategory.LABEL,
+                        arxiv_category.uuid,
+                        ArxivRecord.LABEL,
+                        arxiv_record.uuid,
+                        True,
+                    )
+                    arxiv_record.relate(
+                        driver,
+                        PRIMARILY_CATEGORIZED_BY,
+                        ArxivRecord.LABEL,
+                        arxiv_record.uuid,
+                        ArxivCategory.LABEL,
+                        arxiv_category.uuid,
+                        True,
+                    )
+                    # Add secondary categories
+                    abstract = None
+                    full_text = None
+                    if record.get("abstract"):
+                        abstract = Abstract(driver, record.get("abstract"))
+                        abstract.create()
+                        arxiv_record.relate(
+                            driver,
+                            SUMMARIZES,
+                            ArxivRecord.LABEL,
+                            arxiv_record.uuid,
+                            Abstract.LABEL,
+                            abstract.uuid,
+                            True,
+                        )
+                        abstract.relate(
+                            driver,
+                            SUMMARIZED_BY,
+                            Abstract.LABEL,
+                            abstract.uuid,
+                            ArxivRecord.LABEL,
+                            arxiv_record.uuid,
+                            True,
+                        )
+                except Exception as e:
+                    message = f"Failed to create or find ArxivRecord with arXiv ID: {record.get('identifier')}"
+                    logger.error(message, method=lambda_handler.__name__, error=str(e))
+                    raise RuntimeError(message)
+
+            # For each record:
+
+                # Create an ArxivRecord node for each record
+
+                # Add an abstract for each record
+
+                # Add an author for each record
+
+                # Add a full text node for each record
+
+                # Associate each record with its category
+
+                # Associate each record with the dop
+
         return {"statusCode": 200, "body": "Success"}
     except Exception as e:
         logger.error("An error occurred", method=lambda_handler.__name__, error=str(e))
