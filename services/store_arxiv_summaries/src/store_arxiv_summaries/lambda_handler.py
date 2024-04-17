@@ -671,7 +671,6 @@ def relate_abstract(driver: Driver,
     abstract_key = f"{PROCESSED_DATA}/{RESEARCH_RECORDS}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
     abstract = Abstract(driver,
                         record.get(ABSTRACT_URL),
-                        record.get(ABSTRACT),
                         bucket,
                         abstract_key)
     abstract.create()
