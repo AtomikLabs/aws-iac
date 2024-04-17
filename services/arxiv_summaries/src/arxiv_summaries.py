@@ -28,7 +28,7 @@ SUMMARY_SET = ""
 OPENAI_KEY = ""
 
 CREATE_AUDIO = True
-CATEGORIES = ["CL", "CV", "RO", "CR"]
+CATEGORIES = ["CL", "CV", "RO"]
 # CATEGORIES = ["CR", "MA", "SY"]
 BACK_DATE = 2
 
