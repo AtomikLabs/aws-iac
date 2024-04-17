@@ -455,7 +455,7 @@ def create_script(categories, records, research_date, group):
             for para in document.paragraphs:
                 full_text.append(para.text)
             themes = create_research_themes("\n".join(full_text), category)
-            print(f"Date: {research_date} Category: {category} Tokens: {len(full_text)/6}")
+            print(f"Date: {research_date} Category: {category} Tokens: {len(full_text) / 6}")
         themes = "\n".join(themes)
         create_full_show_notes([category], records, research_date, "cs", themes)
         create_pod_notes([category], research_date, themes)

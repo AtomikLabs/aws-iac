@@ -72,15 +72,15 @@ class DataOperation(BaseModel):
                 "name": self.name,
                 "method_name": self.method_name,
                 "method_version": self.method_version,
-                "created": now,
                 "last_modified": now,
             }
             records, summary, _ = self.driver.execute_query(
                 """
-                MERGE (a:DataOperation {name: $name})
+                MERGE (a:DataOperation {name: $name, created: $created})
                 ON CREATE SET a += $props
                 RETURN a""",
                 name=self.name,
+                created=now,
                 props=properties,
                 database_=self.db,
             )
