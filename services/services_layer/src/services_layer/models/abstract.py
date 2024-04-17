@@ -17,12 +17,18 @@ structlog.configure(
     logger_factory=structlog.stdlib.LoggerFactory(),
 )
 
+logger = structlog.get_logger()
+
 
 class Abstract(BaseModel):
 
     LABEL = "Abstract"
 
-    def __init__(self, driver: Driver = None, url: str = "", text: str = "", storage_url: str = ""):
+    def __init__(self, driver: Driver = None,
+                 url: str = "",
+                 text: str = "",
+                 bucket: str = "",
+                 key: str = ""):
         super().__init__(driver)
         if url and not validate_strings(url):
             message = "URL must be a valid string if provided"
@@ -32,40 +38,46 @@ class Abstract(BaseModel):
             message = "Text must be a valid string if provided"
             self.logger.error(message, method=self.__init__.__name__)
             raise ValueError(message)
-        if storage_url and not validate_strings(storage_url):
-            message = "Storage URL must be a valid string if provided"
+        if bucket and not validate_strings(bucket):
+            message = "Storage bucket must be a valid string if provided"
             self.logger.error(message, method=self.__init__.__name__)
             raise ValueError(message)
-        self.text = text
-        self.storage_url = storage_url
+        if key and not validate_strings(key):
+            message = "Key must be a valid string if provided"
+            self.logger.error(message, method=self.__init__.__name__)
+            raise ValueError(message)
         self.url = url
+        self.text = text
+        self.bucket = bucket
+        self.key = key
         self.uuid = None
         self.created = None
         self.last_modified = None
 
-    def create(self, url: str = "", text: str = "", storage_url: str = ""):
+    def create(self, url: str = "", text: str = "", bucket: str = "", key: str = ""):
         if not validate_strings(self.text, self.url) and not validate_strings(text, url):
-            message = "Invalid text, storage url, or url"
+            message = "Invalid text or url"
             self.logger.error(message, method=self.create.__name__)
             raise ValueError(message)
         try:
-            self.text = text if validate_strings(text) else self.text
-            self.storage_url = storage_url if validate_strings(storage_url) else self.storage_url
             self.url = url if validate_strings(url) else self.url
+            self.text = text if validate_strings(text) else self.text
+            self.bucket = bucket if validate_strings(bucket) else self.bucket
+            self.key = key if validate_strings(key) else self.key
             self.verify_connection()
             self.logger.debug(
                 "Creating Abstract",
                 method=self.create.__name__,
                 text=self.text,
-                storage_url=self.storage_url,
+                key=self.key,
                 url=self.url,
             )
             now = get_storage_key_datetime()
             properties = {
                 "text": self.text,
+                "bucket": self.bucket,
+                "key": self.key,
                 "uuid": str(uuid.uuid4()),
-                "storage_url": self.storage_url,
-                "url": self.url,
                 "created": now,
                 "last_modified": now,
             }
@@ -80,21 +92,22 @@ class Abstract(BaseModel):
             )
             if records and summary.counters.nodes_created == 1:
                 self.logger.debug(
-                    "Abstract created", method=self.create.__name__, code=self.text, name=self.storage_url
+                    "Abstract created", method=self.create.__name__, code=self.text, name=self.key
                 )
             elif records and summary.counters.nodes_created == 0:
                 self.logger.debug(
-                    "Abstract already exists", method=self.create.__name__, code=self.text, name=self.storage_url
+                    "Abstract already exists", method=self.create.__name__, code=self.text, name=self.key
                 )
             else:
                 self.logger.error(
-                    FAILED_TO_CREATE_ABSTRACT, method=self.create.__name__, code=self.text, name=self.storage_url
+                    FAILED_TO_CREATE_ABSTRACT, method=self.create.__name__, code=self.text, name=self.key
                 )
                 raise RuntimeError()
             data = records[0].data().get("a", {})
-            self.text = data.get("text", "")
             self.url = data.get("url", "")
-            self.storage_url = data.get("storage_url", "")
+            self.text = data.get("text", "")
+            self.bucket = data.get("bucket", "")
+            self.key = data.get("key", "")
             self.uuid = data.get("uuid", "")
             self.created = data.get("created", None)
             self.last_modified = data.get("last_modified", None)
@@ -103,7 +116,7 @@ class Abstract(BaseModel):
                     "Failed to properly create Abstract",
                     method=self.create.__name__,
                     text=self.text,
-                    storage_url=self.storage_url,
+                    key=self.key,
                     url=self.url,
                     uuid=self.uuid,
                     created=self.created,
@@ -132,16 +145,18 @@ class Abstract(BaseModel):
                     driver=driver,
                     url=data.get("url", ""),
                     text=data.get("text", ""),
-                    storage_url=data.get("storage_url", ""),
+                    bucket=data.get("bucket", ""),
+                    key=data.get("key", ""),
                 )
                 abstract.uuid = data.get("uuid", "")
                 abstract.created = data.get("created", None)
                 abstract.last_modified = data.get("last_modified", None)
                 if (
                     not validate_strings(
-                        abstract.text,
-                        abstract.storage_url,
                         abstract.url,
+                        abstract.text,
+                        abstract.bucket,
+                        abstract.key,
                         abstract.uuid,
                     )
                     or abstract.created is None
@@ -151,6 +166,7 @@ class Abstract(BaseModel):
                 return abstract
             return None
         except Exception as e:
+            logger.error("Failed to find Abstract", error=str(e), url=url, method=cls.find.__name__)
             raise e
 
     @classmethod
@@ -166,16 +182,18 @@ class Abstract(BaseModel):
                         driver=driver,
                         url=data.get("url", ""),
                         text=data.get("text", ""),
-                        storage_url=data.get("storage_url", ""),
+                        bucket=data.get("bucket", ""),
+                        key=data.get("key", ""),
                     )
                     abstract.uuid = data.get("uuid")
                     abstract.created = data.get("created")
                     abstract.last_modified = data.get("last_modified")
                     if (
                         not validate_strings(
-                            abstract.text,
-                            abstract.storage_url,
                             abstract.url,
+                            abstract.text,
+                            abstract.bucket,
+                            abstract.key,
                             abstract.uuid,
                         )
                         or abstract.created is None
@@ -185,22 +203,29 @@ class Abstract(BaseModel):
                     abstracts.append(abstract)
                 return abstracts
         except Exception as e:
+            logger.error("Failed to find all Abstracts", error=str(e), method=cls.find_all.__name__)
             raise e
 
     def load(self) -> bool:
         if not validate_strings(self.url):
             self.logger.error(
-                "Invalid url", method=self.load.__name__, text=self.text, storage_url=self.storage_url, url=self.url
+                "Invalid url",
+                method=self.load.__name__,
+                url=self.url,
+                text=self.text,
+                bucket=self.bucket,
+                key=self.key
             )
             raise ValueError("Invalid url")
         try:
             self.verify_connection()
             self.logger.debug(
-                "Loading Abstract",
+                "Invalid url",
                 method=self.load.__name__,
-                text=self.text,
-                storage_url=self.storage_url,
                 url=self.url,
+                text=self.text,
+                bucket=self.bucket,
+                key=self.key
             )
             records, _, _ = self.driver.execute_query(
                 f"MATCH (a:{self.LABEL} {{url: $url}}) RETURN a", url=self.url, database_=self.db
@@ -209,28 +234,31 @@ class Abstract(BaseModel):
                 self.logger.debug(
                     "Abstract loaded",
                     method=self.load.__name__,
-                    text=self.text,
-                    storage_url=self.storage_url,
                     url=self.url,
+                    text=self.text,
+                    bucket=self.bucket,
+                    key=self.key,
                 )
                 data = records[0].data().get("a", {})
-                self.text = data.get("text", "")
-                self.storage_url = data.get("storage_url", "")
                 self.url = data.get("url", "")
+                self.text = data.get("text", "")
+                self.bucket = data.get("bucket", "")
+                self.key = data.get("key", "")
                 self.uuid = data.get("uuid", "")
                 self.created = data.get("created", None)
                 self.last_modified = data.get("last_modified", None)
                 if (
-                    not validate_strings(self.text, self.storage_url, self.url, self.uuid)
+                    not validate_strings(self.url, self.text, self.key, self.bucket, self.uuid)
                     or self.created is None
                     or self.last_modified is None
                 ):
                     self.logger.error(
                         "Failed to properly load Abstract",
                         method=self.load.__name__,
-                        text=self.text,
-                        storage_url=self.storage_url,
                         url=self.url,
+                        text=self.text,
+                        bucket=self.bucket,
+                        key=self.key,
                         uuid=self.uuid,
                         created=self.created,
                         last_modified=self.last_modified,
@@ -242,9 +270,10 @@ class Abstract(BaseModel):
                 "Failed to load Abstract",
                 method=self.load.__name__,
                 error=str(e),
-                text=self.text,
-                storage_url=self.storage_url,
                 url=self.url,
+                text=self.text,
+                bucket=self.bucket,
+                key=self.key,
             )
             raise e
 
