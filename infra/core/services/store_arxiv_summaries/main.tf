@@ -6,13 +6,13 @@ locals {
   data_bucket                 = var.data_bucket
   data_bucket_arn             = var.data_bucket_arn
   environment                 = var.environment
-  etl_key_prefix              = var.etl_key_prefix
   lambda_vpc_access_role      = var.lambda_vpc_access_role
   services_layer_arn          = var.services_layer_arn
   neo4j_password              = var.neo4j_password
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
   private_subnets             = var.private_subnets
+  records_prefix              = var.records_prefix
   runtime                     = var.runtime
   service_name                = var.service_name
   service_version             = var.service_version
@@ -95,7 +95,7 @@ resource "aws_iam_policy" "store_arxiv_summaries_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${local.data_bucket_arn}/${local.etl_key_prefix}/*",
+          "${local.data_bucket_arn}/${local.records_prefix}/*",
         ]
       },
       {

@@ -30,6 +30,7 @@ locals {
   neo4j_instance_type                           = var.neo4j_instance_type
   neo4j_key_pair_name                           = var.neo4j_key_pair_name
   neo4j_resource_prefix                         = var.neo4j_resource_prefix
+  records_prefix                                = var.records_prefix
   
   # **********************************************************
   # * INFRASTRUCTURE CONFIGURATION                           *
@@ -176,13 +177,13 @@ module "store_arxiv_summaries" {
   data_bucket               = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
   data_bucket_arn           = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
   environment               = local.environment
-  etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
   services_layer_arn = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
   private_subnets           = module.networking.aws_private_subnet_ids
+  records_prefix            = local.records_prefix
   runtime                   = local.default_lambda_runtime
   service_name              = local.store_arxiv_summaries_service_name
   service_version           = local.store_arxiv_summaries_service_version

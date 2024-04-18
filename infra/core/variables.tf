@@ -100,6 +100,11 @@ variable "neo4j_resource_prefix" {
   type        = string
 }
 
+variable "records_prefix" {
+  description = "Prefix for the records"
+  type        = string
+}
+
 # **********************************************************
 # * Networking                                             *
 # **********************************************************

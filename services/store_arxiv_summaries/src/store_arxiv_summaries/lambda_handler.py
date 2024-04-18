@@ -180,7 +180,7 @@ def store_records(
                 parsed_data,
             )
             categories = {}
-            for record in records:
+            for record in records[:2]:
                 if not all(record.get(field) for field in required_fields) or len(record.get("authors", [])) < 1:
                     malformed_records.append(record)
                     logger.error("Malformed record", method=store_records.__name__, record=record)
@@ -231,7 +231,7 @@ def parsed_data_node(driver: Driver, key: str) -> Data:
     parsed_data = Data.find(driver, key)
     if not parsed_data:
         message = f"Failed to find parsed data with key: {key}"
-        logger.error(message, method=lambda_handler.__name__)
+        logger.error(message, method=parsed_data_node.__name__)
         raise RuntimeError(message)
     return parsed_data
 
@@ -256,7 +256,7 @@ def loads_dop_node(
     loads_dop.create()
     if not loads_dop:
         message = "Failed to create DataOperation"
-        logger.error(message, method=lambda_handler.__name__)
+        logger.error(message, method=loads_dop_node.__name__)
         raise RuntimeError(message)
     parsed_data.relate(
         driver,
@@ -325,9 +325,13 @@ def arxiv_record_factory(
     arxiv_record = record_node(driver, record)
     relate_record_dop(driver, arxiv_record, loads_dop)
     relate_categories(driver, arxiv_record, record, categories)
-    for author in record.get(AUTHORS.lower()):
+    print(f"Record: {record}")
+    print(f"Authors: {record.get('authors', '')}")
+    for author in record.get(AUTHORS.lower(), ""):
         try:
+            print(f'Author: {author}')
             relate_author(driver, arxiv_record, author)
+            
         except Exception as e:
             logger.error("Error while relating author", method=lambda_handler.__name__, error=str(e))
     try:
@@ -383,9 +387,13 @@ def relate_record_dop(driver: Driver, record: ArxivRecord, dop: DataOperation) -
 
 
 def relate_categories(driver: Driver, arxiv_record: ArxivRecord, record: dict, categories: List) -> dict:
-    primary_category = relate_category(driver, arxiv_record, record.get(PRIMARY_CATEGORY), categories, True)
+    primary_category = None
+    try:
+        primary_category = relate_category(driver, arxiv_record, record.get(PRIMARY_CATEGORY), categories, True)
+    except Exception as e:
+        logger.error("Error getting primary category", method=relate_categories.__name__, record=record, error=str(e))
     if not primary_category:
-        logger.error("Failed to relate primary category", method=lambda_handler.__name__)
+        logger.error("Failed to relate primary category", method=relate_categories.__name__)
         raise RuntimeError("Failed to relate primary category")
     categories.update({record.get(PRIMARY_CATEGORY): primary_category})
     for category in record.get("categories"):
@@ -394,7 +402,7 @@ def relate_categories(driver: Driver, arxiv_record: ArxivRecord, record: dict, c
             if arxiv_category:
                 categories.update({category: arxiv_category})
         except Exception as e:
-            logger.error("Failed to relate category", method=lambda_handler.__name__, error=str(e))
+            logger.error("Failed to relate category", method=relate_categories.__name__, error=str(e))
     return categories
 
 
@@ -420,7 +428,7 @@ def relate_category(
         if primary and not arxiv_category:
             arxiv_category = categories.get("NULL", None)
     if not arxiv_category:
-        logger.error("Failed to find ArxivCategory", method=lambda_handler.__name__, category=category)
+        logger.error("Failed to find ArxivCategory", method=relate_category.__name__, category=category)
         return None
     if primary:
         arxiv_record.relate(
@@ -462,7 +470,7 @@ def relate_abstract(driver: Driver, arxiv_record: ArxivRecord, record: dict, buc
     abstract = Abstract(driver, record.get(ABSTRACT_URL), bucket, abstract_key)
     abstract.create()
     if not abstract:
-        logger.error("Failed to create Abstract", method=lambda_handler.__name__)
+        logger.error("Failed to create Abstract", method=relate_abstract.__name__)
         raise RuntimeError("Failed to create Abstract")
     arxiv_record.relate(
         driver, SUMMARIZED_BY, ArxivRecord.LABEL, arxiv_record.uuid, Abstract.LABEL, abstract.uuid, True
@@ -486,13 +494,13 @@ def relate_author(driver: Driver, arxiv_record: ArxivRecord, author: dict) -> Au
     Raises:
         RuntimeError: If the author node cannot be found or created.
     """
-    author = Author.find(driver, author.last_name, author.first_name)
-    if not author:
-        author = Author(driver, author.last_name, author.first_name)
-        author.create()
-    if not author:
-        logger.error("Failed to create Author", method=lambda_handler.__name__)
+    author_node = Author.find(driver, author.get("last_name"), author.get("first_name"))
+    if not author_node:
+        author_node = Author(driver, author.get("last_name"), author.get("first_name"))
+        author_node.create()
+    if not author_node:
+        logger.error("Failed to create Author", method=relate_author.__name__)
         raise RuntimeError("Failed to create Author")
-    arxiv_record.relate(driver, AUTHORED_BY, ArxivRecord.LABEL, arxiv_record.uuid, Author.LABEL, author.uuid, True)
-    author.relate(driver, AUTHORS, Author.LABEL, author.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True)
-    return author
+    arxiv_record.relate(driver, AUTHORED_BY, ArxivRecord.LABEL, arxiv_record.uuid, Author.LABEL, author_node.uuid, True)
+    author_node.relate(driver, AUTHORS, Author.LABEL, author_node.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True)
+    return author_node

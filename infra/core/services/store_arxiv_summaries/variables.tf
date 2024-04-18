@@ -34,18 +34,8 @@ variable "environment" {
   default       = "dev"
 }
 
-variable "etl_key_prefix" {
-  description   = "The prefix for the ETL keys"
-  type          = string
-}
-
 variable "lambda_vpc_access_role" {
   description   = "The ARN of the role that allows the Lambda function to access the VPC"
-  type          = string
-}
-
-variable "services_layer_arn" {
-  description   = "The ARN of the layer for data management"
   type          = string
 }
 
@@ -69,8 +59,18 @@ variable "private_subnets" {
   type          = list(string)
 }
 
+variable "records_prefix" {
+  description   = "The prefix for the records"
+  type          = string
+}
+
 variable "runtime" {
   description   = "The runtime for the Lambda function"
+  type          = string
+}
+
+variable "services_layer_arn" {
+  description   = "The ARN of the layer for data management"
   type          = string
 }
 
