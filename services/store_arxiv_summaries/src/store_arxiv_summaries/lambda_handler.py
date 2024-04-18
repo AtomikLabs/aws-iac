@@ -329,9 +329,9 @@ def arxiv_record_factory(
     print(f"Authors: {record.get('authors', '')}")
     for author in record.get(AUTHORS.lower(), ""):
         try:
-            print(f'Author: {author}')
+            print(f"Author: {author}")
             relate_author(driver, arxiv_record, author)
-            
+
         except Exception as e:
             logger.error("Error while relating author", method=lambda_handler.__name__, error=str(e))
     try:
