@@ -24,10 +24,7 @@ class Abstract(BaseModel):
 
     LABEL = "Abstract"
 
-    def __init__(self, driver: Driver = None,
-                 url: str = "",
-                 bucket: str = "",
-                 key: str = ""):
+    def __init__(self, driver: Driver = None, url: str = "", bucket: str = "", key: str = ""):
         super().__init__(driver)
         if url and not validate_strings(url):
             message = "URL must be a valid string if provided"
@@ -49,7 +46,7 @@ class Abstract(BaseModel):
         self.last_modified = None
 
     def create(self, url: str = "", bucket: str = "", key: str = ""):
-        if not validate_strings(url):
+        if not validate_strings(self.url) and not validate_strings(url):
             message = "Invalid url"
             self.logger.error(message, method=self.create.__name__)
             raise ValueError(message)
@@ -82,17 +79,11 @@ class Abstract(BaseModel):
                 database_=self.db,
             )
             if records and summary.counters.nodes_created == 1:
-                self.logger.debug(
-                    "Abstract created", method=self.create.__name__, name=self.key
-                )
+                self.logger.debug("Abstract created", method=self.create.__name__, name=self.key)
             elif records and summary.counters.nodes_created == 0:
-                self.logger.debug(
-                    "Abstract already exists", method=self.create.__name__, name=self.key
-                )
+                self.logger.debug("Abstract already exists", method=self.create.__name__, name=self.key)
             else:
-                self.logger.error(
-                    FAILED_TO_CREATE_ABSTRACT, method=self.create.__name__, name=self.key
-                )
+                self.logger.error(FAILED_TO_CREATE_ABSTRACT, method=self.create.__name__, name=self.key)
                 raise RuntimeError()
             data = records[0].data().get("a", {})
             self.url = data.get("url", "")
@@ -193,23 +184,11 @@ class Abstract(BaseModel):
 
     def load(self) -> bool:
         if not validate_strings(self.url):
-            self.logger.error(
-                "Invalid url",
-                method=self.load.__name__,
-                url=self.url,
-                bucket=self.bucket,
-                key=self.key
-            )
+            self.logger.error("Invalid url", method=self.load.__name__, url=self.url, bucket=self.bucket, key=self.key)
             raise ValueError("Invalid url")
         try:
             self.verify_connection()
-            self.logger.debug(
-                "Invalid url",
-                method=self.load.__name__,
-                url=self.url,
-                bucket=self.bucket,
-                key=self.key
-            )
+            self.logger.debug("Invalid url", method=self.load.__name__, url=self.url, bucket=self.bucket, key=self.key)
             records, _, _ = self.driver.execute_query(
                 f"MATCH (a:{self.LABEL} {{url: $url}}) RETURN a", url=self.url, database_=self.db
             )

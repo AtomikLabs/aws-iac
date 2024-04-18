@@ -5,13 +5,15 @@ from typing import Dict, List
 
 import structlog
 from constants import (
-    CATEGORIZES,
+    AUTHORED_BY,
+    AUTHORS,
     CATEGORIZED_BY,
-    CREATES,
+    CATEGORIZES,
     CREATED_BY,
+    CREATES,
     DATA_BUCKET,
-    LOADS,
     LOADED_BY,
+    LOADS,
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
@@ -26,9 +28,9 @@ from constants import (
 from models.abstract import Abstract
 from models.arxiv_category import ArxivCategory
 from models.arxiv_record import ArxivRecord
+from models.author import Author
 from models.data import Data
 from models.data_operation import DataOperation
-from models.full_text import FullText
 from neo4j import Driver, GraphDatabase
 from storage_manager import StorageManager
 
@@ -79,106 +81,7 @@ def lambda_handler(event, context):
             method=lambda_handler.__name__,
             num_records=len(json_data["records"]),
         )
-        with GraphDatabase.driver(
-            config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
-        ) as driver:
-            parsed_data = parsed_data_node(driver, key)
-            loads_data_operation = loads_dop_node(
-                driver, "Load parsed data",
-                config.get(SERVICE_NAME),
-                config.get(SERVICE_VERSION),
-                parsed_data
-            )
-            categories = {}
-            null_category = null_category_node(driver)
-            categories.update(null_category)
-
-            for record in json_data["records"]:
-                try:
-                    arxiv_record = None
-                    arxiv_record = ArxivRecord.find(driver, record.get("identifier"))
-                    if arxiv_record:
-                        continue
-                    else:
-                        arxiv_record = ArxivRecord(driver, record.get("identifier"), record.get("title"), record.get("date"))
-                        arxiv_record.create()
-                    arxiv_category = categories.get(record.get("primary_category"), None)
-                    if not arxiv_category:
-                        arxiv_category = ArxivCategory.find(driver, record.get("primary_category"))
-                        if not arxiv_category:
-                            arxiv_category = categories.get("NULL")
-                        else:
-                            categories.append(arxiv_category)
-                    arxiv_record.relate(
-                        driver,
-                        CATEGORIZED_BY,
-                        ArxivRecord.LABEL,
-                        arxiv_record.uuid,
-                        ArxivCategory.LABEL,
-                        arxiv_category.uuid,
-                        True,
-                    )
-                    arxiv_record.relate(
-                        driver,
-                        CATEGORIZES,
-                        ArxivCategory.LABEL,
-                        arxiv_category.uuid,
-                        ArxivRecord.LABEL,
-                        arxiv_record.uuid,
-                        True,
-                    )
-                    arxiv_record.relate(
-                        driver,
-                        PRIMARILY_CATEGORIZED_BY,
-                        ArxivRecord.LABEL,
-                        arxiv_record.uuid,
-                        ArxivCategory.LABEL,
-                        arxiv_category.uuid,
-                        True,
-                    )
-                    # Add secondary categories
-                    abstract = None
-                    full_text = None
-                    if record.get("abstract"):
-                        abstract = Abstract(driver, record.get("abstract"))
-                        abstract.create()
-                        arxiv_record.relate(
-                            driver,
-                            SUMMARIZES,
-                            ArxivRecord.LABEL,
-                            arxiv_record.uuid,
-                            Abstract.LABEL,
-                            abstract.uuid,
-                            True,
-                        )
-                        abstract.relate(
-                            driver,
-                            SUMMARIZED_BY,
-                            Abstract.LABEL,
-                            abstract.uuid,
-                            ArxivRecord.LABEL,
-                            arxiv_record.uuid,
-                            True,
-                        )
-                except Exception as e:
-                    message = f"Failed to create or find ArxivRecord with arXiv ID: {record.get('identifier')}"
-                    logger.error(message, method=lambda_handler.__name__, error=str(e))
-                    raise RuntimeError(message)
-
-            # For each record:
-
-                # Create an ArxivRecord node for each record
-
-                # Add an abstract for each record
-
-                # Add an author for each record
-
-                # Add a full text node for each record
-
-                # Associate each record with its category
-
-                # Associate each record with the dop
-
+        store_records(json_data["records"], bucket_name, key, config, storage_manager)
         return {"statusCode": 200, "body": "Success"}
     except Exception as e:
         logger.error("An error occurred", method=lambda_handler.__name__, error=str(e))
@@ -229,7 +132,9 @@ def get_config() -> dict:
     return config
 
 
-def store_records(records: List[Dict], bucket_name: str, key: str, config: dict) -> Dict:
+def store_records(
+    records: List[Dict], bucket_name: str, key: str, config: dict, storage_manager: StorageManager
+) -> Dict:
     """
     Stores arxiv research summary records in the neo4j database.
 
@@ -238,6 +143,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
         bucket_name (str): The S3 bucket name for the parsed arXiv records.
         key (str): The S3 key for the parsed arXiv records.
         config (dict): The configuration for the service.
+        storage_manager (StorageManager): The storage manager.
 
     Returns:
         Dict: The stored and failed records for further processing.
@@ -258,45 +164,31 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
             bucket_name=bucket_name,
         )
         raise ValueError("Bucket name must be present and be a string.")
-    service_name = config.get(SERVICE_NAME)
-    service_version = config.get(SERVICE_VERSION)
-    neo4j_uri = config.get(NEO4J_URI)
-    neo4j_username = config.get(NEO4J_USERNAME)
-    neo4j_password = config.get(NEO4J_PASSWORD)
-    if (
-        not key
-        or not isinstance(key, str)
-        or not service_name
-        or not isinstance(service_name, str)
-        or not service_version
-        or not isinstance(service_version, str)
-    ):
-        logger.error(
-            "Key, service name, and service version must be present and be strings.",
-            method=store_records.__name__,
-            key_type=type(key),
-            key=key,
-            service_name_type=type(service_name),
-            service_name=service_name,
-            service_version_type=type(service_version),
-            service_version=service_version,
-        )
-        raise ValueError(
-            "Key, service name, and service version must be present \
-                         and be strings."
-        )
-    total = len(records)
     malformed_records = []
     well_formed_records = []
     required_fields = ["identifier", "title", "authors", "group", "abstract", "date", "abstract_url"]
     try:
-        for record in records:
-            if not all(record.get(field) for field in required_fields) or len(record.get("authors", [])) < 1:
-                malformed_records.append(record)
-                logger.error("Malformed record", method=store_records.__name__, record=record)
-            else:
-                well_formed_records.append(record)
-
+        with GraphDatabase.driver(
+            config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+        ) as driver:
+            parsed_data = parsed_data_node(driver, key)
+            loads_dop = loads_dop_node(
+                driver,
+                f"Loads parsed arXiv records from {key}",
+                config.get(SERVICE_NAME),
+                config.get(SERVICE_VERSION),
+                parsed_data,
+            )
+            categories = {}
+            for record in records:
+                if not all(record.get(field) for field in required_fields) or len(record.get("authors", [])) < 1:
+                    malformed_records.append(record)
+                    logger.error("Malformed record", method=store_records.__name__, record=record)
+                else:
+                    arxiv_record = arxiv_record_factory(
+                        driver, record, loads_dop, categories, bucket_name, storage_manager
+                    )
+                    well_formed_records.append(arxiv_record)
         if malformed_records:
             logger.warning(
                 "Malformed records",
@@ -310,71 +202,6 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
                 method=store_records.__name__,
                 num_well_formed_records=len(well_formed_records),
             )
-        with GraphDatabase.driver(neo4j_uri, auth=(neo4j_username, neo4j_password)) as driver:
-            for record in well_formed_records:
-                try:
-                    arxiv_record = get_related_arxiv_record(driver, record.get("identifier"))
-                    arxiv_record = ArxivRecord(
-                        driver=driver,
-                        arxiv_id=record.get("identifier"),
-                        title=record.get("title"),
-                        date=record.get("date"),
-                    )
-                    arxiv_category = ArxivCategory.find(
-                        driver, record.get("primary_category") if record.get("primary_category") else "NULL"
-                    )
-                    if not arxiv_category:
-                        # TODO: Monitoring alert here
-                        logger.warn(
-                            "Failed to find ArxivCategory",
-                            method=store_records.__name__,
-                            arxiv_category=record.get("primary_category").upper(),
-                        )
-                        raise RuntimeError("Failed to find ArxivCategory")
-                    arxiv_record.create()
-                    arxiv_record.relate(
-                        driver,
-                        "HAS_CATEGORY",
-                        ArxivRecord.LABEL,
-                        arxiv_record.uuid,
-                        ArxivCategory.LABEL,
-                        arxiv_category.uuid,
-                        True,
-                    )
-                    arxiv_record.relate(
-                        driver,
-                        "HAS_RESEARCH",
-                        ArxivCategory.LABEL,
-                        arxiv_category.uuid,
-                        ArxivRecord.LABEL,
-                        arxiv_record.uuid,
-                        True,
-                    )
-                except Exception as e:
-                    logger.error(
-                        "Error during record and relationship creation",
-                        method=store_records.__name__,
-                        record=record,
-                        error=str(e),
-                    )
-            logger.info("Stored records", method=store_records.__name__, num_records=len(well_formed_records))
-            # TODO: set alerting for malformed records
-            logger.info(
-                "Malfored records found",
-                method=store_records.__name__,
-                num_records=len(malformed_records),
-                malformed_records=malformed_records,
-            )
-            if total != len(well_formed_records) + len(malformed_records):
-                # set alerting for unprocessed records
-                logger.error(
-                    "Some records were not processed",
-                    method=store_records.__name__,
-                    num_records=len(records),
-                    num_well_formed_records=len(well_formed_records),
-                    num_malformed_records=len(malformed_records),
-                )
-        return {"stored": well_formed_records, "failed": malformed_records}
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
@@ -382,7 +209,6 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict)
         logger.info(
             "Finished storing records",
             method=store_records.__name__,
-            num_records=total,
             num_malformed_records=len(malformed_records),
             num_well_formed_records=len(well_formed_records),
         )
@@ -410,11 +236,9 @@ def parsed_data_node(driver: Driver, key: str) -> Data:
     return parsed_data
 
 
-def loads_dop_node(driver: Driver,
-                   description: str,
-                   method_name: str,
-                   method_version: str,
-                   parsed_data: Data) -> DataOperation:
+def loads_dop_node(
+    driver: Driver, description: str, method_name: str, method_version: str, parsed_data: Data
+) -> DataOperation:
     """
     Creates a data operation node for loading the parsed data.
 
@@ -476,12 +300,14 @@ def null_category_node(driver: Driver) -> ArxivCategory:
     return null_category
 
 
-def arxiv_record_factory(driver: Driver,
-                         record: dict,
-                         loads_dop: DataOperation,
-                         categories: dict,
-                         bucket: str,
-                         storage_manager: StorageManager) -> ArxivRecord:
+def arxiv_record_factory(
+    driver: Driver,
+    record: dict,
+    loads_dop: DataOperation,
+    categories: dict,
+    bucket: str,
+    storage_manager: StorageManager,
+) -> ArxivRecord:
     """
     Creates an arXiv record node and its related nodes in the graph.
 
@@ -499,18 +325,22 @@ def arxiv_record_factory(driver: Driver,
     arxiv_record = record_node(driver, record)
     relate_record_dop(driver, arxiv_record, loads_dop)
     relate_categories(driver, arxiv_record, record, categories)
+    for author in record.get(AUTHORS):
+        try:
+            relate_author(driver, arxiv_record, author)
+        except Exception as e:
+            logger.error("Error while relating author", method=lambda_handler.__name__, error=str(e))
     try:
         abstract = relate_abstract(driver, arxiv_record, record, bucket)
         storage_manager.upload_to_s3(abstract.key, abstract.abstract)
     except Exception as e:
-        logger.error("Error while created, relating, or saving abstract",
-                     method=lambda_handler.__name__,
-                     identifier=record.get(IDENTIFIER),
-                     key=abstract.key if abstract else None,
-                     error=str(e))
-
-    full_text = relate_full_text(driver, arxiv_record, record)
-    authors = relate_authors(driver, arxiv_record, record)
+        logger.error(
+            "Error while created, relating, or saving abstract",
+            method=lambda_handler.__name__,
+            identifier=record.get(IDENTIFIER),
+            key=abstract.key if abstract else None,
+            error=str(e),
+        )
     return arxiv_record
 
 
@@ -530,10 +360,7 @@ def record_node(driver: Driver, record: dict) -> ArxivRecord:
     """
     arxiv_record = ArxivRecord.find(driver, record.get(IDENTIFIER))
     if not arxiv_record:
-        arxiv_record = ArxivRecord(driver,
-                                   record.get(IDENTIFIER),
-                                   record.get(TITLE),
-                                   record.get(DATE))
+        arxiv_record = ArxivRecord(driver, record.get(IDENTIFIER), record.get(TITLE), record.get(DATE))
         arxiv_record.create()
     if not arxiv_record:
         logger.error("Failed to create ArxivRecord", method=lambda_handler.__name__)
@@ -541,9 +368,7 @@ def record_node(driver: Driver, record: dict) -> ArxivRecord:
     return arxiv_record
 
 
-def relate_record_dop(driver: Driver,
-                      record: ArxivRecord,
-                      dop: DataOperation) -> None:
+def relate_record_dop(driver: Driver, record: ArxivRecord, dop: DataOperation) -> None:
     """
     Relates an arXiv record node to the data operation node that
     created it.
@@ -553,33 +378,12 @@ def relate_record_dop(driver: Driver,
         record (ArxivRecord): The arXiv record node.
         dop (DataOperation): The data operation node.
     """
-    record.relate(
-        driver,
-        CREATES,
-        DataOperation.LABEL,
-        dop.uuid,
-        ArxivRecord.LABEL,
-        record.uuid,
-        True)
-    dop.relate(
-        driver,
-        CREATED_BY,
-        ArxivRecord.LABEL,
-        record.uuid,
-        DataOperation.LABEL,
-        dop.uuid,
-        True)
+    record.relate(driver, CREATES, DataOperation.LABEL, dop.uuid, ArxivRecord.LABEL, record.uuid, True)
+    dop.relate(driver, CREATED_BY, ArxivRecord.LABEL, record.uuid, DataOperation.LABEL, dop.uuid, True)
 
 
-def relate_categories(driver: Driver,
-                      arxiv_record: ArxivRecord,
-                      record: dict,
-                      categories: List) -> dict:
-    primary_category = relate_category(driver,
-                                       arxiv_record,
-                                       record.get(PRIMARY_CATEGORY),
-                                       categories,
-                                       True)
+def relate_categories(driver: Driver, arxiv_record: ArxivRecord, record: dict, categories: List) -> dict:
+    primary_category = relate_category(driver, arxiv_record, record.get(PRIMARY_CATEGORY), categories, True)
     if not primary_category:
         logger.error("Failed to relate primary category", method=lambda_handler.__name__)
         raise RuntimeError("Failed to relate primary category")
@@ -594,11 +398,9 @@ def relate_categories(driver: Driver,
     return categories
 
 
-def relate_category(driver: Driver,
-                    arxiv_record: ArxivRecord,
-                    category: str,
-                    categories: dict,
-                    primary: bool = False) -> ArxivCategory:
+def relate_category(
+    driver: Driver, arxiv_record: ArxivRecord, category: str, categories: dict, primary: bool = False
+) -> ArxivCategory:
     """
     Relates an arXiv record node to its primary category.
 
@@ -628,31 +430,19 @@ def relate_category(driver: Driver,
             arxiv_record.uuid,
             ArxivCategory.LABEL,
             arxiv_category.uuid,
-            True)
+            True,
+        )
     else:
         arxiv_record.relate(
-            driver,
-            CATEGORIZED_BY,
-            ArxivRecord.LABEL,
-            arxiv_record.uuid,
-            ArxivCategory.LABEL,
-            arxiv_category.uuid,
-            True)
+            driver, CATEGORIZED_BY, ArxivRecord.LABEL, arxiv_record.uuid, ArxivCategory.LABEL, arxiv_category.uuid, True
+        )
         arxiv_record.relate(
-            driver,
-            CATEGORIZES,
-            ArxivCategory.LABEL,
-            arxiv_category.uuid,
-            ArxivRecord.LABEL,
-            arxiv_record.uuid,
-            True)
+            driver, CATEGORIZES, ArxivCategory.LABEL, arxiv_category.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True
+        )
     return arxiv_category
 
 
-def relate_abstract(driver: Driver,
-                    arxiv_record: ArxivRecord,
-                    record: dict,
-                    bucket: str) -> Abstract:
+def relate_abstract(driver: Driver, arxiv_record: ArxivRecord, record: dict, bucket: str) -> Abstract:
     """
     creates an abstract node and relates it to the arXiv record node.
 
@@ -669,28 +459,40 @@ def relate_abstract(driver: Driver,
     if abstract:
         return abstract
     abstract_key = f"{PROCESSED_DATA}/{RESEARCH_RECORDS}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
-    abstract = Abstract(driver,
-                        record.get(ABSTRACT_URL),
-                        bucket,
-                        abstract_key)
+    abstract = Abstract(driver, record.get(ABSTRACT_URL), bucket, abstract_key)
     abstract.create()
     if not abstract:
         logger.error("Failed to create Abstract", method=lambda_handler.__name__)
         raise RuntimeError("Failed to create Abstract")
     arxiv_record.relate(
-        driver,
-        SUMMARIZED_BY,
-        ArxivRecord.LABEL,
-        arxiv_record.uuid,
-        Abstract.LABEL,
-        abstract.uuid,
-        True)
-    abstract.relate(
-        driver,
-        SUMMARIZES,
-        Abstract.LABEL,
-        abstract.uuid,
-        ArxivRecord.LABEL,
-        arxiv_record.uuid,
-        True)
+        driver, SUMMARIZED_BY, ArxivRecord.LABEL, arxiv_record.uuid, Abstract.LABEL, abstract.uuid, True
+    )
+    abstract.relate(driver, SUMMARIZES, Abstract.LABEL, abstract.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True)
     return abstract
+
+
+def relate_author(driver: Driver, arxiv_record: ArxivRecord, author: dict) -> Author:
+    """
+    Relates an arXiv record node to an author node.
+
+    Args:
+        driver (Driver): The neo4j driver.
+        arxiv_record (ArxivRecord): The arXiv record node.
+        author (str): The author of the arXiv record.
+
+    Returns:
+        Author: The author node.
+
+    Raises:
+        RuntimeError: If the author node cannot be found or created.
+    """
+    author = Author.find(driver, author)
+    if not author:
+        author = Author(driver, author)
+        author.create()
+    if not author:
+        logger.error("Failed to create Author", method=lambda_handler.__name__)
+        raise RuntimeError("Failed to create Author")
+    arxiv_record.relate(driver, AUTHORED_BY, ArxivRecord.LABEL, arxiv_record.uuid, Author.LABEL, author.uuid, True)
+    author.relate(driver, AUTHORS, Author.LABEL, author.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True)
+    return author
