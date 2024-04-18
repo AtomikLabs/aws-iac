@@ -18,8 +18,7 @@ from constants import (
     NEO4J_URI,
     NEO4J_USERNAME,
     PRIMARILY_CATEGORIZED_BY,
-    PROCESSED_DATA,
-    RESEARCH_RECORDS,
+    RECORDS_PREFIX,
     SERVICE_NAME,
     SERVICE_VERSION,
     SUMMARIZED_BY,
@@ -121,7 +120,7 @@ def get_config() -> dict:
             NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
             NEO4J_URI: os.environ[NEO4J_URI],
             NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
-            RESEARCH_RECORDS: os.environ[RESEARCH_RECORDS],
+            RECORDS_PREFIX: os.environ[RECORDS_PREFIX],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
@@ -308,7 +307,7 @@ def arxiv_record_factory(
     categories: dict,
     bucket: str,
     storage_manager: StorageManager,
-    config: dict
+    config: dict,
 ) -> ArxivRecord:
     """
     Creates an arXiv record node and its related nodes in the graph.
@@ -338,7 +337,7 @@ def arxiv_record_factory(
         except Exception as e:
             logger.error("Error while relating author", method=lambda_handler.__name__, error=str(e))
     try:
-        abstract = relate_abstract(driver, arxiv_record, record, bucket, config.get(RESEARCH_RECORDS))
+        abstract = relate_abstract(driver, arxiv_record, record, bucket, config.get(RECORDS_PREFIX))
         storage_manager.upload_to_s3(abstract.key, record.get(ABSTRACT, ""))
     except Exception as e:
         logger.error(
