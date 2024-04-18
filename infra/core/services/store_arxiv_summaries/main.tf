@@ -45,7 +45,7 @@ resource "aws_lambda_function" "store_arxiv_summaries" {
       NEO4J_PASSWORD                        = local.neo4j_password
       NEO4J_URI                             = local.neo4j_uri
       NEO4J_USERNAME                        = local.neo4j_username
-      records_prefix                        = local.records_prefix
+      RECORDS_PREFIX                        = local.records_prefix
       SERVICE_VERSION                       = local.service_version
       SERVICE_NAME                          = local.service_name
     }  
