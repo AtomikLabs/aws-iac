@@ -174,7 +174,7 @@ def store_records(
             parsed_data = parsed_data_node(driver, key)
             loads_dop = loads_dop_node(
                 driver,
-                f"Loads parsed arXiv records from {key}",
+                "Load parsed arXiv records",
                 config.get(SERVICE_NAME),
                 config.get(SERVICE_VERSION),
                 parsed_data,
