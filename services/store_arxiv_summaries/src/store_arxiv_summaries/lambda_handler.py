@@ -325,7 +325,7 @@ def arxiv_record_factory(
     arxiv_record = record_node(driver, record)
     relate_record_dop(driver, arxiv_record, loads_dop)
     relate_categories(driver, arxiv_record, record, categories)
-    for author in record.get(AUTHORS):
+    for author in record.get(AUTHORS.lower()):
         try:
             relate_author(driver, arxiv_record, author)
         except Exception as e:
