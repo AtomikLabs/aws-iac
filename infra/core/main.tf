@@ -177,6 +177,7 @@ module "store_arxiv_summaries" {
   data_bucket               = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
   data_bucket_arn           = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
   environment               = local.environment
+  etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
   services_layer_arn = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password

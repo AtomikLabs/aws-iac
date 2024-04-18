@@ -34,6 +34,11 @@ variable "environment" {
   default       = "dev"
 }
 
+variable "etl_key_prefix" {
+  description   = "The prefix for the ETL keys"
+  type          = string
+}
+
 variable "lambda_vpc_access_role" {
   description   = "The ARN of the role that allows the Lambda function to access the VPC"
   type          = string
