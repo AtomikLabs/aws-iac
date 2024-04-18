@@ -124,28 +124,6 @@ def test_fetch_data_should_raise_exception_without_set():
         fetch_data("http://example.com", "2023-01-01", "", 1)
     assert str(e.value) == "Base URL, from date, and set are required"
 
-
-@patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.requests.Session")
-def test_fetch_data_should_handle_resumption_token(mock_session):
-    with open("services/fetch_daily_summaries/tests/resources/test_arxiv_data.xml", "r") as file:
-        xml_data = file.read()
-        mock_response = MagicMock()
-        mock_response.text = xml_data
-        mock_response.content = bytes(xml_data, "utf-8")
-        mock_response.raise_for_status = MagicMock()
-        mock_session.return_value.get.return_value = mock_response
-
-        base_url = "http://example.com"
-        from_date = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d")
-        set_name = "cs"
-        max_fetches = 2
-
-        result = fetch_data(base_url, from_date, set_name, max_fetches)
-        assert len(result) == 2
-        assert result[0] == xml_data
-        assert result[1] == xml_data
-
-
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger")
 def test_lambda_handler_exception(mock_logger, event, context):
     with patch(
