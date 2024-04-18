@@ -124,6 +124,7 @@ def test_fetch_data_should_raise_exception_without_set():
         fetch_data("http://example.com", "2023-01-01", "", 1)
     assert str(e.value) == "Base URL, from date, and set are required"
 
+
 @patch("services.fetch_daily_summaries.src.fetch_daily_summaries.lambda_handler.logger")
 def test_lambda_handler_exception(mock_logger, event, context):
     with patch(
