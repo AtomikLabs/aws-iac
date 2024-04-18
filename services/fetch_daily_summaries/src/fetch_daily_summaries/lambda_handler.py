@@ -249,10 +249,10 @@ def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> lis
                 break
     except requests.exceptions.RequestException as e:
         logger.exception("Error occurred while fetching data from arXiv", method=fetch_data.__name__, error=str(e))
-        raise
 
     if fetch_attempts == max_fetch_attempts:
-        logger.warning("Reached maximum fetch attempts without completing data retrieval", method=fetch_data.__name__)
+        logger.error("Reached maximum fetch attempts without completing data retrieval", method=fetch_data.__name__)
+        raise RuntimeError("Reached maximum fetch attempts without completing data retrieval")
 
     logger.info(
         "Fetched data from arXiv successfully", method=fetch_data.__name__, num_xml_responses=len(full_xml_responses)
