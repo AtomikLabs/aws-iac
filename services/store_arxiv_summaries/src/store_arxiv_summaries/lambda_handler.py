@@ -180,6 +180,8 @@ def store_records(
                 parsed_data,
             )
             categories = {}
+            null_node = null_category_node(driver)
+            categories.update({"NULL": null_node})
             for record in records:
                 if not all(record.get(field) for field in required_fields) or len(record.get("authors", [])) < 1:
                     malformed_records.append(record)
