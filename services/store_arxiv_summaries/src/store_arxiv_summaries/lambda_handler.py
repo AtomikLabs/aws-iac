@@ -121,6 +121,7 @@ def get_config() -> dict:
             NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
             NEO4J_URI: os.environ[NEO4J_URI],
             NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
+            RESEARCH_RECORDS: os.environ[RESEARCH_RECORDS],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
@@ -180,13 +181,13 @@ def store_records(
                 parsed_data,
             )
             categories = {}
-            for record in records[:2]:
+            for record in records:
                 if not all(record.get(field) for field in required_fields) or len(record.get("authors", [])) < 1:
                     malformed_records.append(record)
                     logger.error("Malformed record", method=store_records.__name__, record=record)
                 else:
                     arxiv_record = arxiv_record_factory(
-                        driver, record, loads_dop, categories, bucket_name, storage_manager
+                        driver, record, loads_dop, categories, bucket_name, storage_manager, config
                     )
                     well_formed_records.append(arxiv_record)
         if malformed_records:
@@ -307,6 +308,7 @@ def arxiv_record_factory(
     categories: dict,
     bucket: str,
     storage_manager: StorageManager,
+    config: dict
 ) -> ArxivRecord:
     """
     Creates an arXiv record node and its related nodes in the graph.
@@ -318,6 +320,7 @@ def arxiv_record_factory(
         categories (dict): Memoized ArxivCategory nodes.
         bucket (str): The S3 bucket name for the parsed arXiv records.
         storage_manager (StorageManager): The storage manager.
+        config (dict): The configuration for the service.
 
     Returns:
         ArxivRecord: The arXiv record node.
@@ -335,7 +338,7 @@ def arxiv_record_factory(
         except Exception as e:
             logger.error("Error while relating author", method=lambda_handler.__name__, error=str(e))
     try:
-        abstract = relate_abstract(driver, arxiv_record, record, bucket)
+        abstract = relate_abstract(driver, arxiv_record, record, bucket, config.get(RESEARCH_RECORDS))
         storage_manager.upload_to_s3(abstract.key, record.get(ABSTRACT, ""))
     except Exception as e:
         logger.error(
@@ -450,7 +453,7 @@ def relate_category(
     return arxiv_category
 
 
-def relate_abstract(driver: Driver, arxiv_record: ArxivRecord, record: dict, bucket: str) -> Abstract:
+def relate_abstract(driver: Driver, arxiv_record: ArxivRecord, record: dict, bucket: str, key_prefix: str) -> Abstract:
     """
     creates an abstract node and relates it to the arXiv record node.
 
@@ -459,6 +462,7 @@ def relate_abstract(driver: Driver, arxiv_record: ArxivRecord, record: dict, buc
         arxiv_record (ArxivRecord): The arXiv record node.
         record (dict): The arXiv record.
         bucket (str): The S3 bucket name for abstract_storage.
+        key_prefix (str): The key prefix for the abstract.
 
     Returns:
         Abstract: The abstract node.
@@ -466,7 +470,7 @@ def relate_abstract(driver: Driver, arxiv_record: ArxivRecord, record: dict, buc
     abstract = Abstract.find(driver, record.get(ABSTRACT_URL))
     if abstract:
         return abstract
-    abstract_key = f"{PROCESSED_DATA}/{RESEARCH_RECORDS}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
+    abstract_key = f"{key_prefix}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
     abstract = Abstract(driver, record.get(ABSTRACT_URL), bucket, abstract_key)
     abstract.create()
     if not abstract:
