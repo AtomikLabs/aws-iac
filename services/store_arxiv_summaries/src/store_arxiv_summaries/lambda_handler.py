@@ -328,7 +328,10 @@ def arxiv_record_factory(
     """
     arxiv_record = record_node(driver, record)
     relate_record_dop(driver, arxiv_record, loads_dop)
-    relate_categories(driver, arxiv_record, record, categories)
+    try:
+        relate_categories(driver, arxiv_record, record, categories)
+    except Exception as e:
+        logger.error("Error while relating categories", method=lambda_handler.__name__, error=str(e))
     print(f"Record: {record}")
     print(f"Authors: {record.get('authors', '')}")
     for author in record.get(AUTHORS.lower(), ""):
@@ -390,7 +393,7 @@ def relate_record_dop(driver: Driver, record: ArxivRecord, dop: DataOperation) -
     dop.relate(driver, CREATED_BY, ArxivRecord.LABEL, record.uuid, DataOperation.LABEL, dop.uuid, True)
 
 
-def relate_categories(driver: Driver, arxiv_record: ArxivRecord, record: dict, categories: List) -> dict:
+def relate_categories(driver: Driver, arxiv_record: ArxivRecord, record: dict, categories: dict) -> dict:
     primary_category = None
     try:
         primary_category = relate_category(driver, arxiv_record, record.get(PRIMARY_CATEGORY), categories, True)
@@ -398,8 +401,8 @@ def relate_categories(driver: Driver, arxiv_record: ArxivRecord, record: dict, c
         logger.error("Error getting primary category", method=relate_categories.__name__, record=record, error=str(e))
     if not primary_category:
         logger.error("Failed to relate primary category", method=relate_categories.__name__)
-        raise RuntimeError("Failed to relate primary category")
-    categories.update({record.get(PRIMARY_CATEGORY): primary_category})
+    else:
+        categories.update({primary_category.code: primary_category})
     for category in record.get("categories"):
         try:
             arxiv_category = relate_category(driver, arxiv_record, category, categories)
