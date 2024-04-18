@@ -1,13 +1,8 @@
-import json
 import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import (
-    get_config,
-    lambda_handler,
-    store_records,
-)
+from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import get_config, lambda_handler
 
 
 class TestLambdaHandler(unittest.TestCase):
@@ -30,10 +25,10 @@ class TestLambdaHandler(unittest.TestCase):
             "APP_NAME": "test-app",
             "DATA_BUCKET": "test-bucket",
             "ENVIRONMENT": "test-env",
-            "ETL_KEY_PREFIX": "test-prefix",
             "NEO4J_PASSWORD": "test-password",
             "NEO4J_URI": "test-uri",
             "NEO4J_USERNAME": "test-username",
+            "RECORDS_PREFIX": "research_records",
             "SERVICE_NAME": "test-service",
             "SERVICE_VERSION": "test-version",
         },
@@ -47,63 +42,11 @@ class TestLambdaHandler(unittest.TestCase):
                 "NEO4J_PASSWORD": "test-password",
                 "NEO4J_URI": "test-uri",
                 "NEO4J_USERNAME": "test-username",
+                "RECORDS_PREFIX": "research_records",
                 "SERVICE_NAME": "test-service",
                 "SERVICE_VERSION": "test-version",
             },
         )
-
-    def test_store_records_with_params_missing_or_wrong_type(self):
-        records_param = [{"test": "test"}, {"test": "test"}]
-        bucket_name_param = "test-bucket"
-        key_param = "test-key"
-        mock_config = {
-            "DATA_BUCKET": "test-bucket",
-            "NEO4J_PASSWORD": "test-password",
-            "NEO4J_URI": "test-uri",
-            "NEO4J_USERNAME": "test-username",
-            "SERVICE_NAME": "test-service",
-            "SERVICE_VERSION": "test-version",
-        }
-        with self.assertRaises(ValueError):
-            store_records(None, bucket_name_param, key_param, mock_config)
-        with self.assertRaises(ValueError):
-            store_records(123, bucket_name_param, key_param, mock_config)
-        with self.assertRaises(ValueError):
-            store_records(records_param, None, key_param, mock_config)
-        with self.assertRaises(ValueError):
-            store_records(records_param, 123, key_param, mock_config)
-        with self.assertRaises(ValueError):
-            store_records(records_param, bucket_name_param, None, mock_config)
-
-    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
-    def test_store_records_with_valid_params(self, mock_neo4j_database):
-        expected_results = {
-            "stored": [{"test": "test"}, {"test": "test"}],
-            "failed": [{"test": "test"}, {"test": "test"}],
-        }
-        records_param = [{"test": "test"}, {"test": "test"}]
-        bucket_name_param = "test-bucket"
-        key_param = "test-key"
-        mock_neo4j_database().store_records.return_value = expected_results
-        mock_config = {
-            "DATA_BUCKET": "test-bucket",
-            "NEO4J_PASSWORD": "test-password",
-            "NEO4J_URI": "test-uri",
-            "NEO4J_USERNAME": "test-username",
-            "SERVICE_NAME": "test-service",
-            "SERVICE_VERSION": "test-version",
-        }
-        result = store_records(records_param, bucket_name_param, key_param, mock_config)
-        self.assertEqual(len(expected_results), len(result))
-
-    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.get_config")
-    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.store_records")
-    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
-    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.StorageManager")
-    def test_lambda_handler_with_valid_params(
-        self, mock_storage_manager, mock_neo4j_database, mock_store_records, mock_get_config
-    ):
-        mock_storage_manager().load.return_value = json.dumps([{"test": "test"}, {"test": "test"}])
 
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.urllib.parse.unquote_plus")
     @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.json.loads")
@@ -164,39 +107,3 @@ class TestLambdaHandler(unittest.TestCase):
             response,
             {"statusCode": 500, "body": "Internal server error", "error": "Test exception", "event": self.event},
         )
-
-    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
-    def test_store_records_with_well_formed_records(self, mock_neo4j_database):
-        pass  # TODO: implement after models are all implemented
-
-    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
-    def test_store_records_with_malformed_records(self, mock_neo4j_database):
-        pass  # TODO: implement after models are all implemented
-
-    @patch("services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler.Neo4jDatabase")
-    def test_store_records_with_exception(self, mock_neo4j_database):
-        records_param = [
-            {
-                "identifier": "1234",
-                "title": "Test Title",
-                "authors": ["Author 1", "Author 2"],
-                "group": "test-group",
-                "abstract": "Test abstract",
-                "date": "2023-05-01",
-                "abstract_url": "https://example.com/abstract",
-            },
-        ]
-        bucket_name_param = "test-bucket"
-        key_param = "test-key"
-        mock_config = {
-            "DATA_BUCKET": "test-bucket",
-            "NEO4J_PASSWORD": "test-password",
-            "NEO4J_URI": "test-uri",
-            "NEO4J_USERNAME": "test-username",
-            "SERVICE_NAME": "test-service",
-            "SERVICE_VERSION": "test-version",
-        }
-        mock_neo4j_database.side_effect = Exception("Test exception")
-        with self.assertRaises(Exception):
-            store_records(records_param, bucket_name_param, key_param, mock_config)
-        mock_neo4j_database.assert_called_once_with("test-uri", "test-username", "test-password")

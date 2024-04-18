@@ -13,6 +13,7 @@ locals {
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
   private_subnets             = var.private_subnets
+  records_prefix              = var.records_prefix
   runtime                     = var.runtime
   service_name                = var.service_name
   service_version             = var.service_version
@@ -44,6 +45,7 @@ resource "aws_lambda_function" "store_arxiv_summaries" {
       NEO4J_PASSWORD                        = local.neo4j_password
       NEO4J_URI                             = local.neo4j_uri
       NEO4J_USERNAME                        = local.neo4j_username
+      RECORDS_PREFIX                        = local.records_prefix
       SERVICE_VERSION                       = local.service_version
       SERVICE_NAME                          = local.service_name
     }  
@@ -95,7 +97,8 @@ resource "aws_iam_policy" "store_arxiv_summaries_lambda_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${local.data_bucket_arn}/${local.etl_key_prefix}/*",
+          "${local.data_bucket_arn}/${local.records_prefix}/*",
+          "${local.data_bucket_arn}/${local.etl_key_prefix}/*"
         ]
       },
       {

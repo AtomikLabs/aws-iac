@@ -68,7 +68,6 @@ class ArxivCategory(BaseModel):
                 )
                 raise RuntimeError()
             data = records[0].data().get("a", {})
-            print(data)
             self.name = data.get("name", "")
             self.uuid = data.get("uuid", "")
             self.created = data.get("created", None)
