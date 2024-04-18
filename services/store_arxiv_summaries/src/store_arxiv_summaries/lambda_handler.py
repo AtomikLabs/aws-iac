@@ -332,7 +332,7 @@ def arxiv_record_factory(
             logger.error("Error while relating author", method=lambda_handler.__name__, error=str(e))
     try:
         abstract = relate_abstract(driver, arxiv_record, record, bucket)
-        storage_manager.upload_to_s3(abstract.key, abstract.abstract)
+        storage_manager.upload_to_s3(abstract.key, record.get(ABSTRACT, ""))
     except Exception as e:
         logger.error(
             "Error while created, relating, or saving abstract",
@@ -486,9 +486,9 @@ def relate_author(driver: Driver, arxiv_record: ArxivRecord, author: dict) -> Au
     Raises:
         RuntimeError: If the author node cannot be found or created.
     """
-    author = Author.find(driver, author)
+    author = Author.find(driver, author.last_name, author.first_name)
     if not author:
-        author = Author(driver, author)
+        author = Author(driver, author.last_name, author.first_name)
         author.create()
     if not author:
         logger.error("Failed to create Author", method=lambda_handler.__name__)
