@@ -72,7 +72,8 @@ def lambda_handler(event, context):
         config = get_config()
         storage_manager = StorageManager(bucket_name, logger)
         json_data = json.loads(storage_manager.load(key))
-        if not json_data or not json_data.get("records"):
+        print(json_data.keys())
+        if not json_data:
             logger.error("No records found", method=lambda_handler.__name__, records_key=key, bucket_name=bucket_name)
             return {"statusCode": 400, "body": "No records found"}
         logger.info(

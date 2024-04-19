@@ -270,7 +270,7 @@ def configure_request_retries() -> requests.Session:
     logger.debug("Configuring request retries", method=configure_request_retries.__name__)
     session = requests.Session()
     retries = Retry(
-        total=5,
+        total=3,
         backoff_factor=1,
         status_forcelist=[503],
         respect_retry_after_header=True,

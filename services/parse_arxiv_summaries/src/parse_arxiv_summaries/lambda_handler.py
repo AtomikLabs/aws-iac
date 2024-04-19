@@ -60,12 +60,10 @@ def lambda_handler(event, context):
         storage_manager = StorageManager(bucket_name, logger)
         xml_data = json.loads(storage_manager.load(key))
         extracted_data = {"records": []}
+        success = True
         for xml in xml_data:
             extracted_records = parse_xml_data(xml)
             extracted_data["records"].extend(extracted_records)
-        content_str = json.dumps(extracted_data)
-        output_key = get_output_key(config)
-        storage_manager.upload_to_s3(output_key, content_str)
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
@@ -79,51 +77,61 @@ def lambda_handler(event, context):
             except Exception as e:
                 logger.error("Failed to find raw data source", method=lambda_handler.__name__, error=str(e))
                 raise e
-            parsed_data = None
-            try:
-                parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
-                parsed_data.create()
-                if not parsed_data:
-                    message = f"Failed to create parsed data with key: {output_key}"
-                    logger.error(message, method=lambda_handler.__name__)
-                    raise RuntimeError(message)
-            except Exception as e:
-                message = f"Failed to create parsed data with key: {output_key}"
-                logger.error(message, method=lambda_handler.__name__, error=str(e))
-                raise RuntimeError(message)
             data_operation = DataOperation(driver, "Parse arXiv research summaries", "parse_arxiv_summaries", "1.0.0")
             data_operation.create()
-            if data_operation:
-                data_operation.relate(
-                    driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
-                )
-                data_operation.relate(
-                    driver, PARSED_BY, raw_data.LABEL, raw_data.uuid, data_operation.LABEL, data_operation.uuid, True
-                )
-                data_operation.relate(
-                    driver,
-                    CREATES,
-                    data_operation.LABEL,
-                    data_operation.uuid,
-                    parsed_data.LABEL,
-                    parsed_data.uuid,
-                    True,
-                )
-                data_operation.relate(
-                    driver,
-                    CREATED_BY,
-                    parsed_data.LABEL,
-                    parsed_data.uuid,
-                    data_operation.LABEL,
-                    data_operation.uuid,
-                    True,
-                )
-            else:
+            if not data_operation:
                 message = "Failed to create DataOperation"
                 logger.error(message, method=lambda_handler.__name__)
                 raise RuntimeError(message)
+            chunk_num = 0
+            for chunk in chunker(extracted_data["records"], 100):
+                parsed_data = None
+                try:
+                    content = {}
+                    content["records"] = chunk
+                    content_str = json.dumps(content)
+                    output_key = get_output_key(config)
+                    storage_manager.upload_to_s3(output_key, content_str)
+                    parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
+                    parsed_data.create()
+                    if not parsed_data:
+                        message = f"Failed to create parsed data with key: {output_key}"
+                        logger.error(message, method=lambda_handler.__name__)
+                        raise RuntimeError(message)
+                    data_operation.relate(
+                        driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
+                    )
+                    data_operation.relate(
+                        driver, PARSED_BY, raw_data.LABEL, raw_data.uuid, data_operation.LABEL, data_operation.uuid, True
+                    )
+                    data_operation.relate(
+                        driver,
+                        CREATES,
+                        data_operation.LABEL,
+                        data_operation.uuid,
+                        parsed_data.LABEL,
+                        parsed_data.uuid,
+                        True,
+                    )
+                    data_operation.relate(
+                        driver,
+                        CREATED_BY,
+                        parsed_data.LABEL,
+                        parsed_data.uuid,
+                        data_operation.LABEL,
+                        data_operation.uuid,
+                        True,
+                    )
+                    chunk_num += 1
+                except Exception as e:
+                    logger.error("Failed to create parsed data",
+                                 method=lambda_handler.__name__,
+                                 chunk_num=chunk_num,
+                                 key=output_key if output_key else "",
+                                 error=str(e))
+                    success = False
         logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
-        return {"statusCode": 200, "body": "Success"}
+        return {"statusCode": 200, "body": "Success"} if success else {"statusCode": 500, "body": "Failed to parse data"}
     except Exception as e:
         logger.error(e)
         return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e), "event": event}
@@ -251,3 +259,17 @@ def get_output_key(config) -> str:
     """
     key_date = utils.get_storage_key_date()
     return f"{config[ETL_KEY_PREFIX]}/parsed_arxiv_summaries-{key_date}.json"
+
+
+def chunker(seq: list, size: int) -> list:
+    """
+    Chunks a list into smaller lists.
+
+    Args:
+        seq (list): The list to chunk.
+        size (int): The size of each chunk.
+
+    Returns:
+        list: The chunked list.
+    """
+    return (seq[pos : pos + size] for pos in range(0, len(seq), size))
