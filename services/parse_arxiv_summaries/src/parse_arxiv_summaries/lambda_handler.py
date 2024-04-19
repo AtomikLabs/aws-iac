@@ -84,7 +84,8 @@ def lambda_handler(event, context):
                 logger.error(message, method=lambda_handler.__name__)
                 raise RuntimeError(message)
             chunk_num = 0
-            for chunk in chunker(extracted_data["records"], 100):
+            print(len(extracted_data["records"]))
+            for chunk in chunker(extracted_data["records"], 400):
                 parsed_data = None
                 try:
                     content = {}
@@ -102,7 +103,13 @@ def lambda_handler(event, context):
                         driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
                     )
                     data_operation.relate(
-                        driver, PARSED_BY, raw_data.LABEL, raw_data.uuid, data_operation.LABEL, data_operation.uuid, True
+                        driver,
+                        PARSED_BY,
+                        raw_data.LABEL,
+                        raw_data.uuid,
+                        data_operation.LABEL,
+                        data_operation.uuid,
+                        True,
                     )
                     data_operation.relate(
                         driver,
@@ -124,14 +131,18 @@ def lambda_handler(event, context):
                     )
                     chunk_num += 1
                 except Exception as e:
-                    logger.error("Failed to create parsed data",
-                                 method=lambda_handler.__name__,
-                                 chunk_num=chunk_num,
-                                 key=output_key if output_key else "",
-                                 error=str(e))
+                    logger.error(
+                        "Failed to create parsed data",
+                        method=lambda_handler.__name__,
+                        chunk_num=chunk_num,
+                        key=output_key if output_key else "",
+                        error=str(e),
+                    )
                     success = False
         logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
-        return {"statusCode": 200, "body": "Success"} if success else {"statusCode": 500, "body": "Failed to parse data"}
+        return (
+            {"statusCode": 200, "body": "Success"} if success else {"statusCode": 500, "body": "Failed to parse data"}
+        )
     except Exception as e:
         logger.error(e)
         return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e), "event": event}
