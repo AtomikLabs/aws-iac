@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 import structlog
@@ -15,7 +16,12 @@ structlog.configure(
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
 )
+
+logger = structlog.get_logger()
+logger.setLevel(logging.INFO)
 
 
 class ArxivSet(BaseModel):
