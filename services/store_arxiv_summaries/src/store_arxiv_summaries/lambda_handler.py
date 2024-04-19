@@ -390,22 +390,20 @@ def relate_record_dop(driver: Driver, record: ArxivRecord, dop: DataOperation) -
 
 
 def relate_categories(driver: Driver, arxiv_record: ArxivRecord, record: dict, categories: dict) -> dict:
-    primary_category = None
-    try:
-        if record.get(PRIMARY_CATEGORY) != "":
-            primary_category = relate_category(driver, arxiv_record, record.get(PRIMARY_CATEGORY), categories, True)
-        else:
-            primary_category = relate_category(driver, arxiv_record, "NULL", categories, True)
-        categories.update({primary_category.code: primary_category})
-    except Exception as e:
-        logger.error("Error getting primary category", method=relate_categories.__name__, record=record, error=str(e))
-    for category in record.get("categories"):
-        try:
-            arxiv_category = relate_category(driver, arxiv_record, category, categories, False)
-            if arxiv_category:
-                categories.update({category: arxiv_category})
-        except Exception as e:
-            logger.error("Failed to relate category", method=relate_categories.__name__, error=str(e))
+    """
+    Relates an arXiv record node to its categories.
+
+    Args:
+        driver (Driver): The neo4j driver.
+        arxiv_record (ArxivRecord): The arXiv record node.
+        record (dict): The arXiv record data.
+        categories (List): The list of arXiv categories already seen.
+
+    Returns:
+        List: The list of arXiv categories.
+    """
+    for i, category in enumerate(record.get("categories", [])):
+        relate_category(driver, arxiv_record, category, categories, i == 0)
     return categories
 
 
@@ -413,7 +411,7 @@ def relate_category(
     driver: Driver, arxiv_record: ArxivRecord, category: str, categories: dict, primary: bool = False
 ) -> ArxivCategory:
     """
-    Relates an arXiv record node to its primary category.
+    Relates an arXiv record node to its categories.
 
     Args:
         driver (Driver): The neo4j driver.
@@ -425,8 +423,6 @@ def relate_category(
     Returns:
         ArxivCategory: The category node.
     """
-    if not primary and category == "NULL":
-        return None
     arxiv_category = categories.get(category, None)
     if not arxiv_category:
         arxiv_category = ArxivCategory.find(driver, category)
@@ -443,13 +439,12 @@ def relate_category(
             arxiv_category.uuid,
             True,
         )
-    else:
-        arxiv_record.relate(
-            driver, CATEGORIZED_BY, ArxivRecord.LABEL, arxiv_record.uuid, ArxivCategory.LABEL, arxiv_category.uuid, True
-        )
-        arxiv_record.relate(
-            driver, CATEGORIZES, ArxivCategory.LABEL, arxiv_category.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True
-        )
+    arxiv_record.relate(
+        driver, CATEGORIZED_BY, ArxivRecord.LABEL, arxiv_record.uuid, ArxivCategory.LABEL, arxiv_category.uuid, True
+    )
+    arxiv_record.relate(
+        driver, CATEGORIZES, ArxivCategory.LABEL, arxiv_category.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True
+    )
     return arxiv_category
 
 

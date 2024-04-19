@@ -234,7 +234,8 @@ def parse_xml_data(xml_data: str) -> list:
             categories = [CS_CATEGORIES_INVERTED.get(subject.text, "") for subject in subjects_elements]
             # Remove empty strings
             categories = list(filter(None, categories))
-            primary_category = categories[0] if categories else ""
+            if not categories:
+                categories.append("NULL")
 
             abstract = record.find(".//dc:description", ns).text.replace("\n", " ")
             title = record.find(".//dc:title", ns).text.replace("\n", "")
@@ -246,8 +247,7 @@ def parse_xml_data(xml_data: str) -> list:
                     "identifier": identifier,
                     "abstract_url": abstract_url,
                     "authors": authors,
-                    "primary_category": primary_category,
-                    "categories": categories,  # All categories
+                    "categories": categories,
                     "abstract": abstract,
                     "title": title,
                     "date": date,
