@@ -89,7 +89,6 @@ class TestLambdaHandler(unittest.TestCase):
                 "identifier": "test-identifier",
                 "abstract_url": "test-url",
                 "authors": [{"last_name": "Doe", "first_name": "John"}],
-                "primary_category": "AI",
                 "categories": ["AI"],
                 "abstract": "Test abstract",
                 "title": "Test Title",
@@ -141,7 +140,6 @@ class TestParseXMLData:
         assert result[0]["identifier"] == "oai:arXiv.org:1303.2033"
         assert result[0]["abstract_url"] == "http://arxiv.org/abs/1303.2033"
         assert result[0]["authors"] == [{"last_name": "Liepins", "first_name": "Vilnis"}]
-        assert result[0]["primary_category"] == "DS"
         assert result[0]["categories"] == ["DS", "IT"]
         assert result[0]["abstract"] == "Sample abstract"
         assert result[0]["title"] == "Extended Fourier analysis of signals"
