@@ -72,7 +72,6 @@ def lambda_handler(event, context):
         config = get_config()
         storage_manager = StorageManager(bucket_name, logger)
         json_data = json.loads(storage_manager.load(key))
-        print(json_data.keys())
         if not json_data:
             logger.error("No records found", method=lambda_handler.__name__, records_key=key, bucket_name=bucket_name)
             return {"statusCode": 400, "body": "No records found"}
@@ -333,13 +332,9 @@ def arxiv_record_factory(
         relate_categories(driver, arxiv_record, record, categories)
     except Exception as e:
         logger.error("Error while relating categories", method=lambda_handler.__name__, error=str(e))
-    print(f"Record: {record}")
-    print(f"Authors: {record.get('authors', '')}")
     for author in record.get(AUTHORS.lower(), ""):
         try:
-            print(f"Author: {author}")
             relate_author(driver, arxiv_record, author)
-
         except Exception as e:
             logger.error("Error while relating author", method=lambda_handler.__name__, error=str(e))
     try:
@@ -397,16 +392,16 @@ def relate_record_dop(driver: Driver, record: ArxivRecord, dop: DataOperation) -
 def relate_categories(driver: Driver, arxiv_record: ArxivRecord, record: dict, categories: dict) -> dict:
     primary_category = None
     try:
-        primary_category = relate_category(driver, arxiv_record, record.get(PRIMARY_CATEGORY), categories, True)
+        if record.get(PRIMARY_CATEGORY) != "":
+            primary_category = relate_category(driver, arxiv_record, record.get(PRIMARY_CATEGORY), categories, True)
+        else:
+            primary_category = relate_category(driver, arxiv_record, "NULL", categories, True)
+        categories.update({primary_category.code: primary_category})
     except Exception as e:
         logger.error("Error getting primary category", method=relate_categories.__name__, record=record, error=str(e))
-    if not primary_category:
-        logger.error("Failed to relate primary category", method=relate_categories.__name__)
-    else:
-        categories.update({primary_category.code: primary_category})
     for category in record.get("categories"):
         try:
-            arxiv_category = relate_category(driver, arxiv_record, category, categories)
+            arxiv_category = relate_category(driver, arxiv_record, category, categories, False)
             if arxiv_category:
                 categories.update({category: arxiv_category})
         except Exception as e:
@@ -430,11 +425,11 @@ def relate_category(
     Returns:
         ArxivCategory: The category node.
     """
+    if not primary and category == "NULL":
+        return None
     arxiv_category = categories.get(category, None)
     if not arxiv_category:
         arxiv_category = ArxivCategory.find(driver, category)
-        if primary and not arxiv_category:
-            arxiv_category = categories.get("NULL", None)
     if not arxiv_category:
         logger.error("Failed to find ArxivCategory", method=relate_category.__name__, category=category)
         return None
