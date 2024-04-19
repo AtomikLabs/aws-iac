@@ -155,7 +155,6 @@ class Data(BaseModel):
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
-                print(data)
                 data_source = Data(
                     driver=driver,
                     url=data.get("url", ""),

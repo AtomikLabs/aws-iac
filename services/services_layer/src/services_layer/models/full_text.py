@@ -127,7 +127,6 @@ class FullText(BaseModel):
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
-                print(data)
                 full_text = FullText(
                     driver=driver,
                     url=data.get("url", ""),

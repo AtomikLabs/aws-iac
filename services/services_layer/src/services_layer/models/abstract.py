@@ -120,7 +120,6 @@ class Abstract(BaseModel):
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
-                print(data)
                 abstract = Abstract(
                     driver=driver,
                     url=data.get("url", ""),

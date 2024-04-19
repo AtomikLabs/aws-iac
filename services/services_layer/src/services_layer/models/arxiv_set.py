@@ -100,7 +100,6 @@ class ArxivSet(BaseModel):
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
-                print(data)
                 arxiv_set = ArxivSet(driver=driver, code=data.get("code", ""), name=data.get("name", ""))
                 arxiv_set.uuid = data.get("uuid", "")
                 arxiv_set.created = data.get("created", None)

@@ -64,7 +64,6 @@ class ArxivRecord(BaseModel):
                 "created": now,
                 "last_modified": now,
             }
-            print(properties)
             records, summary, _ = self.driver.execute_query(
                 """
                 MERGE (a:ArxivRecord {arxiv_id: $arxiv_id})
@@ -81,7 +80,6 @@ class ArxivRecord(BaseModel):
             else:
                 self.logger.error(FAILED_TO_CREATE_ARXIV_RECORD, method=self.create.__name__, arxiv_id=self.arxiv_id)
                 raise RuntimeError()
-            print("Records: ", records[0].data())
             data = records[0].data().get("a", {})
             self.arxiv_id = data.get("arxiv_id", "")
             self.title = data.get("title", "")

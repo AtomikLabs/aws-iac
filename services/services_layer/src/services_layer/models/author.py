@@ -126,7 +126,6 @@ class Author(BaseModel):
             )
             if records and records[0] and records[0].data():
                 data = records[0].data().get("a", {})
-                print(data)
                 author = Author(
                     driver=driver,
                     last_name=data.get("last_name", ""),
