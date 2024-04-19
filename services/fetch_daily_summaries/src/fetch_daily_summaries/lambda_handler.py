@@ -50,7 +50,7 @@ logger = structlog.get_logger()
 logger.setLevel(logging.INFO)
 # TODO: Make these constants configurable
 BACKOFF_TIMES = [30, 120]
-DAY_SPAN = 2
+DAY_SPAN = 5
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -75,9 +75,8 @@ def lambda_handler(event: dict, context) -> dict:
             service_name=config[SERVICE_NAME],
             service_version=config[SERVICE_VERSION],
         )
-        date_obtained = utils.get_storage_key_datetime()
-        today = date_obtained.date()
-        earliest = today - timedelta(days=DAY_SPAN)
+
+        earliest = get_earliest_date(config)
 
         xml_data_list = fetch_data(
             config.get(ARXIV_BASE_URL), earliest, config.get(ARXIV_SUMMARY_SET), config.get(MAX_RETRIES)
@@ -208,6 +207,36 @@ def get_config() -> dict:
         raise e
 
     return config
+
+
+def get_earliest_date(config: dict) -> str:
+    """
+    Gets the earliest date to fetch data from.
+
+    Args:
+        config (dict): The config.
+
+    Returns:
+        str: The earliest date.
+    """
+    default = utils.get_storage_key_datetime().date() - timedelta(days=DAY_SPAN)
+    with GraphDatabase.driver(
+        config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+    ) as driver:
+        records, _, _ = driver.execute_query(
+            """
+            MATCH (r:ArxivRecord)
+            RETURN r
+            ORDER BY r.created DESC
+            LIMIT 1
+            """
+        )
+        if records:
+            record = records[0]
+            created = record.get("created")
+            default = max(default, created)
+    logger.info("Earliest date", method=get_earliest_date.__name__, earliest=default.strftime("%Y-%m-%d"))
+    return default.strftime("%Y-%m-%d")
 
 
 def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> list:
