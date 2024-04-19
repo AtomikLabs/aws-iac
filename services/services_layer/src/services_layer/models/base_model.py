@@ -1,3 +1,4 @@
+import logging
 import uuid
 from abc import ABC, abstractmethod
 
@@ -14,12 +15,18 @@ structlog.configure(
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
 )
+
+logger = structlog.get_logger()
+logger.setLevel(logging.INFO)
 
 
 class BaseModel(ABC):
     def __init__(self, driver: Driver, db: str = "neo4j"):
         self.logger = structlog.get_logger()
+        self.logger.setLevel(logging.INFO)
         if not driver or not isinstance(driver, Driver):
             self.logger.error("Invalid driver", method=self.__init__.__name__, driver=driver, db=db)
             raise ValueError("Invalid driver")

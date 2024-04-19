@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import urllib.parse
 from typing import Dict, List
@@ -42,9 +43,12 @@ structlog.configure(
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
 )
 
 logger = structlog.get_logger()
+logger.setLevel(logging.INFO)
 
 ABSTRACT = "abstract"
 ABSTRACT_URL = "abstract_url"
