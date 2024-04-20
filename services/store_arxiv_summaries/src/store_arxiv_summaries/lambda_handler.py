@@ -167,6 +167,8 @@ def store_records(
         raise ValueError("Bucket name must be present and be a string.")
     malformed_records = []
     try:
+        parsed_data = None
+        loads_dop = None
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
@@ -178,13 +180,16 @@ def store_records(
                 config.get(SERVICE_VERSION),
                 parsed_data,
             )
-            query = []
-            query.append(f"""MATCH (n:{DataOperation.LABEL} {{uuid: "{loads_dop.uuid}"}})""")
-            batch_size = 100
-            total_records = len(records)
-            num_batches = (total_records + batch_size - 1) // batch_size
-            created_records = 0
-            for batch_index in range(num_batches):
+        query = []
+        query.append(f"""MATCH (n:{DataOperation.LABEL} {{uuid: "{loads_dop.uuid}"}})""")
+        batch_size = 100
+        total_records = len(records)
+        num_batches = (total_records + batch_size - 1) // batch_size
+        created_records = 0
+        for batch_index in range(num_batches):
+            with GraphDatabase.driver(
+                config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+            ) as driver:
                 start_index = batch_index * batch_size
                 end_index = min((batch_index + 1) * batch_size, total_records)
                 batch_records = records[start_index:end_index]
@@ -232,12 +237,12 @@ def store_records(
                         batch_end_index=end_index,
                         parsed_data_key=key,
                     )
-            logger.info(
-                "Finished creating arXiv records",
-                method=store_records.__name__,
-                num_records=total_records,
-                num_created_records=created_records,
-            )
+        logger.info(
+            "Finished creating arXiv records",
+            method=store_records.__name__,
+            num_records=total_records,
+            num_created_records=created_records,
+        )
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
