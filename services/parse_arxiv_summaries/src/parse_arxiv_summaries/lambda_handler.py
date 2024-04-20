@@ -242,7 +242,7 @@ def parse_xml_data(xml_data: str) -> list:
                 categories.append("NULL")
 
             abstract = record.find(".//dc:description", ns).text.replace("\n", " ").replace("\"", "\\\"")
-            title = record.find(".//dc:title", ns).text.replace("\n", "")
+            title = record.find(".//dc:title", ns).text.replace("\n", "").replace("\"", "\\\"")
             date = date_elements[0].text
             group = "cs"
 
