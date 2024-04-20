@@ -89,7 +89,7 @@ def lambda_handler(event, context):
                 raise RuntimeError(message)
             chunk_num = 0
             print(len(extracted_data["records"]))
-            for chunk in chunker(extracted_data["records"], 400):
+            for chunk in chunker(extracted_data["records"], len(extracted_data["records"]) + 10):
                 parsed_data = None
                 try:
                     content = {}
