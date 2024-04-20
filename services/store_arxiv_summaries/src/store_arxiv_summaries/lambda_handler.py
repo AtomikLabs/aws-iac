@@ -35,7 +35,6 @@ from models.data import Data
 from models.data_operation import DataOperation
 from neo4j import Driver, GraphDatabase
 from storage_manager import StorageManager
-from utils import get_storage_key_datetime
 
 structlog.configure(
     [
@@ -172,7 +171,6 @@ def store_records(
         )
         raise ValueError("Bucket name must be present and be a string.")
     malformed_records = []
-    well_formed_records = []
     try:
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
@@ -198,23 +196,57 @@ def store_records(
                 f.writelines(abstracts)
             with open("/tmp/relationships.csv", "w") as f:
                 f.writelines(relationships)
-            storage_manager.upload_to_s3(f"{config.get(RECORDS_PREFIX)}/moo/arxiv_records.csv", "".join(arxiv_records))
-            storage_manager.upload_to_s3(f"{config.get(RECORDS_PREFIX)}/moo/authors.csv", "".join(authors))
-            storage_manager.upload_to_s3(f"{config.get(RECORDS_PREFIX)}/moo/abstracts.csv", "".join(abstracts))
-            storage_manager.upload_to_s3(f"{config.get(RECORDS_PREFIX)}/moo/relationships.csv", "".join(relationships))
-            with open("/tmp/arxiv_records.csv", "r") as f:
-                lines = f.readlines()
-                print(lines[:5])
-            with open("/tmp/authors.csv", "r") as f:
-                lines = f.readlines()
-                print(lines[:5])
-            with open("/tmp/abstracts.csv", "r") as f:
-                lines = f.readlines()
-                print(lines[:5])
-            with open("/tmp/relationships.csv", "r") as f:
-                lines = f.readlines()
-                print(lines[:5])
 
+            _, summary, _ = driver.execute_query(
+                """
+                LOAD CSV WITH HEADERS FROM 'file:///tmp/arxiv_records.csv' AS row
+
+                MERGE (a:ArxivRecord {identifier: row.identifier})
+                ON CREATE SET a.title = row.title, a.date = row.date, a.uuid = row.uuid, a.created = datetime({timezone: 'America/Vancouver'}), a.last_modified = datetime({timezone: 'America/Vancouver'});
+                """,
+                database_="neo4j",
+            )
+            logger.info(
+                "Arxiv records created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
+            )
+            _, summary, _ = driver.execute_query(
+                """
+                LOAD CSV WITH HEADERS FROM 'file:///tmp/authors.csv' AS row
+
+                MERGE (a:Author {last_name: row.last_name, first_name: row.first_name})
+                ON CREATE SET a.uuid = row.uuid, a.created = datetime({timezone: 'America/Vancouver'}), a.last_modified = datetime({timezone: 'America/Vancouver'});
+                """,
+                database_="neo4j",
+            )
+            logger.info("Authors created", method=store_records.__name__, nodes_created=summary.counters.nodes_created)
+            _, summary, _ = driver.execute_query(
+                """
+                LOAD CSV WITH HEADERS FROM 'file:///tmp/abstracts.csv' AS row
+
+                MERGE (a:Abstract {abstract_url: row.abstract_url})
+                ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({timezone: 'America/Vancouver'}), a.last_modified = datetime({timezone: 'America/Vancouver'});
+                """,
+                database_="neo4j",
+            )
+            logger.info(
+                "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
+            )
+            _, summary, _ = driver.execute_query(
+                """
+                LOAD CSV WITH HEADERS FROM 'file:///tmp/relationships.csv' AS row
+
+                MATCH (start), (end)
+                WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
+                MERGE (start)-[r:row.label]->(end)
+                ON CREATE SET r.uuid = row.uuid, r.created = datetime({timezone: 'America/Vancouver'}), r.last_modified = datetime({timezone: 'America/Vancouver'});
+                """,
+                database_="neo4j",
+            )
+            logger.info(
+                "Relationships created",
+                method=store_records.__name__,
+                relationships_created=summary.counters.relationships_created,
+            )
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
@@ -222,8 +254,11 @@ def store_records(
         logger.info(
             "Finished storing records",
             method=store_records.__name__,
+            num_records=len(records),
             num_malformed_records=len(malformed_records),
-            num_well_formed_records=len(well_formed_records),
+            num_created_records=len(arxiv_records),
+            num_created_authors=len(authors),
+            num_created_abstracts=len(abstracts),
         )
 
 
