@@ -26,7 +26,7 @@ logger.setLevel(logging.INFO)
 
 class Abstract(BaseModel):
 
-    FIELDS_CSV = "url,bucket,key,uuid,created,last_modified"
+    FIELDS_CSV = "url,bucket,key,uuid,created,last_modified\n"
     LABEL = "Abstract"
 
     def __init__(self, driver: Driver = None, url: str = "", bucket: str = "", key: str = ""):

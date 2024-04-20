@@ -25,7 +25,7 @@ logger.setLevel(logging.INFO)
 
 class BaseModel(ABC):
 
-    RELATIONSHIP_CSV = "label,start_label,start_uuid,end_label,end_uuid,uuid,created,last_modified"
+    RELATIONSHIP_CSV = "label,start_label,start_uuid,end_label,end_uuid,uuid,created,last_modified\n"
 
     def __init__(self, driver: Driver, db: str = "neo4j"):
         self.logger = structlog.get_logger()

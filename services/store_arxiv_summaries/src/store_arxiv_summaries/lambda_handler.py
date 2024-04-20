@@ -187,23 +187,21 @@ def store_records(
             )
 
             categories = {c.code: c for c in ArxivCategory.find_all(driver)}
-            arxiv_records, authors, categories, relationships, malformed_records = generate_csv_data(records,
-                                                                                                     loads_dop.uuid,
-                                                                                                     bucket_name,
-                                                                                                     config.get(RECORDS_PREFIX),
-                                                                                                     categories)
+            arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
+                records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
+            )
             with open("/tmp/arxiv_records.csv", "w") as f:
                 f.writelines(arxiv_records)
             with open("/tmp/authors.csv", "w") as f:
                 f.writelines(authors)
             with open("/tmp/abstracts.csv", "w") as f:
-                f.writelines(categories)
+                f.writelines(abstracts)
             with open("/tmp/relationships.csv", "w") as f:
                 f.writelines(relationships)
-            storage_manager.upload(f"{config.get(RECORDS_PREFIX)}/moo/arxiv_records.csv", arxiv_records)
-            storage_manager.upload(f"{config.get(RECORDS_PREFIX)}/moo/authors.csv", authors)
-            storage_manager.upload(f"{config.get(RECORDS_PREFIX)}/moo/abstracts.csv", categories)
-            storage_manager.upload(f"{config.get(RECORDS_PREFIX)}/moo/relationships.csv", relationships)
+            storage_manager.upload_to_s3(f"{config.get(RECORDS_PREFIX)}/moo/arxiv_records.csv", "".join(arxiv_records))
+            storage_manager.upload_to_s3(f"{config.get(RECORDS_PREFIX)}/moo/authors.csv", "".join(authors))
+            storage_manager.upload_to_s3(f"{config.get(RECORDS_PREFIX)}/moo/abstracts.csv", "".join(abstracts))
+            storage_manager.upload_to_s3(f"{config.get(RECORDS_PREFIX)}/moo/relationships.csv", "".join(relationships))
             with open("/tmp/arxiv_records.csv", "r") as f:
                 lines = f.readlines()
                 print(lines[:5])
@@ -216,7 +214,7 @@ def store_records(
             with open("/tmp/relationships.csv", "r") as f:
                 lines = f.readlines()
                 print(lines[:5])
-            
+
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
@@ -294,11 +292,9 @@ def loads_dop_node(
     return loads_dop
 
 
-def generate_csv_data(records: List[Dict],
-                      loads_dop_uuid: str,
-                      bucket: str,
-                      records_prefix: str,
-                      categories: dict) -> Tuple[List[str], List[str], List[str], List[str]]:
+def generate_csv_data(
+    records: List[Dict], loads_dop_uuid: str, bucket: str, records_prefix: str, categories: dict
+) -> Tuple[List[str], List[str], List[str], List[str]]:
     """
     Generates the CSV data for the arXiv records.
 
@@ -310,7 +306,7 @@ def generate_csv_data(records: List[Dict],
         categories (dict): The arXiv categories from the graph.
 
     Returns:
-        Tuple[List[str], List[str], List[str], List[str], List[str]]: The arXiv records, authors, abstracts, 
+        Tuple[List[str], List[str], List[str], List[str], List[str]]: The arXiv records, authors, abstracts,
         relationships, and malformed records as csvs.
     """
 
@@ -342,7 +338,9 @@ def generate_csv_data(records: List[Dict],
             rels = []
 
             rels.append(relationship_factory(CREATES, DataOperation.LABEL, loads_dop_uuid, ArxivRecord.LABEL, rec_uuid))
-            rels.append(relationship_factory(CREATED_BY, ArxivRecord.LABEL, rec_uuid, DataOperation.LABEL, loads_dop_uuid))
+            rels.append(
+                relationship_factory(CREATED_BY, ArxivRecord.LABEL, rec_uuid, DataOperation.LABEL, loads_dop_uuid)
+            )
 
             for author in au_list:
                 au_id = author.split(",")[-1].strip()
@@ -354,14 +352,33 @@ def generate_csv_data(records: List[Dict],
 
             for i, cat in enumerate(record.get("categories", "")):
                 if i == 0:
-                    rels.append(relationship_factory(PRIMARILY_CATEGORIZED_BY, ArxivRecord.LABEL, rec_uuid, ArxivCategory.LABEL, categories.get(cat).uuid))
-                rels.append(relationship_factory(CATEGORIZES, ArxivCategory.LABEL, categories.get(cat).uuid, ArxivRecord.LABEL, rec_uuid))
-                rels.append(relationship_factory(CATEGORIZED_BY, ArxivRecord.LABEL, rec_uuid, ArxivCategory.LABEL, categories.get(cat).uuid))
+                    rels.append(
+                        relationship_factory(
+                            PRIMARILY_CATEGORIZED_BY,
+                            ArxivRecord.LABEL,
+                            rec_uuid,
+                            ArxivCategory.LABEL,
+                            categories.get(cat).uuid,
+                        )
+                    )
+                rels.append(
+                    relationship_factory(
+                        CATEGORIZES, ArxivCategory.LABEL, categories.get(cat).uuid, ArxivRecord.LABEL, rec_uuid
+                    )
+                )
+                rels.append(
+                    relationship_factory(
+                        CATEGORIZED_BY, ArxivRecord.LABEL, rec_uuid, ArxivCategory.LABEL, categories.get(cat).uuid
+                    )
+                )
+                relationships.extend(rels)
         except Exception as e:
-            logger.error("An error occurred",
-                         method=generate_csv_data.__name__,
-                         error=str(e),
-                         arxiv_identifier=record.get("identifier") if record else None)
+            logger.error(
+                "An error occurred",
+                method=generate_csv_data.__name__,
+                error=str(e),
+                arxiv_identifier=record.get("identifier") if record else None,
+            )
             raise e
     return arxiv_records, authors, abstracts, relationships, malformed_records
 
@@ -371,7 +388,7 @@ def arxiv_record_factory(record) -> str:
 
 
 def author_factory(record: dict) -> list:
-    auths = list(f"{x.get('last_name')},{x.get('first_name')},{str(uuid.uuid4())}\n" for x in record.get('authors', []))
+    auths = list(f"{x.get('last_name')},{x.get('first_name')},{str(uuid.uuid4())}\n" for x in record.get("authors", []))
     return auths
 
 
