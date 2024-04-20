@@ -59,13 +59,16 @@ class StorageManager:
         logger.info("Loaded data from S3 bucket", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
         return body
 
-    def upload_to_s3(self, key: str, content: str) -> None:
+    def upload_to_s3(self, key: str, content: str, return_presigned_url: bool = False) -> str:
         """
         Persist the content to an AWS S3 bucket with the given key.
 
         Args:
             key: The key to use when storing the content in the S3 bucket.
             content: The content to store in the S3 bucket.
+
+        Returns:
+            A presigned url for the content stored in the S3 bucket if return_presigned_url is True.
 
         Raises:
             ValueError: If key or content are invalid.
@@ -85,6 +88,10 @@ class StorageManager:
             self.logger.info(
                 "Persisted content to S3", method=self.upload_to_s3.__name__, bucket_name=self.bucket_name, key=key
             )
+            if return_presigned_url:
+                return s3.meta.client.generate_presigned_url(
+                    "get_object", Params={"Bucket": self.bucket_name, "Key": key}, ExpiresIn=3600
+                )
         except Exception as e:
             self.logger.error(
                 "Failed to persist content to S3",

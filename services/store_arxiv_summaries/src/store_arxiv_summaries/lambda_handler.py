@@ -3,7 +3,7 @@ import logging
 import os
 import urllib.parse
 import uuid
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import structlog
 from constants import (
@@ -26,6 +26,11 @@ from constants import (
     SUMMARIZED_BY,
     SUMMARIZES,
 )
+from models.abstract import Abstract
+from models.arxiv_category import ArxivCategory
+from models.arxiv_record import ArxivRecord
+from models.author import Author
+from models.base_model import BaseModel
 from models.data import Data
 from models.data_operation import DataOperation
 from neo4j import Driver, GraphDatabase
@@ -167,8 +172,6 @@ def store_records(
         raise ValueError("Bucket name must be present and be a string.")
     malformed_records = []
     try:
-        parsed_data = None
-        loads_dop = None
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
@@ -180,69 +183,78 @@ def store_records(
                 config.get(SERVICE_VERSION),
                 parsed_data,
             )
-        query = []
-        query.append(f"""MATCH (n:{DataOperation.LABEL} {{uuid: "{loads_dop.uuid}"}})""")
-        batch_size = 100
-        total_records = len(records)
-        num_batches = (total_records + batch_size - 1) // batch_size
-        created_records = 0
-        for batch_index in range(num_batches):
-            with GraphDatabase.driver(
-                config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
-            ) as driver:
-                start_index = batch_index * batch_size
-                end_index = min((batch_index + 1) * batch_size, total_records)
-                batch_records = records[start_index:end_index]
-                for i, r in enumerate(batch_records):
-                    query.append(
-                        f"""MERGE (a{i}:ArxivRecord {{identifier: "{r.get(IDENTIFIER)}"}}) ON CREATE SET a{i}.title = "{r.get(TITLE)}", a{i}.date = "{r.get(DATE)}", a{i}.uuid = "{str(uuid.uuid4())}", a{i}.created = datetime({{timezone: 'America/Vancouver'}}), a{i}.last_modified = datetime({{timezone: 'America/Vancouver'}})"""
-                    )
-                    query.append(f"""MERGE (a{i})-[:{CREATED_BY}]->(n)""")
-                    query.append(f"""MERGE (n)-[:{CREATES}]->(a{i})""")
-                    for j, a in enumerate(r.get("authors", [])):
-                        query.append(
-                            f"""MERGE (au{i}_{j}:Author {{last_name: "{a.get("last_name")}", first_name: "{a.get("first_name")}"}}) ON CREATE SET au{i}_{j}.uuid = "{str(uuid.uuid4())}", au{i}_{j}.created = datetime({{timezone: 'America/Vancouver'}}), au{i}_{j}.last_modified = datetime({{timezone: 'America/Vancouver'}})"""
-                        )
-                        query.append(f"""MERGE (a{i})-[:{AUTHORED_BY}]->(au{i}_{j})""")
-                        query.append(f"""MERGE (au{i}_{j})-[:{AUTHORS}]->(a{i})""")
-                    query.append(
-                        f"""MERGE (a{i}_abs:Abstract {{abstract_url: "{r.get(ABSTRACT_URL)}"}}) ON CREATE SET a{i}_abs.bucket = "{bucket_name}", a{i}_abs.key = "{config.get(RECORDS_PREFIX)}/{r.get(IDENTIFIER)}/{ABSTRACT}.json", a{i}_abs.uuid = "{str(uuid.uuid4())}", a{i}_abs.created = datetime({{timezone: 'America/Vancouver'}}), a{i}_abs.last_modified = datetime({{timezone: 'America/Vancouver'}})"""
-                    )
-                    query.append(f"""MERGE (a{i})-[:{SUMMARIZED_BY}]->(a{i}_abs)""")
-                    query.append(f"""MERGE (a{i}_abs)-[:{SUMMARIZES}]->(a{i})""")
-                    for k, c in enumerate(r.get("categories", [])):
-                        query.append(f"""MERGE (a{i})-[:{CATEGORIZES}]->(c{i}_{k}:ArxivCategory {{code: "{c}"}})""")
-                        query.append(f"""MERGE (c{i}_{k})-[:{CATEGORIZED_BY}]->(a{i})""")
-                        if k == 0:
-                            query.append(f"""MERGE (a{i})-[:{PRIMARILY_CATEGORIZED_BY}]->(c{i}_{k})""")
-                try:
-                    _, summary, _ = driver.execute_query(
-                        "".join(query),
-                        database_="neo4j",
-                    )
-                    created_records += summary.counters.nodes_created
-                    logger.info(
-                        "Arxiv records created",
-                        method=store_records.__name__,
-                        nodes_created=summary.counters.nodes_created,
-                        batch_start_index=start_index,
-                        batch_end_index=end_index,
-                    )
-                except Exception as e:
-                    logger.error(
-                        "An error occurred",
-                        method=store_records.__name__,
-                        error=str(e),
-                        batch_start_index=start_index,
-                        batch_end_index=end_index,
-                        parsed_data_key=key,
-                    )
-        logger.info(
-            "Finished creating arXiv records",
-            method=store_records.__name__,
-            num_records=total_records,
-            num_created_records=created_records,
-        )
+
+            categories = {c.code: c for c in ArxivCategory.find_all(driver)}
+            arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
+                records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
+            )
+            ar_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv",
+                "".join(arxiv_records),
+                True)
+            _, summary, _ = driver.execute_query(
+                f"""
+                LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row
+
+                MERGE (a:ArxivRecord {{identifier: row.identifier}})
+                ON CREATE SET a.title = row.title, a.date = row.date, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}});
+                """,
+                database_="neo4j",
+            )
+            logger.info(
+                "Arxiv records created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
+            )
+            return
+            au_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/authors.csv",
+                "".join(authors),
+                True)
+            ab_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/abstracts.csv",
+                "".join(abstracts),
+                True)
+            rel_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/relationships.csv",
+                "".join(relationships),
+                True)
+            _, summary, _ = driver.execute_query(
+                """
+                LOAD CSV WITH HEADERS FROM 'file:///tmp/authors.csv' AS row
+
+                MERGE (a:Author {last_name: row.last_name, first_name: row.first_name})
+                ON CREATE SET a.uuid = row.uuid, a.created = datetime({timezone: 'America/Vancouver'}), a.last_modified = datetime({timezone: 'America/Vancouver'});
+                """,
+                database_="neo4j",
+            )
+            logger.info("Authors created", method=store_records.__name__, nodes_created=summary.counters.nodes_created)
+            _, summary, _ = driver.execute_query(
+                """
+                LOAD CSV WITH HEADERS FROM 'file:///tmp/abstracts.csv' AS row
+
+                MERGE (a:Abstract {abstract_url: row.abstract_url})
+                ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({timezone: 'America/Vancouver'}), a.last_modified = datetime({timezone: 'America/Vancouver'});
+                """,
+                database_="neo4j",
+            )
+            logger.info(
+                "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
+            )
+            _, summary, _ = driver.execute_query(
+                """
+                LOAD CSV WITH HEADERS FROM 'file:///tmp/relationships.csv' AS row
+
+                MATCH (start), (end)
+                WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
+                MERGE (start)-[r:row.label]->(end)
+                ON CREATE SET r.uuid = row.uuid, r.created = datetime({timezone: 'America/Vancouver'}), r.last_modified = datetime({timezone: 'America/Vancouver'});
+                """,
+                database_="neo4j",
+            )
+            logger.info(
+                "Relationships created",
+                method=store_records.__name__,
+                relationships_created=summary.counters.relationships_created,
+            )
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
@@ -252,6 +264,9 @@ def store_records(
             method=store_records.__name__,
             num_records=len(records),
             num_malformed_records=len(malformed_records),
+            num_created_records=len(arxiv_records),
+            num_created_authors=len(authors),
+            num_created_abstracts=len(abstracts),
         )
 
 
@@ -318,3 +333,112 @@ def loads_dop_node(
         True,
     )
     return loads_dop
+
+
+def generate_csv_data(
+    records: List[Dict], loads_dop_uuid: str, bucket: str, records_prefix: str, categories: dict
+) -> Tuple[List[str], List[str], List[str], List[str]]:
+    """
+    Generates the CSV data for the arXiv records.
+
+    Args:
+        records (List[Dict]): The arXiv records.
+        loads_dop_uuid (str): The UUID of the data operation node for loading the parsed data.
+        bucket (str): The S3 bucket name for storing arXiv records.
+        records_prefix (str): The prefix for the records.
+        categories (dict): The arXiv categories from the graph.
+
+    Returns:
+        Tuple[List[str], List[str], List[str], List[str], List[str]]: The arXiv records, authors, abstracts,
+        relationships, and malformed records as csvs.
+    """
+
+    abstracts = [Abstract.FIELDS_CSV]
+    arxiv_records = [ArxivRecord.FIELDS_CSV]
+    authors = [Author.FIELDS_CSV]
+    relationships = [BaseModel.RELATIONSHIP_CSV]
+
+    malformed_records = []
+    required_fields = ["identifier", "title", "authors", "group", "abstract", "date", "abstract_url"]
+    for record in records:
+        try:
+            if not all(field in record for field in required_fields):
+                malformed_records.append(record)
+                continue
+
+            rec = arxiv_record_factory(record)
+            rec_uuid = rec.split(",")[-1].strip()
+            arxiv_records.append(rec)
+
+            au_list = author_factory(record)
+            for author in au_list:
+                authors.append(author)
+
+            ab = abstract_factory(record, bucket, records_prefix)
+            abstracts.append(ab)
+            ab_uuid = ab.split(",")[-1].strip()
+
+            rels = []
+
+            rels.append(relationship_factory(CREATES, DataOperation.LABEL, loads_dop_uuid, ArxivRecord.LABEL, rec_uuid))
+            rels.append(
+                relationship_factory(CREATED_BY, ArxivRecord.LABEL, rec_uuid, DataOperation.LABEL, loads_dop_uuid)
+            )
+
+            for author in au_list:
+                au_id = author.split(",")[-1].strip()
+                rels.append(relationship_factory(AUTHORS, Author.LABEL, au_id, ArxivRecord.LABEL, rec_uuid))
+                rels.append(relationship_factory(AUTHORED_BY, ArxivRecord.LABEL, rec_uuid, Author.LABEL, au_id))
+
+            rels.append(relationship_factory(SUMMARIZES, Abstract.LABEL, ab_uuid, ArxivRecord.LABEL, rec_uuid))
+            rels.append(relationship_factory(SUMMARIZED_BY, ArxivRecord.LABEL, rec_uuid, Abstract.LABEL, ab_uuid))
+
+            for i, cat in enumerate(record.get("categories", "")):
+                if i == 0:
+                    rels.append(
+                        relationship_factory(
+                            PRIMARILY_CATEGORIZED_BY,
+                            ArxivRecord.LABEL,
+                            rec_uuid,
+                            ArxivCategory.LABEL,
+                            categories.get(cat).uuid,
+                        )
+                    )
+                rels.append(
+                    relationship_factory(
+                        CATEGORIZES, ArxivCategory.LABEL, categories.get(cat).uuid, ArxivRecord.LABEL, rec_uuid
+                    )
+                )
+                rels.append(
+                    relationship_factory(
+                        CATEGORIZED_BY, ArxivRecord.LABEL, rec_uuid, ArxivCategory.LABEL, categories.get(cat).uuid
+                    )
+                )
+                relationships.extend(rels)
+        except Exception as e:
+            logger.error(
+                "An error occurred",
+                method=generate_csv_data.__name__,
+                error=str(e),
+                arxiv_identifier=record.get("identifier") if record else None,
+            )
+            raise e
+    return arxiv_records, authors, abstracts, relationships, malformed_records
+
+
+def arxiv_record_factory(record) -> str:
+    return f"{record['identifier']},{record['title']},{record['date']},{str(uuid.uuid4())}\n"
+
+
+def author_factory(record: dict) -> list:
+    auths = list(f"{x.get('last_name')},{x.get('first_name')},{str(uuid.uuid4())}\n" for x in record.get("authors", []))
+    return auths
+
+
+def abstract_factory(record: dict, bucket: str, records_prefix: str) -> str:
+    key = f"{records_prefix}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
+    return f"{record.get(ABSTRACT_URL)},{bucket},{key},{str(uuid.uuid4())}\n"
+
+
+def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
+    return f"{label},{start_label},{start_uuid},{end_label},{end_uuid},{str(uuid.uuid4())}\n"
