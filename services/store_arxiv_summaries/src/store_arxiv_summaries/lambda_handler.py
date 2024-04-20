@@ -210,18 +210,28 @@ def store_records(
                         query.append(f"""MERGE (c{i}_{k})-[:{CATEGORIZED_BY}]->(a{i})""")
                         if k == 0:
                             query.append(f"""MERGE (a{i})-[:{PRIMARILY_CATEGORIZED_BY}]->(c{i}_{k})""")
-                _, summary, _ = driver.execute_query(
-                    "".join(query),
-                    database_="neo4j",
-                )
-                created_records += summary.counters.nodes_created
-                logger.info(
-                    "Arxiv records created",
-                    method=store_records.__name__,
-                    nodes_created=summary.counters.nodes_created,
-                    batch_start_index=start_index,
-                    batch_end_index=end_index,
-                )
+                try:
+                    _, summary, _ = driver.execute_query(
+                        "".join(query),
+                        database_="neo4j",
+                    )
+                    created_records += summary.counters.nodes_created
+                    logger.info(
+                        "Arxiv records created",
+                        method=store_records.__name__,
+                        nodes_created=summary.counters.nodes_created,
+                        batch_start_index=start_index,
+                        batch_end_index=end_index,
+                    )
+                except Exception as e:
+                    logger.error(
+                        "An error occurred",
+                        method=store_records.__name__,
+                        error=str(e),
+                        batch_start_index=start_index,
+                        batch_end_index=end_index,
+                        parsed_data_key=key,
+                    )
             logger.info(
                 "Finished creating arXiv records",
                 method=store_records.__name__,

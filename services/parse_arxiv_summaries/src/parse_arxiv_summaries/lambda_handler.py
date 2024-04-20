@@ -231,7 +231,7 @@ def parse_xml_data(xml_data: str) -> list:
                 name_parts = creator.text.split(", ", 1)
                 last_name = name_parts[0]
                 first_name = name_parts[1] if len(name_parts) > 1 else ""
-                authors.append({"last_name": last_name, "first_name": first_name})
+                authors.append({"last_name": last_name.replace("\"", "\\\""), "first_name": first_name.replace("\"", "'")})
 
             # Find all subjects
             subjects_elements = record.findall(".//dc:subject", ns)
@@ -241,7 +241,7 @@ def parse_xml_data(xml_data: str) -> list:
             if not categories:
                 categories.append("NULL")
 
-            abstract = record.find(".//dc:description", ns).text.replace("\n", " ")
+            abstract = record.find(".//dc:description", ns).text.replace("\n", " ").replace("\"", "\\\"")
             title = record.find(".//dc:title", ns).text.replace("\n", "")
             date = date_elements[0].text
             group = "cs"
