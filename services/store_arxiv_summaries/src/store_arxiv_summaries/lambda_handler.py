@@ -186,7 +186,7 @@ def store_records(
 
             categories = {c.code: c for c in ArxivCategory.find_all(driver)}
             arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
-                records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
+                records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories, storage_manager
             )
             logger.info("CSV", records=arxiv_records)
             ar_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_arxiv_records.csv"
@@ -347,7 +347,7 @@ def loads_dop_node(
 
 
 def generate_csv_data(
-    records: List[Dict], loads_dop_uuid: str, bucket: str, records_prefix: str, categories: dict
+    records: List[Dict], loads_dop_uuid: str, bucket: str, records_prefix: str, categories: dict, storage_manager: StorageManager
 ) -> Tuple[List[str], List[str], List[str], List[str]]:
     """
     Generates the CSV data for the arXiv records.
@@ -358,6 +358,7 @@ def generate_csv_data(
         bucket (str): The S3 bucket name for storing arXiv records.
         records_prefix (str): The prefix for the records.
         categories (dict): The arXiv categories from the graph.
+        storage_manager (StorageManager): The storage manager.
 
     Returns:
         Tuple[List[str], List[str], List[str], List[str], List[str]]: The arXiv records, authors, abstracts,
@@ -385,7 +386,8 @@ def generate_csv_data(
             for author in au_list:
                 authors.append(author)
             ab = abstract_factory(record, bucket, records_prefix)
-            abstracts.append(ab)
+            storage_manager.upload_to_s3(ab[2], record.get(ABSTRACT), False)
+            abstracts.append(",".join(ab) + "\n")
             ab_uuid = ab.split(",")[-1].strip()
             rels = []
 
@@ -467,10 +469,10 @@ def author_factory(record: dict, authors_dict: dict) -> list:
     return auths
 
 
-def abstract_factory(record: dict, bucket: str, records_prefix: str) -> str:
+def abstract_factory(record: dict, bucket: str, records_prefix: str) -> list:
     key = f"{records_prefix}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
     abstract_url = escape_csv_value(record.get(ABSTRACT_URL, ""))
-    return f"{abstract_url},{bucket},{key},{str(uuid.uuid4())}\n"
+    return [abstract_url, bucket, key, str(uuid.uuid4())]
 
 
 def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
