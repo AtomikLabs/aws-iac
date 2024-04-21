@@ -190,9 +190,7 @@ def store_records(
             )
             logger.info("CSV", records=arxiv_records)
             ar_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_arxiv_records.csv"
-            ar_presigned_url = storage_manager.upload_to_s3(
-                ar_key, "".join(arxiv_records), True
-            )
+            ar_presigned_url = storage_manager.upload_to_s3(ar_key, "".join(arxiv_records), True)
             _, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row
@@ -206,9 +204,7 @@ def store_records(
                 "Arxiv records created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
             )
             au_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv"
-            au_presigned_url = storage_manager.upload_to_s3(
-                au_key, "".join(authors), True
-            )
+            au_presigned_url = storage_manager.upload_to_s3(au_key, "".join(authors), True)
             _, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row
@@ -220,9 +216,7 @@ def store_records(
             )
             logger.info("Authors created", method=store_records.__name__, nodes_created=summary.counters.nodes_created)
             ab_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv"
-            ab_presigned_url = storage_manager.upload_to_s3(
-                ab_key, "".join(abstracts), True
-            )
+            ab_presigned_url = storage_manager.upload_to_s3(ab_key, "".join(abstracts), True)
             _, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row
@@ -236,9 +230,7 @@ def store_records(
                 "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
             )
             rel_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_relationships.csv"
-            rel_presigned_url = storage_manager.upload_to_s3(
-                rel_key, "".join(relationships), True
-            )
+            rel_presigned_url = storage_manager.upload_to_s3(rel_key, "".join(relationships), True)
             result, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row
@@ -347,7 +339,12 @@ def loads_dop_node(
 
 
 def generate_csv_data(
-    records: List[Dict], loads_dop_uuid: str, bucket: str, records_prefix: str, categories: dict, storage_manager: StorageManager
+    records: List[Dict],
+    loads_dop_uuid: str,
+    bucket: str,
+    records_prefix: str,
+    categories: dict,
+    storage_manager: StorageManager,
 ) -> Tuple[List[str], List[str], List[str], List[str]]:
     """
     Generates the CSV data for the arXiv records.
@@ -477,4 +474,3 @@ def abstract_factory(record: dict, bucket: str, records_prefix: str) -> list:
 
 def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
     return f"{label},{start_label},{start_uuid},{end_label},{end_uuid},{str(uuid.uuid4())}\n"
-
