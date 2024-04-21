@@ -257,10 +257,6 @@ def store_records(
                 method=store_records.__name__,
                 relationships_created=result,
             )
-            storage_manager.delete(ar_key)
-            storage_manager.delete(au_key)
-            storage_manager.delete(ab_key)
-            storage_manager.delete(rel_key)
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
