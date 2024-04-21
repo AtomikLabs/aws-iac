@@ -194,8 +194,7 @@ def store_records(
             )
             _, summary, _ = driver.execute_query(
                 f"""
-                LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row
-                FIELDTERMINATOR '|'
+                LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
                 ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
@@ -209,8 +208,7 @@ def store_records(
             )
             _, summary, _ = driver.execute_query(
                 f"""
-                LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row
-                FIELDTERMINATOR '|'
+                LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
                 ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
@@ -222,8 +220,7 @@ def store_records(
             )
             _, summary, _ = driver.execute_query(
                 f"""
-                LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row
-                FIELDTERMINATOR '|'
+                LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:Abstract {{abstract_url: row.url}})
                 ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
@@ -237,8 +234,7 @@ def store_records(
             )
             result, summary, _ = driver.execute_query(
                 f"""
-                LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row
-                FIELDTERMINATOR '|'
+                LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row FIELDTERMINATOR '|'
                 MATCH (start), (end)
                 WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
                 CALL apoc.do.case([
@@ -372,14 +368,14 @@ def generate_csv_data(
                 continue
 
             rec = arxiv_record_factory(record)
-            rec_uuid = rec.split(",")[-1].strip()
+            rec_uuid = rec.split("|")[-1].strip()
             arxiv_records.append(rec)
             au_list = author_factory(record, authors_dict)
             for author in au_list:
                 authors.append(author)
             ab = abstract_factory(record, bucket, records_prefix)
             abstracts.append(ab)
-            ab_uuid = ab.split(",")[-1].strip()
+            ab_uuid = ab.split("|")[-1].strip()
             rels = []
 
             rels.append(relationship_factory(CREATES, DataOperation.LABEL, loads_dop_uuid, ArxivRecord.LABEL, rec_uuid))
@@ -388,7 +384,7 @@ def generate_csv_data(
             )
 
             for author in au_list:
-                au_id = author.split(",")[-1].strip()
+                au_id = author.split("|")[-1].strip()
                 rels.append(relationship_factory(AUTHORS, Author.LABEL, au_id, ArxivRecord.LABEL, rec_uuid))
                 rels.append(relationship_factory(AUTHORED_BY, ArxivRecord.LABEL, rec_uuid, Author.LABEL, au_id))
 
@@ -417,7 +413,6 @@ def generate_csv_data(
                     )
                 )
                 relationships.extend(rels)
-                logger.info(record.get("identifier"), rec=rec, au=au_list, ab=ab, rels=rels)
         except Exception as e:
             logger.error(
                 "An error occurred",
