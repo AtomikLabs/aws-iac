@@ -234,9 +234,9 @@ def get_earliest_date(config: dict) -> str:
         if records:
             try:
                 record = records[0]
-                created = record.data().get("r", {}).get("date", None)
-                if created:
-                    default = max(default, created)
+                next_date = record.data().get("r", {}).get("date", None) + timedelta(days=1)
+                if next_date:
+                    default = max(default, next_date)
             except Exception as e:
                 logger.error("Failed to get created date from record", method=get_earliest_date.__name__, error=str(e))
     logger.info("Earliest date", method=get_earliest_date.__name__, earliest=default.strftime("%Y-%m-%d"))

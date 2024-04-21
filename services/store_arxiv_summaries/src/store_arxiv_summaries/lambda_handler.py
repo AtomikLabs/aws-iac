@@ -185,10 +185,11 @@ def store_records(
             )
 
             categories = {c.code: c for c in ArxivCategory.find_all(driver)}
+            possible_new_records = filter_new_records(driver, records)
+
             arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
-                records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
+                possible_new_records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
             )
-            logger.info("CSV", records=arxiv_records)
             ar_presigned_url = storage_manager.upload_to_s3(
                 f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
             )
@@ -333,6 +334,35 @@ def loads_dop_node(
         True,
     )
     return loads_dop
+
+
+def filter_new_records(driver: Driver, records: dict) -> list:
+    """
+    Filters out records that are already in the graph.
+
+    Args:
+        driver (Driver): The neo4j driver.
+        records (dict): The records to filter.
+
+    Returns:
+        list: The identifiers of the new records.
+    """
+    params = {"identifiers": [record.get("identifier") for record in records]}
+    result, _, _ = driver.execute_query(
+        """
+        UNWIND $identifiers AS identifier
+        WITH identifier
+        WHERE NOT EXISTS {
+            MATCH (r:ArxivRecord {identifier: identifier})
+        }
+        RETURN identifier
+        """,
+        params,
+        database="neo4j",
+    )
+    new_identifiers = [record["identifier"] for record in result]
+    new_records = [record for record in records if record.get("identifier") in new_identifiers]
+    return new_records
 
 
 def generate_csv_data(
