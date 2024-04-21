@@ -235,15 +235,23 @@ def store_records(
             rel_presigned_url = storage_manager.upload_to_s3(
                 f"{config.get(RECORDS_PREFIX)}/moo/relationships.csv", "".join(relationships), True
             )
-            _, summary, _ = driver.execute_query(
+            result, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row
                 MATCH (start), (end)
                 WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
-                CALL apoc.cypher.run('
-                    MERGE (start)-[r:' + row.label + ']->(end)
-                    ON CREATE SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})
-                ', {{start: start, end: end, uuid: row.uuid}}) YIELD value
+                CALL apoc.do.case([
+                    row.label = 'CREATES', 'MERGE (start)-[r:CREATES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'CREATED_BY', 'MERGE (start)-[r:CREATED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'AUTHORS', 'MERGE (start)-[r:AUTHORS]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'AUTHORED_BY', 'MERGE (start)-[r:AUTHORED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'SUMMARIZES', 'MERGE (start)-[r:SUMMARIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'SUMMARIZED_BY', 'MERGE (start)-[r:SUMMARIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'PRIMARILY_CATEGORIZED_BY', 'MERGE (start)-[r:PRIMARILY_CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'CATEGORIZES', 'MERGE (start)-[r:CATEGORIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'CATEGORIZED_BY', 'MERGE (start)-[r:CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})'
+                ], 'RETURN NULL', {{start: start, end: end, uuid: row.uuid}})
+                YIELD value
                 RETURN count(*)
                 """,
                 database_="neo4j",
@@ -251,7 +259,7 @@ def store_records(
             logger.info(
                 "Relationships created",
                 method=store_records.__name__,
-                relationships_created=summary.counters.relationships_created,
+                relationships_created=result,
             )
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
@@ -356,7 +364,7 @@ def generate_csv_data(
     malformed_records = []
     authors_dict = {}
     required_fields = ["identifier", "title", "authors", "group", "abstract", "date", "abstract_url"]
-    for record in records[:5]:
+    for record in records:
         try:
             if not all(record.get(field) for field in required_fields):
                 malformed_records.append(record)
@@ -429,7 +437,7 @@ def escape_csv_value(value: str) -> str:
 
 def arxiv_record_factory(record) -> str:
     title = escape_csv_value(record["title"])
-    return f"{record['identifier']},{title},{record['date']},{str(uuid.uuid4())}\n"
+    return f"{record['identifier']},'''{title}''',{record['date']},{str(uuid.uuid4())}\n"
 
 
 def author_factory(record: dict, authors_dict: dict) -> list:
@@ -447,7 +455,7 @@ def author_factory(record: dict, authors_dict: dict) -> list:
                 author=author,
             )
         else:
-            auths.append(f"{last_name},{first_name},{author_uuid}\n")
+            auths.append(f"'''{last_name}''','''{first_name}''',{author_uuid}\n")
     return auths
 
 
