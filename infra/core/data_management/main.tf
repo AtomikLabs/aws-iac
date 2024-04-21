@@ -119,6 +119,7 @@ docker run --restart=always \
 -v /neo4j/logs:/logs \
 -v /neo4j/plugins:/plugins \
 -e NEO4J_AUTH=${local.secret.neo4j_username}/${local.secret.neo4j_password} \
+-e NEO4J_dbms_security_procedures_unrestricted=apoc.\\\* \
 --name neo4j \
 neo4j:4.1
 EOF
