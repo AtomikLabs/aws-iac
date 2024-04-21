@@ -385,7 +385,7 @@ def generate_csv_data(
             ab = abstract_factory(record, bucket, records_prefix)
             storage_manager.upload_to_s3(ab[2], record.get(ABSTRACT), False)
             abstracts.append(",".join(ab) + "\n")
-            ab_uuid = ab.split(",")[-1].strip()
+            ab_uuid = ab[-1].strip()
             rels = []
 
             rels.append(relationship_factory(CREATES, DataOperation.LABEL, loads_dop_uuid, ArxivRecord.LABEL, rec_uuid))
