@@ -232,9 +232,13 @@ def get_earliest_date(config: dict) -> str:
             """
         )
         if records:
-            record = records[0]
-            created = record.get("created")
-            default = max(default, created)
+            try:
+                record = records[0]
+                created = record.data().get("r", {}).get("created", None)
+                if created:
+                    default = max(default, created)
+            except Exception as e:
+                logger.error("Failed to get created date from record", method=get_earliest_date.__name__, error=str(e))
     logger.info("Earliest date", method=get_earliest_date.__name__, earliest=default.strftime("%Y-%m-%d"))
     return default.strftime("%Y-%m-%d")
 
