@@ -189,8 +189,9 @@ def store_records(
                 records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
             )
             logger.info("CSV", records=arxiv_records)
+            ar_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_arxiv_records.csv"
             ar_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
+                ar_key, "".join(arxiv_records), True
             )
             _, summary, _ = driver.execute_query(
                 f"""
@@ -204,8 +205,9 @@ def store_records(
             logger.info(
                 "Arxiv records created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
             )
+            au_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv"
             au_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/authors.csv", "".join(authors), True
+                au_key, "".join(authors), True
             )
             _, summary, _ = driver.execute_query(
                 f"""
@@ -217,8 +219,9 @@ def store_records(
                 database_="neo4j",
             )
             logger.info("Authors created", method=store_records.__name__, nodes_created=summary.counters.nodes_created)
+            ab_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv"
             ab_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/abstracts.csv", "".join(abstracts), True
+                ab_key, "".join(abstracts), True
             )
             _, summary, _ = driver.execute_query(
                 f"""
@@ -232,8 +235,9 @@ def store_records(
             logger.info(
                 "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
             )
+            rel_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_relationships.csv"
             rel_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/moo/relationships.csv", "".join(relationships), True
+                rel_key, "".join(relationships), True
             )
             result, summary, _ = driver.execute_query(
                 f"""
@@ -261,6 +265,10 @@ def store_records(
                 method=store_records.__name__,
                 relationships_created=result,
             )
+            storage_manager.delete(ar_key)
+            storage_manager.delete(au_key)
+            storage_manager.delete(ab_key)
+            storage_manager.delete(rel_key)
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
         raise e
@@ -467,3 +475,4 @@ def abstract_factory(record: dict, bucket: str, records_prefix: str) -> str:
 
 def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
     return f"{label},{start_label},{start_uuid},{end_label},{end_uuid},{str(uuid.uuid4())}\n"
+

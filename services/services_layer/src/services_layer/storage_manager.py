@@ -35,6 +35,35 @@ class StorageManager:
             raise ValueError("bucket_name must be a non-empty string")
         self.bucket_name = bucket_name
 
+    def delete(self, key: str):
+        """
+        Delete the content from an AWS S3 bucket with the given key.
+
+        Args:
+            key: The key to use when deleting the content from the S3 bucket.
+
+        Raises:
+            ValueError: If key is invalid.
+            Exception: If there is an error deleting the content from S3.
+        """
+        if not key or not isinstance(key, str):
+            self.logger.error("Invalid key", key=key)
+            raise ValueError("key must be a non-empty string")
+        self.logger.info("Deleting content from S3", key=key, bucket_name=self.bucket_name)
+        try:
+            s3 = boto3.resource("s3")
+            s3.Object(self.bucket_name, key).delete()
+            self.logger.info("Deleted content from S3", key=key, bucket_name=self.bucket_name)
+        except Exception as e:
+            self.logger.error(
+                "Failed to delete content from S3",
+                method=self.delete.__name__,
+                bucket_name=self.bucket_name,
+                key=key,
+                error=str(e),
+            )
+            raise e
+
     def load(self, key: str):
         """
         Load the content from an AWS S3 bucket with the given key.
