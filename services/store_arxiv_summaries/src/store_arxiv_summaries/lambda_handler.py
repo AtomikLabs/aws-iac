@@ -2,7 +2,8 @@ import json
 import logging
 import os
 import urllib.parse
-from typing import Dict, List
+import uuid
+from typing import Dict, List, Tuple
 
 import structlog
 from constants import (
@@ -29,6 +30,7 @@ from models.abstract import Abstract
 from models.arxiv_category import ArxivCategory
 from models.arxiv_record import ArxivRecord
 from models.author import Author
+from models.base_model import BaseModel
 from models.data import Data
 from models.data_operation import DataOperation
 from neo4j import Driver, GraphDatabase
@@ -169,8 +171,6 @@ def store_records(
         )
         raise ValueError("Bucket name must be present and be a string.")
     malformed_records = []
-    well_formed_records = []
-    required_fields = ["identifier", "title", "authors", "group", "abstract", "date", "abstract_url"]
     try:
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
@@ -183,30 +183,83 @@ def store_records(
                 config.get(SERVICE_VERSION),
                 parsed_data,
             )
-            categories = {}
-            null_node = null_category_node(driver)
-            categories.update({"NULL": null_node})
-            for record in records:
-                if not all(record.get(field) for field in required_fields) or len(record.get("authors", [])) < 1:
-                    malformed_records.append(record)
-                    logger.error("Malformed record", method=store_records.__name__, record=record)
-                else:
-                    arxiv_record = arxiv_record_factory(
-                        driver, record, loads_dop, categories, bucket_name, storage_manager, config
-                    )
-                    well_formed_records.append(arxiv_record)
-        if malformed_records:
-            logger.warning(
-                "Malformed records",
-                method=store_records.__name__,
-                num_malformed_records=len(malformed_records),
-                malformed_records=malformed_records,
+
+            categories = {c.code: c for c in ArxivCategory.find_all(driver)}
+            arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
+                records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
             )
-        if well_formed_records:
+            logger.info("CSV", records=arxiv_records)
+            ar_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
+            )
+            _, summary, _ = driver.execute_query(
+                f"""
+                LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row
+
+                MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
+                ON CREATE SET a.title = row.title, a.date = row.date, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                """,
+                database_="neo4j",
+            )
             logger.info(
-                "Storing well formed records",
+                "Arxiv records created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
+            )
+            au_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/authors.csv", "".join(authors), True
+            )
+            _, summary, _ = driver.execute_query(
+                f"""
+                LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row
+
+                MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
+                ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                """,
+                database_="neo4j",
+            )
+            logger.info("Authors created", method=store_records.__name__, nodes_created=summary.counters.nodes_created)
+            ab_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/abstracts.csv", "".join(abstracts), True
+            )
+            _, summary, _ = driver.execute_query(
+                f"""
+                LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row
+
+                MERGE (a:Abstract {{abstract_url: row.url}})
+                ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                """,
+                database_="neo4j",
+            )
+            logger.info(
+                "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
+            )
+            rel_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/moo/relationships.csv", "".join(relationships), True
+            )
+            result, summary, _ = driver.execute_query(
+                f"""
+                LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row
+                MATCH (start), (end)
+                WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
+                CALL apoc.do.case([
+                    row.label = 'CREATES', 'MERGE (start)-[r:CREATES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'CREATED_BY', 'MERGE (start)-[r:CREATED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'AUTHORS', 'MERGE (start)-[r:AUTHORS]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'AUTHORED_BY', 'MERGE (start)-[r:AUTHORED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'SUMMARIZES', 'MERGE (start)-[r:SUMMARIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'SUMMARIZED_BY', 'MERGE (start)-[r:SUMMARIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'PRIMARILY_CATEGORIZED_BY', 'MERGE (start)-[r:PRIMARILY_CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'CATEGORIZES', 'MERGE (start)-[r:CATEGORIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'CATEGORIZED_BY', 'MERGE (start)-[r:CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})'
+                ], 'RETURN NULL', {{start: start, end: end, uuid: row.uuid}})
+                YIELD value
+                RETURN count(*)
+                """,
+                database_="neo4j",
+            )
+            logger.info(
+                "Relationships created",
                 method=store_records.__name__,
-                num_well_formed_records=len(well_formed_records),
+                relationships_created=result,
             )
     except Exception as e:
         logger.error("An error occurred", method=store_records.__name__, error=str(e))
@@ -215,8 +268,8 @@ def store_records(
         logger.info(
             "Finished storing records",
             method=store_records.__name__,
+            num_records=len(records),
             num_malformed_records=len(malformed_records),
-            num_well_formed_records=len(well_formed_records),
         )
 
 
@@ -285,225 +338,132 @@ def loads_dop_node(
     return loads_dop
 
 
-def null_category_node(driver: Driver) -> ArxivCategory:
+def generate_csv_data(
+    records: List[Dict], loads_dop_uuid: str, bucket: str, records_prefix: str, categories: dict
+) -> Tuple[List[str], List[str], List[str], List[str]]:
     """
-    Creates a null category node in the graph.
+    Generates the CSV data for the arXiv records.
 
     Args:
-        driver (Driver): The neo4j driver.
+        records (List[Dict]): The arXiv records.
+        loads_dop_uuid (str): The UUID of the data operation node for loading the parsed data.
+        bucket (str): The S3 bucket name for storing arXiv records.
+        records_prefix (str): The prefix for the records.
+        categories (dict): The arXiv categories from the graph.
 
     Returns:
-        ArxivCategory: The null category node.
+        Tuple[List[str], List[str], List[str], List[str], List[str]]: The arXiv records, authors, abstracts,
+        relationships, and malformed records as csvs.
     """
-    null_category = ArxivCategory.find(driver, "NULL")
-    if not null_category:
-        null_category = ArxivCategory(driver, "NULL", "NULL")
-        null_category.create()
-    if not null_category:
-        message = "Failed to create NULL category"
-        logger.error(message, method=lambda_handler.__name__)
-        raise RuntimeError(message)
-    return null_category
 
+    abstracts = [Abstract.FIELDS_CSV]
+    arxiv_records = [ArxivRecord.FIELDS_CSV]
+    authors = [Author.FIELDS_CSV]
+    relationships = [BaseModel.RELATIONSHIP_CSV]
 
-def arxiv_record_factory(
-    driver: Driver,
-    record: dict,
-    loads_dop: DataOperation,
-    categories: dict,
-    bucket: str,
-    storage_manager: StorageManager,
-    config: dict,
-) -> ArxivRecord:
-    """
-    Creates an arXiv record node and its related nodes in the graph.
-
-    Args:
-        driver (Driver): The neo4j driver.
-        record (dict): The arXiv record.
-        loads_dop (DataOperation): The data operation node.
-        categories (dict): Memoized ArxivCategory nodes.
-        bucket (str): The S3 bucket name for the parsed arXiv records.
-        storage_manager (StorageManager): The storage manager.
-        config (dict): The configuration for the service.
-
-    Returns:
-        ArxivRecord: The arXiv record node.
-    """
-    arxiv_record = record_node(driver, record)
-    relate_record_dop(driver, arxiv_record, loads_dop)
-    try:
-        relate_categories(driver, arxiv_record, record, categories)
-    except Exception as e:
-        logger.error("Error while relating categories", method=lambda_handler.__name__, error=str(e))
-    for author in record.get(AUTHORS.lower(), ""):
+    malformed_records = []
+    authors_dict = {}
+    required_fields = ["identifier", "title", "authors", "group", "abstract", "date", "abstract_url"]
+    for record in records:
         try:
-            relate_author(driver, arxiv_record, author)
+            if not all(record.get(field) for field in required_fields):
+                malformed_records.append(record)
+                continue
+
+            rec = arxiv_record_factory(record)
+            rec_uuid = rec.split(",")[-1].strip()
+            arxiv_records.append(rec)
+            au_list = author_factory(record, authors_dict)
+            for author in au_list:
+                authors.append(author)
+            ab = abstract_factory(record, bucket, records_prefix)
+            abstracts.append(ab)
+            ab_uuid = ab.split(",")[-1].strip()
+            rels = []
+
+            rels.append(relationship_factory(CREATES, DataOperation.LABEL, loads_dop_uuid, ArxivRecord.LABEL, rec_uuid))
+            rels.append(
+                relationship_factory(CREATED_BY, ArxivRecord.LABEL, rec_uuid, DataOperation.LABEL, loads_dop_uuid)
+            )
+
+            for author in au_list:
+                au_id = author.split(",")[-1].strip()
+                rels.append(relationship_factory(AUTHORS, Author.LABEL, au_id, ArxivRecord.LABEL, rec_uuid))
+                rels.append(relationship_factory(AUTHORED_BY, ArxivRecord.LABEL, rec_uuid, Author.LABEL, au_id))
+
+            rels.append(relationship_factory(SUMMARIZES, Abstract.LABEL, ab_uuid, ArxivRecord.LABEL, rec_uuid))
+            rels.append(relationship_factory(SUMMARIZED_BY, ArxivRecord.LABEL, rec_uuid, Abstract.LABEL, ab_uuid))
+
+            for i, cat in enumerate(record.get("categories", "")):
+                if i == 0:
+                    rels.append(
+                        relationship_factory(
+                            PRIMARILY_CATEGORIZED_BY,
+                            ArxivRecord.LABEL,
+                            rec_uuid,
+                            ArxivCategory.LABEL,
+                            categories.get(cat).uuid,
+                        )
+                    )
+                rels.append(
+                    relationship_factory(
+                        CATEGORIZES, ArxivCategory.LABEL, categories.get(cat).uuid, ArxivRecord.LABEL, rec_uuid
+                    )
+                )
+                rels.append(
+                    relationship_factory(
+                        CATEGORIZED_BY, ArxivRecord.LABEL, rec_uuid, ArxivCategory.LABEL, categories.get(cat).uuid
+                    )
+                )
+                relationships.extend(rels)
+                logger.info(record.get("identifier"), rec=rec, au=au_list, ab=ab, rels=rels)
         except Exception as e:
-            logger.error("Error while relating author", method=lambda_handler.__name__, error=str(e))
-    try:
-        abstract = relate_abstract(driver, arxiv_record, record, bucket, config.get(RECORDS_PREFIX))
-        storage_manager.upload_to_s3(abstract.key, record.get(ABSTRACT, ""))
-    except Exception as e:
-        logger.error(
-            "Error while created, relating, or saving abstract",
-            method=lambda_handler.__name__,
-            identifier=record.get(IDENTIFIER),
-            key=abstract.key if abstract else None,
-            error=str(e),
-        )
-    return arxiv_record
+            logger.error(
+                "An error occurred",
+                method=generate_csv_data.__name__,
+                error=str(e),
+                arxiv_identifier=record.get("identifier") if record else None,
+            )
+            raise e
+    return arxiv_records, authors, abstracts, relationships, malformed_records
 
 
-def record_node(driver: Driver, record: dict) -> ArxivRecord:
-    """
-    Finds or creates an ArxivRecord in the graph.
-
-    Args:
-        driver (Driver): The neo4j driver.
-        record (dict): The arXiv record.
-
-    Returns:
-        ArxivRecord: The ArxivRecord node.
-
-    Raises:
-        RuntimeError: If the ArxivRecord node cannot be created.
-    """
-    arxiv_record = ArxivRecord.find(driver, record.get(IDENTIFIER))
-    if not arxiv_record:
-        arxiv_record = ArxivRecord(driver, record.get(IDENTIFIER), record.get(TITLE), record.get(DATE))
-        arxiv_record.create()
-    if not arxiv_record:
-        logger.error("Failed to create ArxivRecord", method=lambda_handler.__name__)
-        raise RuntimeError("Failed to create ArxivRecord")
-    return arxiv_record
+def escape_csv_value(value: str) -> str:
+    value = value.replace('"', '""')
+    value = value.replace("\n", " ")
+    value = value.replace("\\", "\\\\")
+    return f'"{value}"' if "," in value else value
 
 
-def relate_record_dop(driver: Driver, record: ArxivRecord, dop: DataOperation) -> None:
-    """
-    Relates an arXiv record node to the data operation node that
-    created it.
-
-    Args:
-        driver (Driver): The neo4j driver.
-        record (ArxivRecord): The arXiv record node.
-        dop (DataOperation): The data operation node.
-    """
-    record.relate(driver, CREATES, DataOperation.LABEL, dop.uuid, ArxivRecord.LABEL, record.uuid, True)
-    dop.relate(driver, CREATED_BY, ArxivRecord.LABEL, record.uuid, DataOperation.LABEL, dop.uuid, True)
+def arxiv_record_factory(record) -> str:
+    title = escape_csv_value(record["title"])
+    return f"{record['identifier']},'''{title}''',{record['date']},{str(uuid.uuid4())}\n"
 
 
-def relate_categories(driver: Driver, arxiv_record: ArxivRecord, record: dict, categories: dict) -> dict:
-    """
-    Relates an arXiv record node to its categories.
-
-    Args:
-        driver (Driver): The neo4j driver.
-        arxiv_record (ArxivRecord): The arXiv record node.
-        record (dict): The arXiv record data.
-        categories (List): The list of arXiv categories already seen.
-
-    Returns:
-        List: The list of arXiv categories.
-    """
-    for i, category in enumerate(record.get("categories", [])):
-        relate_category(driver, arxiv_record, category, categories, i == 0)
-    return categories
-
-
-def relate_category(
-    driver: Driver, arxiv_record: ArxivRecord, category: str, categories: dict, primary: bool = False
-) -> ArxivCategory:
-    """
-    Relates an arXiv record node to its categories.
-
-    Args:
-        driver (Driver): The neo4j driver.
-        arxiv_record (ArxivRecord): The arXiv record node.
-        category (str): The category of the arXiv record.
-        categories (List): The list of arXiv categories.
-        primary (bool): True if the category is the primary category.
-
-    Returns:
-        ArxivCategory: The category node.
-    """
-    arxiv_category = categories.get(category, None)
-    if not arxiv_category:
-        arxiv_category = ArxivCategory.find(driver, category)
-    if not arxiv_category:
-        logger.error("Failed to find ArxivCategory", method=relate_category.__name__, category=category)
-        return None
-    if primary:
-        arxiv_record.relate(
-            driver,
-            PRIMARILY_CATEGORIZED_BY,
-            ArxivRecord.LABEL,
-            arxiv_record.uuid,
-            ArxivCategory.LABEL,
-            arxiv_category.uuid,
-            True,
-        )
-    arxiv_record.relate(
-        driver, CATEGORIZED_BY, ArxivRecord.LABEL, arxiv_record.uuid, ArxivCategory.LABEL, arxiv_category.uuid, True
-    )
-    arxiv_record.relate(
-        driver, CATEGORIZES, ArxivCategory.LABEL, arxiv_category.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True
-    )
-    return arxiv_category
+def author_factory(record: dict, authors_dict: dict) -> list:
+    auths = []
+    for author in record.get("authors", []):
+        last_name = escape_csv_value(author.get("last_name", "NULL"))
+        first_name = escape_csv_value(author.get("first_name", "NULL"))
+        author_uuid = authors_dict.get(f"{last_name},{first_name}", str(uuid.uuid4()))
+        authors_dict[f"{last_name},{first_name}"] = author_uuid
+        if last_name == "NULL" or first_name == "NULL":
+            logger.error(
+                "Could not parse author properly",
+                identifier=record.get("identifier"),
+                authors=record.get("authors"),
+                author=author,
+            )
+        else:
+            auths.append(f"'''{last_name}''','''{first_name}''',{author_uuid}\n")
+    return auths
 
 
-def relate_abstract(driver: Driver, arxiv_record: ArxivRecord, record: dict, bucket: str, key_prefix: str) -> Abstract:
-    """
-    creates an abstract node and relates it to the arXiv record node.
-
-    Args:
-        driver (Driver): The neo4j driver.
-        arxiv_record (ArxivRecord): The arXiv record node.
-        record (dict): The arXiv record.
-        bucket (str): The S3 bucket name for abstract_storage.
-        key_prefix (str): The key prefix for the abstract.
-
-    Returns:
-        Abstract: The abstract node.
-    """
-    abstract = Abstract.find(driver, record.get(ABSTRACT_URL))
-    if abstract:
-        return abstract
-    abstract_key = f"{key_prefix}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
-    abstract = Abstract(driver, record.get(ABSTRACT_URL), bucket, abstract_key)
-    abstract.create()
-    if not abstract:
-        logger.error("Failed to create Abstract", method=relate_abstract.__name__)
-        raise RuntimeError("Failed to create Abstract")
-    arxiv_record.relate(
-        driver, SUMMARIZED_BY, ArxivRecord.LABEL, arxiv_record.uuid, Abstract.LABEL, abstract.uuid, True
-    )
-    abstract.relate(driver, SUMMARIZES, Abstract.LABEL, abstract.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True)
-    return abstract
+def abstract_factory(record: dict, bucket: str, records_prefix: str) -> str:
+    key = f"{records_prefix}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
+    abstract_url = escape_csv_value(record.get(ABSTRACT_URL, ""))
+    return f"{abstract_url},{bucket},{key},{str(uuid.uuid4())}\n"
 
 
-def relate_author(driver: Driver, arxiv_record: ArxivRecord, author: dict) -> Author:
-    """
-    Relates an arXiv record node to an author node.
-
-    Args:
-        driver (Driver): The neo4j driver.
-        arxiv_record (ArxivRecord): The arXiv record node.
-        author (str): The author of the arXiv record.
-
-    Returns:
-        Author: The author node.
-
-    Raises:
-        RuntimeError: If the author node cannot be found or created.
-    """
-    author_node = Author.find(driver, author.get("last_name"), author.get("first_name"))
-    if not author_node:
-        author_node = Author(driver, author.get("last_name"), author.get("first_name"))
-        author_node.create()
-    if not author_node:
-        logger.error("Failed to create Author", method=relate_author.__name__)
-        raise RuntimeError("Failed to create Author")
-    arxiv_record.relate(driver, AUTHORED_BY, ArxivRecord.LABEL, arxiv_record.uuid, Author.LABEL, author_node.uuid, True)
-    author_node.relate(driver, AUTHORS, Author.LABEL, author_node.uuid, ArxivRecord.LABEL, arxiv_record.uuid, True)
-    return author_node
+def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
+    return f"{label},{start_label},{start_uuid},{end_label},{end_uuid},{str(uuid.uuid4())}\n"
