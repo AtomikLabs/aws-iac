@@ -195,7 +195,7 @@ def store_records(
             _, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row
-
+                FIELDTERMINATOR '|'
                 MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
                 ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
@@ -210,7 +210,7 @@ def store_records(
             _, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row
-
+                FIELDTERMINATOR '|'
                 MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
                 ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
@@ -223,7 +223,7 @@ def store_records(
             _, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row
-
+                FIELDTERMINATOR '|'
                 MERGE (a:Abstract {{abstract_url: row.url}})
                 ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
@@ -233,11 +233,12 @@ def store_records(
                 "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
             )
             rel_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/moo/relationships.csv", "".join(relationships), True
+                f"{config.get(RECORDS_PREFIX)}/relationships.csv", "".join(relationships), True
             )
             result, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row
+                FIELDTERMINATOR '|'
                 MATCH (start), (end)
                 WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
                 CALL apoc.do.case([
@@ -437,7 +438,7 @@ def escape_csv_value(value: str) -> str:
 
 def arxiv_record_factory(record) -> str:
     title = escape_csv_value(record["title"])
-    return f"{record['identifier']},'''{title}''',{record['date']},{str(uuid.uuid4())}\n"
+    return f"{record['identifier'].replace("|", "\|")}|'''{title.replace("|", "\|")}'''|{record['date']}|{str(uuid.uuid4())}\n"
 
 
 def author_factory(record: dict, authors_dict: dict) -> list:
@@ -455,15 +456,15 @@ def author_factory(record: dict, authors_dict: dict) -> list:
                 author=author,
             )
         else:
-            auths.append(f"'''{last_name}''','''{first_name}''',{author_uuid}\n")
+            auths.append(f"'''{last_name.replace("|", "\|")}'''|'''{first_name.replace("|", "\|")}'''|{author_uuid}\n")
     return auths
 
 
 def abstract_factory(record: dict, bucket: str, records_prefix: str) -> str:
     key = f"{records_prefix}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
     abstract_url = escape_csv_value(record.get(ABSTRACT_URL, ""))
-    return f"{abstract_url},{bucket},{key},{str(uuid.uuid4())}\n"
+    return f"{abstract_url.replace("|", "\|")}|{bucket}|{key}|{str(uuid.uuid4())}\n"
 
 
 def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
-    return f"{label},{start_label},{start_uuid},{end_label},{end_uuid},{str(uuid.uuid4())}\n"
+    return f"{label.replace("|", "\|")}|{start_label.replace("|", "\|")}|{start_uuid}|{end_label.replace("|", "\|")}|{end_uuid}|{str(uuid.uuid4())}\n"
