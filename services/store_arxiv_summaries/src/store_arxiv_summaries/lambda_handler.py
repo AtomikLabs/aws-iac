@@ -188,6 +188,7 @@ def store_records(
             arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
                 records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
             )
+            logger.info("CSV", records=arxiv_records)
             ar_presigned_url = storage_manager.upload_to_s3(
                 f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
             )
@@ -196,7 +197,7 @@ def store_records(
                 LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row
 
                 MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
-                ON CREATE SET a.title = "row.title", a.date = row.date, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}});
+                ON CREATE SET a.title = row.title, a.date = row.date, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
                 database_="neo4j",
             )
@@ -210,8 +211,8 @@ def store_records(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row
 
-                MERGE (a:Author {{last_name: "row.last_name", first_name: row.first_name}})
-                ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}});
+                MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
+                ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
                 database_="neo4j",
             )
@@ -223,8 +224,8 @@ def store_records(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row
 
-                MERGE (a:Abstract {{abstract_url: row.abstract_url}})
-                ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}});
+                MERGE (a:Abstract {{abstract_url: row.url}})
+                ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
                 database_="neo4j",
             )
@@ -232,16 +233,18 @@ def store_records(
                 "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
             )
             rel_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/relationships.csv", "".join(relationships), True
+                f"{config.get(RECORDS_PREFIX)}/moo/relationships.csv", "".join(relationships), True
             )
             _, summary, _ = driver.execute_query(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row
-
                 MATCH (start), (end)
                 WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
-                MERGE (start)-[r:row.label]->(end)
-                ON CREATE SET r.uuid = row.uuid, r.created = datetime({{timezone: 'America/Vancouver'}}), r.last_modified = datetime({{timezone: 'America/Vancouver'}});
+                CALL apoc.cypher.run('
+                    MERGE (start)-[r:' + row.label + ']->(end)
+                    ON CREATE SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})
+                ', {{start: start, end: end, uuid: row.uuid}}) YIELD value
+                RETURN count(*)
                 """,
                 database_="neo4j",
             )
@@ -351,25 +354,23 @@ def generate_csv_data(
     relationships = [BaseModel.RELATIONSHIP_CSV]
 
     malformed_records = []
+    authors_dict = {}
     required_fields = ["identifier", "title", "authors", "group", "abstract", "date", "abstract_url"]
-    for record in records:
+    for record in records[:5]:
         try:
-            if not all(field in record for field in required_fields):
+            if not all(record.get(field) for field in required_fields):
                 malformed_records.append(record)
                 continue
 
             rec = arxiv_record_factory(record)
             rec_uuid = rec.split(",")[-1].strip()
             arxiv_records.append(rec)
-
-            au_list = author_factory(record)
+            au_list = author_factory(record, authors_dict)
             for author in au_list:
                 authors.append(author)
-
             ab = abstract_factory(record, bucket, records_prefix)
             abstracts.append(ab)
             ab_uuid = ab.split(",")[-1].strip()
-
             rels = []
 
             rels.append(relationship_factory(CREATES, DataOperation.LABEL, loads_dop_uuid, ArxivRecord.LABEL, rec_uuid))
@@ -407,6 +408,7 @@ def generate_csv_data(
                     )
                 )
                 relationships.extend(rels)
+                logger.info(record.get("identifier"), rec=rec, au=au_list, ab=ab, rels=rels)
         except Exception as e:
             logger.error(
                 "An error occurred",
@@ -430,12 +432,22 @@ def arxiv_record_factory(record) -> str:
     return f"{record['identifier']},{title},{record['date']},{str(uuid.uuid4())}\n"
 
 
-def author_factory(record: dict) -> list:
+def author_factory(record: dict, authors_dict: dict) -> list:
     auths = []
-    for x in record.get("authors", []):
-        last_name = escape_csv_value(x.get("last_name", ""))
-        first_name = escape_csv_value(x.get("first_name", ""))
-        auths.append(f"{last_name},{first_name},{str(uuid.uuid4())}\n")
+    for author in record.get("authors", []):
+        last_name = escape_csv_value(author.get("last_name", "NULL"))
+        first_name = escape_csv_value(author.get("first_name", "NULL"))
+        author_uuid = authors_dict.get(f"{last_name},{first_name}", str(uuid.uuid4()))
+        authors_dict[f"{last_name},{first_name}"] = author_uuid
+        if last_name == "NULL" or first_name == "NULL":
+            logger.error(
+                "Could not parse author properly",
+                identifier=record.get("identifier"),
+                authors=record.get("authors"),
+                author=author,
+            )
+        else:
+            auths.append(f"{last_name},{first_name},{author_uuid}\n")
     return auths
 
 

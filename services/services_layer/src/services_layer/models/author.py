@@ -26,7 +26,7 @@ logger.setLevel(logging.INFO)
 
 class Author(BaseModel):
 
-    FIELDS_CSV = "last_name,first_name,uuid,created,last_modified"
+    FIELDS_CSV = "last_name,first_name,uuid,created,last_modified\n"
     LABEL = "Author"
 
     def __init__(self, driver: Driver = None, last_name: str = "", first_name: str = ""):
