@@ -234,7 +234,7 @@ def get_earliest_date(config: dict) -> str:
         if records:
             try:
                 record = records[0]
-                created = record.data().get("r", {}).get("created", None).date()
+                created = record.data().get("r", {}).get("date", None)
                 if created:
                     default = max(default, created)
             except Exception as e:

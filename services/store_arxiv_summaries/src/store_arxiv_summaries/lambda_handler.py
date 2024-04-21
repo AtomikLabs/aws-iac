@@ -197,7 +197,7 @@ def store_records(
                 LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row
 
                 MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
-                ON CREATE SET a.title = row.title, a.date = row.date, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
                 database_="neo4j",
             )
