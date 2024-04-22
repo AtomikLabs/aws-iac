@@ -234,7 +234,8 @@ def get_earliest_date(config: dict) -> str:
         if records:
             try:
                 record = records[0]
-                next_date = record.data().get("r", {}).get("date", None) + timedelta(days=1)
+                next_date = record.data().get("r", {}).get("date", None).to_native()
+                next_date = next_date + timedelta(days=1)
                 if next_date:
                     default = max(default, next_date)
             except Exception as e:
