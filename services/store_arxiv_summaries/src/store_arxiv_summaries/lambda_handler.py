@@ -253,7 +253,7 @@ def store_records(
                     """,
                     database_="neo4j",
                 )
-                
+
                 tx.commit()
                 logger.info("Transaction committed", method=store_records.__name__)
                 nodes_created_arxiv_records = result_arxiv_records.single()["nodes_created"]
@@ -273,13 +273,14 @@ def store_records(
                 )
     except Exception as e:
         tx.rollback()
-        logger.error("An error occurred while committing arXiv records. Transaction rollbed back.", method=store_records.__name__, error=str(e))
+        logger.error(
+            "An error occurred while committing arXiv records. Transaction rollbed back.",
+            method=store_records.__name__,
+            error=str(e),
+        )
         raise e
     finally:
-        logger.info(
-            "Finished storing records",
-            method=store_records.__name__
-        )
+        logger.info("Finished storing records", method=store_records.__name__)
 
 
 def parsed_data_node(driver: Driver, key: str) -> Data:
