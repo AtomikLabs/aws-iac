@@ -205,7 +205,7 @@ def store_records(
                     WITH row
                     MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
                     ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                }} IN TRANSACTIONS OF 100 ROWS                
+                }} IN TRANSACTIONS OF 100 ROWS
                 """,
                 database_="neo4j",
             )
