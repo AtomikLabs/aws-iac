@@ -188,7 +188,12 @@ def store_records(
             possible_new_records = filter_new_records(driver, records)
 
             arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
-                possible_new_records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories, storage_manager
+                possible_new_records,
+                loads_dop.uuid,
+                bucket_name,
+                config.get(RECORDS_PREFIX),
+                categories,
+                storage_manager,
             )
             ar_presigned_url = storage_manager.upload_to_s3(
                 f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
