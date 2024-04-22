@@ -209,7 +209,6 @@ def store_records(
                 )
                 result_arxiv_records = tx.run(
                     f"""
-                    USING PERIODIC COMMIT 500
                     LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
                     MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
                     ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
@@ -217,7 +216,6 @@ def store_records(
                 )
                 result_authors = tx.run(
                     f"""
-                    USING PERIODIC COMMIT 500
                     LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
                     MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
                     ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
@@ -225,7 +223,6 @@ def store_records(
                 )
                 result_abstracts = tx.run(
                     f"""
-                    USING PERIODIC COMMIT 500
                     LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
                     MERGE (a:Abstract {{abstract_url: row.url}})
                     ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
@@ -233,7 +230,6 @@ def store_records(
                 )
                 result_relationships = tx.run(
                     f"""
-                    USING PERIODIC COMMIT 500
                     LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row FIELDTERMINATOR '|'
                     MATCH (start), (end)
                     WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
@@ -422,7 +418,6 @@ def generate_csv_data(
             for author in au_list:
                 authors.append(author)
             ab = abstract_factory(record, bucket, records_prefix)
-            storage_manager.upload_to_s3(ab[2], record.get(ABSTRACT))
             abstracts.append("|".join(ab) + "\n")
             ab_uuid = ab[-1].strip()
             rels = []
