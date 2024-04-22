@@ -188,7 +188,7 @@ def store_records(
             possible_new_records = filter_new_records(driver, records)
 
             arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
-                possible_new_records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
+                possible_new_records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories, storage_manager
             )
             ar_presigned_url = storage_manager.upload_to_s3(
                 f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
@@ -408,8 +408,9 @@ def generate_csv_data(
             for author in au_list:
                 authors.append(author)
             ab = abstract_factory(record, bucket, records_prefix)
-            abstracts.append(ab)
-            ab_uuid = ab.split("|")[-1].strip()
+            storage_manager.upload_to_s3(ab[2], record.get(ABSTRACT))
+            abstracts.append("|".join(ab) + "\n")
+            ab_uuid = ab[-1].strip()
             rels = []
 
             rels.append(relationship_factory(CREATES, DataOperation.LABEL, loads_dop_uuid, ArxivRecord.LABEL, rec_uuid))
@@ -494,7 +495,7 @@ def author_factory(record: dict, authors_dict: dict) -> list:
 def abstract_factory(record: dict, bucket: str, records_prefix: str) -> list:
     key = f"{records_prefix}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
     abstract_url = escape_csv_value(record.get(ABSTRACT_URL, ""))
-    return f"{abstract_url}|{bucket}|{key}|{str(uuid.uuid4())}\n"
+    return [abstract_url, bucket, key, str(uuid.uuid4())]
 
 
 def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
