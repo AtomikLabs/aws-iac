@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import uuid
 from datetime import timedelta
 
 import defusedxml.ElementTree as ET
@@ -350,6 +351,6 @@ def get_storage_key(config: dict) -> str:
         logger.error("Config is required", method=get_storage_key.__name__)
         raise ValueError("Config is required")
     key_date = utils.get_storage_key_date()
-    key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/arxiv-{key_date}.json"
+    key = f"{config.get(DATA_INGESTION_KEY_PREFIX)}/{str(uuid.uuid4())}-arxiv-{key_date}.json"
     logger.info("Storage key", method=get_storage_key.__name__, key=key)
     return key

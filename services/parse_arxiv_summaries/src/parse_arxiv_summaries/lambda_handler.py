@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import urllib.parse
+import uuid
 
 import defusedxml.ElementTree as ET
 import structlog
@@ -88,14 +89,14 @@ def lambda_handler(event, context):
                 logger.error(message, method=lambda_handler.__name__)
                 raise RuntimeError(message)
             chunk_num = 0
-            print(len(extracted_data["records"]))
-            for chunk in chunker(extracted_data["records"], len(extracted_data["records"]) + 1):
+            for chunk in chunker(extracted_data["records"], 500):
                 parsed_data = None
                 try:
                     content = {}
                     content["records"] = chunk
                     content_str = json.dumps(content)
                     output_key = get_output_key(config)
+                    logger.info("Chunk", key=output_key, records=len(chunk))
                     storage_manager.upload_to_s3(output_key, content_str)
                     parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
                     parsed_data.create()
@@ -273,7 +274,7 @@ def get_output_key(config) -> str:
         str: The output key.
     """
     key_date = utils.get_storage_key_date()
-    return f"{config[ETL_KEY_PREFIX]}/parsed_arxiv_summaries-{key_date}.json"
+    return f"{config[ETL_KEY_PREFIX]}/{str(uuid.uuid4())}-parsed_arxiv_summaries-{key_date}.json"
 
 
 def chunker(seq: list, size: int) -> list:

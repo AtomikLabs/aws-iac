@@ -197,80 +197,67 @@ def store_records(
             )
             with driver.session() as session:
                 tx = session.begin_transaction()
-                ar_presigned_url = storage_manager.upload_to_s3(
-                    f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
-                )
-                au_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv"
-                au_presigned_url = storage_manager.upload_to_s3(au_key, "".join(authors), True)
-                ab_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv"
-                ab_presigned_url = storage_manager.upload_to_s3(ab_key, "".join(abstracts), True)
-                rel_presigned_url = storage_manager.upload_to_s3(
-                    f"{config.get(RECORDS_PREFIX)}/relationships.csv", "".join(relationships), True
-                )
-                result_arxiv_records = tx.run(
-                    f"""
-                    LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
-                    MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
-                    ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                    """
-                )
-                result_authors = tx.run(
-                    f"""
-                    LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
-                    MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
-                    ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                    """
-                )
-                result_abstracts = tx.run(
-                    f"""
-                    LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
-                    MERGE (a:Abstract {{abstract_url: row.url}})
-                    ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                    """
-                )
-                result_relationships = tx.run(
-                    f"""
-                    LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row FIELDTERMINATOR '|'
-                    MATCH (start), (end)
-                    WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
-                    CALL apoc.do.case([
-                        row.label = 'CREATES', 'MERGE (start)-[r:CREATES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
-                        row.label = 'CREATED_BY', 'MERGE (start)-[r:CREATED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
-                        row.label = 'AUTHORS', 'MERGE (start)-[r:AUTHORS]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
-                        row.label = 'AUTHORED_BY', 'MERGE (start)-[r:AUTHORED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
-                        row.label = 'SUMMARIZES', 'MERGE (start)-[r:SUMMARIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
-                        row.label = 'SUMMARIZED_BY', 'MERGE (start)-[r:SUMMARIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
-                        row.label = 'PRIMARILY_CATEGORIZED_BY', 'MERGE (start)-[r:PRIMARILY_CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
-                        row.label = 'CATEGORIZES', 'MERGE (start)-[r:CATEGORIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
-                        row.label = 'CATEGORIZED_BY', 'MERGE (start)-[r:CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})'
-                    ], 'RETURN NULL', {{start: start, end: end, uuid: row.uuid}})
-                    YIELD value
-                    RETURN count(*)
-                    """,
-                    database_="neo4j",
-                )
+                try:
+                    ar_presigned_url = storage_manager.upload_to_s3(
+                        f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
+                    )
+                    au_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv"
+                    au_presigned_url = storage_manager.upload_to_s3(au_key, "".join(authors), True)
+                    ab_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv"
+                    ab_presigned_url = storage_manager.upload_to_s3(ab_key, "".join(abstracts), True)
+                    rel_presigned_url = storage_manager.upload_to_s3(
+                        f"{config.get(RECORDS_PREFIX)}/relationships.csv", "".join(relationships), True
+                    )
+                    result_arxiv_records = tx.run(
+                        f"""
+                        LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
+                        MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
+                        ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                        """
+                    )
+                    result_authors = tx.run(
+                        f"""
+                        LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
+                        MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
+                        ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                        """
+                    )
+                    result_abstracts = tx.run(
+                        f"""
+                        LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
+                        MERGE (a:Abstract {{abstract_url: row.url}})
+                        ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                        """
+                    )
+                    result_relationships = tx.run(
+                        f"""
+                        LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row FIELDTERMINATOR '|'
+                        MATCH (start), (end)
+                        WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
+                        CALL apoc.do.case([
+                            row.label = 'CREATES', 'MERGE (start)-[r:CREATES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                            row.label = 'CREATED_BY', 'MERGE (start)-[r:CREATED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                            row.label = 'AUTHORS', 'MERGE (start)-[r:AUTHORS]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                            row.label = 'AUTHORED_BY', 'MERGE (start)-[r:AUTHORED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                            row.label = 'SUMMARIZES', 'MERGE (start)-[r:SUMMARIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                            row.label = 'SUMMARIZED_BY', 'MERGE (start)-[r:SUMMARIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                            row.label = 'PRIMARILY_CATEGORIZED_BY', 'MERGE (start)-[r:PRIMARILY_CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                            row.label = 'CATEGORIZES', 'MERGE (start)-[r:CATEGORIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                            row.label = 'CATEGORIZED_BY', 'MERGE (start)-[r:CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})'
+                        ], 'RETURN NULL', {{start: start, end: end, uuid: row.uuid}})
+                        YIELD value
+                        RETURN count(*)
+                        """,
+                        database_="neo4j",
+                    )
 
-                tx.commit()
-                logger.info("Transaction committed", method=store_records.__name__)
-                nodes_created_arxiv_records = result_arxiv_records.single()["nodes_created"]
-                nodes_created_authors = result_authors.single()["nodes_created"]
-                nodes_created_abstracts = result_abstracts.single()["nodes_created"]
-                relationships_created = result_relationships.single()["count(*)"]
-
-                logger.info(
-                    "Nodes and relationships created",
-                    method=store_records.__name__,
-                    nodes_created_arxiv_records=nodes_created_arxiv_records,
-                    nodes_created_authors=nodes_created_authors,
-                    nodes_created_abstracts=nodes_created_abstracts,
-                    relationships_created=relationships_created,
-                    possible_new_records=len(possible_new_records),
-                    records=len(records),
-                )
+                    tx.commit()
+                except Exception as e:
+                    tx.rollback()
+                    logger.error("Error during neo4j transaction.", error=str(e))
     except Exception as e:
-        tx.rollback()
         logger.error(
-            "An error occurred while committing arXiv records. Transaction rollbed back.",
+            "An error occurred while committing arXiv records.",
             method=store_records.__name__,
             error=str(e),
         )
@@ -418,6 +405,7 @@ def generate_csv_data(
             for author in au_list:
                 authors.append(author)
             ab = abstract_factory(record, bucket, records_prefix)
+            storage_manager.upload_to_s3(ab[2], record.get(ABSTRACT))
             abstracts.append("|".join(ab) + "\n")
             ab_uuid = ab[-1].strip()
             rels = []
