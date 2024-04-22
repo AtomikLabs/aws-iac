@@ -195,61 +195,46 @@ def store_records(
                 categories,
                 storage_manager,
             )
-            ar_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
-            )
-            _, summary, _ = driver.execute_query(
-                f"""
-                LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
-                CALL {{
-                    WITH row
+            with driver.session() as session:
+                tx = session.begin_transaction()
+                ar_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
+                )
+                au_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv"
+                au_presigned_url = storage_manager.upload_to_s3(au_key, "".join(authors), True)
+                ab_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv"
+                ab_presigned_url = storage_manager.upload_to_s3(ab_key, "".join(abstracts), True)
+                rel_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/relationships.csv", "".join(relationships), True
+                )
+                result_arxiv_records = tx.run(
+                    f"""
+                    USING PERIODIC COMMIT 500
+                    LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
                     MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
                     ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                }} IN TRANSACTIONS OF 100 ROWS
-                """,
-                database_="neo4j",
-            )
-            logger.info(
-                "Arxiv records created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
-            )
-            au_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv"
-            au_presigned_url = storage_manager.upload_to_s3(au_key, "".join(authors), True)
-            _, summary, _ = driver.execute_query(
-                f"""
-                LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
-                CALL {{
-                    WITH row
+                    """
+                )
+                result_authors = tx.run(
+                    f"""
+                    USING PERIODIC COMMIT 500
+                    LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
                     MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
                     ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                }} IN TRANSACTIONS OF 100 ROWS
-                """,
-                database_="neo4j",
-            )
-            logger.info("Authors created", method=store_records.__name__, nodes_created=summary.counters.nodes_created)
-            ab_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv"
-            ab_presigned_url = storage_manager.upload_to_s3(ab_key, "".join(abstracts), True)
-            _, summary, _ = driver.execute_query(
-                f"""
-                LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
-                CALL {{
-                    WITH row
+                    """
+                )
+                result_abstracts = tx.run(
+                    f"""
+                    USING PERIODIC COMMIT 500
+                    LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
                     MERGE (a:Abstract {{abstract_url: row.url}})
                     ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                }} IN TRANSACTIONS OF 100 ROWS
-                """,
-                database_="neo4j",
-            )
-            logger.info(
-                "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
-            )
-            rel_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/relationships.csv", "".join(relationships), True
-            )
-            result, summary, _ = driver.execute_query(
-                f"""
-                LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row FIELDTERMINATOR '|'
-                CALL {{
-                    WITH row
+                    """
+                )
+                result_relationships = tx.run(
+                    f"""
+                    USING PERIODIC COMMIT 500
+                    LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row FIELDTERMINATOR '|'
                     MATCH (start), (end)
                     WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
                     CALL apoc.do.case([
@@ -265,24 +250,35 @@ def store_records(
                     ], 'RETURN NULL', {{start: start, end: end, uuid: row.uuid}})
                     YIELD value
                     RETURN count(*)
-                }} IN TRANSACTIONS OF 100 ROWS
-                """,
-                database_="neo4j",
-            )
-            logger.info(
-                "Relationships created",
-                method=store_records.__name__,
-                relationships_created=result,
-            )
+                    """,
+                    database_="neo4j",
+                )
+                
+                tx.commit()
+                logger.info("Transaction committed", method=store_records.__name__)
+                nodes_created_arxiv_records = result_arxiv_records.single()["nodes_created"]
+                nodes_created_authors = result_authors.single()["nodes_created"]
+                nodes_created_abstracts = result_abstracts.single()["nodes_created"]
+                relationships_created = result_relationships.single()["count(*)"]
+
+                logger.info(
+                    "Nodes and relationships created",
+                    method=store_records.__name__,
+                    nodes_created_arxiv_records=nodes_created_arxiv_records,
+                    nodes_created_authors=nodes_created_authors,
+                    nodes_created_abstracts=nodes_created_abstracts,
+                    relationships_created=relationships_created,
+                    possible_new_records=len(possible_new_records),
+                    records=len(records),
+                )
     except Exception as e:
-        logger.error("An error occurred", method=store_records.__name__, error=str(e))
+        tx.rollback()
+        logger.error("An error occurred while committing arXiv records. Transaction rollbed back.", method=store_records.__name__, error=str(e))
         raise e
     finally:
         logger.info(
             "Finished storing records",
-            method=store_records.__name__,
-            num_records=len(records),
-            num_malformed_records=len(malformed_records),
+            method=store_records.__name__
         )
 
 
