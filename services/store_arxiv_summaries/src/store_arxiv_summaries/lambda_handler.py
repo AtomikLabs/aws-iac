@@ -185,19 +185,19 @@ def store_records(
             )
 
             categories = {c.code: c for c in ArxivCategory.find_all(driver)}
+            possible_new_records = filter_new_records(driver, records)
+
             arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
-                records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
+                possible_new_records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
             )
-            logger.info("CSV", records=arxiv_records)
             ar_presigned_url = storage_manager.upload_to_s3(
                 f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
             )
             _, summary, _ = driver.execute_query(
                 f"""
-                LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row
-
+                LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
-                ON CREATE SET a.title = row.title, a.date = row.date, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
                 database_="neo4j",
             )
@@ -209,8 +209,7 @@ def store_records(
             )
             _, summary, _ = driver.execute_query(
                 f"""
-                LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row
-
+                LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
                 ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
@@ -222,8 +221,7 @@ def store_records(
             )
             _, summary, _ = driver.execute_query(
                 f"""
-                LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row
-
+                LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:Abstract {{abstract_url: row.url}})
                 ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """,
@@ -233,11 +231,11 @@ def store_records(
                 "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
             )
             rel_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/moo/relationships.csv", "".join(relationships), True
+                f"{config.get(RECORDS_PREFIX)}/relationships.csv", "".join(relationships), True
             )
             result, summary, _ = driver.execute_query(
                 f"""
-                LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row
+                LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row FIELDTERMINATOR '|'
                 MATCH (start), (end)
                 WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
                 CALL apoc.do.case([
@@ -338,6 +336,35 @@ def loads_dop_node(
     return loads_dop
 
 
+def filter_new_records(driver: Driver, records: dict) -> list:
+    """
+    Filters out records that are already in the graph.
+
+    Args:
+        driver (Driver): The neo4j driver.
+        records (dict): The records to filter.
+
+    Returns:
+        list: The identifiers of the new records.
+    """
+    params = {"identifiers": [record.get("identifier") for record in records]}
+    result, _, _ = driver.execute_query(
+        """
+        UNWIND $identifiers AS identifier
+        WITH identifier
+        WHERE NOT EXISTS {
+            MATCH (r:ArxivRecord {identifier: identifier})
+        }
+        RETURN identifier
+        """,
+        params,
+        database="neo4j",
+    )
+    new_identifiers = [record["identifier"] for record in result]
+    new_records = [record for record in records if record.get("identifier") in new_identifiers]
+    return new_records
+
+
 def generate_csv_data(
     records: List[Dict], loads_dop_uuid: str, bucket: str, records_prefix: str, categories: dict
 ) -> Tuple[List[str], List[str], List[str], List[str]]:
@@ -371,14 +398,14 @@ def generate_csv_data(
                 continue
 
             rec = arxiv_record_factory(record)
-            rec_uuid = rec.split(",")[-1].strip()
+            rec_uuid = rec.split("|")[-1].strip()
             arxiv_records.append(rec)
             au_list = author_factory(record, authors_dict)
             for author in au_list:
                 authors.append(author)
             ab = abstract_factory(record, bucket, records_prefix)
             abstracts.append(ab)
-            ab_uuid = ab.split(",")[-1].strip()
+            ab_uuid = ab.split("|")[-1].strip()
             rels = []
 
             rels.append(relationship_factory(CREATES, DataOperation.LABEL, loads_dop_uuid, ArxivRecord.LABEL, rec_uuid))
@@ -387,7 +414,7 @@ def generate_csv_data(
             )
 
             for author in au_list:
-                au_id = author.split(",")[-1].strip()
+                au_id = author.split("|")[-1].strip()
                 rels.append(relationship_factory(AUTHORS, Author.LABEL, au_id, ArxivRecord.LABEL, rec_uuid))
                 rels.append(relationship_factory(AUTHORED_BY, ArxivRecord.LABEL, rec_uuid, Author.LABEL, au_id))
 
@@ -416,7 +443,6 @@ def generate_csv_data(
                     )
                 )
                 relationships.extend(rels)
-                logger.info(record.get("identifier"), rec=rec, au=au_list, ab=ab, rels=rels)
         except Exception as e:
             logger.error(
                 "An error occurred",
@@ -432,12 +458,14 @@ def escape_csv_value(value: str) -> str:
     value = value.replace('"', '""')
     value = value.replace("\n", " ")
     value = value.replace("\\", "\\\\")
+    value = value.replace("\t", " ")
+    value = value.replace("|", "\|")  # noqa: W605
     return f'"{value}"' if "," in value else value
 
 
 def arxiv_record_factory(record) -> str:
     title = escape_csv_value(record["title"])
-    return f"{record['identifier']},'''{title}''',{record['date']},{str(uuid.uuid4())}\n"
+    return f"{record['identifier']}|'''{title}'''|{record['date']}|{str(uuid.uuid4())}\n"
 
 
 def author_factory(record: dict, authors_dict: dict) -> list:
@@ -455,15 +483,15 @@ def author_factory(record: dict, authors_dict: dict) -> list:
                 author=author,
             )
         else:
-            auths.append(f"'''{last_name}''','''{first_name}''',{author_uuid}\n")
+            auths.append(f"'''{last_name}'''|'''{first_name}'''|{author_uuid}\n")
     return auths
 
 
 def abstract_factory(record: dict, bucket: str, records_prefix: str) -> str:
     key = f"{records_prefix}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
     abstract_url = escape_csv_value(record.get(ABSTRACT_URL, ""))
-    return f"{abstract_url},{bucket},{key},{str(uuid.uuid4())}\n"
+    return f"{abstract_url}|{bucket}|{key}|{str(uuid.uuid4())}\n"
 
 
 def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
-    return f"{label},{start_label},{start_uuid},{end_label},{end_uuid},{str(uuid.uuid4())}\n"
+    return f"{label}|{start_label}|{start_uuid}|{end_label}|{end_uuid}|{str(uuid.uuid4())}\n"

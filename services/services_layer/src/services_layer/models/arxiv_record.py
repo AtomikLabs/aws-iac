@@ -27,7 +27,7 @@ logger.setLevel(logging.INFO)
 
 class ArxivRecord(BaseModel):
 
-    FIELDS_CSV = "arxiv_id,title,date,uuid,created,last_modified\n"
+    FIELDS_CSV = "arxiv_id|title|date|uuid|created|last_modified\n"
     LABEL = "ArxivRecord"
 
     def __init__(self, driver: Driver = None, arxiv_id: str = "", title: str = "", date: str = ""):
