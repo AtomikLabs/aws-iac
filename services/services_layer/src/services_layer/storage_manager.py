@@ -85,7 +85,7 @@ class StorageManager:
         s3 = boto3.resource("s3")
         obj = s3.Object(self.bucket_name, key)
         body = obj.get()["Body"].read()
-        logger.info("Loaded data from S3 bucket", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
+        logger.debug("Loaded data from S3 bucket", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
         return body
 
     def upload_to_s3(self, key: str, content: str, return_presigned_url: bool = False) -> str:
@@ -110,11 +110,11 @@ class StorageManager:
             self.logger.error("Invalid content", content=content)
             raise ValueError("content must be a non-empty string")
 
-        self.logger.info("Persisting content to S3", key=key, bucket_name=self.bucket_name)
+        self.logger.debug("Persisting content to S3", key=key, bucket_name=self.bucket_name)
         try:
             s3 = boto3.resource("s3")
             s3.Bucket(self.bucket_name).put_object(Key=key, Body=content)
-            self.logger.info(
+            self.logger.debug(
                 "Persisted content to S3", method=self.upload_to_s3.__name__, bucket_name=self.bucket_name, key=key
             )
             if return_presigned_url:
