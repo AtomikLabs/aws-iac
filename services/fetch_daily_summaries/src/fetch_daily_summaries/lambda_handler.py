@@ -227,18 +227,19 @@ def get_earliest_date(config: dict) -> str:
             """
             MATCH (r:ArxivRecord)
             RETURN r
-            ORDER BY r.created DESC
+            ORDER BY r.date DESC
             LIMIT 1
             """
         )
         if records:
             try:
                 record = records[0]
-                created = record.data().get("r", {}).get("created", None)
-                if created:
-                    default = max(default, created)
+                next_date = record.data().get("r", {}).get("date", None).to_native()
+                next_date = next_date + timedelta(days=1)
+                if next_date:
+                    default = max(default, next_date)
             except Exception as e:
-                logger.error("Failed to get created date from record", method=get_earliest_date.__name__, error=str(e))
+                logger.error("Failed to get research date from record", method=get_earliest_date.__name__, error=str(e))
     logger.info("Earliest date", method=get_earliest_date.__name__, earliest=default.strftime("%Y-%m-%d"))
     return default.strftime("%Y-%m-%d")
 

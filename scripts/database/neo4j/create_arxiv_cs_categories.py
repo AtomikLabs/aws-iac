@@ -1,24 +1,30 @@
 import argparse
 import json
-import uuid
+import logging
 from datetime import datetime
 
 import boto3
 import pytz
 import structlog
+from models.arxiv_category import ArxivCategory
+from models.arxiv_set import ArxivSet
 from neo4j import GraphDatabase
 
 structlog.configure(
     [
         structlog.stdlib.filter_by_level,
         structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.dict_tracebacks,
         structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
 )
 
 logger = structlog.get_logger()
+logger.setLevel(logging.INFO)
 
 CS_CATEGORIES_INVERTED = {
     "Computer Science - Artificial Intelligence": "AI",
@@ -105,29 +111,11 @@ with GraphDatabase.driver(neo4j_uri, auth=(neo4j_creds["neo4j_username"], neo4j_
         logger.info("Connected to Neo4j")
 
         category_nodes = []
-        for category, code in CS_CATEGORIES_INVERTED.items():
-            q = f"MERGE (c:ArxivCategory {{name: '{category}', code: '{code}'}})"
-            category_nodes.append({"name": category, "code": code})
-        category_query = "\n".join(
-            [
-                f"""
-                                    MERGE ({category['code']}:ArxivCategory {{uuid: '{uuid.uuid4().__str__()}', name: '{category['name']}', code: '{category['code']}'}})
-                                    MERGE (s)-[:CATEGORIZED_BY {{uuid: '{uuid.uuid4().__str__()}'}}]->({category['code']})
-                                    MERGE ({category['code']})-[:CATEGORIZED_IN {{uuid: '{uuid.uuid4().__str__()}'}}]->(s)"""
-                for category in category_nodes
-            ]
-        )
-
-        print(category_query)
-        driver = driver.execute_query(
-            f"""
-            MERGE (s:ArxivSet {{uuid: $set_uuid, name: $set_name, code: $set_code, created: $set_created, last_modified: $set_last_modified}})
-            {category_query}
-            """,
-            set_uuid=str(uuid.uuid4().__str__()),
-            set_name="Computer Science",
-            set_code="CS",
-            set_created=get_storage_key_datetime(),
-            set_last_modified=get_storage_key_datetime(),
-            database_="neo4j",
-        )
+        now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
+        arxiv_set = ArxivSet(driver, "CS", "Computer Science")
+        arxiv_set.create()
+        for name, code in CS_CATEGORIES_INVERTED.items():
+            arxiv_category = ArxivCategory(driver, code, name)
+            arxiv_category.create()
+            arxiv_set.relate(driver, "CATEGORIZED_BY", ArxivSet.LABEL, arxiv_set.uuid, ArxivCategory.LABEL, arxiv_category.uuid)
+            arxiv_category.relate(driver, "CATEGORIZES", ArxivCategory.LABEL, arxiv_category.uuid, ArxivSet.LABEL, arxiv_set.uuid)
