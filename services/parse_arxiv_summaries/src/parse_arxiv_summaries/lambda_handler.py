@@ -88,59 +88,55 @@ def lambda_handler(event, context):
                 message = "Failed to create DataOperation"
                 logger.error(message, method=lambda_handler.__name__)
                 raise RuntimeError(message)
-            for record in extracted_data["records"]:
-                parsed_data = None
-                try:
-                    content = {}
-                    content["records"] = record
-                    content_str = json.dumps(content)
-                    output_key = get_output_key(config)
-                    logger.info("Chunk", key=output_key, records=len(record))
-                    storage_manager.upload_to_s3(output_key, content_str)
-                    parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
-                    parsed_data.create()
-                    if not parsed_data:
-                        message = f"Failed to create parsed data with key: {output_key}"
-                        logger.error(message, method=lambda_handler.__name__)
-                        raise RuntimeError(message)
-                    data_operation.relate(
-                        driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
-                    )
-                    data_operation.relate(
-                        driver,
-                        PARSED_BY,
-                        raw_data.LABEL,
-                        raw_data.uuid,
-                        data_operation.LABEL,
-                        data_operation.uuid,
-                        True,
-                    )
-                    data_operation.relate(
-                        driver,
-                        CREATES,
-                        data_operation.LABEL,
-                        data_operation.uuid,
-                        parsed_data.LABEL,
-                        parsed_data.uuid,
-                        True,
-                    )
-                    data_operation.relate(
-                        driver,
-                        CREATED_BY,
-                        parsed_data.LABEL,
-                        parsed_data.uuid,
-                        data_operation.LABEL,
-                        data_operation.uuid,
-                        True,
-                    )
-                except Exception as e:
-                    logger.error(
-                        "Failed to create parsed data",
-                        method=lambda_handler.__name__,
-                        key=output_key if output_key else "",
-                        error=str(e),
-                    )
-                    success = False
+            parsed_data = None
+            try:
+                content_str = json.dumps(extracted_data["records"])
+                output_key = get_output_key(config)
+                storage_manager.upload_to_s3(output_key, content_str)
+                parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
+                parsed_data.create()
+                if not parsed_data:
+                    message = f"Failed to create parsed data with key: {output_key}"
+                    logger.error(message, method=lambda_handler.__name__)
+                    raise RuntimeError(message)
+                data_operation.relate(
+                    driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
+                )
+                data_operation.relate(
+                    driver,
+                    PARSED_BY,
+                    raw_data.LABEL,
+                    raw_data.uuid,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    True,
+                )
+                data_operation.relate(
+                    driver,
+                    CREATES,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    parsed_data.LABEL,
+                    parsed_data.uuid,
+                    True,
+                )
+                data_operation.relate(
+                    driver,
+                    CREATED_BY,
+                    parsed_data.LABEL,
+                    parsed_data.uuid,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    True,
+                )
+            except Exception as e:
+                logger.error(
+                    "Failed to create parsed data",
+                    method=lambda_handler.__name__,
+                    key=output_key if output_key else "",
+                    error=str(e),
+                )
+                success = False
         logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
         return (
             {"statusCode": 200, "body": "Success"} if success else {"statusCode": 500, "body": "Failed to parse data"}
