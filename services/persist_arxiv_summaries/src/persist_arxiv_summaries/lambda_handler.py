@@ -63,7 +63,9 @@ def lambda_handler(event, context):
             num_records=len(json_data["records"]),
         )
         for record in json_data["records"]:
-            storage_manager.upload_to_s3(f"{config.get(RECORDS_PREFIX)}/{record.get(IDENTIFIER)}/{ABSTRACT}.json", record.get(ABSTRACT))
+            storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/{record.get(IDENTIFIER)}/{ABSTRACT}.json", record.get(ABSTRACT)
+            )
         return {"statusCode": 200, "body": "Success"}
     except Exception as e:
         logger.error("An error occurred", method=lambda_handler.__name__, error=str(e))

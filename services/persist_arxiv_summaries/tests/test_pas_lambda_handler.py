@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler import get_config, lambda_handler
+from services.persist_arxiv_summaries.src.persist_arxiv_summaries.lambda_handler import get_config, lambda_handler
 
 
 class TestLambdaHandler(unittest.TestCase):
