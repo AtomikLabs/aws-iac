@@ -254,7 +254,5 @@ module "events" {
   store_arxiv_summaries_arn       = module.store_arxiv_summaries.lambda_arn
   persist_arxiv_summaries_name    = module.persist_arxiv_summaries.lambda_name
   persist_arxiv_summaries_arn     = module.persist_arxiv_summaries.lambda_arn
-
-  depends_on = [ module.parse_arxiv_summaries, module.store_arxiv_summaries, module.persist_arxiv_summaries]
 }
 
