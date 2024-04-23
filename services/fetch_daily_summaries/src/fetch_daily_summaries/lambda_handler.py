@@ -221,28 +221,38 @@ def get_earliest_date(config: dict) -> str:
         str: The earliest date.
     """
     default = utils.get_storage_key_datetime().date() - timedelta(days=DAY_SPAN)
-    with GraphDatabase.driver(
-        config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
-    ) as driver:
-        records, _, _ = driver.execute_query(
-            """
-            MATCH (r:ArxivRecord)
-            RETURN r
-            ORDER BY r.date DESC
-            LIMIT 1
-            """
-        )
-        if records:
-            try:
-                record = records[0]
-                next_date = record.data().get("r", {}).get("date", None).to_native()
-                next_date = next_date + timedelta(days=1)
-                if next_date:
-                    default = max(default, next_date)
-            except Exception as e:
-                logger.error("Failed to get research date from record", method=get_earliest_date.__name__, error=str(e))
-    logger.info("Earliest date", method=get_earliest_date.__name__, earliest=default.strftime("%Y-%m-%d"))
-    return default.strftime("%Y-%m-%d")
+    retries = 0
+    while retries < 3:
+        try:
+            with GraphDatabase.driver(
+                config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+            ) as driver:
+                records, _, _ = driver.execute_query(
+                    """
+                    MATCH (r:ArxivRecord)
+                    RETURN r
+                    ORDER BY r.date DESC
+                    LIMIT 1
+                    """
+                )
+                if records:
+                    try:
+                        record = records[0]
+                        next_date = record.data().get("r", {}).get("date", None).to_native()
+                        next_date = next_date + timedelta(days=1)
+                        if next_date:
+                            default = max(default, next_date)
+                    except Exception as e:
+                        logger.error("Failed to get research date from record", method=get_earliest_date.__name__, error=str(e))
+            logger.info("Earliest date", method=get_earliest_date.__name__, earliest=default.strftime("%Y-%m-%d"))
+            return default.strftime("%Y-%m-%d")
+        except Exception as e:
+            if "Neo.ClientError.Security.AuthenticationRateLimit" in str(e):
+                logger.warning("Rate limited by Neo4j", method=get_earliest_date.__name__, retries=retries)
+                retries += 1
+                continue
+            logger.error("Failed to get earliest date", method=get_earliest_date.__name__, error=str(e))
+            raise e
 
 
 def fetch_data(base_url: str, from_date: str, set: str, max_fetches: int) -> list:
