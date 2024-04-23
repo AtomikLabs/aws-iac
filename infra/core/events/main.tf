@@ -44,7 +44,6 @@ resource "aws_s3_bucket_notification" "store_arxiv_summaries_s3_trigger" {
 }
 
 resource "aws_s3_bucket_notification" "persist_arxiv_summaries_s3_trigger" {
-
   bucket = local.data_bucket
 
   lambda_function {
