@@ -224,8 +224,8 @@ module "post_arxiv_parse_dispatcher" {
   aws_vpc_id                = module.networking.main_vpc_id
   basic_execution_role_arn  = local.basic_execution_role_arn
   dispatch_lambda_names     = [ 
-                                module.store_arxiv_summaries.store_arxiv_summaries_name,
-                                module.persist_arxiv_summaries.persist_arxiv_summaries_name,
+                                module.store_arxiv_summaries.lambda_name,
+                                module.persist_arxiv_summaries.lambda_name,
                               ]
   environment               = local.environment
   lambda_vpc_access_role    = local.lambda_vpc_access_role
