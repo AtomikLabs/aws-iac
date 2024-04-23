@@ -266,16 +266,14 @@ module "data_management" {
 module "events" {
   source = "./events"
 
-  data_bucket                     = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
-  data_bucket_arn                 = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
-  data_ingestion_key_prefix       = local.data_ingestion_key_prefix
-  environment                     = local.environment
-  etl_key_prefix                  = local.etl_key_prefix
-  parse_arxiv_summaries_name      = module.parse_arxiv_summaries.lambda_name
-  parse_arxiv_summaries_arn       = module.parse_arxiv_summaries.lambda_arn
-  store_arxiv_summaries_name      = module.store_arxiv_summaries.lambda_name
-  store_arxiv_summaries_arn       = module.store_arxiv_summaries.lambda_arn
-  persist_arxiv_summaries_name    = module.persist_arxiv_summaries.lambda_name
-  persist_arxiv_summaries_arn     = module.persist_arxiv_summaries.lambda_arn
+  data_bucket                       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  data_bucket_arn                   = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
+  data_ingestion_key_prefix         = local.data_ingestion_key_prefix
+  environment                       = local.environment
+  etl_key_prefix                    = local.etl_key_prefix
+  parse_arxiv_summaries_name        = module.parse_arxiv_summaries.lambda_name
+  parse_arxiv_summaries_arn         = module.parse_arxiv_summaries.lambda_arn
+  post_arxiv_parse_dispatcher_name  = module.post_arxiv_parse_dispatcher.lambda_name
+  post_arxiv_parse_dispatcher_arn   = module.post_arxiv_parse_dispatcher.lambda_arn
 }
 
