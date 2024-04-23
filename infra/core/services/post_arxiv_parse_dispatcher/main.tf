@@ -91,6 +91,26 @@ resource "aws_iam_policy" "post_arxiv_parse_dispatcher_kms_decrypt" {
   })
 }
 
+resource "aws_iam_policy" "post_arxiv_parse_dispatch_invoke_function" {
+  name        = "${local.environment}-${local.service_name}-invoke-function"
+  description = "Allow Lambda to invoke other Lambda functions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "lambda:InvokeFunction"
+        ]
+        Effect = "Allow"
+        Resource = [
+          for lambda_name in local.dispatch_lambda_names : aws_lambda_function[lambda_name].arn
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_security_group" "post_arxiv_parse_dispatcher_security_group" {
   name        = "${local.environment}-${local.service_name}-security-group"
   description = "Security group for the post arXiv parse dispatcher service"
@@ -116,4 +136,9 @@ resource "aws_iam_role_policy_attachment" "post_arxiv_parse_dispatcher_vpc_acces
 resource "aws_iam_role_policy_attachment" "post_arxiv_parse_dispatcher_kms_decrypt_attachment" {
   role       = aws_iam_role.post_arxiv_parse_dispatcher_lambda_execution_role.name
   policy_arn = aws_iam_policy.post_arxiv_parse_dispatcher_kms_decrypt.arn
+}
+
+resource "aws_iam_role_policy_attachment" "post_arxiv_parse_dispatch_invoke_function_attachment" {
+  role       = aws_iam_role.post_arxiv_parse_dispatcher_lambda_execution_role.name
+  policy_arn = aws_iam_policy.post_arxiv_parse_dispatch_invoke_function.arn
 }
