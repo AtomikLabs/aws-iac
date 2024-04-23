@@ -73,8 +73,8 @@ def lambda_handler(event, context):
     """
     try:
         log_initial_info(event)
-        bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
-        key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
+        bucket_name = event["bucket"]
+        key = urllib.parse.unquote_plus(event["key"], encoding="utf-8")
         config = get_config()
         storage_manager = StorageManager(bucket_name, logger)
         json_data = json.loads(storage_manager.load(key))
