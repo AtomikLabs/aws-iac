@@ -12,7 +12,7 @@ locals {
     persist_arxiv_summaries_arn     = var.persist_arxiv_summaries_arn
 }
 
-resource "aws_s3_bucket_notification" "parse_arxiv_summaries_name_s3_trigger" {
+resource "aws_s3_bucket_notification" "dev_data_bucket_triggerss" {
   bucket = local.data_bucket
 
   lambda_function {
@@ -23,13 +23,6 @@ resource "aws_s3_bucket_notification" "parse_arxiv_summaries_name_s3_trigger" {
     filter_suffix       = ".json"
   }
 
-  depends_on = [
-    aws_lambda_permission.allow_s3_bucket_parse_arxiv_summaries,
-  ]
-}
-
-resource "aws_s3_bucket_notification" "store_arxiv_summaries_s3_trigger" {
-  bucket = local.data_bucket
   lambda_function {
     id = "${local.environment}-${local.store_arxiv_summaries_name}-s3-trigger"
     lambda_function_arn = "${local.store_arxiv_summaries_arn}"
@@ -37,14 +30,6 @@ resource "aws_s3_bucket_notification" "store_arxiv_summaries_s3_trigger" {
     filter_prefix       = local.etl_key_prefix
     filter_suffix       = ".json"
   }
-
-  depends_on = [
-    aws_lambda_permission.allow_s3_bucket_store_arxiv_summaries,
-  ]
-}
-
-resource "aws_s3_bucket_notification" "persist_arxiv_summaries_s3_trigger" {
-  bucket = local.data_bucket
 
   lambda_function {
     id = "${local.environment}-${local.persist_arxiv_summaries_name}-s3-trigger"
@@ -55,9 +40,12 @@ resource "aws_s3_bucket_notification" "persist_arxiv_summaries_s3_trigger" {
   }
 
   depends_on = [
+    aws_lambda_permission.allow_s3_bucket_parse_arxiv_summaries,
+    aws_lambda_permission.allow_s3_bucket_store_arxiv_summaries,
     aws_lambda_permission.allow_s3_bucket_persist_arxiv_summaries,
   ]
 }
+
 
 resource "aws_lambda_permission" "allow_s3_bucket_parse_arxiv_summaries" {
   statement_id  = "AllowExecutionFromS3Bucket"
