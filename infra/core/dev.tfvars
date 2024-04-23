@@ -57,6 +57,10 @@ fetch_daily_summaries_service_version = "0.1.0"
 parse_arxiv_summaries_service_name = "parse_arxiv_summaries"
 parse_arxiv_summaries_service_version = "0.1.0"
 
+# post_arxiv_parse_dispatcher
+post_arxiv_parse_dispatcher_service_name = "post_arxiv_parse_dispatcher"
+post_arxiv_parse_dispatcher_service_version = "0.0.1"
+
 # store_arxiv_summaries
 store_arxiv_summaries_service_name = "store_arxiv_summaries"
 store_arxiv_summaries_service_version = "0.1.0"

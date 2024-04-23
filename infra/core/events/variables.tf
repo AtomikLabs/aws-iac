@@ -33,22 +33,13 @@ variable "parse_arxiv_summaries_arn" {
   type = string
 }
 
-variable "store_arxiv_summaries_name" {
-  description = "The name of the Lambda function to store ArXiv summaries"
+variable "post_arxiv_parse_dispatcher_name" {
+  description = "The name of the Lambda function to dispatch methods after parsing ArXiv summaries"
   type = string
+  
 }
 
-variable "store_arxiv_summaries_arn" {
-  description = "The ARN of the Lambda function to store ArXiv summaries"
-  type = string
-}
-
-variable "persist_arxiv_summaries_name" {
-  description = "The name of the Lambda function to persist ArXiv summaries"
-  type = string
-}
-
-variable "persist_arxiv_summaries_arn" {
-  description = "The ARN of the Lambda function to persist ArXiv summaries"
+variable "post_arxiv_parse_dispatcher_arn" {
+  description = "The ARN of the Lambda function to dispatch methods after parsing ArXiv summaries"
   type = string
 }

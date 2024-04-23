@@ -121,6 +121,14 @@ jobs:
           cp services/parse_arxiv_summaries/src/parse_arxiv_summaries/lambda_handler.py build/parse_arxiv_summaries/
           pip install -r build/parse_arxiv_summaries/requirements.txt -t build/parse_arxiv_summaries/
 
+      - name: Build Post arXiv Parse Dispatcher Lambda Function
+        id: build-post-arxiv-parse-dispatcher
+        run: |
+          mkdir -p build/post_arxiv_parse_dispatcher
+          cp services/post_arxiv_parse_dispatcher/src/requirements.txt build/post_arxiv_parse_dispatcher/
+          cp services/post_arxiv_parse_dispatcher/src/post_arxiv_parse_dispatcher/lambda_handler.py build/post_arxiv_parse_dispatcher/
+          pip install -r build/post_arxiv_parse_dispatcher/requirements.txt -t build/post_arxiv_parse_dispatcher/
+
       - name: Build Store arXiv Summaries Lambda Function
         id: build-store-arxiv-summaries
         run: |
