@@ -1,14 +1,10 @@
-import boto3
 import json
 import logging
 import os
 
+import boto3
 import structlog
-from constants import (
-    DISPATCH_LAMBDA_NAMES,
-    SERVICE_NAME,
-    SERVICE_VERSION,
-)
+from constants import DISPATCH_LAMBDA_NAMES, SERVICE_NAME, SERVICE_VERSION
 
 structlog.configure(
     [
@@ -26,7 +22,7 @@ structlog.configure(
 logger = structlog.get_logger()
 logger.setLevel(logging.INFO)
 
-lambda_client = boto3.client('lambda')
+lambda_client = boto3.client("lambda")
 
 
 def lambda_handler(event, context):
@@ -42,27 +38,22 @@ def lambda_handler(event, context):
     """
     log_initial_info(event)
     config = get_config()
-    bucket = event['Records'][0]['s3']['bucket']['name']
-    key = event['Records'][0]['s3']['object']['key']
+    bucket = event["Records"][0]["s3"]["bucket"]["name"]
+    key = event["Records"][0]["s3"]["object"]["key"]
 
-    event_source = {
-        'bucket': bucket,
-        'key': key
-    }
+    event_source = {"bucket": bucket, "key": key}
 
     function_names = json.loads(config.get(DISPATCH_LAMBDA_NAMES, []))
 
-    logger.info("Dispatching event to consumers",
-                method=lambda_handler.__name__,
-                event_source=event_source,
-                function_names=function_names)
+    logger.info(
+        "Dispatching event to consumers",
+        method=lambda_handler.__name__,
+        event_source=event_source,
+        function_names=function_names,
+    )
 
     for function_name in function_names:
-        lambda_client.invoke(
-            FunctionName=function_name,
-            InvocationType='Event',
-            Payload=json.dumps(event_source)
-        )
+        lambda_client.invoke(FunctionName=function_name, InvocationType="Event", Payload=json.dumps(event_source))
 
 
 def log_initial_info(event: dict) -> None:

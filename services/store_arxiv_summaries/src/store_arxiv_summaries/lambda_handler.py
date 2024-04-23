@@ -59,6 +59,8 @@ IDENTIFIER = "identifier"
 PRIMARY_CATEGORY = "primary_category"
 TITLE = "title"
 
+CHUNK_SIZE = 100
+
 
 def lambda_handler(event, context):
     """
@@ -172,6 +174,7 @@ def store_records(
         raise ValueError("Bucket name must be present and be a string.")
     malformed_records = []
     try:
+        filenames = []
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
@@ -186,52 +189,61 @@ def store_records(
 
             categories = {c.code: c for c in ArxivCategory.find_all(driver)}
             possible_new_records = filter_new_records(driver, records)
+            num_chunks = len(possible_new_records) // CHUNK_SIZE
+            processed_chunks = 0
+            for chunk in chunker(possible_new_records, CHUNK_SIZE):
+                arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
+                    chunk,
+                    loads_dop.uuid,
+                    bucket_name,
+                    config.get(RECORDS_PREFIX),
+                    categories,
+                    storage_manager,
+                )
+                retries = 0
+                ar_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_arxiv_records.csv",
+                    "".join(arxiv_records),
+                    True,
+                )
+                filenames.append(ar_presigned_url)
+                au_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv", "".join(authors), True
+                )
+                filenames.append(au_presigned_url)
+                ab_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv", "".join(abstracts), True
+                )
+                filenames.append(ab_presigned_url)
+                rel_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_relationships.csv",
+                    "".join(relationships),
+                    True,
+                )
+                filenames.append(rel_presigned_url)
+                while retries < 3:
+                    try:
+                        commit_records(driver, ar_presigned_url, au_presigned_url, ab_presigned_url, rel_presigned_url)
+                        processed_chunks += 1
+                        break
+                    except Exception as e:
+                        logger.error(
+                            "An error occurred while committing arXiv records.",
+                            method=store_records.__name__,
+                            error=str(e),
+                            retries=retries,
+                        )
+                        retries += 1
+                        if retries == 3:
+                            logger.error(
+                                "Failed to commit arXiv records after 3 retries.",
+                                method=store_records.__name__,
+                                error=str(e),
+                                retries=retries,
+                                total_chunks=num_chunks,
+                                processed_chunks=processed_chunks,
+                            )
 
-            arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
-                possible_new_records,
-                loads_dop.uuid,
-                bucket_name,
-                config.get(RECORDS_PREFIX),
-                categories,
-                storage_manager,
-            )
-            retries = 0
-            ar_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_arxiv_records.csv",
-                "".join(arxiv_records),
-                True
-            )
-            au_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv",
-                "".join(authors),
-                True
-            )
-            ab_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv",
-                "".join(abstracts),
-                True
-            )
-            rel_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_relationships.csv",
-                "".join(relationships),
-                True
-            )
-            while retries < 3:
-                try:
-                    commit_records(driver,
-                                   ar_presigned_url,
-                                   au_presigned_url,
-                                   ab_presigned_url,
-                                   rel_presigned_url)
-                    break
-                except Exception as e:
-                    logger.error(
-                        "An error occurred while committing arXiv records.",
-                        method=store_records.__name__,
-                        error=str(e),
-                        retries=retries
-                    )
-                    retries += 1
     except Exception as e:
         logger.error(
             "An error occurred while committing arXiv records.",
@@ -242,13 +254,13 @@ def store_records(
     finally:
         logger.info("Malformed records", method=store_records.__name__, malformed_records=malformed_records)
         logger.info("Finished storing records", method=store_records.__name__)
+        for filename in filenames:
+            storage_manager.delete(filename)
 
 
-def commit_records(driver: Driver,
-                   ar_presigned_url: str,
-                   au_presigned_url: str,
-                   ab_presigned_url: str,
-                   rel_presigned_url: str) -> None:
+def commit_records(
+    driver: Driver, ar_presigned_url: str, au_presigned_url: str, ab_presigned_url: str, rel_presigned_url: str
+) -> None:
     with driver.session() as session:
         tx = session.begin_transaction()
         try:
@@ -532,3 +544,17 @@ def abstract_factory(record: dict, bucket: str, records_prefix: str) -> list:
 
 def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
     return f"{label}|{start_label}|{start_uuid}|{end_label}|{end_uuid}|{str(uuid.uuid4())}\n"
+
+
+def chunker(seq: list, size: int) -> list:
+    """
+    Chunks a list into smaller lists.
+
+    Args:
+        seq (list): The list to chunk.
+        size (int): The size of each chunk.
+
+    Returns:
+        list: The chunked list.
+    """
+    return (seq[pos : pos + size] for pos in range(0, len(seq), size))

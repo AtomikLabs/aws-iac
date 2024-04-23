@@ -243,7 +243,9 @@ def get_earliest_date(config: dict) -> str:
                         if next_date:
                             default = max(default, next_date)
                     except Exception as e:
-                        logger.error("Failed to get research date from record", method=get_earliest_date.__name__, error=str(e))
+                        logger.error(
+                            "Failed to get research date from record", method=get_earliest_date.__name__, error=str(e)
+                        )
             logger.info("Earliest date", method=get_earliest_date.__name__, earliest=default.strftime("%Y-%m-%d"))
             return default.strftime("%Y-%m-%d")
         except Exception as e:

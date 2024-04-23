@@ -4,12 +4,7 @@ import os
 import urllib.parse
 
 import structlog
-from constants import (
-    DATA_BUCKET,
-    RECORDS_PREFIX,
-    SERVICE_NAME,
-    SERVICE_VERSION,
-)
+from constants import DATA_BUCKET, RECORDS_PREFIX, SERVICE_NAME, SERVICE_VERSION
 from storage_manager import StorageManager
 
 structlog.configure(

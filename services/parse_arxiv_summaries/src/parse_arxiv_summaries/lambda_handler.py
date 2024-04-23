@@ -88,15 +88,14 @@ def lambda_handler(event, context):
                 message = "Failed to create DataOperation"
                 logger.error(message, method=lambda_handler.__name__)
                 raise RuntimeError(message)
-            chunk_num = 0
-            for chunk in chunker(extracted_data["records"], 500):
+            for record in extracted_data["records"]:
                 parsed_data = None
                 try:
                     content = {}
-                    content["records"] = chunk
+                    content["records"] = record
                     content_str = json.dumps(content)
                     output_key = get_output_key(config)
-                    logger.info("Chunk", key=output_key, records=len(chunk))
+                    logger.info("Chunk", key=output_key, records=len(record))
                     storage_manager.upload_to_s3(output_key, content_str)
                     parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
                     parsed_data.create()
@@ -134,12 +133,10 @@ def lambda_handler(event, context):
                         data_operation.uuid,
                         True,
                     )
-                    chunk_num += 1
                 except Exception as e:
                     logger.error(
                         "Failed to create parsed data",
                         method=lambda_handler.__name__,
-                        chunk_num=chunk_num,
                         key=output_key if output_key else "",
                         error=str(e),
                     )
