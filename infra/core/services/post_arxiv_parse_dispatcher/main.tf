@@ -108,11 +108,6 @@ resource "aws_security_group" "post_arxiv_parse_dispatcher_security_group" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "post_arxiv_parse_dispatcher_lambda_s3_access_attachment" {
-  role       = aws_iam_role.post_arxiv_parse_dispatcher_lambda_execution_role.name
-  policy_arn = aws_iam_policy.post_arxiv_parse_dispatcher_lambda_s3_access.arn
-}
-
 resource "aws_iam_role_policy_attachment" "post_arxiv_parse_dispatcher_vpc_access_attachment" {
   role       = aws_iam_role.post_arxiv_parse_dispatcher_lambda_execution_role.name
   policy_arn = local.lambda_vpc_access_role
