@@ -1,0 +1,2 @@
+structlog==24.1.0
+urllib3==1.26.18

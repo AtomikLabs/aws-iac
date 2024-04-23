@@ -35,6 +35,35 @@ class StorageManager:
             raise ValueError("bucket_name must be a non-empty string")
         self.bucket_name = bucket_name
 
+    def delete(self, key: str):
+        """
+        Delete the content from an AWS S3 bucket with the given key.
+
+        Args:
+            key: The key to use when deleting the content from the S3 bucket.
+
+        Raises:
+            ValueError: If key is invalid.
+            Exception: If there is an error deleting the content from S3.
+        """
+        if not key or not isinstance(key, str):
+            self.logger.error("Invalid key", key=key)
+            raise ValueError("key must be a non-empty string")
+        self.logger.info("Deleting content from S3", key=key, bucket_name=self.bucket_name)
+        try:
+            s3 = boto3.resource("s3")
+            s3.Object(self.bucket_name, key).delete()
+            self.logger.info("Deleted content from S3", key=key, bucket_name=self.bucket_name)
+        except Exception as e:
+            self.logger.error(
+                "Failed to delete content from S3",
+                method=self.delete.__name__,
+                bucket_name=self.bucket_name,
+                key=key,
+                error=str(e),
+            )
+            raise e
+
     def load(self, key: str):
         """
         Load the content from an AWS S3 bucket with the given key.
@@ -56,7 +85,7 @@ class StorageManager:
         s3 = boto3.resource("s3")
         obj = s3.Object(self.bucket_name, key)
         body = obj.get()["Body"].read()
-        logger.info("Loaded data from S3 bucket", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
+        logger.debug("Loaded data from S3 bucket", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
         return body
 
     def upload_to_s3(self, key: str, content: str, return_presigned_url: bool = False) -> str:
@@ -81,11 +110,11 @@ class StorageManager:
             self.logger.error("Invalid content", content=content)
             raise ValueError("content must be a non-empty string")
 
-        self.logger.info("Persisting content to S3", key=key, bucket_name=self.bucket_name)
+        self.logger.debug("Persisting content to S3", key=key, bucket_name=self.bucket_name)
         try:
             s3 = boto3.resource("s3")
             s3.Bucket(self.bucket_name).put_object(Key=key, Body=content)
-            self.logger.info(
+            self.logger.debug(
                 "Persisted content to S3", method=self.upload_to_s3.__name__, bucket_name=self.bucket_name, key=key
             )
             if return_presigned_url:

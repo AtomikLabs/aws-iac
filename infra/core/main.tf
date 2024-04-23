@@ -74,18 +74,24 @@ locals {
   neo4j_uri                 = "neo4j://${module.data_management.neo4j_instance_private_ip}:7687"
   neo4j_username            = var.neo4j_username
 
-  services_layer_service_name      = var.services_layer_service_name
-  services_layer_service_version   = var.services_layer_service_version
+  services_layer_service_name                             = var.services_layer_service_name
+  services_layer_service_version                          = var.services_layer_service_version
 
-  fetch_daily_summaries_max_retries       = var.fetch_daily_summaries_max_retries
-  fetch_daily_summaries_service_name      = var.fetch_daily_summaries_service_name
-  fetch_daily_summaries_service_version   = var.fetch_daily_summaries_service_version
+  fetch_daily_summaries_max_retries                       = var.fetch_daily_summaries_max_retries
+  fetch_daily_summaries_service_name                      = var.fetch_daily_summaries_service_name
+  fetch_daily_summaries_service_version                   = var.fetch_daily_summaries_service_version
 
-  parse_arxiv_summaries_service_name      = var.parse_arxiv_summaries_service_name
-  parse_arxiv_summaries_service_version   = var.parse_arxiv_summaries_service_version
+  parse_arxiv_summaries_service_name                      = var.parse_arxiv_summaries_service_name
+  parse_arxiv_summaries_service_version                   = var.parse_arxiv_summaries_service_version
 
-  store_arxiv_summaries_service_name      = var.store_arxiv_summaries_service_name
-  store_arxiv_summaries_service_version   = var.store_arxiv_summaries_service_version
+  post_arxiv_parse_dispatcher_service_name                = var.post_arxiv_parse_dispatcher_service_name
+  post_parse_arxiv_summaries_dispatcher_service_version   = var.post_arxiv_parse_dispatcher_service_version
+
+  store_arxiv_summaries_service_name                      = var.store_arxiv_summaries_service_name
+  store_arxiv_summaries_service_version                   = var.store_arxiv_summaries_service_version
+
+  persist_arxiv_summaries_service_name                    = var.persist_arxiv_summaries_service_name
+  persist_arxiv_summaries_service_version                 = var.persist_arxiv_summaries_service_version
 }
 
 module "networking" {
@@ -133,7 +139,7 @@ module "fetch_daily_summaries" {
   environment               = local.environment
   infra_config_bucket       = local.infra_config_bucket
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn = module.services_layer.services_layer_arn
+  services_layer_arn        = module.services_layer.services_layer_arn
   max_retries               = local.fetch_daily_summaries_max_retries
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
@@ -157,7 +163,7 @@ module "parse_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn = module.services_layer.services_layer_arn
+  services_layer_arn        = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
@@ -179,7 +185,7 @@ module "store_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn = module.services_layer.services_layer_arn
+  services_layer_arn        = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
@@ -188,6 +194,46 @@ module "store_arxiv_summaries" {
   runtime                   = local.default_lambda_runtime
   service_name              = local.store_arxiv_summaries_service_name
   service_version           = local.store_arxiv_summaries_service_version
+}
+
+module "persist_arxiv_summaries" {
+  source = "./services/persist_arxiv_summaries"
+
+  app_name                  = local.app_name
+  aws_region                = local.aws_region
+  aws_vpc_id                = module.networking.main_vpc_id
+  basic_execution_role_arn  = local.basic_execution_role_arn
+  data_bucket               = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  data_bucket_arn           = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
+  environment               = local.environment
+  etl_key_prefix            = local.etl_key_prefix
+  lambda_vpc_access_role    = local.lambda_vpc_access_role
+  services_layer_arn        = module.services_layer.services_layer_arn
+  private_subnets           = module.networking.aws_private_subnet_ids
+  records_prefix            = local.records_prefix
+  runtime                   = local.default_lambda_runtime
+  service_name              = local.persist_arxiv_summaries_service_name
+  service_version           = local.persist_arxiv_summaries_service_version
+}
+
+module "post_arxiv_parse_dispatcher" {
+  source = "./services/post_arxiv_parse_dispatcher"
+
+  app_name                  = local.app_name
+  aws_region                = local.aws_region
+  aws_vpc_id                = module.networking.main_vpc_id
+  basic_execution_role_arn  = local.basic_execution_role_arn
+  dispatch_lambda_names     = [ 
+                                module.store_arxiv_summaries.lambda_name,
+                                module.persist_arxiv_summaries.lambda_name,
+                              ]
+  environment               = local.environment
+  lambda_vpc_access_role    = local.lambda_vpc_access_role
+  services_layer_arn        = module.services_layer.services_layer_arn
+  private_subnets           = module.networking.aws_private_subnet_ids
+  runtime                   = local.default_lambda_runtime
+  service_name              = local.post_arxiv_parse_dispatcher_service_name
+  service_version           = local.post_parse_arxiv_summaries_dispatcher_service_version
 }
 
 module "data_management" {
@@ -220,14 +266,14 @@ module "data_management" {
 module "events" {
   source = "./events"
 
-  data_bucket                     = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
-  data_bucket_arn                 = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
-  data_ingestion_key_prefix       = local.data_ingestion_key_prefix
-  environment                     = local.environment
-  etl_key_prefix                  = local.etl_key_prefix
-  parse_arxiv_summaries_name      = module.parse_arxiv_summaries.lambda_name
-  parse_arxiv_summaries_arn       = module.parse_arxiv_summaries.lambda_arn
-  store_arxiv_summaries_name      = module.store_arxiv_summaries.lambda_name
-  store_arxiv_summaries_arn       = module.store_arxiv_summaries.lambda_arn
+  data_bucket                       = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  data_bucket_arn                   = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
+  data_ingestion_key_prefix         = local.data_ingestion_key_prefix
+  environment                       = local.environment
+  etl_key_prefix                    = local.etl_key_prefix
+  parse_arxiv_summaries_name        = module.parse_arxiv_summaries.lambda_name
+  parse_arxiv_summaries_arn         = module.parse_arxiv_summaries.lambda_arn
+  post_arxiv_parse_dispatcher_name  = module.post_arxiv_parse_dispatcher.lambda_name
+  post_arxiv_parse_dispatcher_arn   = module.post_arxiv_parse_dispatcher.lambda_arn
 }
 

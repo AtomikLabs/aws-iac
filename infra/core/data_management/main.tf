@@ -114,6 +114,8 @@ chown :docker /neo4j/data /neo4j/logs /neo4j/plugins
 chmod g+rwx /neo4j/data /neo4j/logs /neo4j/plugins
 
 docker run --restart=always \
+--memory=6g \
+--cpus=2 \
 -p 7474:7474 -p 7687:7687 \
 -v /neo4j/data:/data \
 -v /neo4j/logs:/logs \

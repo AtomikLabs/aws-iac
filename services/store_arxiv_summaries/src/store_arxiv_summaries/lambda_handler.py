@@ -59,6 +59,8 @@ IDENTIFIER = "identifier"
 PRIMARY_CATEGORY = "primary_category"
 TITLE = "title"
 
+CHUNK_SIZE = 100
+
 
 def lambda_handler(event, context):
     """
@@ -73,8 +75,8 @@ def lambda_handler(event, context):
     """
     try:
         log_initial_info(event)
-        bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
-        key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
+        bucket_name = event["bucket"]
+        key = urllib.parse.unquote_plus(event["key"], encoding="utf-8")
         config = get_config()
         storage_manager = StorageManager(bucket_name, logger)
         json_data = json.loads(storage_manager.load(key))
@@ -172,6 +174,7 @@ def store_records(
         raise ValueError("Bucket name must be present and be a string.")
     malformed_records = []
     try:
+        filenames = []
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
@@ -186,54 +189,104 @@ def store_records(
 
             categories = {c.code: c for c in ArxivCategory.find_all(driver)}
             possible_new_records = filter_new_records(driver, records)
+            num_chunks = len(possible_new_records) // CHUNK_SIZE
+            processed_chunks = 0
+            for chunk in chunker(possible_new_records, CHUNK_SIZE):
+                arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
+                    chunk,
+                    loads_dop.uuid,
+                    bucket_name,
+                    config.get(RECORDS_PREFIX),
+                    categories,
+                    storage_manager,
+                )
+                retries = 0
+                ar_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_arxiv_records.csv",
+                    "".join(arxiv_records),
+                    True,
+                )
+                filenames.append(ar_presigned_url)
+                au_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv", "".join(authors), True
+                )
+                filenames.append(au_presigned_url)
+                ab_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv", "".join(abstracts), True
+                )
+                filenames.append(ab_presigned_url)
+                rel_presigned_url = storage_manager.upload_to_s3(
+                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_relationships.csv",
+                    "".join(relationships),
+                    True,
+                )
+                filenames.append(rel_presigned_url)
+                while retries < 3:
+                    try:
+                        commit_records(driver, ar_presigned_url, au_presigned_url, ab_presigned_url, rel_presigned_url)
+                        processed_chunks += 1
+                        break
+                    except Exception as e:
+                        logger.error(
+                            "An error occurred while committing arXiv records.",
+                            method=store_records.__name__,
+                            error=str(e),
+                            retries=retries,
+                        )
+                        retries += 1
+                        if retries == 3:
+                            logger.error(
+                                "Failed to commit arXiv records after 3 retries.",
+                                method=store_records.__name__,
+                                error=str(e),
+                                retries=retries,
+                                total_chunks=num_chunks,
+                                processed_chunks=processed_chunks,
+                            )
 
-            arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
-                possible_new_records, loads_dop.uuid, bucket_name, config.get(RECORDS_PREFIX), categories
-            )
-            ar_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
-            )
-            _, summary, _ = driver.execute_query(
+    except Exception as e:
+        logger.error(
+            "An error occurred while committing arXiv records.",
+            method=store_records.__name__,
+            error=str(e),
+        )
+        raise e
+    finally:
+        logger.info("Malformed records", method=store_records.__name__, malformed_records=malformed_records)
+        logger.info("Finished storing records", method=store_records.__name__)
+        for filename in filenames:
+            storage_manager.delete(filename)
+
+
+def commit_records(
+    driver: Driver, ar_presigned_url: str, au_presigned_url: str, ab_presigned_url: str, rel_presigned_url: str
+) -> None:
+    with driver.session() as session:
+        tx = session.begin_transaction()
+        try:
+
+            tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:ArxivRecord {{identifier: row.arxiv_id}})
                 ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                """,
-                database_="neo4j",
+                """
             )
-            logger.info(
-                "Arxiv records created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
-            )
-            au_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/authors.csv", "".join(authors), True
-            )
-            _, summary, _ = driver.execute_query(
+            tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
                 ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                """,
-                database_="neo4j",
+                """
             )
-            logger.info("Authors created", method=store_records.__name__, nodes_created=summary.counters.nodes_created)
-            ab_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/abstracts.csv", "".join(abstracts), True
-            )
-            _, summary, _ = driver.execute_query(
+            tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:Abstract {{abstract_url: row.url}})
                 ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
-                """,
-                database_="neo4j",
+                """
             )
-            logger.info(
-                "Abstracts created", method=store_records.__name__, nodes_created=summary.counters.nodes_created
-            )
-            rel_presigned_url = storage_manager.upload_to_s3(
-                f"{config.get(RECORDS_PREFIX)}/relationships.csv", "".join(relationships), True
-            )
-            result, summary, _ = driver.execute_query(
+            tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row FIELDTERMINATOR '|'
                 MATCH (start), (end)
@@ -254,21 +307,11 @@ def store_records(
                 """,
                 database_="neo4j",
             )
-            logger.info(
-                "Relationships created",
-                method=store_records.__name__,
-                relationships_created=result,
-            )
-    except Exception as e:
-        logger.error("An error occurred", method=store_records.__name__, error=str(e))
-        raise e
-    finally:
-        logger.info(
-            "Finished storing records",
-            method=store_records.__name__,
-            num_records=len(records),
-            num_malformed_records=len(malformed_records),
-        )
+            tx.commit()
+        except Exception as e:
+            tx.rollback()
+            logger.error("Error during neo4j transaction.", error=str(e))
+            raise e
 
 
 def parsed_data_node(driver: Driver, key: str) -> Data:
@@ -366,7 +409,12 @@ def filter_new_records(driver: Driver, records: dict) -> list:
 
 
 def generate_csv_data(
-    records: List[Dict], loads_dop_uuid: str, bucket: str, records_prefix: str, categories: dict
+    records: List[Dict],
+    loads_dop_uuid: str,
+    bucket: str,
+    records_prefix: str,
+    categories: dict,
+    storage_manager: StorageManager,
 ) -> Tuple[List[str], List[str], List[str], List[str]]:
     """
     Generates the CSV data for the arXiv records.
@@ -377,6 +425,7 @@ def generate_csv_data(
         bucket (str): The S3 bucket name for storing arXiv records.
         records_prefix (str): The prefix for the records.
         categories (dict): The arXiv categories from the graph.
+        storage_manager (StorageManager): The storage manager.
 
     Returns:
         Tuple[List[str], List[str], List[str], List[str], List[str]]: The arXiv records, authors, abstracts,
@@ -404,8 +453,8 @@ def generate_csv_data(
             for author in au_list:
                 authors.append(author)
             ab = abstract_factory(record, bucket, records_prefix)
-            abstracts.append(ab)
-            ab_uuid = ab.split("|")[-1].strip()
+            abstracts.append("|".join(ab) + "\n")
+            ab_uuid = ab[-1].strip()
             rels = []
 
             rels.append(relationship_factory(CREATES, DataOperation.LABEL, loads_dop_uuid, ArxivRecord.LABEL, rec_uuid))
@@ -487,11 +536,25 @@ def author_factory(record: dict, authors_dict: dict) -> list:
     return auths
 
 
-def abstract_factory(record: dict, bucket: str, records_prefix: str) -> str:
+def abstract_factory(record: dict, bucket: str, records_prefix: str) -> list:
     key = f"{records_prefix}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
     abstract_url = escape_csv_value(record.get(ABSTRACT_URL, ""))
-    return f"{abstract_url}|{bucket}|{key}|{str(uuid.uuid4())}\n"
+    return [abstract_url, bucket, key, str(uuid.uuid4())]
 
 
 def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
     return f"{label}|{start_label}|{start_uuid}|{end_label}|{end_uuid}|{str(uuid.uuid4())}\n"
+
+
+def chunker(seq: list, size: int) -> list:
+    """
+    Chunks a list into smaller lists.
+
+    Args:
+        seq (list): The list to chunk.
+        size (int): The size of each chunk.
+
+    Returns:
+        list: The chunked list.
+    """
+    return (seq[pos : pos + size] for pos in range(0, len(seq), size))

@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import urllib.parse
+import uuid
 
 import defusedxml.ElementTree as ET
 import structlog
@@ -87,62 +88,55 @@ def lambda_handler(event, context):
                 message = "Failed to create DataOperation"
                 logger.error(message, method=lambda_handler.__name__)
                 raise RuntimeError(message)
-            chunk_num = 0
-            print(len(extracted_data["records"]))
-            for chunk in chunker(extracted_data["records"], 400):
-                parsed_data = None
-                try:
-                    content = {}
-                    content["records"] = chunk
-                    content_str = json.dumps(content)
-                    output_key = get_output_key(config)
-                    storage_manager.upload_to_s3(output_key, content_str)
-                    parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
-                    parsed_data.create()
-                    if not parsed_data:
-                        message = f"Failed to create parsed data with key: {output_key}"
-                        logger.error(message, method=lambda_handler.__name__)
-                        raise RuntimeError(message)
-                    data_operation.relate(
-                        driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
-                    )
-                    data_operation.relate(
-                        driver,
-                        PARSED_BY,
-                        raw_data.LABEL,
-                        raw_data.uuid,
-                        data_operation.LABEL,
-                        data_operation.uuid,
-                        True,
-                    )
-                    data_operation.relate(
-                        driver,
-                        CREATES,
-                        data_operation.LABEL,
-                        data_operation.uuid,
-                        parsed_data.LABEL,
-                        parsed_data.uuid,
-                        True,
-                    )
-                    data_operation.relate(
-                        driver,
-                        CREATED_BY,
-                        parsed_data.LABEL,
-                        parsed_data.uuid,
-                        data_operation.LABEL,
-                        data_operation.uuid,
-                        True,
-                    )
-                    chunk_num += 1
-                except Exception as e:
-                    logger.error(
-                        "Failed to create parsed data",
-                        method=lambda_handler.__name__,
-                        chunk_num=chunk_num,
-                        key=output_key if output_key else "",
-                        error=str(e),
-                    )
-                    success = False
+            parsed_data = None
+            try:
+                content_str = json.dumps(extracted_data["records"])
+                output_key = get_output_key(config)
+                storage_manager.upload_to_s3(output_key, content_str)
+                parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
+                parsed_data.create()
+                if not parsed_data:
+                    message = f"Failed to create parsed data with key: {output_key}"
+                    logger.error(message, method=lambda_handler.__name__)
+                    raise RuntimeError(message)
+                data_operation.relate(
+                    driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
+                )
+                data_operation.relate(
+                    driver,
+                    PARSED_BY,
+                    raw_data.LABEL,
+                    raw_data.uuid,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    True,
+                )
+                data_operation.relate(
+                    driver,
+                    CREATES,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    parsed_data.LABEL,
+                    parsed_data.uuid,
+                    True,
+                )
+                data_operation.relate(
+                    driver,
+                    CREATED_BY,
+                    parsed_data.LABEL,
+                    parsed_data.uuid,
+                    data_operation.LABEL,
+                    data_operation.uuid,
+                    True,
+                )
+            except Exception as e:
+                logger.error(
+                    "Failed to create parsed data",
+                    method=lambda_handler.__name__,
+                    key=output_key if output_key else "",
+                    error=str(e),
+                )
+                success = False
         logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
         return (
             {"statusCode": 200, "body": "Success"} if success else {"statusCode": 500, "body": "Failed to parse data"}
@@ -273,7 +267,7 @@ def get_output_key(config) -> str:
         str: The output key.
     """
     key_date = utils.get_storage_key_date()
-    return f"{config[ETL_KEY_PREFIX]}/parsed_arxiv_summaries-{key_date}.json"
+    return f"{config[ETL_KEY_PREFIX]}/{str(uuid.uuid4())}-parsed_arxiv_summaries-{key_date}.json"
 
 
 def chunker(seq: list, size: int) -> list:

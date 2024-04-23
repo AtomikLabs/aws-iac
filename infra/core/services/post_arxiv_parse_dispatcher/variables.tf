@@ -18,14 +18,9 @@ variable "basic_execution_role_arn" {
   type          = string
 }
 
-variable "data_bucket" {
-  description   = "The name of the S3 bucket where the data is stored"
-  type          = string
-}
-
-variable "data_bucket_arn" {
-  description   = "The ARN of the S3 bucket where the data is stored"
-  type          = string
+variable "dispatch_lambda_names" {
+  description   = "The names of the Lambda functions to dispatch the data"
+  type          = list(string)
 }
 
 variable "environment" {
@@ -34,39 +29,14 @@ variable "environment" {
   default       = "dev"
 }
 
-variable "etl_key_prefix" {
-  description   = "The prefix for the ETL keys"
-  type          = string
-}
-
 variable "lambda_vpc_access_role" {
   description   = "The ARN of the role that allows the Lambda function to access the VPC"
-  type          = string
-}
-
-variable "neo4j_password" {
-  description   = "The password for the Neo4j database"
-  type          = string
-}
-
-variable "neo4j_uri" {
-  description   = "The URI for the Neo4j database"
-  type          = string
-}
-
-variable "neo4j_username" {
-  description   = "The username for the Neo4j database"
   type          = string
 }
 
 variable "private_subnets" {
   description   = "The private subnets"
   type          = list(string)
-}
-
-variable "records_prefix" {
-  description   = "The prefix for the records"
-  type          = string
 }
 
 variable "runtime" {

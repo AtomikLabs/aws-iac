@@ -25,7 +25,7 @@ data_ingestion_key_prefix = "raw_data/data_ingestion"
 data_ingestion_metadata_key_prefix = "raw_data/data_ingestion/metadata"
 etl_key_prefix = "processed_data/etl"
 neo4j_ami_id = "ami-0f403e3180720dd7e"
-neo4j_instance_type = "t3a.small"
+neo4j_instance_type = "t3a.large"
 neo4j_key_pair_name = "atomiklabs-neo4j-keypair"
 neo4j_resource_prefix = "data-management-neo4j"
 records_prefix = "processed_data/research_records"
@@ -46,17 +46,25 @@ default_lambda_runtime = "python3.10"
 
 # services_layer
 services_layer_service_name = "services_layer"
-services_layer_service_version = "0.0.1"
+services_layer_service_version = "0.1.0"
 
 # fetch_daily_summaries
 fetch_daily_summaries_max_retries = 10
 fetch_daily_summaries_service_name = "fetch_daily_summaries"
-fetch_daily_summaries_service_version = "0.0.4"
+fetch_daily_summaries_service_version = "0.1.0"
 
-# parase_arxiv_summaries
+# parse_arxiv_summaries
 parse_arxiv_summaries_service_name = "parse_arxiv_summaries"
-parse_arxiv_summaries_service_version = "0.0.4"
+parse_arxiv_summaries_service_version = "0.1.0"
+
+# post_arxiv_parse_dispatcher
+post_arxiv_parse_dispatcher_service_name = "post_arxiv_parse_dispatcher"
+post_arxiv_parse_dispatcher_service_version = "0.0.1"
 
 # store_arxiv_summaries
 store_arxiv_summaries_service_name = "store_arxiv_summaries"
-store_arxiv_summaries_service_version = "0.0.1"
+store_arxiv_summaries_service_version = "0.1.0"
+
+# persist_arxiv_summaries
+persist_arxiv_summaries_service_name = "persist_arxiv_summaries"
+persist_arxiv_summaries_service_version = "0.0.1"

@@ -188,6 +188,16 @@ variable "parse_arxiv_summaries_service_version" {
   type        = string
 }
 
+variable "post_arxiv_parse_dispatcher_service_name" {
+  description = "Service name for the post arxiv summaries dispatcher"
+  type        = string
+}
+
+variable "post_arxiv_parse_dispatcher_service_version" {
+  description = "Service version for the post arxiv summaries dispatcher"
+  type        = string
+}
+
 variable "store_arxiv_summaries_service_name" {
   description = "Service name for the store arxiv summaries"
   type        = string
@@ -195,5 +205,15 @@ variable "store_arxiv_summaries_service_name" {
 
 variable "store_arxiv_summaries_service_version" {
   description = "Service version for the store arxiv summaries"
+  type        = string
+}
+
+variable "persist_arxiv_summaries_service_name" {
+  description = "Service name for the persist arxiv summaries"
+  type        = string
+}
+
+variable "persist_arxiv_summaries_service_version" {
+  description = "Service version for the persist arxiv summaries"
   type        = string
 }

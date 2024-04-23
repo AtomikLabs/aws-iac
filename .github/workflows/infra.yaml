@@ -121,6 +121,14 @@ jobs:
           cp services/parse_arxiv_summaries/src/parse_arxiv_summaries/lambda_handler.py build/parse_arxiv_summaries/
           pip install -r build/parse_arxiv_summaries/requirements.txt -t build/parse_arxiv_summaries/
 
+      - name: Build Post arXiv Parse Dispatcher Lambda Function
+        id: build-post-arxiv-parse-dispatcher
+        run: |
+          mkdir -p build/post_arxiv_parse_dispatcher
+          cp services/post_arxiv_parse_dispatcher/src/requirements.txt build/post_arxiv_parse_dispatcher/
+          cp services/post_arxiv_parse_dispatcher/src/post_arxiv_parse_dispatcher/lambda_handler.py build/post_arxiv_parse_dispatcher/
+          pip install -r build/post_arxiv_parse_dispatcher/requirements.txt -t build/post_arxiv_parse_dispatcher/
+
       - name: Build Store arXiv Summaries Lambda Function
         id: build-store-arxiv-summaries
         run: |
@@ -128,6 +136,14 @@ jobs:
           cp services/store_arxiv_summaries/src/requirements.txt build/store_arxiv_summaries/
           cp services/store_arxiv_summaries/src/store_arxiv_summaries/lambda_handler.py build/store_arxiv_summaries/
           pip install -r build/store_arxiv_summaries/requirements.txt -t build/store_arxiv_summaries/
+
+      - name: Build Persist arXiv Summaries Lambda Function
+        id: build-persist-arxiv-summaries
+        run: |
+          mkdir -p build/persist_arxiv_summaries
+          cp services/persist_arxiv_summaries/src/requirements.txt build/persist_arxiv_summaries/
+          cp services/persist_arxiv_summaries/src/persist_arxiv_summaries/lambda_handler.py build/persist_arxiv_summaries/
+          pip install -r build/persist_arxiv_summaries/requirements.txt -t build/persist_arxiv_summaries/
 
       - name: Ensure S3 bucket exists
         run: |

@@ -8,14 +8,8 @@ from services.store_arxiv_summaries.src.store_arxiv_summaries.lambda_handler imp
 class TestLambdaHandler(unittest.TestCase):
     def setUp(self):
         self.event = {
-            "Records": [
-                {
-                    "s3": {
-                        "bucket": {"name": "test-bucket"},
-                        "object": {"key": "test-key"},
-                    }
-                }
-            ]
+            "bucket": "test-bucket",
+            "key": "test-key",
         }
         self.context = MagicMock()
 
@@ -74,7 +68,7 @@ class TestLambdaHandler(unittest.TestCase):
         response = lambda_handler(self.event, self.context)
 
         mock_log_initial_info.assert_called_once_with(self.event)
-        mock_unquote_plus.assert_called_once_with(self.event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
+        mock_unquote_plus.assert_called_once_with(self.event["key"], encoding="utf-8")
         mock_get_config.assert_called_once()
         self.assertEqual(response, {"statusCode": 200, "body": "Success"})
 
@@ -102,7 +96,7 @@ class TestLambdaHandler(unittest.TestCase):
         response = lambda_handler(self.event, self.context)
 
         mock_log_initial_info.assert_called_once_with(self.event)
-        mock_unquote_plus.assert_called_once_with(self.event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
+        mock_unquote_plus.assert_called_once_with(self.event["key"], encoding="utf-8")
         self.assertEqual(
             response,
             {"statusCode": 500, "body": "Internal server error", "error": "Test exception", "event": self.event},
