@@ -19,6 +19,11 @@ data "archive_file" "post_arxiv_parse_dispatcher_lambda_function" {
   output_path = "../../build/${local.service_name}/${local.service_name}.zip"
 }
 
+data "aws_lambda_function" "dispatch" {
+  for_each = toset(local.dispatch_lambda_names)
+  function_name = each.value
+}
+
 # **********************************************************
 # * SERVICE                                                *
 # **********************************************************
@@ -104,7 +109,7 @@ resource "aws_iam_policy" "post_arxiv_parse_dispatch_invoke_function" {
         ]
         Effect = "Allow"
         Resource = [
-          for lambda_name in local.dispatch_lambda_names : aws_lambda_function[lambda_name].arn
+          for lambda_name in local.dispatch_lambda_names : data.aws_lambda_function.dispatch[lambda_name].arn
         ]
       }
     ]
