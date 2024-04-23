@@ -129,6 +129,14 @@ jobs:
           cp services/store_arxiv_summaries/src/store_arxiv_summaries/lambda_handler.py build/store_arxiv_summaries/
           pip install -r build/store_arxiv_summaries/requirements.txt -t build/store_arxiv_summaries/
 
+      - name: Build Persist arXiv Summaries Lambda Function
+        id: build-persist-arxiv-summaries
+        run: |
+          mkdir -p build/persist_arxiv_summaries
+          cp services/persist_arxiv_summaries/src/requirements.txt build/persist_arxiv_summaries/
+          cp services/persist_arxiv_summaries/src/persist_arxiv_summaries/lambda_handler.py build/persist_arxiv_summaries/
+          pip install -r build/persist_arxiv_summaries/requirements.txt -t build/persist_arxiv_summaries/
+
       - name: Ensure S3 bucket exists
         run: |
           if ! aws s3 ls "s3://${{steps.vars.outputs.infra_config_bucket}}" 2>&1 | grep -q 'NoSuchBucket'; then

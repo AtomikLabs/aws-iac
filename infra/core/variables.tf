@@ -197,3 +197,13 @@ variable "store_arxiv_summaries_service_version" {
   description = "Service version for the store arxiv summaries"
   type        = string
 }
+
+variable "persist_arxiv_summaries_service_name" {
+  description = "Service name for the persist arxiv summaries"
+  type        = string
+}
+
+variable "persist_arxiv_summaries_service_version" {
+  description = "Service version for the persist arxiv summaries"
+  type        = string
+}

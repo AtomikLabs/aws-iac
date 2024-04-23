@@ -46,17 +46,21 @@ default_lambda_runtime = "python3.10"
 
 # services_layer
 services_layer_service_name = "services_layer"
-services_layer_service_version = "0.0.1"
+services_layer_service_version = "0.1.0"
 
 # fetch_daily_summaries
 fetch_daily_summaries_max_retries = 10
 fetch_daily_summaries_service_name = "fetch_daily_summaries"
-fetch_daily_summaries_service_version = "0.0.4"
+fetch_daily_summaries_service_version = "0.1.0"
 
-# parase_arxiv_summaries
+# parse_arxiv_summaries
 parse_arxiv_summaries_service_name = "parse_arxiv_summaries"
-parse_arxiv_summaries_service_version = "0.0.4"
+parse_arxiv_summaries_service_version = "0.1.0"
 
 # store_arxiv_summaries
 store_arxiv_summaries_service_name = "store_arxiv_summaries"
-store_arxiv_summaries_service_version = "0.0.1"
+store_arxiv_summaries_service_version = "0.1.0"
+
+# persist_arxiv_summaries
+persist_arxiv_summaries_service_name = "persist_arxiv_summaries"
+persist_arxiv_summaries_service_version = "0.0.1"

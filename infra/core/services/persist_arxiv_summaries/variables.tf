@@ -44,21 +44,6 @@ variable "lambda_vpc_access_role" {
   type          = string
 }
 
-variable "neo4j_password" {
-  description   = "The password for the Neo4j database"
-  type          = string
-}
-
-variable "neo4j_uri" {
-  description   = "The URI for the Neo4j database"
-  type          = string
-}
-
-variable "neo4j_username" {
-  description   = "The username for the Neo4j database"
-  type          = string
-}
-
 variable "private_subnets" {
   description   = "The private subnets"
   type          = list(string)

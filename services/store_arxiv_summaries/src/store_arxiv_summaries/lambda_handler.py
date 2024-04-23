@@ -263,6 +263,7 @@ def store_records(
         )
         raise e
     finally:
+        logger.info("Malformed records", method=store_records.__name__, malformed_records=malformed_records)
         logger.info("Finished storing records", method=store_records.__name__)
 
 
@@ -405,7 +406,6 @@ def generate_csv_data(
             for author in au_list:
                 authors.append(author)
             ab = abstract_factory(record, bucket, records_prefix)
-            storage_manager.upload_to_s3(ab[2], record.get(ABSTRACT))
             abstracts.append("|".join(ab) + "\n")
             ab_uuid = ab[-1].strip()
             rels = []
