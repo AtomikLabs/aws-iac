@@ -199,14 +199,24 @@ def store_records(
                 tx = session.begin_transaction()
                 try:
                     ar_presigned_url = storage_manager.upload_to_s3(
-                        f"{config.get(RECORDS_PREFIX)}/arxiv_records.csv", "".join(arxiv_records), True
+                        f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_arxiv_records.csv",
+                        "".join(arxiv_records),
+                        True
                     )
-                    au_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv"
-                    au_presigned_url = storage_manager.upload_to_s3(au_key, "".join(authors), True)
-                    ab_key = f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv"
-                    ab_presigned_url = storage_manager.upload_to_s3(ab_key, "".join(abstracts), True)
+                    au_presigned_url = storage_manager.upload_to_s3(
+                        f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv",
+                        "".join(authors),
+                        True
+                    )
+                    ab_presigned_url = storage_manager.upload_to_s3(
+                        f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv",
+                        "".join(abstracts),
+                        True
+                    )
                     rel_presigned_url = storage_manager.upload_to_s3(
-                        f"{config.get(RECORDS_PREFIX)}/relationships.csv", "".join(relationships), True
+                        f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_relationships.csv",
+                        "".join(relationships),
+                        True
                     )
                     tx.run(
                         f"""
