@@ -21,3 +21,5 @@ test_aws_cli = BashOperator(
     bash_command='aws s3 ls s3://dev-atomiklabs-data-bucket/',
     dag=dag,
 )
+
+test_aws_cli
