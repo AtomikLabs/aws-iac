@@ -11,7 +11,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import RGBColor
 
-target_date = datetime(2024, 4, 3)
+target_date = datetime(2024, 4, 23)
 
 
 def latex_to_human_readable(latex_str):

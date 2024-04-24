@@ -18,7 +18,6 @@ curl -LfO 'https://airflow.apache.org/docs/apache-airflow/2.9.0/docker-compose.y
 mkdir -p ./dags ./logs ./plugins ./config
 echo -e "AIRFLOW_UID=$(id -u)" > .env
 
-# Add startup script to rc.local
 echo 'cd /home/ec2-user && docker compose --profile flower up -d' | sudo tee -a /etc/rc.d/rc.local
 sudo chmod +x /etc/rc.d/rc.local
 
@@ -27,10 +26,14 @@ docker compose --profile flower up -d
 
 cat << 'EOF' > /home/ec2-user/sync_s3.sh
 #!/bin/bash
-aws s3 sync s3://${bucket_name}/dags /home/ec2-user/dags
-aws s3 sync s3://${bucket_name}/plugins /home/ec2-user/plugins
-aws s3 sync s3://${bucket_name}/config /home/ec2-user/config
-aws s3 sync s3://${bucket_name}/config /home/ec2-user/logs
+aws s3 sync s3://${bucket_name}/orchestration/dags /home/ec2-user/dags
+aws s3 sync /home/ec2-user/dags s3://${bucket_name}/orchestration/dags
+aws s3 sync s3://${bucket_name}/orchestration/plugins /home/ec2-user/plugins
+aws s3 sync /home/ec2-user/plugins s3://${bucket_name}/orchestration/plugins
+aws s3 sync s3://${bucket_name}/orchestration/config /home/ec2-user/config
+aws s3 sync /home/ec2-user/config s3://${bucket_name}/orchestration/config
+aws s3 sync s3://${bucket_name}/orchestration/config /home/ec2-user/logs
+aws s3 sync /home/ec2-user/logs s3://${bucket_name}/orchestration/logs
 EOF
 
 chmod +x /home/ec2-user/sync_s3.sh
@@ -38,3 +41,5 @@ chmod +x /home/ec2-user/sync_s3.sh
 touch /home/ec2-user/logs/test.log
 
 (crontab -l 2>/dev/null; echo "0 * * * * /home/ec2-user/sync_s3.sh") | crontab -
+
+/home/ec2-user/sync_s3.sh

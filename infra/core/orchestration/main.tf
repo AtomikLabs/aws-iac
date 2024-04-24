@@ -52,7 +52,7 @@ resource "aws_instance" "orchestration_host" {
 
 resource "aws_ebs_volume" "orchestration_host_volume" {
   availability_zone = local.availability_zone_available_names[0]
-  size              = 10
+  size              = 20
 
   tags = {
     Name = "${local.environment}-orchestration-data-volume"
