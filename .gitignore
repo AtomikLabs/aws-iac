@@ -191,4 +191,3 @@ scripts/**/*.docx
 
 /orchestration/airflow/logs/
 /orchestration/airflow/dags/__pycache__/
-/orchestration/airflow/plugins/
