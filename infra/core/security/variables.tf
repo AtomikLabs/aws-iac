@@ -3,8 +3,18 @@ variable "aws_ssm_managed_instance_core_arn" {
   type        = string
 }
 
+variable "bastion_ami_id" {
+  description = "The ID of the AMI to use for the bastion host"
+  type        = string
+}
+
 variable "bastion_host_key_pair_name" {
   description = "The name of the key pair to use for the bastion host"
+  type        = string
+}
+
+variable "bastion_instance_type" {
+  description = "The instance type to use for the bastion host"
   type        = string
 }
 

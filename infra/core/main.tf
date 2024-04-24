@@ -51,7 +51,6 @@ locals {
   # * NETWORKING CONFIGURATION                               *
   # **********************************************************
 
-  bastion_host_key_pair_name        = var.bastion_host_key_pair_name
   home_ip                           = "${var.home_ip}/32"
   
   tags = {
@@ -70,6 +69,14 @@ locals {
   orchestration_instance_type     = var.orchestration_instance_type
   orchestration_key_pair_name     = var.orchestration_key_pair_name
   orchestration_resource_prefix   = var.orchestration_resource_prefix
+
+  # **********************************************************
+  # * SECURITY   CONFIGURATION                               *
+  # **********************************************************
+
+  bastion_ami_id                    = var.bastion_ami_id
+  bastion_host_key_pair_name        = var.bastion_host_key_pair_name
+  bastion_instance_type             = var.bastion_instance_type
 
   # **********************************************************
   # * SERVICES CONFIGURATION                                 *
@@ -115,7 +122,9 @@ module "networking" {
   source = "./security"
 
   aws_ssm_managed_instance_core_arn = local.ssm_policy_for_instances_arn
+  bastion_ami_id                    = local.bastion_ami_id
   bastion_host_key_pair_name        = local.bastion_host_key_pair_name
+  bastion_instance_type             = local.bastion_instance_type
   environment                       = local.environment
   home_ip                           = local.home_ip
   public_subnets                    = module.networking.aws_public_subnet_ids

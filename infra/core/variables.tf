@@ -115,15 +115,6 @@ variable "home_ip" {
 }
 
 # **********************************************************
-# * Observability                                          *
-# **********************************************************
-
-variable "bastion_host_key_pair_name" {
-  description = "Bastion host key pair name"
-  type        = string
-}
-
-# **********************************************************
 # * Orchestration                                          *
 # **********************************************************
 
@@ -144,6 +135,25 @@ variable "orchestration_key_pair_name" {
 
 variable "orchestration_resource_prefix" {
   description = "Prefix for the orchestration resources"
+  type        = string
+}
+
+# **********************************************************
+# * Security                                               *
+# **********************************************************
+
+variable "bastion_ami_id" {
+  description = "Bastion AMI ID"
+  type        = string
+}
+
+variable "bastion_host_key_pair_name" {
+  description = "Bastion host key pair name"
+  type        = string
+}
+
+variable "bastion_instance_type" {
+  description = "Bastion instance type"
   type        = string
 }
 

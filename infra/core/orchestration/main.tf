@@ -18,21 +18,18 @@ locals {
   tags                                          = var.tags
 }
 
+data "template_file" "init_script" {
+  template = file("${path.module}/init.tpl")
+}
+
+
 resource "aws_instance" "orchestration_host" {
   ami = local.orchestration_ami_id
   instance_type = local.orchestration_instance_type
   iam_instance_profile = aws_iam_instance_profile.orchestration_instance_profile.name
   key_name = "${local.environment}-${local.orchestration_key_pair_name}"
   subnet_id = element(local.private_subnets, 0)
-  user_data = <<-EOF
-#!/bin/bash
-
-sudo yum update -y
-yum install docker -y
-systemctl start docker
-systemctl enable docker
-usermod -a -G docker ec2-user
-EOF
+  user_data = data.template_file.init_script.rendered
   
   vpc_security_group_ids = [ aws_security_group.orchestration_security_group.id ]
 

@@ -81,56 +81,33 @@ resource "aws_iam_policy" "s3_infra_config_bucket_access" {
   tags = local.tags
 }
 
+data "template_file" "init_script" {
+  template = file("${path.module}/init.tpl")
+
+  vars = {
+    neo4j_username = local.secret.neo4j_username
+    neo4j_password = local.secret.neo4j_password
+  }
+}
+
+
 resource "aws_instance" "neo4j_host" {
   ami = local.neo4j_ami_id
   instance_type = local.neo4j_instance_type
   iam_instance_profile = aws_iam_instance_profile.neo4j_instance_profile.name
   key_name = "${local.environment}-${local.neo4j_key_pair_name}"
   subnet_id = element(local.private_subnets, 0)
-  user_data = <<-EOF
-#!/bin/bash
-
-yum install docker -y
-systemctl start docker
-systemctl enable docker
-usermod -a -G docker ec2-user
-
-target=$(readlink -f /dev/sdh)
-if sudo file -s "$target" | grep -q "ext"; then
-  echo "Filesystem exists on target"
-else
-  /usr/sbin/mkfs.ext4 /dev/sdh
-fi
-
-mount /dev/sdh /neo4j
-mkdir -p /neo4j/data
-mkdir -p /neo4j/logs
-mkdir /neo4j/plugins
-pushd /neo4j/plugins
-wget https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.1.0.11/apoc-4.1.0.11-all.jar
-popd
-
-chown :docker /neo4j/data /neo4j/logs /neo4j/plugins
-chmod g+rwx /neo4j/data /neo4j/logs /neo4j/plugins
-
-docker run --restart=always \
---memory=6g \
---cpus=2 \
--p 7474:7474 -p 7687:7687 \
--v /neo4j/data:/data \
--v /neo4j/logs:/logs \
--v /neo4j/plugins:/plugins \
--e NEO4J_AUTH=${local.secret.neo4j_username}/${local.secret.neo4j_password} \
--e NEO4J_dbms_security_procedures_unrestricted=apoc.\\\* \
---name neo4j \
-neo4j:4.1
-EOF
+  user_data = data.template_file.init_script.rendered
 
   vpc_security_group_ids = [
     aws_security_group.neo4j_security_group.id
   ]
 
   depends_on = [ aws_ebs_volume.neo4j_ebs_volume ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tags = {
     Name = "${local.environment}-neo4j-host"
@@ -155,6 +132,7 @@ resource "aws_volume_attachment" "neo4j_ebs_attachment" {
   device_name = "/dev/sdh"
   volume_id   = aws_ebs_volume.neo4j_ebs_volume.id
   instance_id = aws_instance.neo4j_host.id
+  skip_destroy = true
 }
 
 resource "aws_iam_role" "neo4j_role" {
