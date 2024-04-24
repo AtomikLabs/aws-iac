@@ -13,6 +13,8 @@ sudo chmod +x $DOCKER_CONFIG/docker-compose
 
 cd /home/ec2-user
 
+aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yml /home/ec2-user/docker-compose.yml
+
 mkdir -p ./dags ./logs ./plugins ./config
 echo -e "AIRFLOW_UID=$(id -u)" > .env
 
@@ -38,7 +40,5 @@ EOF
 chmod +x /home/ec2-user/sync_s3.sh
 
 touch /home/ec2-user/logs/test.log
-
-(crontab -l 2>/dev/null; echo "0 * * * * /home/ec2-user/sync_s3.sh") | crontab -
 
 /home/ec2-user/sync_s3.sh

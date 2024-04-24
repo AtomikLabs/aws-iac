@@ -30,6 +30,7 @@ locals {
   neo4j_instance_type                           = var.neo4j_instance_type
   neo4j_key_pair_name                           = var.neo4j_key_pair_name
   neo4j_resource_prefix                         = var.neo4j_resource_prefix
+  neo4j_host_username                                = var.neo4j_host_username
   records_prefix                                = var.records_prefix
   
   # **********************************************************
@@ -77,6 +78,7 @@ locals {
   bastion_ami_id                    = var.bastion_ami_id
   bastion_host_key_pair_name        = var.bastion_host_key_pair_name
   bastion_instance_type             = var.bastion_instance_type
+  bastion_host_username             = var.bastion_host_username
 
   # **********************************************************
   # * SERVICES CONFIGURATION                                 *
@@ -306,6 +308,7 @@ module "orchestration" {
   default_ami_id                                  = local.default_ami_id
   environment                                     = local.environment
   home_ip                                         = local.home_ip
+  infra_config_bucket                             = local.infra_config_bucket
   infra_config_bucket_arn                         = local.infra_config_bucket_arn
   orchestration_ami_id                            = local.orchestration_ami_id
   orchestration_instance_type                     = local.orchestration_instance_type

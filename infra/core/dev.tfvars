@@ -28,6 +28,7 @@ neo4j_ami_id = "ami-0f403e3180720dd7e"
 neo4j_instance_type = "t3a.medium"
 neo4j_key_pair_name = "atomiklabs-neo4j-keypair"
 neo4j_resource_prefix = "data-management-neo4j"
+neo4j_host_username = "ec2-user"
 records_prefix = "processed_data/research_records"
 
 # **********************************************************
@@ -38,6 +39,7 @@ orchestration_ami_id = "ami-0f403e3180720dd7e"
 orchestration_instance_type = "t3a.large"
 orchestration_key_pair_name = "atomiklabs-orchestration-keypair"
 orchestration_resource_prefix = "orchestration"
+orchestration_username = "ec2-user"
 
 # **********************************************************
 # * Security                                               *
@@ -46,6 +48,7 @@ orchestration_resource_prefix = "orchestration"
 bastion_ami_id = "ami-0f403e3180720dd7e"
 bastion_host_key_pair_name = "atomiklabs-bastion-keypair"
 bastion_instance_type = "t2.micro"
+bastion_host_username = "ec2-user"
 
 # **********************************************************
 # * Services                                               *

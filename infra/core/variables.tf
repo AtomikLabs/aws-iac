@@ -95,10 +95,16 @@ variable "neo4j_key_pair_name" {
   type        = string
 }
 
+variable "neo4j_host_username" {
+  description = "Neo4j host username"
+  type        = string
+}
+
 variable "neo4j_resource_prefix" {
   description = "Prefix for the resources"
   type        = string
 }
+
 
 variable "records_prefix" {
   description = "Prefix for the records"
@@ -138,6 +144,11 @@ variable "orchestration_resource_prefix" {
   type        = string
 }
 
+variable "orchestration_username" {
+  description = "Orchestration username"
+  type        = string
+}
+
 # **********************************************************
 # * Security                                               *
 # **********************************************************
@@ -154,6 +165,11 @@ variable "bastion_host_key_pair_name" {
 
 variable "bastion_instance_type" {
   description = "Bastion instance type"
+  type        = string
+}
+
+variable "bastion_host_username" {
+  description = "Bastion host username"
   type        = string
 }
 
