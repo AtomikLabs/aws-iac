@@ -43,7 +43,7 @@ EOF
   }
 }
 
-resource "aws_ebs_volume" "orchestration_ebs_volume" {
+resource "aws_ebs_volume" "orchestration_host_volume" {
   availability_zone = local.availability_zone_available_names[0]
   size              = 10
 
@@ -59,7 +59,7 @@ resource "aws_ebs_volume" "orchestration_ebs_volume" {
 
 resource "aws_volume_attachment" "orchestration_ebs_attachment" {
   device_name = "/dev/sdh"
-  volume_id   = aws_ebs_volume.orchestration_ebs_volume.id
+  volume_id   = aws_ebs_volume.orchestration_host_volume.id
   instance_id = aws_instance.orchestration_host.id
 }
 
