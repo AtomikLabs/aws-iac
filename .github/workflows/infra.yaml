@@ -277,6 +277,3 @@ jobs:
           STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
           DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
           DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
-      - name: copy DAGs to s3
-        run: |
-          aws s3 cp orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --recursive
