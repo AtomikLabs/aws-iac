@@ -123,6 +123,29 @@ variable "bastion_host_key_pair_name" {
   type        = string
 }
 
+# **********************************************************
+# * Orchestration                                          *
+# **********************************************************
+
+variable "orchestration_ami_id" {
+  description = "Orchestration AMI ID"
+  type        = string
+}
+
+variable "orchestration_instance_type" {
+  description = "Orchestration instance type"
+  type        = string
+}
+
+variable "orchestration_key_pair_name" {
+  description = "Orchestration key pair name"
+  type        = string
+}
+
+variable "orchestration_resource_prefix" {
+  description = "Prefix for the orchestration resources"
+  type        = string
+}
 
 # **********************************************************
 # * Services                                               *

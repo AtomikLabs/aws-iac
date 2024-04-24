@@ -63,6 +63,15 @@ locals {
   }
 
   # **********************************************************
+  # * ORCHESTRATION CONFIGURATION                            *
+  # **********************************************************
+
+  orchestration_ami_id            = var.orchestration_ami_id
+  orchestration_instance_type     = var.orchestration_instance_type
+  orchestration_key_pair_name     = var.orchestration_key_pair_name
+  orchestration_resource_prefix   = var.orchestration_resource_prefix
+
+  # **********************************************************
   # * SERVICES CONFIGURATION                                 *
   # **********************************************************
   arxiv_base_url            = var.arxiv_base_url
@@ -277,3 +286,29 @@ module "events" {
   post_arxiv_parse_dispatcher_arn   = module.post_arxiv_parse_dispatcher.lambda_arn
 }
 
+module "orchestration" {
+  source = "./orchestration"
+
+  app_name                                        = local.app_name
+  availability_zones                              = data.aws_availability_zones.available.names
+  aws_vpc_id                                      = module.networking.main_vpc_id
+  data_ingestion_metadata_key_prefix              = local.data_ingestion_metadata_key_prefix
+  default_ami_id                                  = local.default_ami_id
+  environment                                     = local.environment
+  home_ip                                         = local.home_ip
+  infra_config_bucket_arn                         = local.infra_config_bucket_arn
+  orchestration_ami_id                            = local.orchestration_ami_id
+  orchestration_instance_type                     = local.orchestration_instance_type
+  orchestration_key_pair_name                     = local.orchestration_key_pair_name
+  orchestration_resource_prefix                   = local.orchestration_resource_prefix
+  orchestration_source_security_group_ids         = [
+                                                      module.security.bastion_host_security_group_id,
+                                                      module.fetch_daily_summaries.fetch_daily_summaries_security_group_id,
+                                                      module.parse_arxiv_summaries.parse_arxiv_summaries_security_group_id,
+                                                      module.store_arxiv_summaries.store_arxiv_summaries_security_group_id
+                                                    ]
+  private_subnets                                 = module.networking.aws_private_subnet_ids
+  region                                          = local.aws_region
+  ssm_policy_for_instances_arn                    = local.ssm_policy_for_instances_arn
+  tags                                            = local.tags
+}
