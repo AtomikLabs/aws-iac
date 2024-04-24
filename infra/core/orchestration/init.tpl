@@ -32,4 +32,6 @@ EOF
 
 chmod +x /home/ec2-user/sync_s3.sh
 
+touch /home/ec2-user/logs/test.log
+
 (crontab -l 2>/dev/null; echo "0 * * * * /home/ec2-user/sync_s3.sh") | crontab -
