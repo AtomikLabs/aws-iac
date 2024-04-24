@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - stage
+      - dev
+    paths:
+      - "orchestration/airflow/dags/**"
+  pull_request:
+    branches:
+      - dev
+      - test
+    paths:
+      - "orchestration/airflow/dags/**"
+  workflow_dispatch:
+
+jobs:
+  upload_airflow_dags:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Install node and npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install NPM Dependencies
+        run: |
+          npm install
+
+      - name: Load Environment Variables
+        uses: ./.github/actions/load-env-variables
+
+      - name: Extract variables
+        id: vars
+        run: |
+          echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Set Region
+        run: |
+          echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
+
+      - name: Set AWS Credentials
+        uses: ./.github/actions/set-aws-credentials
+        with:
+          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
+          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+      - name: copy DAGs to s3
+        run: |
+          aws s3 cp orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --recursive
