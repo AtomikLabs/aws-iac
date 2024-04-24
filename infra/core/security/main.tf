@@ -1,6 +1,8 @@
 locals {
   AmazonSSMManagedInstanceCoreARN     = var.aws_ssm_managed_instance_core_arn
+  bastion_ami_id                      = var.bastion_ami_id
   bastion_host_key_pair_name          = var.bastion_host_key_pair_name
+  bastion_instance_type               = var.bastion_instance_type
   environment                         = var.environment
   home_ip                             = var.home_ip
   public_subnets                      = var.public_subnets
@@ -18,8 +20,8 @@ resource "aws_iam_instance_profile" "bastion_host_profile" {
 }
 
 resource "aws_instance" "bastion_host" {
-  ami                   = "ami-0440d3b780d96b29d" # ec2
-  instance_type         = "t2.micro"
+  ami                   = var.bastion_ami_id
+  instance_type         = var.bastion_instance_type
   subnet_id             = element(local.public_subnets, 0)
   key_name              = "${local.environment}-${local.bastion_host_key_pair_name}"
   iam_instance_profile  = aws_iam_instance_profile.bastion_host_profile.name

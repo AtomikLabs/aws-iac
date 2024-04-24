@@ -51,7 +51,6 @@ locals {
   # * NETWORKING CONFIGURATION                               *
   # **********************************************************
 
-  bastion_host_key_pair_name        = var.bastion_host_key_pair_name
   home_ip                           = "${var.home_ip}/32"
   
   tags = {
@@ -61,6 +60,23 @@ locals {
     GithubRepo  = local.repo
     Region      = local.aws_region
   }
+
+  # **********************************************************
+  # * ORCHESTRATION CONFIGURATION                            *
+  # **********************************************************
+
+  orchestration_ami_id            = var.orchestration_ami_id
+  orchestration_instance_type     = var.orchestration_instance_type
+  orchestration_key_pair_name     = var.orchestration_key_pair_name
+  orchestration_resource_prefix   = var.orchestration_resource_prefix
+
+  # **********************************************************
+  # * SECURITY   CONFIGURATION                               *
+  # **********************************************************
+
+  bastion_ami_id                    = var.bastion_ami_id
+  bastion_host_key_pair_name        = var.bastion_host_key_pair_name
+  bastion_instance_type             = var.bastion_instance_type
 
   # **********************************************************
   # * SERVICES CONFIGURATION                                 *
@@ -106,7 +122,9 @@ module "networking" {
   source = "./security"
 
   aws_ssm_managed_instance_core_arn = local.ssm_policy_for_instances_arn
+  bastion_ami_id                    = local.bastion_ami_id
   bastion_host_key_pair_name        = local.bastion_host_key_pair_name
+  bastion_instance_type             = local.bastion_instance_type
   environment                       = local.environment
   home_ip                           = local.home_ip
   public_subnets                    = module.networking.aws_public_subnet_ids
@@ -277,3 +295,30 @@ module "events" {
   post_arxiv_parse_dispatcher_arn   = module.post_arxiv_parse_dispatcher.lambda_arn
 }
 
+module "orchestration" {
+  source = "./orchestration"
+
+  app_name                                        = local.app_name
+  availability_zones                              = data.aws_availability_zones.available.names
+  aws_vpc_id                                      = module.networking.main_vpc_id
+  data_bucket                                     = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  data_bucket_arn                                 = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
+  default_ami_id                                  = local.default_ami_id
+  environment                                     = local.environment
+  home_ip                                         = local.home_ip
+  infra_config_bucket_arn                         = local.infra_config_bucket_arn
+  orchestration_ami_id                            = local.orchestration_ami_id
+  orchestration_instance_type                     = local.orchestration_instance_type
+  orchestration_key_pair_name                     = local.orchestration_key_pair_name
+  orchestration_resource_prefix                   = local.orchestration_resource_prefix
+  orchestration_source_security_group_ids         = [
+                                                      module.security.bastion_host_security_group_id,
+                                                      module.fetch_daily_summaries.fetch_daily_summaries_security_group_id,
+                                                      module.parse_arxiv_summaries.parse_arxiv_summaries_security_group_id,
+                                                      module.store_arxiv_summaries.store_arxiv_summaries_security_group_id
+                                                    ]
+  private_subnets                                 = module.networking.aws_private_subnet_ids
+  region                                          = local.aws_region
+  ssm_policy_for_instances_arn                    = local.ssm_policy_for_instances_arn
+  tags                                            = local.tags
+}
