@@ -7,13 +7,13 @@ on:
       - stage
       - dev
     paths:
-      - "orchestration/airflow/dags/**"
+      - "orchestration/airflow/**"
   pull_request:
     branches:
       - dev
       - test
     paths:
-      - "orchestration/airflow/dags/**"
+      - "orchestration/airflow/**"
   workflow_dispatch:
 
 jobs:
@@ -66,4 +66,6 @@ jobs:
           DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
       - name: copy DAGs to s3
         run: |
-          aws s3 cp orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --recursive
+          aws s3 cp orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --recursive --exclude "*.pyc, __pycache__/*"
+          aws s3 cp orchestration/airflow/plugin s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --recursive --exclude "*.pyc, __pycache__/*"
+          aws s3 cp orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --recursive --exclude "*.pyc, __pycache__/*"
