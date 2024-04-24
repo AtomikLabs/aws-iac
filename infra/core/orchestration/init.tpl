@@ -13,7 +13,7 @@ sudo chmod +x $DOCKER_CONFIG/docker-compose
 
 cd /home/ec2-user
 
-aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yml /home/ec2-user/docker-compose.yml
+aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yaml /home/ec2-user/docker-compose.yaml
 
 mkdir -p ./dags ./logs ./plugins ./config
 echo -e "AIRFLOW_UID=$(id -u)" > .env
