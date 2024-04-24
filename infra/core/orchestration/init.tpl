@@ -27,6 +27,7 @@ cat << 'EOF' > /home/ec2-user/sync_s3.sh
 aws s3 sync s3://${bucket_name}/dags /home/ec2-user/dags
 aws s3 sync s3://${bucket_name}/plugins /home/ec2-user/plugins
 aws s3 sync s3://${bucket_name}/config /home/ec2-user/config
+aws s3 sync s3://${bucket_name}/config /home/ec2-user/logs
 EOF
 
 chmod +x /home/ec2-user/sync_s3.sh
