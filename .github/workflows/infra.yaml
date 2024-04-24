@@ -145,6 +145,10 @@ jobs:
           cp services/persist_arxiv_summaries/src/persist_arxiv_summaries/lambda_handler.py build/persist_arxiv_summaries/
           pip install -r build/persist_arxiv_summaries/requirements.txt -t build/persist_arxiv_summaries/
 
+      - name: Upload Airflow docker-compose file to s3
+        run: |
+          aws s3 cp orchestration/airflow/docker-compose-airflow.yml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/docker-compose-airflow.yml
+
       - name: Ensure S3 bucket exists
         run: |
           if ! aws s3 ls "s3://${{steps.vars.outputs.infra_config_bucket}}" 2>&1 | grep -q 'NoSuchBucket'; then
