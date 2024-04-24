@@ -147,7 +147,7 @@ jobs:
 
       - name: Upload Airflow docker-compose file to s3
         run: |
-          aws s3 cp orchestration/airflow/docker-compose.yml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/docker-compose.yml
+          aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/docker-compose.yaml
 
       - name: Ensure S3 bucket exists
         run: |
