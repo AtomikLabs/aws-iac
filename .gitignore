@@ -186,3 +186,9 @@ scripts/**/*.docx
 **/create_arxiv_cs_categories.py
 
 .vscode/
+
+# Airflow
+
+/orchestration/airflow/logs/
+/orchestration/airflow/dags/__pycache__/
+/orchestration/airflow/plugins/
