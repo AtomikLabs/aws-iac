@@ -27,14 +27,14 @@ docker compose --profile flower up -d
 
 cat << 'EOF' > /home/ec2-user/sync_s3.sh
 #!/bin/bash
-aws s3 sync s3://${bucket_name}/orchestration/dags /home/ec2-user/dags
-aws s3 sync /home/ec2-user/dags s3://${bucket_name}/orchestration/dags
-aws s3 sync s3://${bucket_name}/orchestration/plugins /home/ec2-user/plugins
-aws s3 sync /home/ec2-user/plugins s3://${bucket_name}/orchestration/plugins
-aws s3 sync s3://${bucket_name}/orchestration/config /home/ec2-user/config
-aws s3 sync /home/ec2-user/config s3://${bucket_name}/orchestration/config
-aws s3 sync s3://${bucket_name}/orchestration/config /home/ec2-user/logs
-aws s3 sync /home/ec2-user/logs s3://${bucket_name}/orchestration/logs
+aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/dags /home/ec2-user/dags
+aws s3 sync /home/ec2-user/dags s3://${infra_bucket_name}/orchestration/airflow/dags
+aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/plugins /home/ec2-user/plugins
+aws s3 sync /home/ec2-user/plugins s3://${infra_bucket_name}/orchestration/airflow/plugins
+aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /home/ec2-user/config
+aws s3 sync /home/ec2-user/config s3://${infra_bucket_name}/orchestration/airflow/config
+aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /home/ec2-user/logs
+aws s3 sync /home/ec2-user/logs s3://${infra_bucket_name}/orchestration/airflow/logs
 EOF
 
 chmod +x /home/ec2-user/sync_s3.sh
