@@ -21,6 +21,7 @@ echo -e "AIRFLOW_UID=$(id -u)" > .env
 echo 'cd /home/ec2-user && docker compose --profile flower up -d' | sudo tee -a /etc/rc.d/rc.local
 sudo chmod +x /etc/rc.d/rc.local
 
+export AIRFLOW__CORE__LOAD_EXAMPLES=False
 docker compose up airflow-init
 docker compose --profile flower up -d
 
