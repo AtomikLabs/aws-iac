@@ -35,7 +35,7 @@ records_prefix = "processed_data/research_records"
 # **********************************************************
 
 orchestration_ami_id = "ami-0f403e3180720dd7e"
-orchestration_instance_type = "t3a.medium"
+orchestration_instance_type = "t3a.large"
 orchestration_key_pair_name = "atomiklabs-orchestration-keypair"
 orchestration_resource_prefix = "orchestration"
 
