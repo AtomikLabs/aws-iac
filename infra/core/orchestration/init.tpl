@@ -6,10 +6,10 @@ systemctl start docker
 systemctl enable docker
 usermod -a -G docker ec2-user
 
-DOCKER_CONFIG=$${DOCKER_CONFIG:/usr/local/lib/docker/cli-plugins}
-mkdir -p /usr/local/lib/docker/cli-plugins
+DOCKER_CONFIG=/usr/local/lib/docker/cli-plugins
+mkdir -p $DOCKER_CONFIG
 curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
-sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+sudo chmod +x $DOCKER_CONFIG/docker-compose
 
 cd /home/ec2-user
 
