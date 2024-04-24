@@ -14,9 +14,14 @@ variable "aws_vpc_id" {
   type        = string
 }
 
-variable "data_ingestion_metadata_key_prefix" {
-    description = "Prefix for the data ingestion metadata"
-    type        = string
+variable "data_bucket" {
+  description = "Data bucket"
+  type        = string
+}
+
+variable "data_bucket_arn" {
+  description = "Data bucket ARN"
+  type        = string
 }
 
 variable "default_ami_id" {

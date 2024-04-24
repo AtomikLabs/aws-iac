@@ -301,7 +301,8 @@ module "orchestration" {
   app_name                                        = local.app_name
   availability_zones                              = data.aws_availability_zones.available.names
   aws_vpc_id                                      = module.networking.main_vpc_id
-  data_ingestion_metadata_key_prefix              = local.data_ingestion_metadata_key_prefix
+  data_bucket                                     = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
+  data_bucket_arn                                 = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
   default_ami_id                                  = local.default_ami_id
   environment                                     = local.environment
   home_ip                                         = local.home_ip

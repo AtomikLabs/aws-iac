@@ -1,7 +1,8 @@
 locals {
   availability_zone_available_names             = var.availability_zones
   aws_vpc_id                                    = var.aws_vpc_id
-  data_ingestion_metadata_key_prefix            = var.data_ingestion_metadata_key_prefix
+  data_bucket                                   = var.data_bucket
+  data_bucket_arn                               = var.data_bucket_arn
   default_ami_id                                = var.default_ami_id
   environment                                   = var.environment
   home_ip                                       = var.home_ip
@@ -20,6 +21,16 @@ locals {
 
 data "template_file" "init_script" {
   template = file("${path.module}/init.tpl")
+
+  vars = {
+    bucket_name = local.data_bucket
+  }
+}
+
+resource "null_resource" "init_trigger" {
+  triggers = {
+    init_script_hash = filemd5("${path.module}/init.tpl")
+  }
 }
 
 
@@ -33,7 +44,7 @@ resource "aws_instance" "orchestration_host" {
   
   vpc_security_group_ids = [ aws_security_group.orchestration_security_group.id ]
 
-  depends_on = [ aws_ebs_volume.orchestration_host_volume ]
+  depends_on = [ aws_ebs_volume.orchestration_host_volume, null_resource.init_trigger ]
 
   tags = {
     Name = "${local.environment}-orchestration-host"
@@ -128,6 +139,34 @@ resource "aws_security_group" "orchestration_security_group" {
     protocol    = "tcp"
     security_groups = local.orchestration_source_security_group_ids
   }
+
+  ingress {
+    from_port   = 5555
+    to_port     = 5555
+    protocol    = "tcp"
+    cidr_blocks = [local.home_ip]
+  }
+
+  ingress {
+    from_port   = 5555
+    to_port     = 5555
+    protocol    = "tcp"
+    security_groups = local.orchestration_source_security_group_ids
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [local.home_ip]
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = local.orchestration_source_security_group_ids
+  }
   
   egress {
     from_port   = 0
@@ -160,6 +199,38 @@ resource "aws_iam_role" "orchestration_instance_role" {
   })
 }
 
+resource "aws_iam_policy" "orchestration_ec2_s3_access" {
+  name        = "${local.environment}-${local.orchestration_resource_prefix}-ec2-s3-access"
+  description = "Allow ec2 to put objects in S3"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject",
+          "s3:PutObjectAcl"
+        ]
+        Effect = "Allow",
+        Resource = [
+          "${local.data_bucket_arn}/${local.orchestration_resource_prefix}/*",
+        ]
+      },
+      {
+        Action = [
+          "s3:ListBucket"
+        ]
+        Effect = "Allow",
+        Resource = [
+          "${local.data_bucket_arn}"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "orchestration_role_ssm_policy_for_instances" {
   role       = aws_iam_role.orchestration_instance_role.name
   policy_arn = local.ssm_policy_for_instances_arn
@@ -168,4 +239,9 @@ resource "aws_iam_role_policy_attachment" "orchestration_role_ssm_policy_for_ins
 resource "aws_iam_instance_profile" "orchestration_instance_profile" {
   name = "${local.environment}-orchestration-instance-profile"
   role = aws_iam_role.orchestration_instance_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "orchestration_role_ec2_s3_access" {
+  role       = aws_iam_role.orchestration_instance_role.name
+  policy_arn = aws_iam_policy.orchestration_ec2_s3_access.arn
 }

@@ -90,6 +90,11 @@ data "template_file" "init_script" {
   }
 }
 
+resource "null_resource" "init_trigger" {
+  triggers = {
+    init_script_hash = filemd5("${path.module}/init.tpl")
+  }
+}
 
 resource "aws_instance" "neo4j_host" {
   ami = local.neo4j_ami_id
@@ -103,7 +108,7 @@ resource "aws_instance" "neo4j_host" {
     aws_security_group.neo4j_security_group.id
   ]
 
-  depends_on = [ aws_ebs_volume.neo4j_ebs_volume ]
+  depends_on = [ aws_ebs_volume.neo4j_ebs_volume, null_resource.init_trigger ]
 
   lifecycle {
     create_before_destroy = true
