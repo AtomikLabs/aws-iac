@@ -13,8 +13,6 @@ sudo chmod +x $DOCKER_CONFIG/docker-compose
 
 cd /home/ec2-user
 
-curl -LfO 'https://airflow.apache.org/docs/apache-airflow/2.9.0/docker-compose.yaml'
-
 mkdir -p ./dags ./logs ./plugins ./config
 echo -e "AIRFLOW_UID=$(id -u)" > .env
 
