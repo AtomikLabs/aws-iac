@@ -33,7 +33,6 @@ resource "null_resource" "init_trigger" {
   }
 }
 
-
 resource "aws_instance" "orchestration_host" {
   ami = local.orchestration_ami_id
   instance_type = local.orchestration_instance_type
