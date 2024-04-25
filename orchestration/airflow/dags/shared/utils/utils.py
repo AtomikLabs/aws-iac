@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import pytz
-from constants import DEFAULT_TIMEZONE, S3_KEY_DATE_FORMAT
+from dags.shared.utils.constants import DEFAULT_TIMEZONE, S3_KEY_DATE_FORMAT
 
 
 def get_storage_key_date() -> str:

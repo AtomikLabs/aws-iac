@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 import structlog
 from neo4j import Driver
-from utils import get_storage_key_datetime, validate_strings
+from dags.shared.utils.utils import get_storage_key_datetime, validate_strings
 
 structlog.configure(
     [

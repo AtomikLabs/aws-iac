@@ -79,7 +79,6 @@ x-airflow-common: &airflow-common
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - shared-code-volume:/opt/shared-code
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on: &airflow-common-depends-on
     redis:
@@ -288,17 +287,5 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
-  code-updater:
-    <<: *airflow-common
-    image: python:3.9 # Use an appropriate Python image
-    volumes:
-      - shared-code-volume:/opt/shared-code
-    command: >
-      bash -c "
-      pip install --no-cache-dir -r /opt/shared-code/requirements.txt
-      && python /opt/shared-code/update_code.py"  # Hypothetical script to manage code updates
-    restart: "no"
-
 volumes:
   postgres-db-volume:
-  shared-code-volume:
