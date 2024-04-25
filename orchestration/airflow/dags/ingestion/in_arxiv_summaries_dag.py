@@ -3,7 +3,8 @@ from datetime import datetime
 import structlog
 
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python import PythonOperator
+
 from logging.config import dictConfig
 
 LOGGING_CONFIG = {
