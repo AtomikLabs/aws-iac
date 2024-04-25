@@ -145,7 +145,6 @@ module "fetch_daily_summaries" {
   environment               = local.environment
   infra_config_bucket       = local.infra_config_bucket
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   max_retries               = local.fetch_daily_summaries_max_retries
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
@@ -169,7 +168,6 @@ module "parse_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
@@ -191,7 +189,6 @@ module "store_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
@@ -214,7 +211,6 @@ module "persist_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   private_subnets           = module.networking.aws_private_subnet_ids
   records_prefix            = local.records_prefix
   runtime                   = local.default_lambda_runtime
@@ -235,7 +231,6 @@ module "post_arxiv_parse_dispatcher" {
                               ]
   environment               = local.environment
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   private_subnets           = module.networking.aws_private_subnet_ids
   runtime                   = local.default_lambda_runtime
   service_name              = local.post_arxiv_parse_dispatcher_service_name

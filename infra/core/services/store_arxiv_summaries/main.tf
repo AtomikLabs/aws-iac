@@ -8,7 +8,6 @@ locals {
   environment                 = var.environment
   etl_key_prefix              = var.etl_key_prefix
   lambda_vpc_access_role      = var.lambda_vpc_access_role
-  services_layer_arn          = var.services_layer_arn
   neo4j_password              = var.neo4j_password
   neo4j_uri                   = var.neo4j_uri
   neo4j_username              = var.neo4j_username
@@ -50,8 +49,6 @@ resource "aws_lambda_function" "store_arxiv_summaries" {
       SERVICE_NAME                          = local.service_name
     }  
   }
-
-  layers = [local.services_layer_arn]
 
   vpc_config {
     subnet_ids         = local.private_subnets

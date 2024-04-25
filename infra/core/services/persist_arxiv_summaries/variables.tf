@@ -59,11 +59,6 @@ variable "runtime" {
   type          = string
 }
 
-variable "services_layer_arn" {
-  description   = "The ARN of the layer for data management"
-  type          = string
-}
-
 variable "service_name" {
   description   = "The name of the service"
   type          = string
