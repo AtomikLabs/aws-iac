@@ -92,9 +92,6 @@ locals {
   neo4j_uri                 = "neo4j://${module.data_management.neo4j_instance_private_ip}:7687"
   neo4j_username            = var.neo4j_username
 
-  services_layer_service_name                             = var.services_layer_service_name
-  services_layer_service_version                          = var.services_layer_service_version
-
   fetch_daily_summaries_max_retries                       = var.fetch_daily_summaries_max_retries
   fetch_daily_summaries_service_name                      = var.fetch_daily_summaries_service_name
   fetch_daily_summaries_service_version                   = var.fetch_daily_summaries_service_version
@@ -132,17 +129,6 @@ module "networking" {
   public_subnets                    = module.networking.aws_public_subnet_ids
   vpc_id                            = module.networking.main_vpc_id
  }
-
-module "services_layer" {
-  source = "./services/services_layer"
-
-  app_name        = local.app_name
-  aws_region      = local.aws_region
-  environment     = local.environment
-  runtime         = local.default_lambda_runtime
-  service_name    = local.services_layer_service_name
-  service_version = local.services_layer_service_version
-}
 
 module "fetch_daily_summaries" {
   source = "./services/fetch_daily_summaries"

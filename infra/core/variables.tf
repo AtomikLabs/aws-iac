@@ -202,16 +202,6 @@ variable "neo4j_username" {
   type        = string
 }
 
-variable "services_layer_service_name" {
-  description = "Service name for the layer data management"
-  type        = string
-}
-
-variable "services_layer_service_version" {
-  description = "Service version for the layer data management"
-  type        = string
-}
-
 variable "fetch_daily_summaries_max_retries" {
   description = "Max retries for the fetch daily summaries"
   type        = number
