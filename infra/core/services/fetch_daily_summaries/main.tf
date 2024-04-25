@@ -29,69 +29,6 @@ data "archive_file" "fetch_daily_summaries_lambda_function" {
   output_path = "../../build/${local.service_name}/${local.service_name}.zip"
 }
 
-
-# **********************************************************
-# * TRIGGER                                                *
-# **********************************************************
-resource "aws_cloudwatch_event_rule" "fetch_daily_summaries" {
-  name                = "${local.environment}-${local.service_name}"
-  description         = "Rule to trigger the ${local.service_name} lambda"
-  schedule_expression = "cron(0 11 * * ? *)" # 3:00 AM PST
-  role_arn            = aws_iam_role.eventbridge_role.arn
-}
-
-resource "aws_cloudwatch_event_target" "fetch_daily_summaries_target" {
-  rule      = aws_cloudwatch_event_rule.fetch_daily_summaries.name
-  arn       = aws_lambda_function.fetch_daily_summaries.arn
-}
-
-resource "aws_lambda_permission" "allow_eventbridge_to_invoke_fetch_daily_summaries" {
-  statement_id  = "AllowExecutionFromEventBridge"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.fetch_daily_summaries.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.fetch_daily_summaries.arn
-}
-
-resource "aws_iam_policy" "eventbridge_policy" {
-  name        = "${local.environment}-${local.service_name}-event_bridge_policy"
-  path        = "/"
-  description = "Policy to allow triggering lambdas from eventbridge"
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = "lambda:InvokeFunction",
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role" "eventbridge_role" {
-  name = "${local.environment}-${local.service_name}-event_bridge_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "events.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_policy_attachment" "eventbridge_policy_attach" {
-  name       = "${local.environment}-${local.service_name}-event_bridge_policy_attachment"
-  roles      = [aws_iam_role.eventbridge_role.name]
-  policy_arn = aws_iam_policy.eventbridge_policy.arn
-}
-
 # **********************************************************
 # * SERVICE                                                *
 # **********************************************************
