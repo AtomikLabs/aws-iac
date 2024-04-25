@@ -35,6 +35,8 @@ sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /home/ec
 aws s3 sync /home/ec2-user/config s3://${infra_bucket_name}/orchestration/airflow/config
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /home/ec2-user/logs
 aws s3 sync /home/ec2-user/logs s3://${infra_bucket_name}/orchestration/airflow/logs
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yaml /home/ec2-user/docker-compose.yaml
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/Dockerfile /home/ec2-user/Dockerfile
 EOF
 
 chmod +x /home/ec2-user/sync_s3.sh
