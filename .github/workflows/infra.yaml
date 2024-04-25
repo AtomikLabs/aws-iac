@@ -71,9 +71,9 @@ jobs:
 
       - name: copy DAGs to s3
         run: |
-          aws s3 sync orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --exclude "*.pyc, __pycache__/*"
-          aws s3 sync orchestration/airflow/plugins s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/plugins --exclude "*.pyc, __pycache__/*"
-          aws s3 sync orchestration/airflow/config s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/config --exclude "*.pyc, __pycache__/*"
+          aws s3 sync orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
+          aws s3 sync orchestration/airflow/plugins s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/plugins --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
+          aws s3 sync orchestration/airflow/config s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/config --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
 
       - name: Upload Airflow docker-compose file to s3
         run: |
