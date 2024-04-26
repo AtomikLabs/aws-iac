@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting the volume setup script..." >> /data/airflow/init.log
+echo "Starting the volume setup script..." >> /home/ec2-user/init.log
 
 TIMEOUT=300  # 5 minutes
 INTERVAL=10  # 10 seconds
@@ -13,16 +13,16 @@ while [[ -z $VOLUME_ID && $ELAPSED -lt $TIMEOUT ]]; do
     if [[ -z $VOLUME_ID ]]; then
         sleep $INTERVAL
         ELAPSED=$((ELAPSED + INTERVAL))
-        echo "Waiting for volume ID..." >> /data/airflow/init.log
+        echo "Waiting for volume ID..." >> /home/ec2-user/init.log
     fi
 done
 
 if [[ -z $VOLUME_ID ]]; then
-    echo "Failed to fetch VOLUME_ID within the timeout period." >> /data/airflow/init.log
+    echo "Failed to fetch VOLUME_ID within the timeout period." >> /home/ec2-user/init.log
     exit 1
 fi
 
-echo "VOLUME_ID: $VOLUME_ID" >> /data/airflow/init.log
+echo "VOLUME_ID: $VOLUME_ID" >> /home/ec2-user/init.log
 
 DEVICE_NAME=""
 ELAPSED=0
@@ -31,44 +31,43 @@ while [[ -z $DEVICE_NAME && $ELAPSED -lt $TIMEOUT ]]; do
     if [[ -z $DEVICE_NAME ]]; then
         sleep $INTERVAL
         ELAPSED=$((ELAPSED + INTERVAL))
-        echo "Waiting for device to attach..." >> /data/airflow/init.log
+        echo "Waiting for device to attach..." >> /home/ec2-user/init.log
     fi
 done
 
 if [[ -z $DEVICE_NAME ]]; then
-    echo "Failed to identify the device within the timeout period." >> /data/airflow/init.log
+    echo "Failed to identify the device within the timeout period." >> /home/ec2-user/init.log
     exit 1
 fi
 
-echo "DEVICE_NAME: $DEVICE_NAME" >> /data/airflow/init.log
+echo "DEVICE_NAME: $DEVICE_NAME" >> /home/ec2-user/init.log
 
 FILETYPE=$(sudo file -s $DEVICE_NAME)
-echo "File system type: $FILETYPE" >> /data/airflow/init.log
+echo "File system type: $FILETYPE" >> /home/ec2-user/init.log
 if [[ $FILETYPE == *": data"* ]]; then
-    echo "Formatting device $DEVICE_NAME" >> /data/airflow/init.log
+    echo "Formatting device $DEVICE_NAME" >> /home/ec2-user/init.log
     sudo mkfs -t ext4 $DEVICE_NAME
 else
-    echo "Device $DEVICE_NAME is already formatted. Checking filesystem." >> /data/airflow/init.log
+    echo "Device $DEVICE_NAME is already formatted. Checking filesystem." >> /home/ec2-user/init.log
     sudo e2fsck -p -f $DEVICE_NAME
 fi
 
-mkdir -p /data/dags /data/logs /data/plugins /data/config
-chown -R ec2-user:ec2-user /data/*
-
 grep -q "$DEVICE_NAME" /etc/fstab || echo "$DEVICE_NAME /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
-cat /etc/fstab >> /data/airflow/init.log
-lsblk >> /data/airflow/init.log
+cat /etc/fstab >> /home/ec2-user/init.log
+lsblk >> /home/ec2-user/init.log
 sleep 15
 mount -a
-lsblk >> /data/airflow/init.log
+lsblk >> /home/ec2-user/init.log
 
 if mount | grep -q /data; then
-    echo "/data mounted successfully." >> /data/airflow/init.log
+    echo "/data mounted successfully." >> /home/ec2-user/init.log
 else
-    echo "Failed to mount /data, retrying..." >> /data/airflow/init.log
-    mount -av >> /data/airflow/init.log 2>&1
+    echo "Failed to mount /data, retrying..." >> /home/ec2-user/init.log
+    mount -av >> /home/ec2-user/init.log 2>&1
 fi
 
+mkdir -p /data/airflow/dags /data/airflow/logs /data/airflow/plugins /data/airflow/config
+chown -R ec2-user:ec2-user /data/*
 cd /data/airflow
 
 echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
@@ -87,19 +86,19 @@ chmod +x /data/airflow/sync_s3.sh
 /data/airflow/sync_s3.sh
 
 mkdir /etc/docker
-echo "Configuring docker" >> /data/airflow/init.log
+echo "Configuring docker" >> /home/ec2-user/init.log
 echo '{
   "data-root": "/data/docker"
 }' > /etc/docker/daemon.json
 
-echo "Installing docker" >> /data/airflow/init.log
+echo "Installing docker" >> /home/ec2-user/init.log
 yum update -y
 yum install docker -y
 systemctl start docker
 systemctl enable docker
 usermod -a -G docker ec2-user
 
-echo "Installing docker-compose" >> /data/airflow/init.log
+echo "Installing docker-compose" >> /home/ec2-user/init.log
 DOCKER_CONFIG=/usr/local/lib/docker/cli-plugins
 mkdir -p $DOCKER_CONFIG
 curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
@@ -108,6 +107,6 @@ chmod +x $DOCKER_CONFIG/docker-compose
 echo 'cd /data/airflow && docker compose --profile flower up -d' | sudo tee -a /etc/rc.d/rc.local
 chmod +x /etc/rc.d/rc.local
 
-echo "Building and starting airflow" >> /data/airflow/init.log
+echo "Building and starting airflow" >> /home/ec2-user/init.log
 docker compose up airflow-init
 docker compose --profile flower up -d
