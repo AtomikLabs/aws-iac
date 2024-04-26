@@ -25,32 +25,23 @@ systemctl restart docker
 
 cd /home/ec2-user
 
-aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yaml /home/ec2-user/docker-compose.yaml
-aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/Dockerfile /home/ec2-user/Dockerfile
-aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/requirements.txt /home/ec2-user/requirements.txt
-
 mkdir -p /data/dags /data/logs /data/plugins /data/config
 echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
-
-echo 'cd /home/ec2-user && docker compose --profile flower up -d' | sudo tee -a /etc/rc.d/rc.local
-sudo chmod +x /etc/rc.d/rc.local
-
-export AIRFLOW__CORE__LOAD_EXAMPLES=False
-docker compose up airflow-init
-docker compose --profile flower up -d
 
 cat << 'EOF' > /home/ec2-user/sync_s3.sh
 #!/bin/bash
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/dags /data/dags
-aws s3 sync /data/dags s3://${infra_bucket_name}/orchestration/airflow/dags
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/plugins /data/plugins
-aws s3 sync /data/plugins s3://${infra_bucket_name}/orchestration/airflow/plugins
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /data/config
-aws s3 sync /data/config s3://${infra_bucket_name}/orchestration/airflow/config
-sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/logs /data/logs
 aws s3 sync /data/logs s3://${infra_bucket_name}/orchestration/airflow/logs
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow /home/ec2-user
 EOF
 
 chmod +x /home/ec2-user/sync_s3.sh
-chmod +x /etc/rc.d/rc.local
 /home/ec2-user/sync_s3.sh
+
+echo 'cd /home/ec2-user && docker compose --profile flower up -d' | sudo tee -a /etc/rc.d/rc.local
+sudo chmod +x /etc/rc.d/rc.local
+
+docker compose up airflow-init
+docker compose --profile flower up -d

@@ -75,7 +75,7 @@ jobs:
           aws s3 sync orchestration/airflow/plugins s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/plugins --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
           aws s3 sync orchestration/airflow/config s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/config --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
 
-      - name: Upload Airflow docker-compose file to s3
+      - name: Upload Airflow docker files to s3
         run: |
           aws s3 cp orchestration/airflow/Dockerfile s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/Dockerfile
           aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/docker-compose.yaml
