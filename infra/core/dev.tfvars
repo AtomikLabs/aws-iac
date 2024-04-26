@@ -28,6 +28,7 @@ neo4j_ami_id = "ami-0f403e3180720dd7e"
 neo4j_instance_type = "t3a.medium"
 neo4j_key_pair_name = "atomiklabs-neo4j-keypair"
 neo4j_resource_prefix = "data-management-neo4j"
+neo4j_host_username = "ec2-user"
 records_prefix = "processed_data/research_records"
 
 # **********************************************************
@@ -38,6 +39,7 @@ orchestration_ami_id = "ami-0f403e3180720dd7e"
 orchestration_instance_type = "t3a.large"
 orchestration_key_pair_name = "atomiklabs-orchestration-keypair"
 orchestration_resource_prefix = "orchestration"
+orchestration_username = "ec2-user"
 
 # **********************************************************
 # * Security                                               *
@@ -46,6 +48,7 @@ orchestration_resource_prefix = "orchestration"
 bastion_ami_id = "ami-0f403e3180720dd7e"
 bastion_host_key_pair_name = "atomiklabs-bastion-keypair"
 bastion_instance_type = "t2.micro"
+bastion_host_username = "ec2-user"
 
 # **********************************************************
 # * Services                                               *
@@ -54,10 +57,6 @@ bastion_instance_type = "t2.micro"
 arxiv_base_url = "http://export.arxiv.org/oai2"
 arxiv_summary_set = "cs"
 default_lambda_runtime = "python3.10"
-
-# services_layer
-services_layer_service_name = "services_layer"
-services_layer_service_version = "0.1.0"
 
 # fetch_daily_summaries
 fetch_daily_summaries_max_retries = 10

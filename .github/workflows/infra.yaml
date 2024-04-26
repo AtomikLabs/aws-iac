@@ -9,7 +9,7 @@ on:
     paths:
       - "infra/core/**"
       - ".github/workflows/infra.yaml"
-      - "services/**"
+      - "orchestration/**"
   pull_request:
     branches:
       - dev
@@ -17,15 +17,76 @@ on:
     paths:
       - "infra/core/**"
       - ".github/workflows/infra.yaml"
-      - "services/**"
+      - "orchestration/**"
   workflow_dispatch:
 
 jobs:
-  core_infra:
+  upload_airflow_files:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.10"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Install node and npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install NPM Dependencies
+        run: |
+          npm install
+
+      - name: Load Environment Variables
+        uses: ./.github/actions/load-env-variables
+
+      - name: Extract variables
+        id: vars
+        run: |
+          echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Set Region
+        run: |
+          echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
+
+      - name: Set AWS Credentials
+        uses: ./.github/actions/set-aws-credentials
+        with:
+          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
+          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+
+      - name: copy DAGs to s3
+        run: |
+          aws s3 sync orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
+          aws s3 sync orchestration/airflow/plugins s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/plugins --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
+          aws s3 sync orchestration/airflow/config s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/config --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
+
+      - name: Upload Airflow docker-compose file to s3
+        run: |
+          aws s3 cp orchestration/airflow/Dockerfile s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/Dockerfile
+          aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/docker-compose.yaml
+
+  core_infra:
+    runs-on: ubuntu-latest
+    needs: upload_airflow_files
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -96,14 +157,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{matrix.python-version}}
-
-      - name: Build data management layer package
-        id: build-data-management-layer
-        run: |
-          mkdir -p build/services_layer/python/models
-          cp services/services_layer/src/requirements.txt build/services_layer/python/
-          cp -r services/services_layer/src/services_layer/* build/services_layer/python/
-          pip install -r build/services_layer/python/requirements.txt -t build/services_layer/python/
 
       - name: Build Fetch Daily Summaries Lambda Function
         id: build-fetch-daily-summaries
@@ -225,3 +278,85 @@ jobs:
         with:
           name: terraform_outputs
           path: ./infra/core/terraform_outputs.json
+
+  sync_airflow_instance:
+    needs: core_infra
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Install node and npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install NPM Dependencies
+        run: |
+          npm install
+
+      - name: Load Environment Variables
+        uses: ./.github/actions/load-env-variables
+
+      - name: Extract variables
+        id: vars
+        run: |
+          echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Set Region
+        run: |
+          echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
+
+      - name: Set AWS Credentials
+        uses: ./.github/actions/set-aws-credentials
+        with:
+          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
+          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+
+      - name: Download Terraform Outputs Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform_outputs
+          path: outputs
+
+      - name: Extract Instance ID from Terraform Outputs
+        id: get_instance_id
+        run: |
+          echo "Extracting instance ID..."
+          instance_id=$(jq -r '.orchestration_instance_id.value' outputs/terraform_outputs.json)
+          echo "INSTANCE_ID=$instance_id" >> $GITHUB_ENV
+          echo "Instance ID: $instance_id"
+
+      - name: Send SSM Command to Sync, Rebuild and Restart Airflow
+        if: ${{ !contains(github.event.head_commit.modified, 'requirements.txt') }}
+        run: |
+          echo "Sending SSM command..."
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
+            --parameters '{"commands":["sudo /home/ec2-user/sync_s3.sh", "sudo docker compose -f /home/ec2-user/docker-compose.yaml down", "sudo docker compose -f /home/ec2-user/docker-compose.yaml build", "sudo docker compose -f /home/ec2-user/docker-compose.yaml up -d"]}' \
+            --region ${{ steps.vars.outputs.aws_region }} \
+            --output text
+
+      - name: Send SSM Command to Sync and Restart Airflow
+        if: ${{ !contains(github.event.head_commit.modified, 'requirements.txt') }}
+        run: |
+          echo "Sending SSM command..."
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
+            --parameters '{"commands":["sudo /home/ec2-user/sync_s3.sh", "sudo docker compose -f /home/ec2-user/docker-compose.yaml down", "sudo docker compose -f /home/ec2-user/docker-compose.yaml up -d"]}' \
+            --region ${{ steps.vars.outputs.aws_region }} \
+            --output text

@@ -1,4 +1,5 @@
 locals {
+  app_name                                      = var.app_name
   availability_zone_available_names             = var.availability_zones
   aws_vpc_id                                    = var.aws_vpc_id
   data_bucket                                   = var.data_bucket
@@ -6,8 +7,8 @@ locals {
   default_ami_id                                = var.default_ami_id
   environment                                   = var.environment
   home_ip                                       = var.home_ip
+  infra_config_bucket                           = var.infra_config_bucket
   infra_config_bucket_arn                       = var.infra_config_bucket_arn
-  app_name                                      = var.app_name
   orchestration_ami_id                          = var.orchestration_ami_id
   orchestration_instance_type                   = var.orchestration_instance_type
   orchestration_key_pair_name                   = var.orchestration_key_pair_name
@@ -24,6 +25,7 @@ data "template_file" "init_script" {
 
   vars = {
     bucket_name = local.data_bucket
+    infra_bucket_name = local.infra_config_bucket
   }
 }
 
@@ -215,6 +217,7 @@ resource "aws_iam_policy" "orchestration_ec2_s3_access" {
         Effect = "Allow",
         Resource = [
           "${local.data_bucket_arn}/${local.orchestration_resource_prefix}/*",
+          "${local.infra_config_bucket_arn}/${local.orchestration_resource_prefix}/*",
         ]
       },
       {
@@ -223,7 +226,8 @@ resource "aws_iam_policy" "orchestration_ec2_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${local.data_bucket_arn}"
+          "${local.data_bucket_arn}",
+          "${local.infra_config_bucket_arn}"
         ]
       }
     ]

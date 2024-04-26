@@ -7,7 +7,6 @@ locals {
   environment                 = var.environment
   lambda_vpc_access_role      = var.lambda_vpc_access_role
   private_subnets             = var.private_subnets
-  services_layer_arn          = var.services_layer_arn
   runtime                     = var.runtime
   service_name                = var.service_name
   service_version             = var.service_version
@@ -45,8 +44,6 @@ resource "aws_lambda_function" "post_arxiv_parse_dispatcher" {
       SERVICE_NAME                          = local.service_name
     }  
   }
-
-  layers = [local.services_layer_arn]
 
   vpc_config {
     subnet_ids         = local.private_subnets

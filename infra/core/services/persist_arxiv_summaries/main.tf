@@ -8,7 +8,6 @@ locals {
   environment                 = var.environment
   etl_key_prefix              = var.etl_key_prefix
   lambda_vpc_access_role      = var.lambda_vpc_access_role
-  services_layer_arn          = var.services_layer_arn
   private_subnets             = var.private_subnets
   records_prefix              = var.records_prefix
   runtime                     = var.runtime
@@ -44,8 +43,6 @@ resource "aws_lambda_function" "persist_arxiv_summaries" {
       SERVICE_NAME                          = local.service_name
     }  
   }
-
-  layers = [local.services_layer_arn]
 
   vpc_config {
     subnet_ids         = local.private_subnets

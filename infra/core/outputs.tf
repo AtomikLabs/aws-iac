@@ -23,6 +23,15 @@ output "neo4j_instance_private_ip" {
 }
 
 # **********************************************************
+# * ORCHESTRATION                                          *
+# **********************************************************
+
+output "orchestration_instance_id" {
+  description = "ID of the orchestration instance"
+  value       = module.orchestration.airflow_instance_id
+}
+
+# **********************************************************
 # * NETWORKING                                             *
 # **********************************************************
 output "main_vpc_id" {

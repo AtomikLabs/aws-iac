@@ -40,6 +40,11 @@ variable "home_ip" {
   type          = string
 }
 
+variable "infra_config_bucket" {
+  description = "Infra config bucket"
+  type        = string
+}
+
 variable "infra_config_bucket_arn" {
   description = "ARN of the infra config bucket"
   type        = string

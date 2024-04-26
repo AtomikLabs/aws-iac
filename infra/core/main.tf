@@ -30,6 +30,7 @@ locals {
   neo4j_instance_type                           = var.neo4j_instance_type
   neo4j_key_pair_name                           = var.neo4j_key_pair_name
   neo4j_resource_prefix                         = var.neo4j_resource_prefix
+  neo4j_host_username                                = var.neo4j_host_username
   records_prefix                                = var.records_prefix
   
   # **********************************************************
@@ -77,6 +78,7 @@ locals {
   bastion_ami_id                    = var.bastion_ami_id
   bastion_host_key_pair_name        = var.bastion_host_key_pair_name
   bastion_instance_type             = var.bastion_instance_type
+  bastion_host_username             = var.bastion_host_username
 
   # **********************************************************
   # * SERVICES CONFIGURATION                                 *
@@ -89,9 +91,6 @@ locals {
   neo4j_password            = var.neo4j_password
   neo4j_uri                 = "neo4j://${module.data_management.neo4j_instance_private_ip}:7687"
   neo4j_username            = var.neo4j_username
-
-  services_layer_service_name                             = var.services_layer_service_name
-  services_layer_service_version                          = var.services_layer_service_version
 
   fetch_daily_summaries_max_retries                       = var.fetch_daily_summaries_max_retries
   fetch_daily_summaries_service_name                      = var.fetch_daily_summaries_service_name
@@ -131,17 +130,6 @@ module "networking" {
   vpc_id                            = module.networking.main_vpc_id
  }
 
-module "services_layer" {
-  source = "./services/services_layer"
-
-  app_name        = local.app_name
-  aws_region      = local.aws_region
-  environment     = local.environment
-  runtime         = local.default_lambda_runtime
-  service_name    = local.services_layer_service_name
-  service_version = local.services_layer_service_version
-}
-
 module "fetch_daily_summaries" {
   source = "./services/fetch_daily_summaries"
 
@@ -157,7 +145,6 @@ module "fetch_daily_summaries" {
   environment               = local.environment
   infra_config_bucket       = local.infra_config_bucket
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   max_retries               = local.fetch_daily_summaries_max_retries
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
@@ -181,7 +168,6 @@ module "parse_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
@@ -203,7 +189,6 @@ module "store_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   neo4j_password            = local.neo4j_password
   neo4j_uri                 = local.neo4j_uri
   neo4j_username            = local.neo4j_username
@@ -226,7 +211,6 @@ module "persist_arxiv_summaries" {
   environment               = local.environment
   etl_key_prefix            = local.etl_key_prefix
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   private_subnets           = module.networking.aws_private_subnet_ids
   records_prefix            = local.records_prefix
   runtime                   = local.default_lambda_runtime
@@ -247,7 +231,6 @@ module "post_arxiv_parse_dispatcher" {
                               ]
   environment               = local.environment
   lambda_vpc_access_role    = local.lambda_vpc_access_role
-  services_layer_arn        = module.services_layer.services_layer_arn
   private_subnets           = module.networking.aws_private_subnet_ids
   runtime                   = local.default_lambda_runtime
   service_name              = local.post_arxiv_parse_dispatcher_service_name
@@ -306,6 +289,7 @@ module "orchestration" {
   default_ami_id                                  = local.default_ami_id
   environment                                     = local.environment
   home_ip                                         = local.home_ip
+  infra_config_bucket                             = local.infra_config_bucket
   infra_config_bucket_arn                         = local.infra_config_bucket_arn
   orchestration_ami_id                            = local.orchestration_ami_id
   orchestration_instance_type                     = local.orchestration_instance_type

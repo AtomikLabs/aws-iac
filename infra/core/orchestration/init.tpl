@@ -13,7 +13,7 @@ sudo chmod +x $DOCKER_CONFIG/docker-compose
 
 cd /home/ec2-user
 
-curl -LfO 'https://airflow.apache.org/docs/apache-airflow/2.9.0/docker-compose.yaml'
+aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yaml /home/ec2-user/docker-compose.yaml
 
 mkdir -p ./dags ./logs ./plugins ./config
 echo -e "AIRFLOW_UID=$(id -u)" > .env
@@ -27,20 +27,20 @@ docker compose --profile flower up -d
 
 cat << 'EOF' > /home/ec2-user/sync_s3.sh
 #!/bin/bash
-aws s3 sync s3://${bucket_name}/orchestration/dags /home/ec2-user/dags
-aws s3 sync /home/ec2-user/dags s3://${bucket_name}/orchestration/dags
-aws s3 sync s3://${bucket_name}/orchestration/plugins /home/ec2-user/plugins
-aws s3 sync /home/ec2-user/plugins s3://${bucket_name}/orchestration/plugins
-aws s3 sync s3://${bucket_name}/orchestration/config /home/ec2-user/config
-aws s3 sync /home/ec2-user/config s3://${bucket_name}/orchestration/config
-aws s3 sync s3://${bucket_name}/orchestration/config /home/ec2-user/logs
-aws s3 sync /home/ec2-user/logs s3://${bucket_name}/orchestration/logs
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/dags /home/ec2-user/dags
+aws s3 sync /home/ec2-user/dags s3://${infra_bucket_name}/orchestration/airflow/dags
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/plugins /home/ec2-user/plugins
+aws s3 sync /home/ec2-user/plugins s3://${infra_bucket_name}/orchestration/airflow/plugins
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /home/ec2-user/config
+aws s3 sync /home/ec2-user/config s3://${infra_bucket_name}/orchestration/airflow/config
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /home/ec2-user/logs
+aws s3 sync /home/ec2-user/logs s3://${infra_bucket_name}/orchestration/airflow/logs
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yaml /home/ec2-user/docker-compose.yaml
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/Dockerfile /home/ec2-user/Dockerfile
 EOF
 
 chmod +x /home/ec2-user/sync_s3.sh
 
 touch /home/ec2-user/logs/test.log
-
-(crontab -l 2>/dev/null; echo "0 * * * * /home/ec2-user/sync_s3.sh") | crontab -
 
 /home/ec2-user/sync_s3.sh
