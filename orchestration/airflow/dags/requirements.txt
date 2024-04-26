@@ -1,4 +1,2 @@
-boto3==1.33.7
-botocore==1.33.7
 neo4j==5.18.0
 structlog==24.1.0

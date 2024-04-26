@@ -9,7 +9,7 @@ on:
     paths:
       - "infra/core/**"
       - ".github/workflows/infra.yaml"
-      - "services/**"
+      - "orchestration/**"
   pull_request:
     branches:
       - dev
@@ -17,7 +17,7 @@ on:
     paths:
       - "infra/core/**"
       - ".github/workflows/infra.yaml"
-      - "services/**"
+      - "orchestration/**"
   workflow_dispatch:
 
 jobs:
@@ -339,7 +339,19 @@ jobs:
           echo "INSTANCE_ID=$instance_id" >> $GITHUB_ENV
           echo "Instance ID: $instance_id"
 
+      - name: Send SSM Command to Sync, Rebuild and Restart Airflow
+        if: ${{ !contains(github.event.head_commit.modified, 'requirements.txt') }}
+        run: |
+          echo "Sending SSM command..."
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
+            --parameters '{"commands":["sudo /home/ec2-user/sync_s3.sh", "sudo docker compose -f /home/ec2-user/docker-compose.yaml down", "sudo docker compose -f /home/ec2-user/docker-compose.yaml build", "sudo docker compose -f /home/ec2-user/docker-compose.yaml up -d"]}' \
+            --region ${{ steps.vars.outputs.aws_region }} \
+            --output text
+
       - name: Send SSM Command to Sync and Restart Airflow
+        if: ${{ !contains(github.event.head_commit.modified, 'requirements.txt') }}
         run: |
           echo "Sending SSM command..."
           aws ssm send-command \
