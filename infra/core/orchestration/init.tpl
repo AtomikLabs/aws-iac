@@ -8,7 +8,6 @@ ELAPSED=0
 VOLUME_ID=""
 
 DATA_PATH = "/data"
-
 if [[ ! -d $DATA_PATH ]]; then
     echo "Creating data directory..." >> /home/ec2-user/init.log
     mkdir $DATA_PATH
