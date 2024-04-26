@@ -343,7 +343,7 @@ jobs:
       - name: Send SSM Command to Sync, Rebuild and Restart Airflow
         if: contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt')
         run: |
-          echo "Sending SSM command..."
+          echo "REBUILDING AIRFLOW..."
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
@@ -354,7 +354,7 @@ jobs:
       - name: Send SSM Command to Sync and Restart Airflow
         if: ${{ !contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt') }}
         run: |
-          echo "Sending SSM command..."
+          echo "RESTARTING AIRFLOW..."
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
