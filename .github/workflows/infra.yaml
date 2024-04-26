@@ -340,7 +340,7 @@ jobs:
           echo "Instance ID: $instance_id"
 
       - name: Send SSM Command to Sync, Rebuild and Restart Airflow
-        if: ${{ !contains(github.event.head_commit.modified, 'orchestration\airflow\dags\requirements.txt') }}
+        if: ${{ !contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt') }}
         run: |
           echo "Sending SSM command..."
           aws ssm send-command \
@@ -351,7 +351,7 @@ jobs:
             --output text
 
       - name: Send SSM Command to Sync and Restart Airflow
-        if: ${{ !contains(github.event.head_commit.modified, 'orchestration\airflow\dags\requirements.txt') }}
+        if: ${{ !contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt') }}
         run: |
           echo "Sending SSM command..."
           aws ssm send-command \

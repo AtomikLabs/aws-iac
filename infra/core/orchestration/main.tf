@@ -50,6 +50,7 @@ resource "aws_instance" "orchestration_host" {
   tags = {
     Name = "${local.environment}-orchestration-host"
   }
+
 }
 
 resource "aws_ebs_volume" "orchestration_host_volume" {
@@ -64,6 +65,8 @@ resource "aws_ebs_volume" "orchestration_host_volume" {
   lifecycle {
     prevent_destroy = true # Essential to prevent accidental deletion of data!
   }
+
+  depends_on = [ aws_instance.orchestration_host ]
 }
 
 resource "aws_volume_attachment" "orchestration_ebs_attachment" {
