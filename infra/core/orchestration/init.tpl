@@ -26,6 +26,8 @@ systemctl restart docker
 cd /home/ec2-user
 
 aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yaml /home/ec2-user/docker-compose.yaml
+aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/Dockerfile /home/ec2-user/Dockerfile
+aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/requirements.txt /home/ec2-user/requirements.txt
 
 mkdir -p /data/dags /data/logs /data/plugins /data/config
 echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
