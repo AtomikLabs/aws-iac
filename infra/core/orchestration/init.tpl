@@ -69,7 +69,8 @@ else
 fi
 
 mkdir -p /data/airflow/dags /data/airflow/logs /data/airflow/plugins /data/airflow/config
-chown -R ec2-user:ec2-user /data/*
+chown -R 50000:50000 /data/airflow
+chmod -R 755 /data/airflow
 cd /data/airflow
 
 echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
