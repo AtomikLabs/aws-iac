@@ -59,8 +59,16 @@ fi
 grep -q "$DEVICE_NAME" /etc/fstab || echo "$DEVICE_NAME /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
 echo /etc/fstab >> /home/ec2-user/init.log
 lsblk >> /home/ec2-user/init.log
+sleep 15
 mount -a
 lsblk >> /home/ec2-user/init.log
+
+if mount | grep -q /data; then
+    echo "/data mounted successfully." >> /home/ec2-user/init.log
+else
+    echo "Failed to mount /data, retrying..." >> /home/ec2-user/init.log
+    mount -av >> /home/ec2-user/init.log 2>&1
+fi
 
 echo "Installing docker" >> /home/ec2-user/init.log
 yum update -y
