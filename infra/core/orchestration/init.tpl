@@ -1,7 +1,8 @@
 #!/bin/bash
 
 VOLUME_ID=$(aws ec2 describe-volumes --filters "Name=tag:Name,Values=${volume_name_tag}" --query "Volumes[*].VolumeId" --output text)
-DEVICE_NAME=$(aws ec2 describe-volumes --volume-ids $VOLUME_ID --query "Volumes[*].Attachments[0].Device" --output text)
+VOLUME_ID=${VOLUME_ID//-/}
+DEVICE_NAME=$(lsblk -d -no NAME,SERIAL | awk -v sn="$VOLUME_ID" '$2 == sn {print "/dev/" $1}')
 
 FILETYPE=$(sudo file -s $DEVICE_NAME)
 if [[ $FILETYPE == *": data"* ]]; then
