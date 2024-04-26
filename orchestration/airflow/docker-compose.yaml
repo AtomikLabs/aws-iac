@@ -33,8 +33,6 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__PLUGINS_FOLDER: /opt/airflow/plugins
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
-    AIRFLOW__LOGGING__LOG_FILENAME_TEMPLATE: "dag_id/{ti.dag_id}/run_id/{ti.run_id}/task_id/{ti.task_id}/{% if ti.map_index >= 0 %}map_index/{ti.map_index}/{% endif %}attempt/{try_number}.log"
-    AIRFLOW__LOGGING__TASK_LOG_PREFIX_TEMPLATE: "{ti.dag_id}-{ti.task_id}-{execution_date}-{try_number}"
     AIRFLOW__LOGGING__DAG_PROCESSOR_MANAGER_LOG_LOCATION: /opt/airflow/logs/dag_processor_manager/dag_processor_manager.log
     AIRFLOW_PROJ_DIR: /data/airflow
     # yamllint disable rule:line-length
