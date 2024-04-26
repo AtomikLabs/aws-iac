@@ -1,11 +1,21 @@
 #!/bin/bash
 
-file -s /dev/sdh | grep -q ext4 || mkfs -t ext4 /dev/sdh
+VOLUME_ID=$(aws ec2 describe-volumes --filters "Name=tag:Name,Values=${volume_name_tag}" --query "Volumes[*].VolumeId" --output text)
+DEVICE_NAME=$(aws ec2 describe-volumes --volume-ids $VOLUME_ID --query "Volumes[*].Attachments[0].Device" --output text)
 
-if ! mount | grep -q /data; then
-  mount /dev/sdh /data
+FILETYPE=$(sudo file -s $DEVICE_NAME)
+if [[ $FILETYPE == *": data"* ]]; then
+  sudo mkfs -t ext4 $DEVICE_NAME
 fi
-echo '/dev/sdh /data ext4 defaults,nofail 0 2' >> /etc/fstab
+
+# Mount the volume if not already mounted
+if ! mount | grep -q /data; then
+  sudo mount $DEVICE_NAME /data
+fi
+
+# Update /etc/fstab to ensure the volume mounts on reboot
+grep -q "$DEVICE_NAME" /etc/fstab || echo "$DEVICE_NAME /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
+
 
 sudo yum update -y
 yum install docker -y

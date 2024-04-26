@@ -10,6 +10,7 @@ locals {
   infra_config_bucket                           = var.infra_config_bucket
   infra_config_bucket_arn                       = var.infra_config_bucket_arn
   orchestration_ami_id                          = var.orchestration_ami_id
+  orchestration_host_volume_name                = "${var.environment}-orchestration-data-volume"
   orchestration_instance_type                   = var.orchestration_instance_type
   orchestration_key_pair_name                   = var.orchestration_key_pair_name
   orchestration_resource_prefix                 = var.orchestration_resource_prefix
@@ -26,6 +27,7 @@ data "template_file" "init_script" {
   vars = {
     bucket_name = local.data_bucket
     infra_bucket_name = local.infra_config_bucket
+    volume_name_tag = local.orchestration_host_volume_name
   }
 }
 
@@ -58,7 +60,7 @@ resource "aws_ebs_volume" "orchestration_host_volume" {
   size              = 20
 
   tags = {
-    Name = "${local.environment}-orchestration-data-volume"
+    Name = local.orchestration_host_volume_name
     orchestration-backup = "true"
   }
 
@@ -68,7 +70,7 @@ resource "aws_ebs_volume" "orchestration_host_volume" {
 }
 
 resource "aws_volume_attachment" "orchestration_ebs_attachment" {
-  device_name = "/dev/sdh"
+  device_name = "/dev/nvme1n1"
   volume_id   = aws_ebs_volume.orchestration_host_volume.id
   instance_id = aws_instance.orchestration_host.id
 }
@@ -84,6 +86,11 @@ resource "aws_iam_role" "orchestration_role" {
         Principal = {
           Service = "dlm.amazonaws.com"
         }
+      },
+      {
+        "Effect": "Allow",
+        "Action": "ec2:DescribeVolumes",
+        "Resource": "*"
       }
     ]
   })
