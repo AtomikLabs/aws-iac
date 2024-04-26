@@ -58,9 +58,9 @@ fi
 
 grep -q "$DEVICE_NAME" /etc/fstab || echo "$DEVICE_NAME /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
 echo /etc/fstab >> /home/ec2-user/init.log
-echo lsblk >> /home/ec2-user/init.log
+lsblk >> /home/ec2-user/init.log
 mount -a
-echo lsblk >> /home/ec2-user/init.log
+lsblk >> /home/ec2-user/init.log
 
 echo "Installing docker" >> /home/ec2-user/init.log
 yum update -y
