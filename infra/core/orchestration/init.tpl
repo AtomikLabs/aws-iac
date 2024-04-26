@@ -56,8 +56,10 @@ else
     sudo e2fsck -p -f $DEVICE_NAME
 fi
 
+mkdir /data
+
 grep -q "$DEVICE_NAME" /etc/fstab || echo "$DEVICE_NAME /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
-echo /etc/fstab >> /home/ec2-user/init.log
+cat /etc/fstab >> /home/ec2-user/init.log
 lsblk >> /home/ec2-user/init.log
 sleep 15
 mount -a
