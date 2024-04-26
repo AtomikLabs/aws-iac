@@ -345,6 +345,6 @@ jobs:
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
-            --parameters '{"commands":["pip install -r /home/ec2-user/requirements.txt", "sudo /home/ec2-user/sync_s3.sh", "sudo docker compose -f /home/ec2-user/docker-compose.yaml down", "sudo docker compose -f /home/ec2-user/docker-compose.yaml up -d"]}' \
+            --parameters '{"sudo /home/ec2-user/sync_s3.sh", "sudo docker compose -f /home/ec2-user/docker-compose.yaml down", "sudo docker compose -f /home/ec2-user/docker-compose.yaml up -d"]}' \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
