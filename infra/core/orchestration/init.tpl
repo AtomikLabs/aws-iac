@@ -56,9 +56,11 @@ else
     sudo e2fsck -p -f $DEVICE_NAME
 fi
 
-# Update fstab and mount all
 grep -q "$DEVICE_NAME" /etc/fstab || echo "$DEVICE_NAME /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
+echo /etc/fstab >> /home/ec2-user/init.log
+echo lsblk >> /home/ec2-user/init.log
 mount -a
+echo lsblk >> /home/ec2-user/init.log
 
 echo "Installing docker" >> /home/ec2-user/init.log
 yum update -y
@@ -89,7 +91,6 @@ cat << 'EOF' > /home/ec2-user/sync_s3.sh
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/dags /data/dags
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/plugins /data/plugins
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /data/config
-aws s3 sync /data/logs s3://${infra_bucket_name}/orchestration/airflow/logs
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow /home/ec2-user
 EOF
 

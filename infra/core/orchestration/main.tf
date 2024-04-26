@@ -239,7 +239,7 @@ resource "aws_iam_policy" "orchestration_ec2_s3_access" {
 
 resource "aws_iam_policy" "orchestration_ebs_policy" {
   name        = "${local.environment}-${local.orchestration_resource_prefix}-ebs-policy"
-  description = "Allow ec2 to create and delete EBS snapshots"
+  description = "Allow ec2 to list EBS volumes"
 
   policy = jsonencode({
     Version = "2012-10-17"
