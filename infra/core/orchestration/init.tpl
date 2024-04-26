@@ -80,7 +80,7 @@ sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/dags /data/airf
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/plugins /data/airflow/plugins
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /data/airflow/config
 sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/Dockerfile /data/airflow/Dockerfile
-sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yml /data/airflow/docker-compose.yml
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yaml /data/airflow/docker-compose.yaml
 sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/requirements.txt /data/airflow/requirements.txt
 EOF
 
@@ -106,9 +106,9 @@ mkdir -p $DOCKER_CONFIG
 curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x $DOCKER_CONFIG/docker-compose
 
-echo 'cd /data/airflow && docker compose --profile flower up -d' | sudo tee -a /etc/rc.d/rc.local
+echo 'cd /data/airflow && docker compose -f /data/airflow/docker-compose.yaml --profile flower up -d' | sudo tee -a /etc/rc.d/rc.local
 chmod +x /etc/rc.d/rc.local
 
 echo "Building and starting airflow" >> /home/ec2-user/init.log
-docker compose up airflow-init
-docker compose --profile flower up -d
+docker compose -f /data/airflow/docker-compose.yaml up airflow-init
+docker compose -f /data/airflow/docker-compose.yaml --profile flower up -d
