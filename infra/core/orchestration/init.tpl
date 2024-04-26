@@ -106,9 +106,6 @@ mkdir -p $DOCKER_CONFIG
 curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x $DOCKER_CONFIG/docker-compose
 
-echo 'cd /data/airflow && docker compose -f /data/airflow/docker-compose.yaml --profile flower up -d' | sudo tee -a /etc/rc.d/rc.local
-chmod +x /etc/rc.d/rc.local
-
 echo "Building and starting airflow" >> /home/ec2-user/init.log
 docker compose -f /data/airflow/docker-compose.yaml up airflow-init
 docker compose -f /data/airflow/docker-compose.yaml --profile flower up -d
