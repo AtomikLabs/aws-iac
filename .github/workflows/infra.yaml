@@ -280,7 +280,7 @@ jobs:
           name: terraform_outputs
           path: ./infra/core/terraform_outputs.json
 
-  sync_airflow_instance:
+  manage_airflow:
     needs: core_infra
     runs-on: ubuntu-latest
     steps:
@@ -340,24 +340,49 @@ jobs:
           echo "INSTANCE_ID=$instance_id" >> $GITHUB_ENV
           echo "Instance ID: $instance_id"
 
-      - name: Send SSM Command to Sync, Rebuild and Restart Airflow
-        if: contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt')
+      - name: Detect file changes
+        id: file_changes
+        uses: jitterbit/get-changed-files@v1
+
+      - name: Check if requirements.txt is modified
+        id: rebuild_check
         run: |
-          echo "REBUILDING AIRFLOW..."
+          echo "REBUILD_NEEDED=$(echo '${{ steps.file_changes.outputs.all }}' | grep -q 'orchestration/airflow/requirements.txt' && echo 'true' || echo 'false')" >> $GITHUB_ENV
+
+      - name: Check if non-DAGs files are modified
+        id: restart_check
+        run: |
+          echo "RESTART_NEEDED=$(echo '${{ steps.file_changes.outputs.all }}' | grep 'orchestration/airflow/' | grep -vq 'orchestration/airflow/dags/' && echo 'true' || echo 'false')" >> $GITHUB_ENV
+
+      - name: Send SSM Command to Sync Airflow
+        if: env.RESTART_NEEDED == 'false' && env.REBUILD_NEEDED == 'false'
+        run: |
+          echo "SYNCING AIRFLOW..."
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
+            --parameters '{"commands":["sudo /data/airflow/sync_s3.sh"]}' \
+            --region ${{ secrets.AWS_REGION }} \
+            --output text
+
+      - name: Send SSM Command to Rebuild and Restart Airflow
+        if: env.REBUILD_NEEDED == 'true'
+        run: |
+          echo "REBUILDING AND RESTARTING AIRFLOW..."
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
             --parameters '{"commands":["sudo /data/airflow/sync_s3.sh", "sudo docker compose -f /data/airflow/docker-compose.yaml down", "sudo docker compose -f /data/airflow/docker-compose.yaml build", "sudo docker compose -f /data/airflow/docker-compose.yaml up -d"]}' \
-            --region ${{ steps.vars.outputs.aws_region }} \
+            --region ${{ secrets.AWS_REGION }} \
             --output text
 
       - name: Send SSM Command to Sync and Restart Airflow
-        if: ${{ !contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt') }}
+        if: env.RESTART_NEEDED == 'true' && env.REBUILD_NEEDED == 'false'
         run: |
-          echo "RESTARTING AIRFLOW..."
+          echo "RESTARTING AIRFLOW WITHOUT REBUILD..."
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
             --parameters '{"commands":["sudo /data/airflow/sync_s3.sh", "sudo docker compose -f /data/airflow/docker-compose.yaml down", "sudo docker compose -f /data/airflow/docker-compose.yaml up -d"]}' \
-            --region ${{ steps.vars.outputs.aws_region }} \
+            --region ${{ secrets.AWS_REGION }} \
             --output text

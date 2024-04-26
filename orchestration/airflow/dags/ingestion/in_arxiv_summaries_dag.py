@@ -1,18 +1,15 @@
 from datetime import datetime
-
 import structlog
-
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-
 from logging.config import dictConfig
 
+# Updated logging configuration
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'plain': {
-            '()': 'airflow.utils.log.logging_mixin.RedirectStdHandler',
             'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         },
     },
@@ -52,7 +49,7 @@ logger = structlog.get_logger()
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': '2024-04-25',
+    'start_date': datetime(2024, 4, 25),
     'retries': 1,
 }
 
