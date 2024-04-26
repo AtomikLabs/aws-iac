@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# Initial log for debugging
 echo "Starting the volume setup script..." >> /home/ec2-user/init.log
 
-# Attempt to fetch the VOLUME_ID dynamically with a timeout
 TIMEOUT=300  # 5 minutes
 INTERVAL=10  # 10 seconds
 ELAPSED=0
@@ -26,7 +24,6 @@ fi
 
 echo "VOLUME_ID: $VOLUME_ID" >> /home/ec2-user/init.log
 
-# Ensure the volume is attached
 DEVICE_NAME=""
 ELAPSED=0
 while [[ -z $DEVICE_NAME && $ELAPSED -lt $TIMEOUT ]]; do
@@ -45,7 +42,6 @@ fi
 
 echo "DEVICE_NAME: $DEVICE_NAME" >> /home/ec2-user/init.log
 
-# Check and format the filesystem if necessary
 FILETYPE=$(sudo file -s $DEVICE_NAME)
 echo "File system type: $FILETYPE" >> /home/ec2-user/init.log
 if [[ $FILETYPE == *": data"* ]]; then
