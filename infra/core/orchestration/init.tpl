@@ -56,7 +56,8 @@ else
     sudo e2fsck -p -f $DEVICE_NAME
 fi
 
-mkdir /data
+mkdir -p /data/dags /data/logs /data/plugins /data/config
+chown -R ec2-user:ec2-user /data/*
 
 grep -q "$DEVICE_NAME" /etc/fstab || echo "$DEVICE_NAME /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
 cat /etc/fstab >> /home/ec2-user/init.log
@@ -72,6 +73,29 @@ else
     mount -av >> /home/ec2-user/init.log 2>&1
 fi
 
+cd /home/ec2-user
+
+echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
+
+cat << 'EOF' > /home/ec2-user/sync_s3.sh
+#!/bin/bash
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/dags /data/dags
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/plugins /data/plugins
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /data/config
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/Dockerfile /home/ec2-user/Dockerfile
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yml /home/ec2-user/docker-compose.yml
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/requirements.txt /home/ec2-user/requirements.txt
+EOF
+
+chmod +x /home/ec2-user/sync_s3.sh
+/home/ec2-user/sync_s3.sh
+
+mkdir /etc/docker
+echo "Configuring docker" >> /home/ec2-user/init.log
+echo '{
+  "data-root": "/data/docker"
+}' > /etc/docker/daemon.json
+
 echo "Installing docker" >> /home/ec2-user/init.log
 yum update -y
 yum install docker -y
@@ -84,28 +108,6 @@ DOCKER_CONFIG=/usr/local/lib/docker/cli-plugins
 mkdir -p $DOCKER_CONFIG
 curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x $DOCKER_CONFIG/docker-compose
-
-echo "Configuring docker" >> /home/ec2-user/init.log
-echo '{
-  "data-root": "/data/docker"
-}' > /etc/docker/daemon.json
-systemctl restart docker
-
-cd /home/ec2-user
-
-mkdir -p /data/dags /data/logs /data/plugins /data/config
-echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
-
-cat << 'EOF' > /home/ec2-user/sync_s3.sh
-#!/bin/bash
-sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/dags /data/dags
-sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/plugins /data/plugins
-sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /data/config
-sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow /home/ec2-user
-EOF
-
-chmod +x /home/ec2-user/sync_s3.sh
-/home/ec2-user/sync_s3.sh
 
 echo 'cd /home/ec2-user && docker compose --profile flower up -d' | sudo tee -a /etc/rc.d/rc.local
 chmod +x /etc/rc.d/rc.local
