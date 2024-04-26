@@ -79,6 +79,7 @@ jobs:
         run: |
           aws s3 cp orchestration/airflow/Dockerfile s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/Dockerfile
           aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/docker-compose.yaml
+          aws s3 cp orchestration/airflow/requirements.txt s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/requirements.txt
 
   core_infra:
     runs-on: ubuntu-latest
