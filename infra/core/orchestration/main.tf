@@ -70,7 +70,7 @@ resource "aws_ebs_volume" "orchestration_host_volume" {
 }
 
 resource "aws_volume_attachment" "orchestration_ebs_attachment" {
-  device_name = "/dev/nvme1n1"
+  device_name = "/dev/sdh"
   volume_id   = aws_ebs_volume.orchestration_host_volume.id
   instance_id = aws_instance.orchestration_host.id
 }
