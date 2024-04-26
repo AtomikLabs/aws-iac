@@ -87,11 +87,6 @@ resource "aws_iam_role" "orchestration_role" {
           Service = "dlm.amazonaws.com"
         }
       },
-      {
-        "Effect": "Allow",
-        "Action": "ec2:DescribeVolumes",
-        "Resource": "*"
-      }
     ]
   })
 }
@@ -242,6 +237,24 @@ resource "aws_iam_policy" "orchestration_ec2_s3_access" {
   })
 }
 
+resource "aws_iam_policy" "orchestration_ebs_policy" {
+  name        = "${local.environment}-${local.orchestration_resource_prefix}-ebs-policy"
+  description = "Allow ec2 to create and delete EBS snapshots"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ec2:DescribeVolumes",
+        ]
+        Effect = "Allow",
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "orchestration_role_ssm_policy_for_instances" {
   role       = aws_iam_role.orchestration_instance_role.name
   policy_arn = local.ssm_policy_for_instances_arn
@@ -255,4 +268,9 @@ resource "aws_iam_instance_profile" "orchestration_instance_profile" {
 resource "aws_iam_role_policy_attachment" "orchestration_role_ec2_s3_access" {
   role       = aws_iam_role.orchestration_instance_role.name
   policy_arn = aws_iam_policy.orchestration_ec2_s3_access.arn
+}
+
+resource "aws_iam_role_policy_attachment" "orchestration_role_ebs_policy" {
+  role       = aws_iam_role.orchestration_instance_role.name
+  policy_arn = aws_iam_policy.orchestration_ebs_policy.arn
 }
