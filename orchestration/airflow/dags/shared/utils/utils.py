@@ -3,12 +3,7 @@ from datetime import datetime
 
 import boto3
 import pytz
-from dags.shared.utils.constants import (
-    AWS_SECRETS_MANAGER,
-    AWS_SECRETS_STRING,
-    DEFAULT_TIMEZONE,
-    S3_KEY_DATE_FORMAT
-)
+from dags.shared.utils.constants import AWS_SECRETS_MANAGER, AWS_SECRETS_STRING, DEFAULT_TIMEZONE, S3_KEY_DATE_FORMAT
 
 
 def get_aws_secrets(secret_name: str, env: str = "") -> dict:

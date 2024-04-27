@@ -54,17 +54,14 @@ def run(**context: dict):
             f"Running {TASK_NAME} task",
             task_name=TASK_NAME,
             date=context[AIRFLOW_EXECUTION_DATE],
-            run_id=context[AIRFLOW_RUN_ID]
+            run_id=context[AIRFLOW_RUN_ID],
         )
         config = get_config()
         earliest_date = get_earliest_date(config)
         logger.info(f"Earliest date: {earliest_date}", method=run.__name__, task_name=TASK_NAME)
         context["ti"].xcom_push(key=INGESTION_EARLIEST_DATE, value=earliest_date)
     except Exception as e:
-        logger.error(f"Failed to run {TASK_NAME} task",
-                     error=str(e),
-                     method=run.__name__,
-                     task_name=TASK_NAME)
+        logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
         raise e
 
 
@@ -85,17 +82,21 @@ def get_config() -> dict:
         config = {
             NEO4J_PASSWORD: neo4j_secrets_dict.get(PASSWORD, ""),
             NEO4J_USERNAME: neo4j_secrets_dict.get(USERNAME, ""),
-            NEO4J_URI: os.getenv(NEO4J_URI)
+            NEO4J_URI: os.getenv(NEO4J_URI),
         }
-        if not config.get(ARXIV_INGESTION_DAY_SPAN) \
-                or not config.get(ENVIRONMENT_NAME) \
-                or not config.get(NEO4J_PASSWORD) \
-                or not config.get(NEO4J_USERNAME) \
-                or not config.get(NEO4J_URI):
-            logger.error("Config values not found",
-                         config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
-                         method=get_config.__name__,
-                         task_name=TASK_NAME)
+        if (
+            not config.get(ARXIV_INGESTION_DAY_SPAN)
+            or not config.get(ENVIRONMENT_NAME)
+            or not config.get(NEO4J_PASSWORD)
+            or not config.get(NEO4J_USERNAME)
+            or not config.get(NEO4J_URI)
+        ):
+            logger.error(
+                "Config values not found",
+                config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
+                method=get_config.__name__,
+                task_name=TASK_NAME,
+            )
             raise ValueError("Config values not found")
         return config
     except Exception as e:
@@ -140,23 +141,23 @@ def get_earliest_date(config: dict) -> str:
                             "Failed to get research date from record",
                             error=str(e),
                             method=get_earliest_date.__name__,
-                            task_name=TASK_NAME
+                            task_name=TASK_NAME,
                         )
-            logger.info("Earliest date",
-                        earliest=earliest.strftime("%Y-%m-%d"),
-                        method=get_earliest_date.__name__,
-                        task_name=TASK_NAME)
+            logger.info(
+                "Earliest date",
+                earliest=earliest.strftime("%Y-%m-%d"),
+                method=get_earliest_date.__name__,
+                task_name=TASK_NAME,
+            )
             return earliest.strftime("%Y-%m-%d")
         except Exception as e:
             if "Neo.ClientError.Security.AuthenticationRateLimit" in str(e):
-                logger.warning("Rate limited by Neo4j",
-                               method=get_earliest_date.__name__,
-                               retries=retries,
-                               task_name=TASK_NAME)
+                logger.warning(
+                    "Rate limited by Neo4j", method=get_earliest_date.__name__, retries=retries, task_name=TASK_NAME
+                )
                 retries += 1
                 continue
-            logger.error("Failed to get earliest date",
-                         error=str(e),
-                         method=get_earliest_date.__name__,
-                         task_name=TASK_NAME)
+            logger.error(
+                "Failed to get earliest date", error=str(e), method=get_earliest_date.__name__, task_name=TASK_NAME
+            )
             raise e
