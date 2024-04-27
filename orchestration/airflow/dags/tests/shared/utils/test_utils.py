@@ -2,12 +2,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 import pytz
-
-from dags.shared.utils import (
-    DEFAULT_TIMEZONE,
-    get_storage_key_date,
-    get_storage_key_datetime,
-)
+from dags.shared.utils import DEFAULT_TIMEZONE, get_storage_key_date, get_storage_key_datetime
 
 
 @patch("dags.shared.utils.datetime")

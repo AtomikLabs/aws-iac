@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
-
 from services.services_layer.src.services_layer.constants import ARXIV_RESEARCH_DATE_FORMAT, S3_KEY_DATE_FORMAT
 from services.services_layer.src.services_layer.models.arxiv_record import ArxivRecord
 

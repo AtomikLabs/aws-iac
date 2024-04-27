@@ -83,32 +83,32 @@ INTERNAL_SERVER_ERROR = "Internal server error"
 
 # Logging
 DEFAULT_LOGGING_ARGS = {
-    'owner': 'airflow',
-    'depends_on_past': False,
-    'start_date': datetime(2024, 4, 26),
-    'retries': 1,
+    "owner": "airflow",
+    "depends_on_past": False,
+    "start_date": datetime(2024, 4, 26),
+    "retries": 1,
 }
 
 LOGGING_CONFIG = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'plain': {
-            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "plain": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         },
     },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'plain',
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "plain",
         },
     },
-    'loggers': {
-        '': {
-            'handlers': ['console'],
-            'level': 'INFO',
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": "INFO",
         },
-    }
+    },
 }
 
 # Neo4j

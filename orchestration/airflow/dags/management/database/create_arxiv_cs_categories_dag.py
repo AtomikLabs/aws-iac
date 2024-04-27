@@ -117,14 +117,16 @@ with GraphDatabase.driver(neo4j_uri, auth=(neo4j_creds["neo4j_username"], neo4j_
         for name, code in CS_CATEGORIES_INVERTED.items():
             arxiv_category = ArxivCategory(driver, code, name)
             arxiv_category.create()
-            arxiv_set.relate(driver, "CATEGORIZED_BY", ArxivSet.LABEL, arxiv_set.uuid, ArxivCategory.LABEL, arxiv_category.uuid)
-            arxiv_category.relate(driver, "CATEGORIZES", ArxivCategory.LABEL, arxiv_category.uuid, ArxivSet.LABEL, arxiv_set.uuid)
+            arxiv_set.relate(
+                driver, "CATEGORIZED_BY", ArxivSet.LABEL, arxiv_set.uuid, ArxivCategory.LABEL, arxiv_category.uuid
+            )
+            arxiv_category.relate(
+                driver, "CATEGORIZES", ArxivCategory.LABEL, arxiv_category.uuid, ArxivSet.LABEL, arxiv_set.uuid
+            )
     with driver.session() as session:
         driver.verify_connectivity()
         logger.info("Connected to Neo4j")
-        session.run(
-            "CREATE INDEX arxiv_category_code IF NOT EXISTS FOR (n:ArxivCategory) ON (n.code);"
-        )
+        session.run("CREATE INDEX arxiv_category_code IF NOT EXISTS FOR (n:ArxivCategory) ON (n.code);")
         session.run("CREATE INDEX arxiv_set_code IF NOT EXISTS FOR (n:ArxivSet) ON (n.code);")
         session.run("CREATE INDEX arxiv_record_uuid IF NOT EXISTS FOR (n:ArxivRecord) ON (n.uuid);")
         session.run("CREATE INDEX arxiv_record_identifier IF NOT EXISTS FOR (n:ArxivRecord) ON (n.identifier);")

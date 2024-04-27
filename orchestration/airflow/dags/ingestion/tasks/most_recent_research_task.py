@@ -1,10 +1,7 @@
-import structlog
-
 from logging.config import dictConfig
 
-from shared.utils.constants import (
-    LOGGING_CONFIG,
-)
+import structlog
+from shared.utils.constants import LOGGING_CONFIG
 
 dictConfig(LOGGING_CONFIG)
 
@@ -15,7 +12,7 @@ structlog.configure(
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.JSONRenderer()
+        structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
@@ -29,4 +26,6 @@ TASK_NAME = "most_recent_research"
 
 
 def run(**context: dict):
-    logger.info(f"Running {TASK_NAME} task", task_name=TASK_NAME, date=context["execution_date"], run_id=context["run_id"])
+    logger.info(
+        f"Running {TASK_NAME} task", task_name=TASK_NAME, date=context["execution_date"], run_id=context["run_id"]
+    )

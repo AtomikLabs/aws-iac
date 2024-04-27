@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
-
 from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
 from services.services_layer.src.services_layer.models.abstract import Abstract
 

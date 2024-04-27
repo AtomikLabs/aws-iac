@@ -1,30 +1,31 @@
 from datetime import datetime
+from logging.config import dictConfig
+
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from logging.config import dictConfig
 
 # Updated logging configuration
 LOGGING_CONFIG = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'plain': {
-            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "plain": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         },
     },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'plain',
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "plain",
         },
     },
-    'loggers': {
-        '': {
-            'handlers': ['console'],
-            'level': 'INFO',
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": "INFO",
         },
-    }
+    },
 }
 
 dictConfig(LOGGING_CONFIG)
@@ -36,7 +37,7 @@ structlog.configure(
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.JSONRenderer()
+        structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
@@ -47,17 +48,19 @@ structlog.configure(
 logger = structlog.get_logger()
 
 default_args = {
-    'owner': 'airflow',
-    'depends_on_past': False,
-    'start_date': datetime(2024, 4, 25),
-    'retries': 1,
+    "owner": "airflow",
+    "depends_on_past": False,
+    "start_date": datetime(2024, 4, 25),
+    "retries": 1,
 }
 
-with DAG('in_arxiv_summaries_dag',
-         default_args=default_args,
-         schedule_interval=None,
-         start_date=datetime(2024, 4, 25),
-         description="A test ingest DAG") as dag:
+with DAG(
+    "in_arxiv_summaries_dag",
+    default_args=default_args,
+    schedule_interval=None,
+    start_date=datetime(2024, 4, 25),
+    description="A test ingest DAG",
+) as dag:
 
     ingest = PythonOperator(
         task_id="ingest",

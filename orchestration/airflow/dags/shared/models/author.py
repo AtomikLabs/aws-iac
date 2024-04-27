@@ -2,10 +2,10 @@ import logging
 import uuid
 
 import structlog
-from dags.shared.utils.constants import FAILED_TO_CREATE_AUTHOR
 from dags.shared.models.base_model import BaseModel
-from neo4j import Driver
+from dags.shared.utils.constants import FAILED_TO_CREATE_AUTHOR
 from dags.shared.utils.utils import get_storage_key_datetime, validate_strings
+from neo4j import Driver
 
 structlog.configure(
     [

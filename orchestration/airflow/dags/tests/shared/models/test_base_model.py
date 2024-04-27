@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
-
 from services.services_layer.src.services_layer.models.base_model import BaseModel
 
 
