@@ -305,12 +305,12 @@ jobs:
       - name: Extract variables
         id: vars
         run: |
-          echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "arxiv_ingestion_day_span=$(grep '^arxiv_ingestion_day_span' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "::set-output app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')"
+          echo "::set-output arxiv_ingestion_day_span=$(grep '^arxiv_ingestion_day_span' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')"
+          echo "::set-output aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')"
+          echo "::set-output backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')"
+          echo "::set-output infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')"
+          echo "::set-output terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')"
 
       - name: Set Region
         run: |
