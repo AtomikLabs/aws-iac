@@ -306,16 +306,13 @@ jobs:
         id: create_env_file
         run: |
           echo "Creating DAGS environment file..."
-          echo "AIRFLOW_DAGS_ENV_PATH=${{ steps.vars.outputs.airflow_dags_env_path }}" > d.env
-          echo "ARXIV_INGESTION_DAY_SPAN=${{ steps.vars.outputs.arxiv_ingestion_day_span }}" >> d.env
-          echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> d.env
-          echo "NEO4J_CONNECTION_RETRIES=${{ steps.vars.outputs.neo4j_connection_retries }}" >> d.env
-          echo "NEO4J_URI=neo4j://${{ steps.terraform_vars.outputs.neo4j_instance_private_ip }}:7687" >> d.env
+          echo "AIRFLOW_DAGS_ENV_PATH=${{ steps.vars.outputs.airflow_dags_env_path }}" >> .env
+          echo "ARXIV_INGESTION_DAY_SPAN=${{ steps.vars.outputs.arxiv_ingestion_day_span }}" >> .env
+          echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> .env
+          echo "NEO4J_CONNECTION_RETRIES=${{ steps.vars.outputs.neo4j_connection_retries }}" >> .env
+          echo "NEO4J_URI=neo4j://${{ steps.terraform_vars.outputs.neo4j_instance_private_ip }}:7687" >> .env
           echo "Copying file to s3..."
-          echo $(ls)
-          echo $(cat d.env)
-          echo $(aws s3 ls s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags/)
-          aws s3 cp d.env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags/d.env
+          aws s3 cp .env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
 
       - name: Send SSM Command to Sync, Rebuild and Restart Airflow
         if: contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt')
