@@ -22,7 +22,6 @@ from shared.utils.constants import (
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
-    PASSWORD,
     RESEARCH_RECORD_DATE,
     S3_KEY_DATE_FORMAT,
 )
@@ -63,8 +62,6 @@ def run(**context: dict):
         earliest_date = get_earliest_date(config)
         logger.info(f"Earliest date: {earliest_date}", method=run.__name__, task_name=TASK_NAME)
         context.get("ti").xcom_push(key=INGESTION_EARLIEST_DATE, value=earliest_date)
-        logger.info("context", context=context, method=run.__name__, task_name=TASK_NAME)
-        return 0
     except Exception as e:
         logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
         raise e
@@ -83,17 +80,18 @@ def get_config() -> dict:
             ARXIV_INGESTION_DAY_SPAN: int(os.getenv(ARXIV_INGESTION_DAY_SPAN)),
             AWS_REGION: os.getenv(AWS_REGION),
             ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME),
-            NEO4J_CONNECTION_RETRIES: os.getenv(NEO4J_CONNECTION_RETRIES,
-                                                NEO4J_CONNECTION_RETRIES_DEFAULT),
+            NEO4J_CONNECTION_RETRIES: os.getenv(NEO4J_CONNECTION_RETRIES, NEO4J_CONNECTION_RETRIES_DEFAULT),
         }
-        neo4j_secrets_dict = get_aws_secrets(AWS_SECRETS_NEO4J_CREDENTIALS,
-                                             config.get(AWS_REGION),
-                                             config.get(ENVIRONMENT_NAME))
-        config.update([
-            (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
-            (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
-            (NEO4J_URI, os.getenv(NEO4J_URI))
-        ])
+        neo4j_secrets_dict = get_aws_secrets(
+            AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
+        )
+        config.update(
+            [
+                (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
+                (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
+                (NEO4J_URI, os.getenv(NEO4J_URI)),
+            ]
+        )
         if (
             not config.get(ARXIV_INGESTION_DAY_SPAN)
             or not config.get(ENVIRONMENT_NAME)
@@ -108,10 +106,12 @@ def get_config() -> dict:
                 task_name=TASK_NAME,
             )
             raise ValueError("Config values not found")
-        logger.info("Config values",
-                    config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
-                    method=get_config.__name__,
-                    task_name=TASK_NAME)
+        logger.info(
+            "Config values",
+            config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
+            method=get_config.__name__,
+            task_name=TASK_NAME,
+        )
         return config
     except Exception as e:
         logger.error("Failed to get config", error=str(e), method=get_config.__name__, task_name=TASK_NAME)
@@ -130,10 +130,12 @@ def get_earliest_date(config: dict) -> str:
     """
     logger.info("Getting earliest date", method=get_earliest_date.__name__, task_name=TASK_NAME)
     earliest = get_storage_key_datetime().date() - timedelta(days=config.get(ARXIV_INGESTION_DAY_SPAN))
-    logger.info("Default earliest date",
-                earliest=earliest.strftime(S3_KEY_DATE_FORMAT),
-                method=get_earliest_date.__name__,
-                task_name=TASK_NAME)
+    logger.info(
+        "Default earliest date",
+        earliest=earliest.strftime(S3_KEY_DATE_FORMAT),
+        method=get_earliest_date.__name__,
+        task_name=TASK_NAME,
+    )
     retries = 0
     while retries < int(config.get(NEO4J_CONNECTION_RETRIES)):
         try:
@@ -153,12 +155,14 @@ def get_earliest_date(config: dict) -> str:
                         record = records[0]
                         next_date = record.data().get("r", {}).get(RESEARCH_RECORD_DATE, None).to_native()
                         next_date = next_date + timedelta(days=1)
-                        logger.info("Last arXiv record date",
-                                    next_date=next_date.strftime(S3_KEY_DATE_FORMAT),
-                                    method=get_earliest_date.__name__,
-                                    task_name=TASK_NAME)
+                        logger.info(
+                            "Last arXiv record date",
+                            next_date=next_date.strftime(S3_KEY_DATE_FORMAT),
+                            method=get_earliest_date.__name__,
+                            task_name=TASK_NAME,
+                        )
                         if next_date:
-                            earliest = max(earliest, next_date)
+                            earliest = next_date
                     except Exception as e:
                         logger.error(
                             "Failed to get research date from record",

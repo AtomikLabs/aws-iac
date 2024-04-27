@@ -30,7 +30,6 @@ SERVICE_NAME = "daily_arxiv_summaries_dag"
 with DAG(
     SERVICE_NAME,
     catchup=False,
-    dag_id=SERVICE_NAME,
     default_args=DEFAULT_LOGGING_ARGS,
     schedule_interval=None,
     tags=["ingestion"],
