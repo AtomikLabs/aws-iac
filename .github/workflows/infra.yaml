@@ -48,11 +48,11 @@ jobs:
       - name: Extract variables
         id: vars
         run: |
-          echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "app_name=$(grep '^app_name' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Set Region
         run: |
@@ -71,15 +71,15 @@ jobs:
 
       - name: copy DAGs to s3
         run: |
-          aws s3 sync orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/dags --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
-          aws s3 sync orchestration/airflow/plugins s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/plugins --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
-          aws s3 sync orchestration/airflow/config s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/config --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
+          aws s3 sync orchestration/airflow/dags s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags --exclude "*.pyc" --exclude "__pycache__/*" --exclude "orchestration/airflow/dags/tests"
+          aws s3 sync orchestration/airflow/plugins s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/plugins --exclude "*.pyc" --exclude "__pycache__/*" --exclude "orchestration/airflow/dags/tests"
+          aws s3 sync orchestration/airflow/config s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/config --exclude "*.pyc" --exclude "__pycache__/*" --exclude "orchestration/airflow/dags/tests"
 
       - name: Upload Airflow docker files to s3
         run: |
-          aws s3 cp orchestration/airflow/Dockerfile s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/Dockerfile
-          aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/docker-compose.yaml
-          aws s3 cp orchestration/airflow/requirements.txt s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/requirements.txt
+          aws s3 cp orchestration/airflow/Dockerfile s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/Dockerfile
+          aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/docker-compose.yaml
+          aws s3 cp orchestration/airflow/requirements.txt s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/requirements.txt
 
   core_infra:
     runs-on: ubuntu-latest
@@ -110,11 +110,11 @@ jobs:
       - name: Extract variables
         id: vars
         run: |
-          echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "app_name=$(grep '^app_name' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Set Region
         run: |
@@ -151,13 +151,13 @@ jobs:
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
         with:
           secret-ids: |
-            NEO4J_CREDS, ${{steps.neo4j-creds.outputs.NEO4J_CREDENTIALS_ARN}}
+            NEO4J_CREDS, ${{ steps.neo4j-creds.outputs.NEO4J_CREDENTIALS_ARN }}
           parse-json-secrets: true
 
-      - name: Set up Python ${{matrix.python-version}}
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{matrix.python-version}}
+          python-version: ${{ matrix.python-version }}
 
       - name: Build Fetch Daily Summaries Lambda Function
         id: build-fetch-daily-summaries
@@ -201,18 +201,18 @@ jobs:
 
       - name: Ensure S3 bucket exists
         run: |
-          if ! aws s3 ls "s3://${{steps.vars.outputs.infra_config_bucket}}" 2>&1 | grep -q 'NoSuchBucket'; then
+          if ! aws s3 ls "s3://${{ steps.vars.outputs.infra_config_bucket }}" 2>&1 | grep -q 'NoSuchBucket'; then
             echo "Bucket exists."
           else
             echo "Bucket does not exist. Creating bucket..."
-            aws s3 mb "s3:/${{steps.vars.outputs.infra_config_bucket}}"
-            aws s3api put-bucket-versioning --bucket ${{steps.vars.outputs.infra_config_bucket}} --versioning-configuration Status=Enabled
+            aws s3 mb "s3:/${{ steps.vars.outputs.infra_config_bucket }}"
+            aws s3api put-bucket-versioning --bucket ${{ steps.vars.outputs.infra_config_bucket }} --versioning-configuration Status=Enabled
           fi
 
       - name: Ensure DynamoDB table exists
         run: |
-          TABLE_NAME="${{steps.vars.outputs.backend_dynamodb_table}}"
-          REGION="${{env.AWS_REGION}}"
+          TABLE_NAME="${{ steps.vars.outputs.backend_dynamodb_table }}"
+          REGION="${{ env.AWS_REGION }}"
           if aws dynamodb describe-table --table-name $TABLE_NAME 2>&1 | grep -q 'ResourceNotFoundException'; then
             echo "DynamoDB table does not exist. Creating table..."
             aws dynamodb create-table \
@@ -248,30 +248,30 @@ jobs:
 
       - name: Plan Terraform
         id: plan
-        run: terraform plan -var-file="${{env.ENV_NAME}}.tfvars"
+        run: terraform plan -var-file="${{ env.ENV_NAME }}.tfvars"
         working-directory: ./infra/core
         env:
-          AWS_DEFAULT_REGION: ${{env.AWS_REGION}}
-          TF_VAR_alert_email: ${{secrets.ALERT_EMAIL}}
-          TF_VAR_home_ip: ${{secrets.HOME_IP}}
-          TF_VAR_neo4j_password: ${{env.NEO4J_CREDS_NEO4J_PASSWORD}}
-          TF_VAR_neo4j_username: ${{env.NEO4J_CREDS_NEO4J_USERNAME}}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+          TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+          TF_VAR_home_ip: ${{ secrets.HOME_IP }}
+          TF_VAR_neo4j_password: ${{ env.NEO4J_CREDS_NEO4J_PASSWORD }}
+          TF_VAR_neo4j_username: ${{ env.NEO4J_CREDS_NEO4J_USERNAME }}
 
       - name: Apply Terraform
         run: |
-          terraform apply -var-file="${{env.ENV_NAME}}.tfvars" -auto-approve
+          terraform apply -var-file="${{ env.ENV_NAME }}.tfvars" -auto-approve
         working-directory: ./infra/core
         env:
-          AWS_DEFAULT_REGION: ${{env.AWS_REGION}}
-          TF_VAR_alert_email: ${{secrets.ALERT_EMAIL}}
-          TF_VAR_home_ip: ${{secrets.HOME_IP}}
-          TF_VAR_neo4j_password: ${{env.NEO4J_CREDS_NEO4J_PASSWORD}}
-          TF_VAR_neo4j_username: ${{env.NEO4J_CREDS_NEO4J_USERNAME}}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+          TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+          TF_VAR_home_ip: ${{ secrets.HOME_IP }}
+          TF_VAR_neo4j_password: ${{ env.NEO4J_CREDS_NEO4J_PASSWORD }}
+          TF_VAR_neo4j_username: ${{ env.NEO4J_CREDS_NEO4J_USERNAME }}
 
       - name: Save Terraform Outputs
         run: |
           terraform output -json > terraform_outputs.json
-          aws s3 cp terraform_outputs.json s3://${{steps.vars.outputs.infra_config_bucket}}/terraform/${{env.ENV_NAME}}-${{steps.vars.outputs.terraform_outputs_prefix}}.json
+          aws s3 cp terraform_outputs.json s3://${{ steps.vars.outputs.infra_config_bucket }}/terraform/${{ env.ENV_NAME }}-${{ steps.vars.outputs.terraform_outputs_prefix }}.json
         working-directory: ./infra/core
 
       - name: Upload Terraform Outputs
@@ -305,12 +305,14 @@ jobs:
       - name: Extract variables
         id: vars
         run: |
-          echo "app_name=$(grep '^app_name' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "arxiv_ingestion_day_span=$(grep '^arxiv_ingestion_day_span' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "aws_region=$(grep '^aws_region' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{env.ENV_NAME}}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "app_name=$(grep '^app_name' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "arxiv_ingestion_day_span=$(grep '^arxiv_ingestion_day_span' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "neo4j_connection_retries=$(grep '^neo4j_connection_retries' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "orchestration_dags_env_path=$(grep '^orchestration_dags_env_path' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Set Region
         run: |
@@ -333,22 +335,25 @@ jobs:
           name: terraform_outputs
           path: outputs
 
+      - name: Extract Variables from Terraform Outputs
+        id: terraform_vars
+        run: |
+          echo "Extracting instance ID..."
+          echo "instance_id=$(jq -r '.orchestration_instance_id.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
+          echo "neo4j_instance_private_ip=$(jq -r '.neo4j_instance_private_ip.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
+          echo "neo4j_uri=neo4://$neo4j_instance_private_ip:7687" >> $GITHUB_OUTPUT
+
       - name: Create and Upload DAGS Environment File
         id: create_env_file
         run: |
           echo "Creating DAGS environment file..."
-          echo "ENV_NAME=${{ env.ENV_NAME }}" > .env
           echo "ARXIV_INGESTION_DAY_SPAN=${{ steps.vars.outputs.arxiv_ingestion_day_span }}" >> .env
+          echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> .env
+          echo "NEO4J_CONNECTION_RETRIES=${{ steps.vars.outputs.neo4j_connection_retries }}" >> .env
+          echo "NEO4J_URI=${{ steps.terraform_vars.outputs.neo4j_uri }}" >> .env
+          echo "AIRFLOW_DAGS_ENV_PATH=${{ steps.vars.outputs.airflow_dags_env_path }}" >> .env
           echo "Copying file to ec2 /data/airflow/dags..."
-          aws s3 cp .env s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
-
-      - name: Extract Instance ID from Terraform Outputs
-        id: get_instance_id
-        run: |
-          echo "Extracting instance ID..."
-          instance_id=$(jq -r '.orchestration_instance_id.value' outputs/terraform_outputs.json)
-          echo "INSTANCE_ID=$instance_id" >> $GITHUB_ENV
-          echo "Instance ID: $instance_id"
+          aws s3 cp .env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
 
       - name: Send SSM Command to Sync, Rebuild and Restart Airflow
         if: contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt')
@@ -356,7 +361,7 @@ jobs:
           echo "REBUILDING AIRFLOW..."
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
+            --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
             --parameters '{"commands":["sudo /data/airflow/sync_s3.sh", "sudo docker compose -f /data/airflow/docker-compose.yaml down", "sudo docker compose -f /data/airflow/docker-compose.yaml build", "sudo docker compose -f /data/airflow/docker-compose.yaml up -d"]}' \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
@@ -367,7 +372,7 @@ jobs:
           echo "RESTARTING AIRFLOW..."
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceids,Values=${{ env.INSTANCE_ID }}" \
+            --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
             --parameters '{"commands":["sudo /data/airflow/sync_s3.sh", "sudo docker compose -f /data/airflow/docker-compose.yaml down", "sudo docker compose -f /data/airflow/docker-compose.yaml up -d"]}' \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text

@@ -25,6 +25,7 @@ data_ingestion_key_prefix = "raw_data/data_ingestion"
 data_ingestion_metadata_key_prefix = "raw_data/data_ingestion/metadata"
 etl_key_prefix = "processed_data/etl"
 neo4j_ami_id = "ami-0f403e3180720dd7e"
+neo4j_connection_retries = 4
 neo4j_instance_type = "t3a.medium"
 neo4j_key_pair_name = "atomiklabs-neo4j-keypair"
 neo4j_resource_prefix = "data-management-neo4j"
@@ -35,14 +36,12 @@ records_prefix = "processed_data/research_records"
 # * Orchestration                                          *
 # **********************************************************
 
+airflow_dags_env_path = "/opt/airflow/dags/.env"
 orchestration_ami_id = "ami-0f403e3180720dd7e"
 orchestration_instance_type = "t3a.large"
 orchestration_key_pair_name = "atomiklabs-orchestration-keypair"
 orchestration_resource_prefix = "orchestration"
 orchestration_username = "ec2-user"
-
-# ingestion
-arxiv_ingestion_day_span = 5
 
 # **********************************************************
 # * Security                                               *
@@ -58,6 +57,7 @@ bastion_host_username = "ec2-user"
 # **********************************************************
 
 arxiv_base_url = "http://export.arxiv.org/oai2"
+arxiv_ingestion_day_span = 5
 arxiv_summary_set = "cs"
 default_lambda_runtime = "python3.10"
 

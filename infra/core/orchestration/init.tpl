@@ -8,6 +8,7 @@ ELAPSED=0
 VOLUME_ID=""
 
 mkdir /data
+chmod 777 -R /data
 
 while [[ -z $VOLUME_ID && $ELAPSED -lt $TIMEOUT ]]; do
     VOLUME_ID=$(aws ec2 describe-volumes --filters "Name=tag:Name,Values=${volume_name_tag}" --query "Volumes[*].VolumeId" --output text)
