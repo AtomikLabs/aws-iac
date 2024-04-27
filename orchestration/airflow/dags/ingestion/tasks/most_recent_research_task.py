@@ -60,6 +60,7 @@ def run(**context: dict):
         earliest_date = get_earliest_date(config)
         logger.info(f"Earliest date: {earliest_date}", method=run.__name__, task_name=TASK_NAME)
         context["ti"].xcom_push(key=INGESTION_EARLIEST_DATE, value=earliest_date)
+        logger.info("context", context=context, method=run.__name__, task_name=TASK_NAME)
     except Exception as e:
         logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
         raise e
