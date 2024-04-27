@@ -351,7 +351,10 @@ jobs:
           echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> .env
           echo "NEO4J_CONNECTION_RETRIES=${{ steps.vars.outputs.neo4j_connection_retries }}" >> .env
           echo "NEO4J_URI=neo4j://${{ steps.terraform_vars.outputs.neo4j_instance_private_ip }}:7687" >> .env
-          echo "Copying file to ec2 /data/airflow/dags..."
+          echo ls -l
+          cat .env
+          echo cat .env
+          echo "Copying file to s3..."
           aws s3 cp .env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
 
       - name: Send SSM Command to Sync, Rebuild and Restart Airflow
