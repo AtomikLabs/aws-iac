@@ -1,9 +1,36 @@
 import json
 from datetime import datetime
+from logging.config import dictConfig
 
 import boto3
 import pytz
-from dags.shared.utils.constants import AWS_SECRETS_MANAGER, AWS_SECRETS_STRING, DEFAULT_TIMEZONE, S3_KEY_DATE_FORMAT
+import structlog
+from dags.shared.utils.constants import (
+    AWS_SECRETS_MANAGER,
+    AWS_SECRETS_STRING,
+    DEFAULT_TIMEZONE,
+    LOGGING_CONFIG,
+    S3_KEY_DATE_FORMAT,
+)
+
+dictConfig(LOGGING_CONFIG)
+
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.JSONRenderer(),
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
+
+logger = structlog.get_logger()
 
 
 def get_aws_secrets(secret_name: str, region: str, env: str = "") -> dict:
@@ -21,6 +48,7 @@ def get_aws_secrets(secret_name: str, region: str, env: str = "") -> dict:
     Raises:
         ValueError: If the AWS secrets are not found in the AWS Secrets Manager.
     """
+    logger.info("Getting secrets from AWS Secrets Manager", secret_name=secret_name, region=region, env=env)
     secrets_client = boto3.client(AWS_SECRETS_MANAGER, region_name=region)
     secrets_name = env + "/" + secret_name if env else secret_name
     secrets_response = secrets_client.get_secret_value(SecretId=secrets_name)

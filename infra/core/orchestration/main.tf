@@ -256,6 +256,24 @@ resource "aws_iam_policy" "orchestration_ebs_policy" {
   })
 }
 
+resource "aws_iam_policy" "orchestration_secrets_policy" {
+  name        = "${local.environment}-${local.orchestration_resource_prefix}-secrets-policy"
+  description = "Allow ec2 to get secrets from Secrets Manager"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+        ]
+        Effect = "Allow",
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "orchestration_role_ssm_policy_for_instances" {
   role       = aws_iam_role.orchestration_instance_role.name
   policy_arn = local.ssm_policy_for_instances_arn
@@ -274,4 +292,9 @@ resource "aws_iam_role_policy_attachment" "orchestration_role_ec2_s3_access" {
 resource "aws_iam_role_policy_attachment" "orchestration_role_ebs_policy" {
   role       = aws_iam_role.orchestration_instance_role.name
   policy_arn = aws_iam_policy.orchestration_ebs_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "orchestration_role_secrets_policy" {
+  role       = aws_iam_role.orchestration_instance_role.name
+  policy_arn = aws_iam_policy.orchestration_secrets_policy.arn
 }
