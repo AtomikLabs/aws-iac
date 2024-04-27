@@ -337,6 +337,7 @@ jobs:
         run: |
           echo "Creating DAGS environment file..."
           echo "ENV_NAME=${{ env.ENV_NAME }}" > .env
+          echo "ARXIV_INGESTION_DAY_SPAN=${{ steps.vars.outputs.arxiv_ingestion_day_span }}" >> .env
           echo "Copying file to ec2 /data/airflow/dags..."
           aws s3 cp .env s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
 
