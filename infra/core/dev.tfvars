@@ -41,6 +41,9 @@ orchestration_key_pair_name = "atomiklabs-orchestration-keypair"
 orchestration_resource_prefix = "orchestration"
 orchestration_username = "ec2-user"
 
+# ingestion
+arxiv_ingestion_day_span = 5
+
 # **********************************************************
 # * Security                                               *
 # **********************************************************

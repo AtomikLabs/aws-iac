@@ -1,5 +1,6 @@
 defusedxml==0.7.1
 neo4j==5.18.0
+python-dotenv==1.0.0
 requests==2.31.0
 structlog==24.1.0
 urllib3==1.26.18
