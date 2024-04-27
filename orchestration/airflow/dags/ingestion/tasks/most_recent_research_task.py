@@ -12,6 +12,8 @@ from shared.utils.constants import (
     ARXIV_INGESTION_DAY_SPAN,
     AWS_REGION,
     AWS_SECRETS_NEO4J_CREDENTIALS,
+    AWS_SECRETS_NEO4J_PASSWORD,
+    AWS_SECRETS_NEO4J_USERNAME,
     ENVIRONMENT_NAME,
     INGESTION_EARLIEST_DATE,
     LOGGING_CONFIG,
@@ -23,7 +25,6 @@ from shared.utils.constants import (
     PASSWORD,
     RESEARCH_RECORD_DATE,
     S3_KEY_DATE_FORMAT,
-    USERNAME,
 )
 from shared.utils.utils import get_aws_secrets, get_storage_key_datetime
 
@@ -88,8 +89,8 @@ def get_config() -> dict:
                                              config.get(AWS_REGION),
                                              config.get(ENVIRONMENT_NAME))
         config = {
-            NEO4J_PASSWORD: neo4j_secrets_dict.get(PASSWORD, ""),
-            NEO4J_USERNAME: neo4j_secrets_dict.get(USERNAME, ""),
+            NEO4J_PASSWORD: neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, ""),
+            NEO4J_USERNAME: neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, ""),
             NEO4J_URI: os.getenv(NEO4J_URI),
         }
         if (
