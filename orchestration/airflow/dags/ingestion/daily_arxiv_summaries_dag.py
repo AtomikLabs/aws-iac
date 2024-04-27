@@ -1,6 +1,6 @@
 from logging.config import dictConfig
 
-import ingestion.tasks.most_recent_research_task as most_recent_research_task
+import ingestion.tasks.most_recent_research_task as mcrt
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -29,19 +29,18 @@ SERVICE_NAME = "daily_arxiv_summaries_dag"
 
 with DAG(
     SERVICE_NAME,
+    catchup=False,
+    dag_id=SERVICE_NAME,
     default_args=DEFAULT_LOGGING_ARGS,
     schedule_interval=None,
-    description="Ingests arXiv summaries every day",
+    tags=["ingestion"],
 ) as dag:
 
     most_recent_research_task = PythonOperator(
         task_id="most_recent_research",
-        python_callable=most_recent_research_task.run,
+        python_callable=mcrt.run,
+        dag=dag,
+        provide_context=True,
     )
 
-    fetch_from_arxiv_task = PythonOperator(
-        task_id="fetch_from_arxiv",
-        python_callable=lambda: logger.info("Fetching data from arXiv"),
-    )
-
-most_recent_research_task
+    most_recent_research_task
