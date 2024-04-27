@@ -79,7 +79,7 @@ def get_config() -> dict:
     try:
         logger.info("Getting config", method=get_config.__name__, task_name=TASK_NAME)
         config = {
-            ARXIV_INGESTION_DAY_SPAN: os.getenv(ARXIV_INGESTION_DAY_SPAN),
+            ARXIV_INGESTION_DAY_SPAN: int(os.getenv(ARXIV_INGESTION_DAY_SPAN)),
             AWS_REGION: os.getenv(AWS_REGION),
             ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME),
             NEO4J_CONNECTION_RETRIES: os.getenv(NEO4J_CONNECTION_RETRIES,
@@ -88,11 +88,11 @@ def get_config() -> dict:
         neo4j_secrets_dict = get_aws_secrets(AWS_SECRETS_NEO4J_CREDENTIALS,
                                              config.get(AWS_REGION),
                                              config.get(ENVIRONMENT_NAME))
-        config = {
-            NEO4J_PASSWORD: neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, ""),
-            NEO4J_USERNAME: neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, ""),
-            NEO4J_URI: os.getenv(NEO4J_URI),
-        }
+        config.update([
+            (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
+            (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
+            (NEO4J_URI, os.getenv(NEO4J_URI))
+        ])
         if (
             not config.get(ARXIV_INGESTION_DAY_SPAN)
             or not config.get(ENVIRONMENT_NAME)
