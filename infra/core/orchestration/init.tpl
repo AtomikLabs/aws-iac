@@ -77,12 +77,12 @@ echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
 
 cat << 'EOF' > /data/airflow/sync_s3.sh
 #!/bin/bash
-sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/dags /data/airflow/dags
-sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/plugins /data/airflow/plugins
-sudo aws s3 sync s3://${infra_bucket_name}/orchestration/airflow/config /data/airflow/config
-sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/Dockerfile /data/airflow/Dockerfile
-sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/docker-compose.yaml /data/airflow/docker-compose.yaml
-sudo aws s3 cp s3://${infra_bucket_name}/orchestration/airflow/requirements.txt /data/airflow/requirements.txt
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/${environment}/airflow/dags /data/airflow/dags
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/${environment}/airflow/plugins /data/airflow/plugins
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/${environment}/airflow/config /data/airflow/config
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/${environment}/airflow/Dockerfile /data/airflow/Dockerfile
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/${environment}/airflow/docker-compose.yaml /data/airflow/docker-compose.yaml
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/${environment}/airflow/requirements.txt /data/airflow/requirements.txt
 EOF
 
 chmod +x /data/airflow/sync_s3.sh

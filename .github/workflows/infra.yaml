@@ -71,15 +71,15 @@ jobs:
 
       - name: copy DAGs to s3
         run: |
-          aws s3 sync orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/dags --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
-          aws s3 sync orchestration/airflow/plugins s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/plugins --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
-          aws s3 sync orchestration/airflow/config s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/config --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
+          aws s3 sync orchestration/airflow/dags s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/dags --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
+          aws s3 sync orchestration/airflow/plugins s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/plugins --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
+          aws s3 sync orchestration/airflow/config s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/config --exclude "*.pyc" --exclude "__pycache__/*" --exclude "*/tests/*"
 
       - name: Upload Airflow docker files to s3
         run: |
-          aws s3 cp orchestration/airflow/Dockerfile s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/Dockerfile
-          aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/docker-compose.yaml
-          aws s3 cp orchestration/airflow/requirements.txt s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/airflow/requirements.txt
+          aws s3 cp orchestration/airflow/Dockerfile s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/Dockerfile
+          aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/docker-compose.yaml
+          aws s3 cp orchestration/airflow/requirements.txt s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/requirements.txt
 
   core_infra:
     runs-on: ubuntu-latest
@@ -331,6 +331,14 @@ jobs:
         with:
           name: terraform_outputs
           path: outputs
+
+      - name: Create and Upload DAGS Environment File
+        id: create_env_file
+        run: |
+          echo "Creating DAGS environment file..."
+          echo "ENV_NAME=${{ env.ENV_NAME }}" > .env
+          echo "Copying file to ec2 /data/airflow/dags..."
+          aws s3 cp .env s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
 
       - name: Extract Instance ID from Terraform Outputs
         id: get_instance_id
