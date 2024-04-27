@@ -6,12 +6,13 @@ import pytz
 from dags.shared.utils.constants import AWS_SECRETS_MANAGER, AWS_SECRETS_STRING, DEFAULT_TIMEZONE, S3_KEY_DATE_FORMAT
 
 
-def get_aws_secrets(secret_name: str, env: str = "") -> dict:
+def get_aws_secrets(secret_name: str, region: str, env: str = "") -> dict:
     """
     Get the AWS secrets from the AWS Secrets Manager.
 
     Args:
         env: The environment to get the secrets for.
+        region: The region of the AWS Secrets Manager.
         secret_name: The name of the secret to get.
 
     Returns:
@@ -20,7 +21,7 @@ def get_aws_secrets(secret_name: str, env: str = "") -> dict:
     Raises:
         ValueError: If the AWS secrets are not found in the AWS Secrets Manager.
     """
-    secrets_client = boto3.client(AWS_SECRETS_MANAGER)
+    secrets_client = boto3.client(AWS_SECRETS_MANAGER, region_name=region)
     secrets_name = env + "/" + secret_name if env else secret_name
     secrets_response = secrets_client.get_secret_value(SecretId=secrets_name)
     secrets_string = secrets_response[AWS_SECRETS_STRING]

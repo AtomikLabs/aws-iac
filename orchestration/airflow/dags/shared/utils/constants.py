@@ -1,7 +1,7 @@
 from datetime import datetime
 
 # Airflow
-AIRFLOW_EXECUTION_DATE = "execution_date"
+AIRFLOW_DATA_INTERVAL_START = "data_interval_start"
 AIRFLOW_RUN_ID = "run_id"
 AIRFLOW_DAGS_ENV_PATH = "AIRFLOW_DAGS_ENV_PATH"
 
@@ -50,6 +50,7 @@ CS_CATEGORIES_INVERTED = {
 }
 
 # AWS
+AWS_REGION = "AWS_REGION"
 AWS_SECRETS_MANAGER = "secretsmanager"
 AWS_SECRETS_NEO4J_CREDENTIALS = "neo4j-credentials"
 AWS_SECRETS_STRING = "SecretsString"

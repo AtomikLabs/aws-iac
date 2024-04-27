@@ -7,9 +7,10 @@ from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
-    AIRFLOW_EXECUTION_DATE,
+    AIRFLOW_DATA_INTERVAL_START,
     AIRFLOW_RUN_ID,
     ARXIV_INGESTION_DAY_SPAN,
+    AWS_REGION,
     AWS_SECRETS_NEO4J_CREDENTIALS,
     ENVIRONMENT_NAME,
     INGESTION_EARLIEST_DATE,
@@ -53,13 +54,13 @@ def run(**context: dict):
         logger.info(
             f"Running {TASK_NAME} task",
             task_name=TASK_NAME,
-            date=context[AIRFLOW_EXECUTION_DATE],
-            run_id=context[AIRFLOW_RUN_ID],
+            date=context.get(AIRFLOW_DATA_INTERVAL_START),
+            run_id=context.get(AIRFLOW_RUN_ID),
         )
         config = get_config()
         earliest_date = get_earliest_date(config)
         logger.info(f"Earliest date: {earliest_date}", method=run.__name__, task_name=TASK_NAME)
-        context["ti"].xcom_push(key=INGESTION_EARLIEST_DATE, value=earliest_date)
+        context.get("ti").xcom_push(key=INGESTION_EARLIEST_DATE, value=earliest_date)
         logger.info("context", context=context, method=run.__name__, task_name=TASK_NAME)
     except Exception as e:
         logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
@@ -76,10 +77,14 @@ def get_config() -> dict:
     try:
         config = {
             ARXIV_INGESTION_DAY_SPAN: os.getenv(ARXIV_INGESTION_DAY_SPAN),
+            AWS_REGION: os.getenv(AWS_REGION),
             ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME),
-            NEO4J_CONNECTION_RETRIES: os.getenv(NEO4J_CONNECTION_RETRIES, NEO4J_CONNECTION_RETRIES_DEFAULT),
+            NEO4J_CONNECTION_RETRIES: os.getenv(NEO4J_CONNECTION_RETRIES,
+                                                NEO4J_CONNECTION_RETRIES_DEFAULT),
         }
-        neo4j_secrets_dict = get_aws_secrets(AWS_SECRETS_NEO4J_CREDENTIALS, config.get(ENVIRONMENT_NAME))
+        neo4j_secrets_dict = get_aws_secrets(AWS_SECRETS_NEO4J_CREDENTIALS,
+                                             config.get(AWS_REGION),
+                                             config.get(ENVIRONMENT_NAME))
         config = {
             NEO4J_PASSWORD: neo4j_secrets_dict.get(PASSWORD, ""),
             NEO4J_USERNAME: neo4j_secrets_dict.get(USERNAME, ""),
@@ -117,7 +122,7 @@ def get_earliest_date(config: dict) -> str:
     """
     earliest = get_storage_key_datetime().date() - timedelta(days=config.get(ARXIV_INGESTION_DAY_SPAN))
     retries = 0
-    while retries < config.get(NEO4J_CONNECTION_RETRIES):
+    while retries < int(config.get(NEO4J_CONNECTION_RETRIES)):
         try:
             with GraphDatabase.driver(
                 config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
