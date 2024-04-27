@@ -44,7 +44,7 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-load_dotenv(dotenv_path=AIRFLOW_DAGS_ENV_PATH)
+load_dotenv(dotenv_path=os.getenv(AIRFLOW_DAGS_ENV_PATH))
 
 TASK_NAME = "most_recent_research"
 

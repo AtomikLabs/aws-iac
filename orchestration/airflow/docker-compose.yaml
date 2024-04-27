@@ -47,6 +47,7 @@ x-airflow-common: &airflow-common
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     # AIRFLOW_CONFIG: "/opt/airflow/config/airflow.cfg"
     # ATOMIKLABS - Custom configuration
+    AIRFLOW_DAGS_ENV_PATH: "/opt/airflow/dags/.env"
     PYTHONPATH: "/opt/airflow/dags:${PYTHONPATH}"
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
