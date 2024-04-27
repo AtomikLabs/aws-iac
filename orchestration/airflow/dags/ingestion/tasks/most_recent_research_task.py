@@ -22,6 +22,7 @@ from shared.utils.constants import (
     NEO4J_USERNAME,
     PASSWORD,
     RESEARCH_RECORD_DATE,
+    S3_KEY_DATE_FORMAT,
     USERNAME,
 )
 from shared.utils.utils import get_aws_secrets, get_storage_key_datetime
@@ -75,6 +76,7 @@ def get_config() -> dict:
         dict: The config.
     """
     try:
+        logger.info("Getting config", method=get_config.__name__, task_name=TASK_NAME)
         config = {
             ARXIV_INGESTION_DAY_SPAN: os.getenv(ARXIV_INGESTION_DAY_SPAN),
             AWS_REGION: os.getenv(AWS_REGION),
@@ -104,6 +106,10 @@ def get_config() -> dict:
                 task_name=TASK_NAME,
             )
             raise ValueError("Config values not found")
+        logger.info("Config values",
+                    config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
+                    method=get_config.__name__,
+                    task_name=TASK_NAME)
         return config
     except Exception as e:
         logger.error("Failed to get config", error=str(e), method=get_config.__name__, task_name=TASK_NAME)
@@ -120,7 +126,12 @@ def get_earliest_date(config: dict) -> str:
     Returns:
         str: The earliest date.
     """
+    logger.info("Getting earliest date", method=get_earliest_date.__name__, task_name=TASK_NAME)
     earliest = get_storage_key_datetime().date() - timedelta(days=config.get(ARXIV_INGESTION_DAY_SPAN))
+    logger.info("Default earliest date",
+                earliest=earliest.strftime(S3_KEY_DATE_FORMAT),
+                method=get_earliest_date.__name__,
+                task_name=TASK_NAME)
     retries = 0
     while retries < int(config.get(NEO4J_CONNECTION_RETRIES)):
         try:
@@ -140,6 +151,10 @@ def get_earliest_date(config: dict) -> str:
                         record = records[0]
                         next_date = record.data().get("r", {}).get(RESEARCH_RECORD_DATE, None).to_native()
                         next_date = next_date + timedelta(days=1)
+                        logger.info("Last arXiv record date",
+                                    next_date=next_date.strftime(S3_KEY_DATE_FORMAT),
+                                    method=get_earliest_date.__name__,
+                                    task_name=TASK_NAME)
                         if next_date:
                             earliest = max(earliest, next_date)
                     except Exception as e:
@@ -151,11 +166,11 @@ def get_earliest_date(config: dict) -> str:
                         )
             logger.info(
                 "Earliest date",
-                earliest=earliest.strftime("%Y-%m-%d"),
+                earliest=earliest.strftime(S3_KEY_DATE_FORMAT),
                 method=get_earliest_date.__name__,
                 task_name=TASK_NAME,
             )
-            return earliest.strftime("%Y-%m-%d")
+            return earliest.strftime(S3_KEY_DATE_FORMAT)
         except Exception as e:
             if "Neo.ClientError.Security.AuthenticationRateLimit" in str(e):
                 logger.warning(

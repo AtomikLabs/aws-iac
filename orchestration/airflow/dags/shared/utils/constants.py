@@ -53,7 +53,9 @@ CS_CATEGORIES_INVERTED = {
 AWS_REGION = "AWS_REGION"
 AWS_SECRETS_MANAGER = "secretsmanager"
 AWS_SECRETS_NEO4J_CREDENTIALS = "neo4j-credentials"
-AWS_SECRETS_STRING = "SecretsString"
+AWS_SECRETS_NEO4J_PASSWORD = "neo4j_password"
+AWS_SECRETS_NEO4J_USERNAME = "neo4j_username"
+AWS_SECRETS_STRING = "SecretString"
 
 # Databases
 DEFAULT_NEO4J_DB = "neo4j"  # supposed to be lower case
