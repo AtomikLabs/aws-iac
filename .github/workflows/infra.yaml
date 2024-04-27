@@ -80,7 +80,6 @@ jobs:
           aws s3 cp orchestration/airflow/Dockerfile s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/Dockerfile
           aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/docker-compose.yaml
           aws s3 cp orchestration/airflow/requirements.txt s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/requirements.txt
-          aws s3 cp orchestration/airflow/dags/.env s3://${{steps.vars.outputs.infra_config_bucket}}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
 
   core_infra:
     runs-on: ubuntu-latest
