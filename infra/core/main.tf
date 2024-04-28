@@ -27,10 +27,12 @@ locals {
   data_ingestion_metadata_key_prefix            = var.data_ingestion_metadata_key_prefix
   etl_key_prefix                                = var.etl_key_prefix
   neo4j_ami_id                                  = var.neo4j_ami_id
+  neo4j_host_username                           = var.neo4j_host_username
   neo4j_instance_type                           = var.neo4j_instance_type
   neo4j_key_pair_name                           = var.neo4j_key_pair_name
+  neo4j_password                                = var.neo4j_password
   neo4j_resource_prefix                         = var.neo4j_resource_prefix
-  neo4j_host_username                                = var.neo4j_host_username
+  neo4j_username                                = var.neo4j_username
   records_prefix                                = var.records_prefix
   
   # **********************************************************
@@ -83,14 +85,12 @@ locals {
   # **********************************************************
   # * SERVICES CONFIGURATION                                 *
   # **********************************************************
+  arxiv_api_max_retries     = var.arxiv_api_max_retries
   arxiv_base_url            = var.arxiv_base_url
-  arxiv_summary_set         = var.arxiv_summary_set
+  arxiv_sets                = var.arxiv_sets
   basic_execution_role_arn  = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  default_lambda_runtime    = var.default_lambda_runtime
   lambda_vpc_access_role    = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-  neo4j_password            = var.neo4j_password
   neo4j_uri                 = "neo4j://${module.data_management.neo4j_instance_private_ip}:7687"
-  neo4j_username            = var.neo4j_username
 }
 
 module "networking" {
@@ -144,6 +144,9 @@ module "orchestration" {
   source = "./orchestration"
 
   app_name                                        = local.app_name
+  arxiv_api_max_retries                           = local.arxiv_api_max_retries
+  arxiv_base_url                                  = local.arxiv_base_url
+  arxiv_sets                                      = local.arxiv_sets
   availability_zones                              = data.aws_availability_zones.available.names
   aws_vpc_id                                      = module.networking.main_vpc_id
   data_bucket                                     = module.data_management.aws_s3_bucket_atomiklabs_data_bucket

@@ -4,6 +4,21 @@ variable "app_name" {
   default     = "atomiklabs"
 }
 
+variable "arxiv_api_max_retries" {
+  description = "ArXiv API max retries"
+  type        = number
+}
+
+variable "arxiv_base_url" {
+  description = "ArXiv base URL"
+  type        = string
+}
+
+variable "arxiv_sets" {
+  description = "ArXiv sets"
+  type        = list(string)
+}
+
 variable "availability_zones" {
   description = "Availability zones"
   type        = list(string)

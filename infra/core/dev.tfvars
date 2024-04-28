@@ -56,28 +56,8 @@ bastion_host_username = "ec2-user"
 # * Services                                               *
 # **********************************************************
 
+arxiv_api_max_retries = 5
 arxiv_base_url = "http://export.arxiv.org/oai2"
 arxiv_ingestion_day_span = 5
-arxiv_summary_set = "cs"
+arxiv_sets = ["cs"]
 default_lambda_runtime = "python3.10"
-
-# fetch_daily_summaries
-fetch_daily_summaries_max_retries = 10
-fetch_daily_summaries_service_name = "fetch_daily_summaries"
-fetch_daily_summaries_service_version = "0.1.0"
-
-# parse_arxiv_summaries
-parse_arxiv_summaries_service_name = "parse_arxiv_summaries"
-parse_arxiv_summaries_service_version = "0.1.0"
-
-# post_arxiv_parse_dispatcher
-post_arxiv_parse_dispatcher_service_name = "post_arxiv_parse_dispatcher"
-post_arxiv_parse_dispatcher_service_version = "0.0.1"
-
-# store_arxiv_summaries
-store_arxiv_summaries_service_name = "store_arxiv_summaries"
-store_arxiv_summaries_service_version = "0.1.0"
-
-# persist_arxiv_summaries
-persist_arxiv_summaries_service_name = "persist_arxiv_summaries"
-persist_arxiv_summaries_service_version = "0.0.1"

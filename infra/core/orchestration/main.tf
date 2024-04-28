@@ -1,6 +1,9 @@
 locals {
   app_name                                      = var.app_name
   availability_zone_available_names             = var.availability_zones
+  arxiv_api_max_retries                         = var.arxiv_api_max_retries
+  arxiv_base_url                                = var.arxiv_base_url
+  arxiv_sets                                    = var.arxiv_sets
   aws_vpc_id                                    = var.aws_vpc_id
   data_bucket                                   = var.data_bucket
   data_bucket_arn                               = var.data_bucket_arn
@@ -10,7 +13,7 @@ locals {
   infra_config_bucket                           = var.infra_config_bucket
   infra_config_bucket_arn                       = var.infra_config_bucket_arn
   orchestration_ami_id                          = var.orchestration_ami_id
-  orchestration_host_volume_name                = "${var.environment}-orchestration-data-volume"
+  orchestration_host_volume_name                = "${var.environment}-${var.orchestration_resource_prefix}-data-volume"
   orchestration_instance_type                   = var.orchestration_instance_type
   orchestration_key_pair_name                   = var.orchestration_key_pair_name
   orchestration_resource_prefix                 = var.orchestration_resource_prefix

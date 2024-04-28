@@ -50,7 +50,6 @@ variable "infra_config_prefix" {
   type        = string
 }
 
-
 variable "repo" {
   description = "application Github repository"
   type        = string
@@ -100,11 +99,20 @@ variable "neo4j_host_username" {
   type        = string
 }
 
+variable "neo4j_password" {
+  description = "Neo4j password"
+  type        = string
+}
+
 variable "neo4j_resource_prefix" {
   description = "Prefix for the resources"
   type        = string
 }
 
+variable "neo4j_username" {
+  description = "Neo4j username"
+  type        = string
+}
 
 variable "records_prefix" {
   description = "Prefix for the records"
@@ -177,82 +185,17 @@ variable "bastion_host_username" {
 # * Services                                               *
 # **********************************************************
 
+variable "arxiv_api_max_retries" {
+  description = "Max retries for fetches from the arXiv API"
+  type        = number
+}
+
 variable "arxiv_base_url" {
   description = "Base URL for the Arxiv API"
   type        = string
 }
 
-variable "arxiv_summary_set" {
-  description = "Arxiv summary set"
-  type        = string
-}
-
-variable "default_lambda_runtime" {
-  description = "Default Lambda runtime"
-  type        = string
-}
-
-variable "neo4j_password" {
-  description = "Neo4j password"
-  type        = string
-}
-
-variable "neo4j_username" {
-  description = "Neo4j username"
-  type        = string
-}
-
-variable "fetch_daily_summaries_max_retries" {
-  description = "Max retries for the fetch daily summaries"
-  type        = number
-}
-
-variable "fetch_daily_summaries_service_name" {
-  description = "Service name for the fetch daily summaries"
-  type        = string
-}
-
-variable "fetch_daily_summaries_service_version" {
-  description = "Service version for the fetch daily summaries"
-  type        = string
-}
-
-variable "parse_arxiv_summaries_service_name" {
-  description = "Service name for the parse arxiv summaries"
-  type        = string
-}
-
-variable "parse_arxiv_summaries_service_version" {
-  description = "Service version for the parse arxiv summaries"
-  type        = string
-}
-
-variable "post_arxiv_parse_dispatcher_service_name" {
-  description = "Service name for the post arxiv summaries dispatcher"
-  type        = string
-}
-
-variable "post_arxiv_parse_dispatcher_service_version" {
-  description = "Service version for the post arxiv summaries dispatcher"
-  type        = string
-}
-
-variable "store_arxiv_summaries_service_name" {
-  description = "Service name for the store arxiv summaries"
-  type        = string
-}
-
-variable "store_arxiv_summaries_service_version" {
-  description = "Service version for the store arxiv summaries"
-  type        = string
-}
-
-variable "persist_arxiv_summaries_service_name" {
-  description = "Service name for the persist arxiv summaries"
-  type        = string
-}
-
-variable "persist_arxiv_summaries_service_version" {
-  description = "Service version for the persist arxiv summaries"
-  type        = string
+variable "arxiv_sets" {
+  description = "Arxiv sets"
+  type        = list(string)
 }
