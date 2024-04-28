@@ -94,6 +94,7 @@ def get_config() -> dict:
         )
         if (
             not config.get(ARXIV_INGESTION_DAY_SPAN)
+            or not config.get(AWS_REGION)
             or not config.get(ENVIRONMENT_NAME)
             or not config.get(NEO4J_PASSWORD)
             or not config.get(NEO4J_USERNAME)
@@ -110,11 +111,15 @@ def get_config() -> dict:
             "Config values",
             config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
             method=get_config.__name__,
+            neo4j_pass_found=bool(config.get(NEO4J_PASSWORD)),
             task_name=TASK_NAME,
         )
         return config
     except Exception as e:
-        logger.error("Failed to get config", error=str(e), method=get_config.__name__, task_name=TASK_NAME)
+        logger.error("Failed to get config",
+                     error=str(e),
+                     method=get_config.__name__,
+                     task_name=TASK_NAME)
         raise e
 
 
