@@ -187,6 +187,5 @@ scripts/**/*.docx
 .vscode/
 
 # Airflow
-
 /orchestration/airflow/logs/
 /orchestration/airflow/dags/__pycache__/
