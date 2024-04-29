@@ -288,7 +288,6 @@ jobs:
           echo "arxiv_base_url=$(grep '^arxiv_base_url' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'=' '{print $2}' | xargs)" >> $GITHUB_OUTPUT
           echo "arxiv_ingestion_day_span=$(grep '^arxiv_ingestion_day_span' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "arxiv_sets=$(awk -F'=' '/^arxiv_sets/ {gsub(/ /, "", $2); print $2}' infra/core/${{ env.ENV_NAME }}.tfvars)" >> $GITHUB_OUTPUT
-          echo "arxiv_sets_escaped=$(echo $arxiv_sets | sed 's/"/\\"/g')" >> $GITHUB_OUTPUT
           echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "data_ingestion_key_prefix=$(grep '^data_ingestion_key_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
@@ -319,7 +318,7 @@ jobs:
           echo "ARXIV_API_MAX_RETRIES=${{ steps.vars.outputs.arxiv_api_max_retries }}" >> .env
           echo "ARXIV_BASE_URL=${{ steps.vars.outputs.arxiv_base_url }}" >> .env
           echo "ARXIV_INGESTION_DAY_SPAN=${{ steps.vars.outputs.arxiv_ingestion_day_span }}" >> .env
-          echo "ARXIV_SETS=${{ steps.vars.outputs.arxiv_sets_escaped }}" >> .env
+          echo "ARXIV_SETS=${{ steps.vars.outputs.arxiv_sets }}" >> .env
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> .env
           echo "DATA_BUCKET=${{ steps.terraform_vars.outputs.data_bucket }}" >> .env
           echo "DATA_INGESTION_KEY_PREFIX=${{ steps.vars.outputs.data_ingestion_key_prefix }}" >> .env
