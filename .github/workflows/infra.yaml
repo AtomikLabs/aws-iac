@@ -287,7 +287,7 @@ jobs:
           echo "arxiv_api_max_retries=$(grep '^arxiv_api_max_retries' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "arxiv_base_url=$(grep '^arxiv_base_url' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'=' '{print $2}' | xargs)" >> $GITHUB_OUTPUT
           echo "arxiv_ingestion_day_span=$(grep '^arxiv_ingestion_day_span' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "arxiv_sets=$(grep '^arxiv_sets' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "arxiv_sets=$(grep '^arxiv_sets' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'=' '{print $2}' | tr -d '[]\"' | xargs)" >> $GITHUB_OUTPUT
           echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "data_ingestion_key_prefix=$(grep '^data_ingestion_key_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
@@ -316,7 +316,7 @@ jobs:
           echo "Creating DAGS environment file..."
           echo "AIRFLOW_DAGS_ENV_PATH=${{ steps.vars.outputs.airflow_dags_env_path }}" >> .env
           echo "ARXIV_API_MAX_RETRIES=${{ steps.vars.outputs.arxiv_api_max_retries }}" >> .env
-          echo "ARXIV_BASE_URL='${{ steps.vars.outputs.arxiv_base_url }}'" >> .env  # Ensure single quotes around URLs
+          echo "ARXIV_BASE_URL=${{ steps.vars.outputs.arxiv_base_url }}" >> .env
           echo "ARXIV_INGESTION_DAY_SPAN=${{ steps.vars.outputs.arxiv_ingestion_day_span }}" >> .env
           echo "ARXIV_SETS='${{ steps.vars.outputs.arxiv_sets }}'" >> .env  # Use quotes if potential complex data
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> .env
