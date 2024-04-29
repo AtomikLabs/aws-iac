@@ -318,7 +318,7 @@ jobs:
           echo "ARXIV_API_MAX_RETRIES=${{ steps.vars.outputs.arxiv_api_max_retries }}" >> .env
           echo "ARXIV_BASE_URL=${{ steps.vars.outputs.arxiv_base_url }}" >> .env
           echo "ARXIV_INGESTION_DAY_SPAN=${{ steps.vars.outputs.arxiv_ingestion_day_span }}" >> .env
-          echo "ARXIV_SETS=${{ steps.vars.outputs.arxiv_sets }}" >> .env
+          echo 'ARXIV_SETS=${{ steps.vars.outputs.arxiv_sets }}' >> .env
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> .env
           echo "DATA_BUCKET=${{ steps.terraform_vars.outputs.data_bucket }}" >> .env
           echo "DATA_INGESTION_KEY_PREFIX=${{ steps.vars.outputs.data_ingestion_key_prefix }}" >> .env
