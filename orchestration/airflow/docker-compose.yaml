@@ -39,6 +39,7 @@ x-airflow-common: &airflow-common
     # yamllint enable rule:line-length
     AIRFLOW__SCHEDULER__CHILD_PROCESS_LOG_DIRECTORY: /opt/airflow/logs/scheduler
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    AIRFLOW__SCHEDULER__HEALTH_CHECK_THRESHOLD: 240
     AIRFLOW__WEBSERVER__CONFIG_FILE: /opt/airflow/config/webserver_config.py
     AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: America/Vancouver
     AWS_DEFAULT_REGION: us-east-1
