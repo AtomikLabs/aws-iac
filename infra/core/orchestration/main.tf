@@ -223,7 +223,7 @@ resource "aws_iam_policy" "orchestration_ec2_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${local.data_bucket_arn}/${local.orchestration_resource_prefix}/*",
+          "${local.data_bucket_arn}/*",
           "${local.infra_config_bucket_arn}/${local.orchestration_resource_prefix}/*",
         ]
       },
