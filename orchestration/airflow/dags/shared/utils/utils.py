@@ -5,7 +5,7 @@ from logging.config import dictConfig
 import boto3
 import pytz
 import structlog
-from dags.shared.utils.constants import (
+from shared.utils.constants import (
     AWS_SECRETS_MANAGER,
     AWS_SECRETS_STRING,
     DEFAULT_TIMEZONE,

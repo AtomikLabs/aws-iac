@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
-from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
-from services.services_layer.src.services_layer.models.arxiv_category import ArxivCategory
+from orchestration.airflow.dags.shared.utils.constants import S3_KEY_DATE_FORMAT
+from orchestration.airflow.dags.shared.models.arxiv_category import ArxivCategory
 
 
 class TestArxivCategory:
@@ -77,7 +77,7 @@ class TestArxivCategory:
         with pytest.raises(ValueError):
             ArxivCategory(d, c, n)
 
-    @patch("services.services_layer.src.services_layer.models.arxiv_category.uuid")
+    @patch("orchestration.airflow.dags.shared.models.arxiv_category.uuid")
     def test_create_should_succeed_with_valid_params(self, mock_uuid, driver, code, name, uuid_fixture):
         mock_uuid.uuid4 = MagicMock(return_value=uuid_fixture)
         driver.execute_query.return_value = (

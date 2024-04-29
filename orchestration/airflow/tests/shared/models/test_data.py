@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
-from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
-from services.services_layer.src.services_layer.models.data import Data
+from orchestration.airflow.dags.shared.utils.constants import S3_KEY_DATE_FORMAT
+from orchestration.airflow.dags.shared.models.data import Data
 
 
 class TestData:
@@ -95,7 +95,7 @@ class TestData:
         with pytest.raises(ValueError):
             Data(d, u, n, desc, s)
 
-    @patch("services.services_layer.src.services_layer.models.data.uuid")
+    @patch("orchestration.airflow.dags.shared.models.data.uuid")
     def test_create_should_succeed_with_valid_params(
         self, mock_uuid, driver, _url, _format, _description, _size_bytes, _uuid
     ):

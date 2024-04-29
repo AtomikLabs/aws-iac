@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
-from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
-from services.services_layer.src.services_layer.models.author import Author
+from orchestration.airflow.dags.shared.utils.constants import S3_KEY_DATE_FORMAT
+from orchestration.airflow.dags.shared.models.author import Author
 
 
 class TestAuthor:
@@ -85,7 +85,7 @@ class TestAuthor:
         with pytest.raises(ValueError):
             Author(d, la, f)
 
-    @patch("services.services_layer.src.services_layer.models.author.uuid")
+    @patch("orchestration.airflow.dags.shared.models.author.uuid")
     def test_create_should_succeed_with_valid_params(
         self,
         mock_uuid,
