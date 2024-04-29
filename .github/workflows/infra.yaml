@@ -287,7 +287,7 @@ jobs:
           echo "arxiv_api_max_retries=$(grep '^arxiv_api_max_retries' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "arxiv_base_url=$(grep '^arxiv_base_url' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'=' '{print $2}' | xargs)" >> $GITHUB_OUTPUT
           echo "arxiv_ingestion_day_span=$(grep '^arxiv_ingestion_day_span' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "arxiv_sets=$(grep '^arxiv_sets' infra/core/${{ env.ENV_NAME }}.tfvars | sed -e 's/arxiv_sets = //' -e 's/[\[\]"]//g' | tr ',' ' ')" >> $GITHUB_OUTPUT
+          echo "arxiv_sets=$(grep '^arxiv_sets' infra/core/${{ env.ENV_NAME }}.tfvars | sed 's/^.*= \(.*\)/\1/')" >> $GITHUB_OUTPUT
           echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "data_ingestion_key_prefix=$(grep '^data_ingestion_key_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
