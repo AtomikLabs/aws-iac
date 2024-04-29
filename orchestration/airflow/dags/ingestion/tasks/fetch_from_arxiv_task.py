@@ -97,14 +97,14 @@ def get_config(context: dict) -> dict:
         logger.info("Getting config", method=get_config.__name__, task_name=TASK_NAME)
         config = {
             ARXIV_API_MAX_RETRIES: int(os.getenv(ARXIV_API_MAX_RETRIES)),
-            ARXIV_BASE_URL: os.getenv(ARXIV_BASE_URL),
-            ARXIV_SETS: os.getenv(ARXIV_SETS, "").split(","),
+            ARXIV_BASE_URL: os.getenv(ARXIV_BASE_URL).replace("'", ""),
+            ARXIV_SETS: os.getenv(ARXIV_SETS, "").split(",").replace("'", ""),
             AWS_REGION: os.getenv(AWS_REGION),
             DATA_BUCKET: os.getenv(DATA_BUCKET),
             DATA_INGESTION_KEY_PREFIX: os.getenv(DATA_INGESTION_KEY_PREFIX),
             FETCH_FROM_ARXIV_TASK_VERSION: os.getenv(FETCH_FROM_ARXIV_TASK_VERSION),
             INGESTION_EARLIEST_DATE: context.get(INGESTION_EARLIEST_DATE),
-            ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME),
+            ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME).replace("'", ""),
         }
         neo4j_retries = (
             int(os.getenv(NEO4J_CONNECTION_RETRIES))
@@ -123,7 +123,7 @@ def get_config(context: dict) -> dict:
             [
                 (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
                 (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
-                (NEO4J_URI, os.getenv(NEO4J_URI)),
+                (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", ""),
             ]
         )
         if (

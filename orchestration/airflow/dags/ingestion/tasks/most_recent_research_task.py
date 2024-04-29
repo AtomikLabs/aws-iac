@@ -79,7 +79,7 @@ def get_config() -> dict:
         config = {
             ARXIV_INGESTION_DAY_SPAN: int(os.getenv(ARXIV_INGESTION_DAY_SPAN)),
             AWS_REGION: os.getenv(AWS_REGION),
-            ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME),
+            ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME).replace("'", ""),
         }
         neo4j_retries = (
             int(os.getenv(NEO4J_CONNECTION_RETRIES))
@@ -103,7 +103,7 @@ def get_config() -> dict:
             [
                 (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
                 (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
-                (NEO4J_URI, os.getenv(NEO4J_URI)),
+                (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
             ]
         )
         if (
