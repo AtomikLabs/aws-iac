@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from neo4j import Driver
 
-from services.services_layer.src.services_layer.constants import ARXIV_RESEARCH_DATE_FORMAT, S3_KEY_DATE_FORMAT
-from services.services_layer.src.services_layer.models.arxiv_record import ArxivRecord
+from orchestration.airflow.dags.shared.models.arxiv_record import ArxivRecord
+from orchestration.airflow.dags.shared.utils.constants import ARXIV_RESEARCH_DATE_FORMAT, S3_KEY_DATE_FORMAT
 
 
 class TestArxivRecord:
@@ -95,7 +95,7 @@ class TestArxivRecord:
         with pytest.raises(ValueError):
             ArxivRecord(d, a)
 
-    @patch("services.services_layer.src.services_layer.models.arxiv_record.uuid")
+    @patch("orchestration.airflow.dags.shared.models.arxiv_record.uuid")
     def test_create_should_succeed_with_valid_params(
         self,
         mock_uuid,

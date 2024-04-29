@@ -4,15 +4,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 from neo4j import Driver
 
-from services.services_layer.src.services_layer.constants import S3_KEY_DATE_FORMAT
-from services.services_layer.src.services_layer.models.abstract import Abstract
+from orchestration.airflow.dags.shared.models.full_text import FullText
+from orchestration.airflow.dags.shared.utils.constants import S3_KEY_DATE_FORMAT
 
 
-class TestAbstract:
+class TestFullText:
 
+    TEXT = "This is a test full_text"
+    STORAGE_URL = "s3://test-bucket/test-key"
     URL = "https://arxiv.org/abs/1906.11285"
-    BUCKET = "test-bucket"
-    KEY = "s3://test-bucket/test-key"
     DATE = "2019-06-26"
     UUID = "1234-5678-9012-3456"
     CREATED = datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT)
@@ -21,19 +21,19 @@ class TestAbstract:
     SINGLE_CREATE_RECORDS_RETURN = MagicMock(
         data=lambda: {
             "a": {
-                "url": TestAbstract.URL,
-                "bucket": TestAbstract.BUCKET,
-                "key": TestAbstract.KEY,
-                "uuid": TestAbstract.UUID,
-                "created": TestAbstract.CREATED,
-                "last_modified": TestAbstract.LAST_MODIFIED,
+                "text": TestFullText.TEXT,
+                "storage_url": TestFullText.STORAGE_URL,
+                "url": TestFullText.URL,
+                "uuid": TestFullText.UUID,
+                "created": TestFullText.CREATED,
+                "last_modified": TestFullText.LAST_MODIFIED,
             }
         }
     )
 
     @pytest.fixture
     def _created(self):
-        return TestAbstract.CREATED
+        return TestFullText.CREATED
 
     @pytest.fixture
     def driver(self):
@@ -42,57 +42,57 @@ class TestAbstract:
         return driver
 
     @pytest.fixture
-    def _url(self):
-        return TestAbstract.URL
-
-    @pytest.fixture
     def _last_modified(self):
-        return TestAbstract.LAST_MODIFIED
+        return TestFullText.LAST_MODIFIED
 
     @pytest.fixture
-    def _bucket(self):
-        return TestAbstract.BUCKET
+    def _storage_url(self):
+        return TestFullText.STORAGE_URL
 
     @pytest.fixture
-    def _key(self):
-        return TestAbstract.KEY
+    def _text(self):
+        return TestFullText.TEXT
+
+    @pytest.fixture
+    def _url(self):
+        return TestFullText.URL
 
     @pytest.fixture
     def _uuid(self):
-        return TestAbstract.UUID
+        return TestFullText.UUID
 
-    def test_init_should_succeed_with_valid_params(self, driver, _url, _bucket, _key):
-        abstract = Abstract(driver, _url, _bucket, _key)
-        assert abstract.driver == driver
-        assert abstract.url == _url
-        assert abstract.bucket == _bucket
-        assert abstract.key == _key
-        assert abstract.uuid is None
-        assert abstract.created is None
-        assert abstract.last_modified is None
+    def test_init_should_succeed_with_valid_params(self, driver, _url, _text, _storage_url):
+        full_text = FullText(driver, _url, _text, _storage_url)
+        assert full_text.driver == driver
+        assert full_text.url == _url
+        assert full_text.text == _text
+        assert full_text.storage_url == _storage_url
+        assert full_text.uuid is None
+        assert full_text.created is None
+        assert full_text.last_modified is None
 
     @pytest.mark.parametrize(
-        "d, u, b, k",
+        "d, u, t, s",
         [
-            (None, "https://arxiv.org/abs/1906.11285", "This is a test abstract", "s3://test-bucket/test-key"),
-            (123, "https://arxiv.org/abs/1906.11285", "This is a test abstract", "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), 123, "This is a test abstract", "s3://test-bucket/test-key"),
+            (None, "https://arxiv.org/abs/1906.11285", "This is a test full_text", "s3://test-bucket/test-key"),
+            (123, "https://arxiv.org/abs/1906.11285", "This is a test full_text", "s3://test-bucket/test-key"),
+            (MagicMock(spec=Driver), 123, "This is a test full_text", "s3://test-bucket/test-key"),
             (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", 123, "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", "This is a test abstract", 123),
+            (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", "This is a test full_text", 123),
         ],
     )
-    def test_init_should_raise_exception_with_invalid_params(self, d, u, b, k):
+    def test_init_should_raise_exception_with_invalid_params(self, d, u, t, s):
         with pytest.raises(ValueError):
-            Abstract(d, u, b, k)
+            FullText(d, u, t, s)
 
-    @patch("services.services_layer.src.services_layer.models.abstract.uuid")
+    @patch("orchestration.airflow.dags.shared.models.full_text.uuid")
     def test_create_should_succeed_with_valid_params(
         self,
         mock_uuid,
         driver,
         _url,
-        _bucket,
-        _key,
+        _text,
+        _storage_url,
         _uuid,
         _created,
         _last_modified,
@@ -104,8 +104,8 @@ class TestAbstract:
                     data=lambda: {
                         "a": {
                             "url": _url,
-                            "bucket": _bucket,
-                            "key": _key,
+                            "text": _text,
+                            "storage_url": _storage_url,
                             "uuid": _uuid,
                             "created": _created,
                             "last_modified": _last_modified,
@@ -116,61 +116,61 @@ class TestAbstract:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        abstract = Abstract(driver, _url, _bucket, _key)
-        abstract.create()
+        full_text = FullText(driver, _url, _text, _storage_url)
+        full_text.create()
         driver.execute_query.assert_called_once()
-        assert abstract.url == _url
-        assert abstract.bucket == _bucket
-        assert abstract.key == _key
-        assert abstract.uuid == _uuid
-        assert abstract.created == _created
-        assert abstract.last_modified == _last_modified
+        assert full_text.url == _url
+        assert full_text.text == _text
+        assert full_text.storage_url == _storage_url
+        assert full_text.uuid == _uuid
+        assert full_text.created == _created
+        assert full_text.last_modified == _last_modified
 
     @pytest.mark.parametrize(
-        "d, u, b, k",
+        "d, u, t, s",
         [
-            (None, "https://arxiv.org/abs/1906.11285", "This is a test abstract", "s3://test-bucket/test-key"),
-            (123, "https://arxiv.org/abs/1906.11285", "This is a test abstract", "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), 123, "This is a test abstract", "s3://test-bucket/test-key"),
+            (None, "https://arxiv.org/abs/1906.11285", "This is a test full_text", "s3://test-bucket/test-key"),
+            (123, "https://arxiv.org/abs/1906.11285", "This is a test full_text", "s3://test-bucket/test-key"),
+            (MagicMock(spec=Driver), 123, "This is a test full_text", "s3://test-bucket/test-key"),
             (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", 123, "s3://test-bucket/test-key"),
-            (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", "This is a test abstract", 123),
+            (MagicMock(spec=Driver), "https://arxiv.org/abs/1906.11285", "This is a test full_text", 123),
         ],
     )
-    def test_create_should_raise_exception_with_invalid_params(self, d, u, b, k, driver, _url):
-        abstract = Abstract(driver, _url)
-        abstract.url = u
-        abstract.bucket = b
-        abstract.key = k
+    def test_create_should_raise_exception_with_invalid_params(self, d, u, t, s, driver, _url):
+        full_text = FullText(driver, _url)
+        full_text.url = u
+        full_text.text = t
+        full_text.storage_url = s
         if not isinstance(d, Driver):
             with pytest.raises(AttributeError):
-                abstract.driver = d
-                abstract.create()
+                full_text.driver = d
+                full_text.create()
         else:
             with pytest.raises(ValueError):
-                abstract.create()
+                full_text.create()
 
-    def test_create_should_raise_exception_when_no_records_returned(self, driver, _url, _bucket, _key):
+    def test_create_should_raise_exception_when_no_records_returned(self, driver, _url, _text, _storage_url):
         driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])
-        abstract = Abstract(driver, _url, _bucket, _key)
+        full_text = FullText(driver, _url, _text, _storage_url)
         with pytest.raises(RuntimeError):
-            abstract.create()
+            full_text.create()
         driver.execute_query.assert_called_once()
 
-    def test_create_should_not_duplicate_Abstract(self, driver, _url, _bucket, _key):
+    def test_create_should_not_duplicate_FullText(self, driver, _url, _text, _storage_url):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN],
             MagicMock(counters=MagicMock(nodes_created=0)),
             ["a"],
         )
         text = "A Møøse once bit my sister... No realli!"
-        abstract = Abstract(driver, _url, _bucket, _key)
-        abstract.bucket = text
-        abstract.create()
+        full_text = FullText(driver, _url, _text, _storage_url)
+        full_text.text = text
+        full_text.create()
         driver.execute_query.assert_called_once()
-        assert abstract.bucket == _bucket
+        assert full_text.text == _text
 
     def test_create_should_raise_exception_if_record_improperly_created(
-        self, driver, _url, _bucket, _key, _uuid, _created, _last_modified
+        self, driver, _url, _text, _storage_url, _uuid, _created, _last_modified
     ):
         driver.execute_query.return_value = (
             [
@@ -178,8 +178,8 @@ class TestAbstract:
                     data=lambda: {
                         "a": {
                             "url": _url,
-                            "bucket": _bucket,
-                            "storage_url": _key,
+                            "text": _text,
+                            "storage_url": _storage_url,
                             "uuid": "",
                             "created": _created,
                             "last_modified": _last_modified,
@@ -190,9 +190,9 @@ class TestAbstract:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        abstract = Abstract(driver, _url, _bucket, _key)
+        full_text = FullText(driver, _url, _text, _storage_url)
         with pytest.raises(ValueError):
-            abstract.create()
+            full_text.create()
         driver.execute_query.assert_called_once()
         driver.reset_mock()
         driver.execute_query.return_value = (
@@ -201,8 +201,8 @@ class TestAbstract:
                     data=lambda: {
                         "a": {
                             "url": _url,
-                            "bucket": _bucket,
-                            "key": _key,
+                            "text": _text,
+                            "storage_url": _storage_url,
                             "uuid": _uuid,
                             "created": None,
                             "last_modified": _last_modified,
@@ -214,7 +214,7 @@ class TestAbstract:
             ["a"],
         )
         with pytest.raises(ValueError):
-            abstract.create()
+            full_text.create()
         driver.execute_query.assert_called_once()
         driver.reset_mock()
         driver.execute_query.return_value = (
@@ -223,8 +223,8 @@ class TestAbstract:
                     data=lambda: {
                         "a": {
                             "url": _url,
-                            "bucket": _bucket,
-                            "key": _key,
+                            "text": _text,
+                            "storage_url": _storage_url,
                             "uuid": _uuid,
                             "created": _created,
                             "last_modified": None,
@@ -236,15 +236,15 @@ class TestAbstract:
             ["a"],
         )
         with pytest.raises(ValueError):
-            abstract.create()
+            full_text.create()
         driver.execute_query.assert_called_once()
 
     def test_load_should_succeed_if_record_exists(
         self,
         driver,
         _url,
-        _bucket,
-        _key,
+        _text,
+        _storage_url,
         _uuid,
         _created,
         _last_modified,
@@ -254,42 +254,42 @@ class TestAbstract:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        abstract = Abstract(driver, _url)
-        assert abstract.load()
-        assert "MATCH (a:Abstract {url: $url}) RETURN a" in driver.execute_query.call_args[0]
-        assert abstract.url == _url
-        assert abstract.bucket == _bucket
-        assert abstract.key == _key
-        assert abstract.uuid == _uuid
-        assert abstract.created == _created
-        assert abstract.last_modified == _last_modified
+        full_text = FullText(driver, _url)
+        assert full_text.load()
+        assert "MATCH (a:FullText {url: $url}) RETURN a" in driver.execute_query.call_args[0]
+        assert full_text.url == _url
+        assert full_text.text == _text
+        assert full_text.storage_url == _storage_url
+        assert full_text.uuid == _uuid
+        assert full_text.created == _created
+        assert full_text.last_modified == _last_modified
 
     def test_load_should_return_false_if_record_does_not_exist(self, driver, _url):
         driver.execute_query.return_value = ([], MagicMock(counters=MagicMock(nodes_created=0)), [])
-        abstract = Abstract(driver, _url)
-        assert not abstract.load()
-        assert "MATCH (a:Abstract {url: $url}) RETURN a" in driver.execute_query.call_args[0]
-        assert abstract.url == _url
-        assert abstract.bucket == ""
-        assert abstract.key == ""
-        assert abstract.uuid is None
-        assert abstract.created is None
-        assert abstract.last_modified is None
+        full_text = FullText(driver, _url)
+        assert not full_text.load()
+        assert "MATCH (a:FullText {url: $url}) RETURN a" in driver.execute_query.call_args[0]
+        assert full_text.url == _url
+        assert full_text.text == ""
+        assert full_text.storage_url == ""
+        assert full_text.uuid is None
+        assert full_text.created is None
+        assert full_text.last_modified is None
 
     def test_load_should_raise_exception_if_invalid_url(self, driver, _url):
-        abstract = Abstract(driver, _url)
-        abstract.url = None
+        full_text = FullText(driver, _url)
+        full_text.url = None
         with pytest.raises(ValueError):
-            abstract.load()
-        abstract.url = 123
+            full_text.load()
+        full_text.url = 123
         with pytest.raises(ValueError):
-            abstract.load()
+            full_text.load()
 
     def test_load_should_raise_exception_if_driver_not_connected(self, driver, _url):
         driver.verify_connectivity.side_effect = Exception("Connection error")
-        abstract = Abstract(driver, _url)
+        full_text = FullText(driver, _url)
         with pytest.raises(Exception):
-            abstract.load()
+            full_text.load()
         driver.verify_connectivity.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -300,7 +300,7 @@ class TestAbstract:
                     data=lambda: {
                         "a": {
                             "url": "",
-                            "text": "This is a test abstract",
+                            "text": "This is a test full_text",
                             "storage_url": "s3://test-bucket/test-key",
                             "uuid": "1234-5678-9012-3456",
                             "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
@@ -314,7 +314,7 @@ class TestAbstract:
                     data=lambda: {
                         "a": {
                             "url": "",
-                            "text": "This is a test abstract",
+                            "text": "This is a test full_text",
                             "storage_url": "s3://test-bucket/test-key",
                             "uuid": "1234-5678-9012-3456",
                             "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
@@ -328,7 +328,7 @@ class TestAbstract:
                     data=lambda: {
                         "a": {
                             "url": "",
-                            "text": "This is a test abstract",
+                            "text": "This is a test full_text",
                             "storage_url": "s3://test-bucket/test-key",
                             "uuid": "1234-5678-9012-3456",
                             "created": datetime.strptime("2021-01-01T00-00-00", S3_KEY_DATE_FORMAT),
@@ -345,26 +345,26 @@ class TestAbstract:
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        abstract = Abstract(driver, _url)
+        full_text = FullText(driver, _url)
         with pytest.raises(ValueError):
-            abstract.load()
+            full_text.load()
         driver.execute_query.assert_called_once()
         driver.reset_mock()
 
-    def test_find_should_return_abstract(self, driver, _url, _bucket, _key, _uuid, _created, _last_modified):
+    def test_find_should_return_full_text(self, driver, _url, _text, _storage_url, _uuid, _created, _last_modified):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN],
             MagicMock(counters=MagicMock(nodes_created=1)),
             ["a"],
         )
-        abstract = Abstract.find(driver, _url)
+        full_text = FullText.find(driver, _url)
         driver.execute_query.assert_called_once()
-        assert abstract.url == _url
-        assert abstract.bucket == _bucket
-        assert abstract.key == _key
-        assert abstract.uuid == _uuid
-        assert abstract.created == _created
-        assert abstract.last_modified == _last_modified
+        assert full_text.url == _url
+        assert full_text.text == _text
+        assert full_text.storage_url == _storage_url
+        assert full_text.uuid == _uuid
+        assert full_text.created == _created
+        assert full_text.last_modified == _last_modified
 
     def test_find_should_return_none_if_no_record(self, driver, _url):
         driver.execute_query.return_value = (
@@ -372,9 +372,9 @@ class TestAbstract:
             MagicMock(counters=MagicMock(nodes_created=0)),
             [],
         )
-        abstract = Abstract.find(driver, _url)
+        full_text = FullText.find(driver, _url)
         driver.execute_query.assert_called_once()
-        assert abstract is None
+        assert full_text is None
 
     @pytest.mark.parametrize(
         "d, u",
@@ -386,29 +386,29 @@ class TestAbstract:
     )
     def test_find_should_raise_exception_if_invalid_params(self, d, u):
         with pytest.raises(ValueError):
-            Abstract.find(d, u)
+            FullText.find(d, u)
 
     def test_find_should_raise_exception_if_driver_not_connected(self, driver, _url):
         driver.verify_connectivity.side_effect = Exception("Connection error")
         with pytest.raises(Exception):
-            Abstract.find(driver, _url)
+            FullText.find(driver, _url)
         driver.verify_connectivity.assert_called_once()
 
     def test_find_all_should_should_turn_all_found_records(
-        self, driver, _url, _bucket, _key, _uuid, _created, _last_modified
+        self, driver, _url, _text, _storage_url, _uuid, _created, _last_modified
     ):
         driver.execute_query.return_value = (
             [self.SINGLE_CREATE_RECORDS_RETURN, self.SINGLE_CREATE_RECORDS_RETURN],
             MagicMock(counters=MagicMock()),
             ["a", "a"],
         )
-        abstracts = Abstract.find_all(driver)
+        full_texts = FullText.find_all(driver)
         driver.execute_query.assert_called_once()
-        assert len(abstracts) == 2
-        for abstract in abstracts:
-            assert abstract.url == _url
-            assert abstract.bucket == _bucket
-            assert abstract.key == _key
-            assert abstract.uuid == _uuid
-            assert abstract.created == _created
-            assert abstract.last_modified == _last_modified
+        assert len(full_texts) == 2
+        for full_text in full_texts:
+            assert full_text.url == _url
+            assert full_text.text == _text
+            assert full_text.storage_url == _storage_url
+            assert full_text.uuid == _uuid
+            assert full_text.created == _created
+            assert full_text.last_modified == _last_modified

@@ -1,3 +1,10 @@
+from datetime import datetime
+
+# Airflow
+AIRFLOW_DATA_INTERVAL_START = "data_interval_start"
+AIRFLOW_RUN_ID = "run_id"
+AIRFLOW_DAGS_ENV_PATH = "AIRFLOW_DAGS_ENV_PATH"
+
 # Arxiv
 CS_CATEGORIES_INVERTED = {
     "Computer Science - Artificial Intelligence": "AI",
@@ -42,25 +49,19 @@ CS_CATEGORIES_INVERTED = {
     "Computer Science - Systems and Control": "SY",
 }
 
-# Services Environment
-APP_NAME = "APP_NAME"
-ARXIV_BASE_URL = "ARXIV_BASE_URL"
-ARXIV_SUMMARY_SET = "ARXIV_SUMMARY_SET"
-DATA_BUCKET = "DATA_BUCKET"
-DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
-DISPATCH_LAMBDA_NAMES = "DISPATCH_LAMBDA_NAMES"
-ENVIRONMENT_NAME = "ENVIRONMENT"
-ETL_KEY_PREFIX = "ETL_KEY_PREFIX"
-MAX_RETRIES = "MAX_RETRIES"
-NEO4J_PASSWORD = "NEO4J_PASSWORD"
-NEO4J_URI = "NEO4J_URI"
-NEO4J_USERNAME = "NEO4J_USERNAME"
-RECORDS_PREFIX = "RECORDS_PREFIX"
-SERVICE_NAME = "SERVICE_NAME"
-SERVICE_VERSION = "SERVICE_VERSION"
+# AWS
+AWS_REGION = "AWS_REGION"
+AWS_SECRETS_MANAGER = "secretsmanager"
+AWS_SECRETS_NEO4J_CREDENTIALS = "neo4j-credentials"
+AWS_SECRETS_NEO4J_PASSWORD = "neo4j_password"
+AWS_SECRETS_NEO4J_USERNAME = "neo4j_username"
+AWS_SECRETS_STRING = "SecretString"
 
 # Databases
+DATA_BUCKET = "DATA_BUCKET"
 DEFAULT_NEO4J_DB = "neo4j"  # supposed to be lower case
+NEO4J_CONNECTION_RETRIES = "NEO4J_CONNECTION_RETRIES"
+NEO4J_CONNECTION_RETRIES_DEFAULT = 4
 
 # Dates
 ARXIV_RESEARCH_DATE_FORMAT = "%Y-%m-%d"
@@ -78,6 +79,40 @@ FAILED_TO_CREATE_DATA_OPERATION = "Failed to create DataOperation"
 FAILED_TO_CREATE_DATA_SOURCE = "Failed to create DataSource"
 FAILED_TO_CREATE_FULL_TEXT = "Failed to create FullText"
 INTERNAL_SERVER_ERROR = "Internal server error"
+
+# General
+PASSWORD = "password"
+USERNAME = "username"
+
+# Logging
+DEFAULT_LOGGING_ARGS = {
+    "owner": "airflow",
+    "depends_on_past": False,
+    "start_date": datetime(2024, 4, 26),
+    "retries": 1,
+}
+
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "plain": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "plain",
+        },
+    },
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+    },
+}
 
 # Neo4j
 AUTHORS = "AUTHORS"
@@ -97,10 +132,34 @@ PARSED_BY = "PARSED_BY"
 PARSES = "PARSES"
 PRIMARILY_CATEGORIZED_BY = "PRIMARILY_CATEGORIZED_BY"
 PROVIDES = "PROVIDES"
+RESEARCH_RECORD_DATE = "date"
 SUMMARIZED_BY = "SUMMARIZED_BY"
 SUMMARIZES = "SUMMARIZES"
 
-# STORAGE KEYS
+# Services
+APP_NAME = "APP_NAME"
+ARXIV_API_MAX_RETRIES = "ARXIV_API_MAX_RETRIES"
+ARXIV_BASE_URL = "ARXIV_BASE_URL"
+ARXIV_INGESTION_DAY_SPAN = "ARXIV_INGESTION_DAY_SPAN"
+ARXIV_SETS = "ARXIV_SETS"
+DATA_INGESTION_KEY_PREFIX = "DATA_INGESTION_KEY_PREFIX"
+DISPATCH_LAMBDA_NAMES = "DISPATCH_LAMBDA_NAMES"
+ENVIRONMENT_NAME = "ENVIRONMENT_NAME"
+ETL_KEY_PREFIX = "ETL_KEY_PREFIX"
+FETCH_FROM_ARXIV_TASK_VERSION = "FETCH_FROM_ARXIV_TASK_VERSION"
+INGESTION_EARLIEST_DATE = "EARLIEST_DATE"
+MOST_RECENT_RESEARCH_TASK_VERSION = "MOST_RECENT_RESEARCH_TASK_VERSION"
+NEO4J_PASSWORD = "NEO4J_PASSWORD"
+NEO4J_URI = "NEO4J_URI"
+NEO4J_USERNAME = "NEO4J_USERNAME"
+RAW_DATA_KEYS = "RAW_DATA_KEYS"
+RECORDS_PREFIX = "RECORDS_PREFIX"
+SERVICE_NAME = "SERVICE_NAME"
+SERVICE_VERSION = "SERVICE_VERSION"
+
+# Storage
 ETL = "etl"
+JSON = "json"
 PROCESSED_DATA = "processed_data"
 RESEARCH_RECORDS = "research_records"
+XML = "xml"

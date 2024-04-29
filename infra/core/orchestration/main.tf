@@ -1,6 +1,9 @@
 locals {
   app_name                                      = var.app_name
   availability_zone_available_names             = var.availability_zones
+  arxiv_api_max_retries                         = var.arxiv_api_max_retries
+  arxiv_base_url                                = var.arxiv_base_url
+  arxiv_sets                                    = var.arxiv_sets
   aws_vpc_id                                    = var.aws_vpc_id
   data_bucket                                   = var.data_bucket
   data_bucket_arn                               = var.data_bucket_arn
@@ -10,6 +13,7 @@ locals {
   infra_config_bucket                           = var.infra_config_bucket
   infra_config_bucket_arn                       = var.infra_config_bucket_arn
   orchestration_ami_id                          = var.orchestration_ami_id
+  orchestration_host_volume_name                = "${var.environment}-${var.orchestration_resource_prefix}-data-volume"
   orchestration_instance_type                   = var.orchestration_instance_type
   orchestration_key_pair_name                   = var.orchestration_key_pair_name
   orchestration_resource_prefix                 = var.orchestration_resource_prefix
@@ -24,8 +28,10 @@ data "template_file" "init_script" {
   template = file("${path.module}/init.tpl")
 
   vars = {
+    environment = local.environment
     bucket_name = local.data_bucket
     infra_bucket_name = local.infra_config_bucket
+    volume_name_tag = local.orchestration_host_volume_name
   }
 }
 
@@ -50,6 +56,7 @@ resource "aws_instance" "orchestration_host" {
   tags = {
     Name = "${local.environment}-orchestration-host"
   }
+
 }
 
 resource "aws_ebs_volume" "orchestration_host_volume" {
@@ -57,7 +64,7 @@ resource "aws_ebs_volume" "orchestration_host_volume" {
   size              = 20
 
   tags = {
-    Name = "${local.environment}-orchestration-data-volume"
+    Name = local.orchestration_host_volume_name
     orchestration-backup = "true"
   }
 
@@ -83,7 +90,7 @@ resource "aws_iam_role" "orchestration_role" {
         Principal = {
           Service = "dlm.amazonaws.com"
         }
-      }
+      },
     ]
   })
 }
@@ -216,7 +223,7 @@ resource "aws_iam_policy" "orchestration_ec2_s3_access" {
         ]
         Effect = "Allow",
         Resource = [
-          "${local.data_bucket_arn}/${local.orchestration_resource_prefix}/*",
+          "${local.data_bucket_arn}/*",
           "${local.infra_config_bucket_arn}/${local.orchestration_resource_prefix}/*",
         ]
       },
@@ -229,6 +236,42 @@ resource "aws_iam_policy" "orchestration_ec2_s3_access" {
           "${local.data_bucket_arn}",
           "${local.infra_config_bucket_arn}"
         ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "orchestration_ebs_policy" {
+  name        = "${local.environment}-${local.orchestration_resource_prefix}-ebs-policy"
+  description = "Allow ec2 to list EBS volumes"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ec2:DescribeVolumes",
+        ]
+        Effect = "Allow",
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "orchestration_secrets_policy" {
+  name        = "${local.environment}-${local.orchestration_resource_prefix}-secrets-policy"
+  description = "Allow ec2 to get secrets from Secrets Manager"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "secretsmanager:GetSecretValue",
+        ]
+        Effect = "Allow",
+        Resource = "*"
       }
     ]
   })
@@ -247,4 +290,14 @@ resource "aws_iam_instance_profile" "orchestration_instance_profile" {
 resource "aws_iam_role_policy_attachment" "orchestration_role_ec2_s3_access" {
   role       = aws_iam_role.orchestration_instance_role.name
   policy_arn = aws_iam_policy.orchestration_ec2_s3_access.arn
+}
+
+resource "aws_iam_role_policy_attachment" "orchestration_role_ebs_policy" {
+  role       = aws_iam_role.orchestration_instance_role.name
+  policy_arn = aws_iam_policy.orchestration_ebs_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "orchestration_role_secrets_policy" {
+  role       = aws_iam_role.orchestration_instance_role.name
+  policy_arn = aws_iam_policy.orchestration_secrets_policy.arn
 }

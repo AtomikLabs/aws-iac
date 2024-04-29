@@ -4,7 +4,7 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from dags.shared.database.storage_manager import StorageManager
+from orchestration.airflow.dags.shared.database.s3_manager import S3Manager
 
 
 @pytest.fixture
@@ -15,14 +15,14 @@ def mock_logger(mocker):
 @pytest.fixture
 def storage_manager(mock_logger):
     """Creates a StorageManager instance with mocked dependencies."""
-    return StorageManager(bucket_name="test-bucket", logger=mock_logger)
+    return S3Manager(bucket_name="test-bucket", logger=mock_logger)
 
 
 @pytest.mark.parametrize("invalid_bucket_name", [None, "", 123])
 def test_storage_manager_init_invalid_bucket_name(invalid_bucket_name, mock_logger):
     """Tests that StorageManager raises a ValueError when initialized with an invalid bucket name."""
     with pytest.raises(ValueError, match="bucket_name must be a non-empty string"):
-        StorageManager(bucket_name=invalid_bucket_name, logger=mock_logger)
+        S3Manager(bucket_name=invalid_bucket_name, logger=mock_logger)
 
 
 @mock_aws

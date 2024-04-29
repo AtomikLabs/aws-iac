@@ -3,7 +3,7 @@ name: Tests
 on:
   pull_request:
     paths:
-      - "services/**/*.py"
+      - "orchestration/**/*.py"
 
 jobs:
   python-test:
@@ -22,18 +22,18 @@ jobs:
 
       - name: Install dependencies and run tests
         run: |
-          find ./services/ -name 'requirements.local.txt' | while read requirements; do
-            if [[ $requirements == *"/services/"* ]]; then
+          find ./orchestration/ -name 'requirements.txt' | while read requirements; do
+            if [[ $requirements == *"/orchestration/"* ]]; then
               dir=$(dirname "$requirements")
               echo "Installing dependencies in $dir"
               pip install -r "$requirements"
             fi
           done
-          pytest services/
+          pytest orchestration/
 
       - name: Check test coverage
         run: |
-          coverage run -m pytest services/
+          coverage run -m pytest orchestration/
           coverage report -m --fail-under=80
   javascript-test:
     runs-on: ubuntu-latest

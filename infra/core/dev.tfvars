@@ -25,6 +25,7 @@ data_ingestion_key_prefix = "raw_data/data_ingestion"
 data_ingestion_metadata_key_prefix = "raw_data/data_ingestion/metadata"
 etl_key_prefix = "processed_data/etl"
 neo4j_ami_id = "ami-0f403e3180720dd7e"
+neo4j_connection_retries = 4
 neo4j_instance_type = "t3a.medium"
 neo4j_key_pair_name = "atomiklabs-neo4j-keypair"
 neo4j_resource_prefix = "data-management-neo4j"
@@ -35,6 +36,7 @@ records_prefix = "processed_data/research_records"
 # * Orchestration                                          *
 # **********************************************************
 
+airflow_dags_env_path = "/opt/airflow/dags/.env"
 orchestration_ami_id = "ami-0f403e3180720dd7e"
 orchestration_instance_type = "t3a.large"
 orchestration_key_pair_name = "atomiklabs-orchestration-keypair"
@@ -54,27 +56,10 @@ bastion_host_username = "ec2-user"
 # * Services                                               *
 # **********************************************************
 
+arxiv_api_max_retries = 5
 arxiv_base_url = "http://export.arxiv.org/oai2"
-arxiv_summary_set = "cs"
+arxiv_ingestion_day_span = 5
+arxiv_sets = ["cs"]
 default_lambda_runtime = "python3.10"
-
-# fetch_daily_summaries
-fetch_daily_summaries_max_retries = 10
-fetch_daily_summaries_service_name = "fetch_daily_summaries"
-fetch_daily_summaries_service_version = "0.1.0"
-
-# parse_arxiv_summaries
-parse_arxiv_summaries_service_name = "parse_arxiv_summaries"
-parse_arxiv_summaries_service_version = "0.1.0"
-
-# post_arxiv_parse_dispatcher
-post_arxiv_parse_dispatcher_service_name = "post_arxiv_parse_dispatcher"
-post_arxiv_parse_dispatcher_service_version = "0.0.1"
-
-# store_arxiv_summaries
-store_arxiv_summaries_service_name = "store_arxiv_summaries"
-store_arxiv_summaries_service_version = "0.1.0"
-
-# persist_arxiv_summaries
-persist_arxiv_summaries_service_name = "persist_arxiv_summaries"
-persist_arxiv_summaries_service_version = "0.0.1"
+fetch_from_arxiv_task_version = "0.0.1"
+most_recent_research_records_version = "0.0.2"

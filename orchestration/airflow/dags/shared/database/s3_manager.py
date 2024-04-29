@@ -1,13 +1,18 @@
-import logging
+from logging.config import dictConfig
 
 import boto3
 import structlog
+from shared.utils.constants import LOGGING_CONFIG
+
+dictConfig(LOGGING_CONFIG)
 
 structlog.configure(
-    [
+    processors=[
         structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.dict_tracebacks,
         structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
@@ -17,10 +22,9 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-logger.setLevel(logging.INFO)
 
 
-class StorageManager:
+class S3Manager:
     """
     A class to manage the storage of data in an AWS S3 bucket.
     """

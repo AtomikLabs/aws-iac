@@ -2,11 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.3.0-alpha] - 2024-04-29
+
+- Phase 3 architecture started
 
 ### Added
 
+- Apache Airflow orchestrates data pipeline
+- Pipeline can ingest multiple arXiv sets (i.e. computer science, physics, etc.)
+
+### Changed
+
+- arXiv summaries are fetched by Airflow DAG
+
+### Removed
+
+- fetch_daily_arxiv_summaries lambda
+
+## [0.2.1-alpha] - 2024-04-23
+
+- Phase 2 architecture complete
+
+### Added
+
+- ETL works for arXiv records using Lambdas
+- DAO/models for all major ETL pipeline entities
+
+### Changed
+
+- Migrated to neo4j for research data and data lineage
+
+### Removed
+
+- RDS
+
 ## [0.2.0-alpha] - 2024-02-05
+
+### Added
 
 - Working prototype from Jupyter notebook
 - Integrated with RDS and S3
@@ -15,15 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [0.0.1-alpha] - 2023-11-11
 
+### Added
+
 - Initial project setup
 - Phase 1 core infrastructure
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
