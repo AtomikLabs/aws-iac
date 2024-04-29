@@ -98,7 +98,7 @@ def get_config(context: dict) -> dict:
         config = {
             ARXIV_API_MAX_RETRIES: int(os.getenv(ARXIV_API_MAX_RETRIES)),
             ARXIV_BASE_URL: os.getenv(ARXIV_BASE_URL).replace("'", ""),
-            ARXIV_SETS: os.getenv(ARXIV_SETS, "").split(",").replace("'", ""),
+            ARXIV_SETS: os.getenv(ARXIV_SETS, "").split(","),
             AWS_REGION: os.getenv(AWS_REGION),
             DATA_BUCKET: os.getenv(DATA_BUCKET),
             DATA_INGESTION_KEY_PREFIX: os.getenv(DATA_INGESTION_KEY_PREFIX),
