@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 from logging.config import dictConfig
@@ -80,7 +81,8 @@ def run(**context: dict):
         results = store_data(config, data)
         store_metadata(config, data, results)
         logger.info(f"Completed {TASK_NAME} task", task_name=TASK_NAME, keys=", ".join(data.keys()))
-        context.get("ti").xcom_push(key=RAW_DATA_KEYS, value=(x.get("key") for x in data.values()))
+        key_list = [x.get("key") for x in data.values()]
+        context.get("ti").xcom_push(key=RAW_DATA_KEYS, value=key_list)
     except Exception as e:
         logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
         raise e
@@ -98,12 +100,12 @@ def get_config(context: dict) -> dict:
         config = {
             ARXIV_API_MAX_RETRIES: int(os.getenv(ARXIV_API_MAX_RETRIES)),
             ARXIV_BASE_URL: os.getenv(ARXIV_BASE_URL).strip(),
-            ARXIV_SETS: list(os.getenv(ARXIV_SETS, "")),
+            ARXIV_SETS: ast.literal_eval(os.getenv(ARXIV_SETS)),
             AWS_REGION: os.getenv(AWS_REGION),
             DATA_BUCKET: os.getenv(DATA_BUCKET),
             DATA_INGESTION_KEY_PREFIX: os.getenv(DATA_INGESTION_KEY_PREFIX),
             FETCH_FROM_ARXIV_TASK_VERSION: os.getenv(FETCH_FROM_ARXIV_TASK_VERSION),
-            INGESTION_EARLIEST_DATE: context.get(INGESTION_EARLIEST_DATE),
+            INGESTION_EARLIEST_DATE: context.get("ti").xcom_pull(key=INGESTION_EARLIEST_DATE),
             ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME).strip(),
         }
         neo4j_retries = (

@@ -9,6 +9,7 @@ from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
     AIRFLOW_DATA_INTERVAL_START,
     AIRFLOW_RUN_ID,
+    ARXIV_RESEARCH_DATE_FORMAT,
     ARXIV_INGESTION_DAY_SPAN,
     AWS_REGION,
     AWS_SECRETS_NEO4J_CREDENTIALS,
@@ -23,7 +24,6 @@ from shared.utils.constants import (
     NEO4J_URI,
     NEO4J_USERNAME,
     RESEARCH_RECORD_DATE,
-    S3_KEY_DATE_FORMAT,
 )
 from shared.utils.utils import get_aws_secrets, get_storage_key_datetime
 
@@ -148,7 +148,7 @@ def get_earliest_date(config: dict) -> str:
     earliest = get_storage_key_datetime().date() - timedelta(days=int(config.get(ARXIV_INGESTION_DAY_SPAN)))
     logger.info(
         "Default earliest date",
-        earliest=earliest.strftime(S3_KEY_DATE_FORMAT),
+        earliest=earliest.strftime(ARXIV_RESEARCH_DATE_FORMAT),
         method=get_earliest_date.__name__,
         task_name=TASK_NAME,
     )
@@ -173,7 +173,7 @@ def get_earliest_date(config: dict) -> str:
                         next_date = next_date + timedelta(days=1)
                         logger.info(
                             "Last arXiv record date",
-                            next_date=next_date.strftime(S3_KEY_DATE_FORMAT),
+                            next_date=next_date.strftime(ARXIV_RESEARCH_DATE_FORMAT),
                             method=get_earliest_date.__name__,
                             task_name=TASK_NAME,
                         )
@@ -188,11 +188,11 @@ def get_earliest_date(config: dict) -> str:
                         )
             logger.info(
                 "Earliest date",
-                earliest=earliest.strftime(S3_KEY_DATE_FORMAT),
+                earliest=earliest.strftime(ARXIV_RESEARCH_DATE_FORMAT),
                 method=get_earliest_date.__name__,
                 task_name=TASK_NAME,
             )
-            return earliest.strftime(S3_KEY_DATE_FORMAT)
+            return earliest.strftime(ARXIV_RESEARCH_DATE_FORMAT)
         except Exception as e:
             if "Neo.ClientError.Security.AuthenticationRateLimit" in str(e):
                 logger.warning(
