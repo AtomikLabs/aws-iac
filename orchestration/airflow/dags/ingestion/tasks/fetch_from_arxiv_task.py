@@ -96,7 +96,7 @@ def get_config(context: dict) -> dict:
     try:
         logger.info("Getting config", method=get_config.__name__, task_name=TASK_NAME)
         config = {
-            ARXIV_API_MAX_RETRIES: int(os.getenv(ARXIV_API_MAX_RETRIES, 0)),
+            ARXIV_API_MAX_RETRIES: int(os.getenv(ARXIV_API_MAX_RETRIES)),
             ARXIV_BASE_URL: os.getenv(ARXIV_BASE_URL),
             ARXIV_SETS: os.getenv(ARXIV_SETS, "").split(","),
             AWS_REGION: os.getenv(AWS_REGION),
@@ -105,9 +105,13 @@ def get_config(context: dict) -> dict:
             FETCH_FROM_ARXIV_TASK_VERSION: os.getenv(FETCH_FROM_ARXIV_TASK_VERSION),
             INGESTION_EARLIEST_DATE: context.get(INGESTION_EARLIEST_DATE),
             ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME),
-            NEO4J_CONNECTION_RETRIES: os.getenv(NEO4J_CONNECTION_RETRIES, NEO4J_CONNECTION_RETRIES_DEFAULT),
         }
-
+        neo4j_retries = int(os.getenv(NEO4J_CONNECTION_RETRIES)) if os.getenv(NEO4J_CONNECTION_RETRIES) != "" else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
+        config.update(
+            [
+                (NEO4J_CONNECTION_RETRIES, neo4j_retries),
+            ]
+        )
         neo4j_secrets_dict = get_aws_secrets(
             AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
         )
