@@ -284,10 +284,15 @@ jobs:
         run: |
           echo "airflow_dags_env_path=$(grep '^airflow_dags_env_path' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "app_name=$(grep '^app_name' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "arxiv_api_max_retries=$(grep '^arxiv_api_max_retries' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "arxiv_base_url=$(grep '^arxiv_base_url' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "arxiv_sets=$(grep '^arxiv_sets' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "arxiv_ingestion_day_span=$(grep '^arxiv_ingestion_day_span' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "fetch_from_arxiv_task_version=$(grep '^fetch_from_arxiv_task_version' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "most_recent_research_records_version=$(grep '^most_recent_research_records_version' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "neo4j_connection_retries=$(grep '^neo4j_connection_retries' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
 
@@ -300,6 +305,7 @@ jobs:
         id: terraform_vars
         run: |
           echo "Extracting instance ID..."
+          echo "data_bucket=$(jq -r '.data_bucket.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
           echo "instance_id=$(jq -r '.orchestration_instance_id.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
           echo "neo4j_instance_private_ip=$(jq -r '.neo4j_instance_private_ip.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
 
@@ -313,7 +319,11 @@ jobs:
           echo "ARXIV_INGESTION_DAY_SPAN=${{ steps.vars.outputs.arxiv_ingestion_day_span }}" >> .env
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> .env
           echo "ARXIV_SETS"=${{ steps.vars.outputs.arxiv_sets }}" >> .env
+          echo "DATA_BUCKET=${{ steps.vars.outputs.data_bucket }}" >> .env
+          echo "DATA_INGESTION_KEY_PREFIX=${{ steps.vars.outputs.data_ingestion_key_prefix }}" >> .env
           echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> .env
+          echo "FETCH_FROM_ARXIV_TASK_VERSION=${{ steps.vars.outputs.fetch_from_arxiv_task_version }}" >> .env
+          echo "MOST_RECENT_RESEARCH_RECORDS_VERSION=${{ steps.vars.outputs.most_recent_research_records_version }}" >> .env
           echo "NEO4J_CONNECTION_RETRIES=${{ steps.vars.outputs.neo4j_connection_retries }}" >> .env
           echo "NEO4J_URI=neo4j://${{ steps.terraform_vars.outputs.neo4j_instance_private_ip }}:7687" >> .env
           echo "Copying file to s3..."

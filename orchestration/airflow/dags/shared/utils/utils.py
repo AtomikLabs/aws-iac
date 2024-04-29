@@ -33,6 +33,19 @@ structlog.configure(
 logger = structlog.get_logger()
 
 
+def calculate_mb(size: int) -> float:
+    """
+    Converts bytes to MB.
+
+    Args:
+        size (int): Size in bytes.
+
+    Returns:
+        float: Size in MB to two decimal places.
+    """
+    return round(size / (1024 * 1024), 2)
+
+
 def get_aws_secrets(secret_name: str, region: str, env: str = "") -> dict:
     """
     Get the AWS secrets from the AWS Secrets Manager.
@@ -57,6 +70,27 @@ def get_aws_secrets(secret_name: str, region: str, env: str = "") -> dict:
     if not secrets_dict:
         raise ValueError(f"{secret_name} not found in secrets manager")
     return secrets_dict
+
+
+def get_storage_key(key_prefix: str, key: str, format: str) -> str:
+    """
+    Gets the storage key for the S3 bucket to store data.
+
+    Args:
+        key_prefix (str): The key prefix.
+        key (str): The key.
+        format (str): The format.
+
+    Returns:
+        str: The storage key.
+    """
+    if not key_prefix or not key or not format:
+        logger.error("Key prefix, key, and format are required", method=get_storage_key.__name__)
+        raise ValueError("Key prefix, key, and format are required")
+    key_date = get_storage_key_date()
+    final_key = f"{key_prefix}/{key_date}-{key}.{format}"
+    logger.info("Storage key", method=get_storage_key.__name__, key=final_key)
+    return final_key
 
 
 def get_storage_key_date() -> str:

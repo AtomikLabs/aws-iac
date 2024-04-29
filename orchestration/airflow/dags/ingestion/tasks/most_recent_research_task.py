@@ -116,10 +116,7 @@ def get_config() -> dict:
         )
         return config
     except Exception as e:
-        logger.error("Failed to get config",
-                     error=str(e),
-                     method=get_config.__name__,
-                     task_name=TASK_NAME)
+        logger.error("Failed to get config", error=str(e), method=get_config.__name__, task_name=TASK_NAME)
         raise e
 
 

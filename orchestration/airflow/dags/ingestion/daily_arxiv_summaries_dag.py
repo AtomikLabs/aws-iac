@@ -1,6 +1,6 @@
 from logging.config import dictConfig
 
-import ingestion.tasks.most_recent_research_task as mcrt
+import ingestion.tasks.most_recent_research_task as mrrt
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -37,7 +37,7 @@ with DAG(
 
     most_recent_research_task = PythonOperator(
         task_id="most_recent_research",
-        python_callable=mcrt.run,
+        python_callable=mrrt.run,
         dag=dag,
         provide_context=True,
     )
