@@ -39,7 +39,7 @@ from shared.utils.constants import (
     OBTAINS_FROM,
     PROVIDES,
     RAW_DATA_KEYS,
-    XML
+    XML,
 )
 from shared.utils.utils import get_aws_secrets, get_storage_key
 from urllib3.util.retry import Retry
@@ -106,7 +106,11 @@ def get_config(context: dict) -> dict:
             INGESTION_EARLIEST_DATE: context.get(INGESTION_EARLIEST_DATE),
             ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME),
         }
-        neo4j_retries = int(os.getenv(NEO4J_CONNECTION_RETRIES)) if os.getenv(NEO4J_CONNECTION_RETRIES) != "" else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
+        neo4j_retries = (
+            int(os.getenv(NEO4J_CONNECTION_RETRIES))
+            if os.getenv(NEO4J_CONNECTION_RETRIES)
+            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
+        )
         config.update(
             [
                 (NEO4J_CONNECTION_RETRIES, neo4j_retries),
@@ -168,15 +172,9 @@ def raw_data(config: dict) -> dict:
     for set in config.get(ARXIV_SETS):
         storage_key = get_storage_key(config.get(DATA_INGESTION_KEY_PREFIX), set, XML)
         data = fetch_data(
-            config.get(ARXIV_BASE_URL),
-            config.get(INGESTION_EARLIEST_DATE),
-            set,
-            config.get(ARXIV_API_MAX_RETRIES)
+            config.get(ARXIV_BASE_URL), config.get(INGESTION_EARLIEST_DATE), set, config.get(ARXIV_API_MAX_RETRIES)
         )
-        fetched_xml_by_set[set] = {
-            "key": storage_key,
-            "data": data
-        }
+        fetched_xml_by_set[set] = {"key": storage_key, "data": data}
     return fetched_xml_by_set
 
 
@@ -307,15 +305,12 @@ def store_metadata(config: dict, raw_data: dict, results: dict):
         logger.error("Config, raw data, and results are required", method=store_metadata.__name__)
         raise ValueError("Config, raw data, and results are required")
     neo4j_driver = GraphDatabase.driver(
-        config.get(NEO4J_URI),
-        auth=(config.get(NEO4J_USERNAME),
-              config.get(NEO4J_PASSWORD))
+        config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
     )
     with neo4j_driver as driver:
-        fetch_data_operation = DataOperation(driver,
-                                             "Fetch arXiv Daily Summaries",
-                                             TASK_NAME,
-                                             config.get(FETCH_FROM_ARXIV_TASK_VERSION))
+        fetch_data_operation = DataOperation(
+            driver, "Fetch arXiv Daily Summaries", TASK_NAME, config.get(FETCH_FROM_ARXIV_TASK_VERSION)
+        )
         fetch_data_operation.create()
         for set, data in raw_data.items():
             try:
@@ -341,11 +336,9 @@ def store_metadata(config: dict, raw_data: dict, results: dict):
                     data_source.uuid,
                     True,
                 )
-                data_node = Data(driver,
-                                 data.get("key"),
-                                 XML,
-                                 "raw arXiv daily summaries in XML",
-                                 len(json.dumps(data.get("data"))))
+                data_node = Data(
+                    driver, data.get("key"), XML, "raw arXiv daily summaries in XML", len(json.dumps(data.get("data")))
+                )
                 data_node.create()
                 if not data_node:
                     logger.error("Failed to create data node", method=store_metadata.__name__, set=set)
@@ -367,11 +360,13 @@ def store_metadata(config: dict, raw_data: dict, results: dict):
                     fetch_data_operation.uuid,
                 )
             except Exception as e:
-                logger.error("Failed to store metadata",
-                             error=str(e),
-                             method=store_metadata.__name__,
-                             set=set,
-                             task_name=TASK_NAME)
+                logger.error(
+                    "Failed to store metadata",
+                    error=str(e),
+                    method=store_metadata.__name__,
+                    set=set,
+                    task_name=TASK_NAME,
+                )
                 raise e
         logger.info("Stored metadata", method=store_metadata.__name__, task_name=TASK_NAME)
 

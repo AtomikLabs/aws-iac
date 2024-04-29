@@ -2,8 +2,9 @@ import json
 
 import boto3
 import pytest
-from orchestration.airflow.dags.shared.database.s3_manager import S3Manager
 from moto import mock_aws
+
+from orchestration.airflow.dags.shared.database.s3_manager import S3Manager
 
 
 @pytest.fixture

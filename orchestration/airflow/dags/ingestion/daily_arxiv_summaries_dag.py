@@ -1,7 +1,7 @@
 from logging.config import dictConfig
 
-import ingestion.tasks.most_recent_research_task as mrrt
 import ingestion.tasks.fetch_from_arxiv_task as ffat
+import ingestion.tasks.most_recent_research_task as mrrt
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator

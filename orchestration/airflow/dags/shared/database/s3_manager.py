@@ -2,9 +2,7 @@ from logging.config import dictConfig
 
 import boto3
 import structlog
-from shared.utils.constants import (
-    LOGGING_CONFIG,
-)
+from shared.utils.constants import LOGGING_CONFIG
 
 dictConfig(LOGGING_CONFIG)
 
