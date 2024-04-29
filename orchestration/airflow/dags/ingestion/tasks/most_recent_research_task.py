@@ -80,8 +80,22 @@ def get_config() -> dict:
             ARXIV_INGESTION_DAY_SPAN: int(os.getenv(ARXIV_INGESTION_DAY_SPAN)),
             AWS_REGION: os.getenv(AWS_REGION),
             ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME),
-            NEO4J_CONNECTION_RETRIES: os.getenv(NEO4J_CONNECTION_RETRIES, NEO4J_CONNECTION_RETRIES_DEFAULT),
         }
+        neo4j_retries = (
+            int(os.getenv(NEO4J_CONNECTION_RETRIES))
+            if os.getenv(NEO4J_CONNECTION_RETRIES)
+            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
+        )
+        neo4j_retries = (
+            int(os.getenv(NEO4J_CONNECTION_RETRIES))
+            if os.getenv(NEO4J_CONNECTION_RETRIES)
+            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
+        )
+        config.update(
+            [
+                (NEO4J_CONNECTION_RETRIES, neo4j_retries),
+            ]
+        )
         neo4j_secrets_dict = get_aws_secrets(
             AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
         )
