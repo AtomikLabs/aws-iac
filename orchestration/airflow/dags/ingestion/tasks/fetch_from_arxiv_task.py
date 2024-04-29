@@ -123,7 +123,7 @@ def get_config(context: dict) -> dict:
             [
                 (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
                 (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
-                (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", ""),
+                (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
             ]
         )
         if (
