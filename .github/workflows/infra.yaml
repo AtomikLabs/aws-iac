@@ -322,11 +322,11 @@ jobs:
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> .env
           echo "DATA_BUCKET=${{ steps.terraform_vars.outputs.data_bucket }}" >> .env
           echo "DATA_INGESTION_KEY_PREFIX=${{ steps.vars.outputs.data_ingestion_key_prefix }}" >> .env
-          echo "ENVIRONMENT_NAME='${{ env.ENV_NAME }}'" >> .env
+          echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> .env
           echo "FETCH_FROM_ARXIV_TASK_VERSION=${{ steps.vars.outputs.fetch_from_arxiv_task_version }}" >> .env
           echo "MOST_RECENT_RESEARCH_RECORDS_VERSION=${{ steps.vars.outputs.most_recent_research_records_version }}" >> .env
           echo "NEO4J_CONNECTION_RETRIES=${{ steps.vars.outputs.neo4j_connection_retries }}" >> .env
-          echo "NEO4J_URI='neo4j://${{ steps.terraform_vars.outputs.neo4j_instance_private_ip }}:7687'" >> .env
+          echo "NEO4J_URI=neo4j://${{ steps.terraform_vars.outputs.neo4j_instance_private_ip }}:7687" >> .env
           echo "Copying file to s3..."
           aws s3 cp .env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
 
