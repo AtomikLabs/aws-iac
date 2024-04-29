@@ -38,6 +38,7 @@ from shared.utils.constants import (
     NEO4J_USERNAME,
     OBTAINS_FROM,
     PROVIDES,
+    RAW_DATA_KEYS,
     XML
 )
 from shared.utils.utils import get_aws_secrets, get_storage_key
@@ -78,7 +79,8 @@ def run(**context: dict):
         data = raw_data(config)
         results = store_data(config, data)
         store_metadata(config, data, results)
-
+        logger.info(f"Completed {TASK_NAME} task", task_name=TASK_NAME, keys=", ".join(data.keys()))
+        context.get("ti").xcom_push(key=RAW_DATA_KEYS, value=(x.get("key") for x in data.values()))
     except Exception as e:
         logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
         raise e

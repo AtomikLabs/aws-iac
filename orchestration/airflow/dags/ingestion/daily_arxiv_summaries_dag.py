@@ -1,6 +1,7 @@
 from logging.config import dictConfig
 
 import ingestion.tasks.most_recent_research_task as mrrt
+import ingestion.tasks.fetch_from_arxiv_task as ffat
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -42,4 +43,11 @@ with DAG(
         provide_context=True,
     )
 
-    most_recent_research_task
+    fetch_from_arxiv_task = PythonOperator(
+        task_id="fetch_from_arxiv",
+        python_callable=ffat.run,
+        dag=dag,
+        provide_context=True,
+    )
+
+    most_recent_research_task >> fetch_from_arxiv_task
