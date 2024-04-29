@@ -131,7 +131,7 @@ def get_earliest_date(config: dict) -> str:
         str: The earliest date.
     """
     logger.info("Getting earliest date", method=get_earliest_date.__name__, task_name=TASK_NAME)
-    earliest = get_storage_key_datetime().date() - timedelta(days=config.get(ARXIV_INGESTION_DAY_SPAN))
+    earliest = get_storage_key_datetime().date() - timedelta(days=int(config.get(ARXIV_INGESTION_DAY_SPAN)))
     logger.info(
         "Default earliest date",
         earliest=earliest.strftime(S3_KEY_DATE_FORMAT),
