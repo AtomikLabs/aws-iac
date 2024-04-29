@@ -2,7 +2,12 @@ from datetime import datetime
 from unittest.mock import patch
 
 import pytz
-from orchestration.airflow.dags.shared.utils.utils import DEFAULT_TIMEZONE, get_storage_key_date, get_storage_key_datetime
+
+from orchestration.airflow.dags.shared.utils.utils import (
+    DEFAULT_TIMEZONE,
+    get_storage_key_date,
+    get_storage_key_datetime,
+)
 
 
 @patch("orchestration.airflow.dags.shared.utils.utils.datetime")

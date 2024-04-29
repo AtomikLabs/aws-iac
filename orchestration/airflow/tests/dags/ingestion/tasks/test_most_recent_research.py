@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -6,11 +5,7 @@ import neo4j
 import neo4j.time
 import pytest
 
-from orchestration.airflow.dags.ingestion.tasks.most_recent_research_task import (
-    run,
-    get_config,
-    get_earliest_date,
-)
+from orchestration.airflow.dags.ingestion.tasks.most_recent_research_task import get_config, get_earliest_date, run
 from orchestration.airflow.dags.shared.utils.constants import (
     ARXIV_BASE_URL,
     ARXIV_INGESTION_DAY_SPAN,
@@ -74,7 +69,9 @@ def config():
 
 @patch("orchestration.airflow.dags.ingestion.tasks.most_recent_research_task.logger")
 @patch("orchestration.airflow.dags.ingestion.tasks.most_recent_research_task.get_config", return_value=config)
-@patch("orchestration.airflow.dags.ingestion.tasks.most_recent_research_task.get_earliest_date", return_value="2021-01-01")
+@patch(
+    "orchestration.airflow.dags.ingestion.tasks.most_recent_research_task.get_earliest_date", return_value="2021-01-01"
+)
 def test_run_should_push_date_to_xcom(get_earliest_date, get_config, logger, context):
     context["ti"] = MagicMock()
     context["ti"].xcom_push = MagicMock()
@@ -94,7 +91,7 @@ def test_run_should_push_date_to_xcom(get_earliest_date, get_config, logger, con
         ENVIRONMENT_NAME: "test",
         NEO4J_CONNECTION_RETRIES: "3",
         NEO4J_CONNECTION_RETRIES_DEFAULT: "5",
-        NEO4J_PASSWORD : "password",
+        NEO4J_PASSWORD: "password",
         NEO4J_URI: "bolt://localhost:7687",
         NEO4J_USERNAME: "username",
     },

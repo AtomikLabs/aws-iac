@@ -3,8 +3,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from neo4j import Driver
-from orchestration.airflow.dags.shared.utils.constants import S3_KEY_DATE_FORMAT
+
 from orchestration.airflow.dags.shared.models.author import Author
+from orchestration.airflow.dags.shared.utils.constants import S3_KEY_DATE_FORMAT
 
 
 class TestAuthor:
