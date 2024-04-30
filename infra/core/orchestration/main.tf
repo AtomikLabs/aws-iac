@@ -250,6 +250,15 @@ resource "aws_security_group" "orchestration_security_group" {
 
   # RabbitMQ
   ingress {
+    from_port         = 15671
+    to_port           = 15672
+    protocol          = "tcp"
+    security_groups   = local.orchestration_source_security_group_ids
+    self              = true
+  }
+
+  # RabbitMQ
+  ingress {
     from_port         = 15674
     to_port           = 15675
     protocol          = "tcp"
