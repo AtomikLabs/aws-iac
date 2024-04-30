@@ -62,9 +62,8 @@ resource "aws_instance" "orchestration_host" {
   depends_on = [ aws_ebs_volume.orchestration_host_volume, null_resource.init_trigger ]
 
   tags = {
-    Name = "${local.environment}-orchestration-host"
+    Name = "${local.environment}-primary-orchestration-host"
   }
-
 }
 
 resource "aws_ebs_volume" "orchestration_host_volume" {
