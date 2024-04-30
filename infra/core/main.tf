@@ -164,6 +164,10 @@ module "orchestration" {
                                                       module.security.bastion_host_security_group_id,
                                                     ]
   private_subnets                                 = module.networking.aws_private_subnet_ids
+  rabbitmq_source_security_group_ids              = [
+                                                      module.networking.neo4j_security_group_id,
+                                                      module.security.bastion_host_security_group_id,
+                                                    ]
   region                                          = local.aws_region
   ssm_policy_for_instances_arn                    = local.ssm_policy_for_instances_arn
   tags                                            = local.tags

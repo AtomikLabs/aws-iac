@@ -19,6 +19,7 @@ locals {
   orchestration_resource_prefix                 = var.orchestration_resource_prefix
   orchestration_source_security_group_ids       = var.orchestration_source_security_group_ids
   private_subnets                               = var.private_subnets
+  rabbitmq_source_security_group_ids            = var.rabbitmq_source_security_group_ids
   region                                        = var.region
   ssm_policy_for_instances_arn                  = var.ssm_policy_for_instances_arn
   tags                                          = var.tags
@@ -148,6 +149,16 @@ resource "aws_security_group" "orchestration_security_group" {
     security_groups = local.orchestration_source_security_group_ids
   }
 
+  # RabbitMQ
+  ingress {
+    from_port         = 4369
+    to_port           = 4369
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true   
+  }
+
+  # Airflow
   ingress {
     from_port   = 5555
     to_port     = 5555
@@ -162,6 +173,7 @@ resource "aws_security_group" "orchestration_security_group" {
     security_groups = local.orchestration_source_security_group_ids
   }
 
+  # Airflow
   ingress {
     from_port   = 8080
     to_port     = 8080
@@ -175,7 +187,34 @@ resource "aws_security_group" "orchestration_security_group" {
     protocol        = "tcp"
     security_groups = local.orchestration_source_security_group_ids
   }
+
+  # RabbitMQ
+  ingress {
+    from_port         = 9100
+    to_port           = 9100
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true
+  }
   
+  # RabbitMQ
+  ingress {
+    from_port         = 15672
+    to_port           = 15672
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true
+  }
+
+  # RabbitMQ
+  ingress {
+    from_port         = 25672
+    to_port           = 25672
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
