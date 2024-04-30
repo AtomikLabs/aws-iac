@@ -163,7 +163,8 @@ module "orchestration" {
   orchestration_source_security_group_ids         = [
                                                       module.security.bastion_host_security_group_id,
                                                     ]
-  private_subnets                                 = module.networking.aws_private_subnet_ids
+  private_subnet_cidr_blocks                      = module.networking.aws_private_subnet_cidr_blocks
+  private_subnet_ids                              = module.networking.aws_private_subnet_ids
   region                                          = local.aws_region
   ssm_policy_for_instances_arn                    = local.ssm_policy_for_instances_arn
   tags                                            = local.tags

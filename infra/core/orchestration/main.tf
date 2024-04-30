@@ -22,7 +22,8 @@ locals {
   orchestration_key_pair_name                   = var.orchestration_key_pair_name
   orchestration_resource_prefix                 = var.orchestration_resource_prefix
   orchestration_source_security_group_ids       = var.orchestration_source_security_group_ids
-  private_subnets                               = var.private_subnets
+  private_subnet_cidr_blocks                    = var.private_subnet_cidr_blocks
+  private_subnet_ids                            = var.private_subnet_ids
   rabbitmq_secret                               = jsondecode(data.aws_secretsmanager_secret_version.rabbitmqctl_credentials.secret_string)
   region                                        = var.region
   ssm_policy_for_instances_arn                  = var.ssm_policy_for_instances_arn
@@ -53,7 +54,7 @@ resource "aws_instance" "orchestration_host" {
   instance_type = local.orchestration_instance_type
   iam_instance_profile = aws_iam_instance_profile.orchestration_instance_profile.name
   key_name = "${local.environment}-${local.orchestration_key_pair_name}"
-  subnet_id = element(local.private_subnets, 0)
+  subnet_id = element(local.private_subnet_ids, 0)
   user_data = data.template_file.init_script.rendered
   
   vpc_security_group_ids = [ aws_security_group.orchestration_security_group.id ]
@@ -159,7 +160,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 1883
     to_port           = 1883
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true   
   }
 
@@ -168,7 +169,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 4369
     to_port           = 4369
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true   
   }
 
@@ -177,7 +178,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 5551
     to_port           = 5552
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true   
   }
 
@@ -201,7 +202,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 5671
     to_port           = 5672
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true   
   }
 
@@ -225,7 +226,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 8883
     to_port           = 8883
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true   
   }
 
@@ -234,7 +235,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 9100
     to_port           = 9100
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true
   }
   
@@ -243,7 +244,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 15671
     to_port           = 15672
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true
   }
 
@@ -252,7 +253,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 15674
     to_port           = 15675
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true   
   }
 
@@ -261,7 +262,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 15691
     to_port           = 15692
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true   
   }
 
@@ -270,7 +271,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 25672
     to_port           = 25672
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true
   }
 
@@ -279,7 +280,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 35672
     to_port           = 35682
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true   
   }
 
@@ -288,7 +289,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 61613
     to_port           = 61614
     protocol          = "tcp"
-    cidr_blocks       = [for subnet in local.private_subnets : subnet.cidr_block]
+    cidr_blocks       = [for subnet in local.private_subnet_cidr_blocks : subnet]
     self              = true   
   }
 

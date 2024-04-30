@@ -90,7 +90,12 @@ variable "orchestration_source_security_group_ids" {
   type        = list(string)
 }
 
-variable "private_subnets" {
+variable "private_subnet_cidr_blocks" {
+  description = "Private subnet CIDR blocks"
+  type        = list(string)
+}
+
+variable "private_subnet_ids" {
   description = "Private subnets"
   type        = list(string)
 }
