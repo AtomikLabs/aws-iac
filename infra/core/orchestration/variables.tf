@@ -29,6 +29,11 @@ variable "aws_vpc_id" {
   type        = string
 }
 
+variable "bastion_host_security_group_id" {
+  description = "Bastion host security group ID"
+  type        = string
+}
+
 variable "data_bucket" {
   description = "Data bucket"
   type        = string

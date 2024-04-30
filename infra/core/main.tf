@@ -149,6 +149,7 @@ module "orchestration" {
   arxiv_sets                                      = local.arxiv_sets
   availability_zones                              = data.aws_availability_zones.available.names
   aws_vpc_id                                      = module.networking.main_vpc_id
+  bastion_host_security_group_id                  = module.security.bastion_host_security_group_id
   data_bucket                                     = module.data_management.aws_s3_bucket_atomiklabs_data_bucket
   data_bucket_arn                                 = module.data_management.aws_s3_bucket_atomiklabs_data_bucket_arn
   default_ami_id                                  = local.default_ami_id
