@@ -1,3 +1,7 @@
+data "aws_secretsmanager_secret_version" "rabbitmqctl_credentials" {
+  secret_id = "${var.environment}/rabbitmqctl-credentials"
+}
+
 locals {
   app_name                                      = var.app_name
   availability_zone_available_names             = var.availability_zones
@@ -19,6 +23,7 @@ locals {
   orchestration_resource_prefix                 = var.orchestration_resource_prefix
   orchestration_source_security_group_ids       = var.orchestration_source_security_group_ids
   private_subnets                               = var.private_subnets
+  rabbitmq_secret                               = jsondecode(data.aws_secretsmanager_secret_version.rabbitmqctl_credentials.secret_string)
   rabbitmq_source_security_group_ids            = var.rabbitmq_source_security_group_ids
   region                                        = var.region
   ssm_policy_for_instances_arn                  = var.ssm_policy_for_instances_arn
@@ -29,10 +34,12 @@ data "template_file" "init_script" {
   template = file("${path.module}/init.tpl")
 
   vars = {
-    environment = local.environment
-    bucket_name = local.data_bucket
-    infra_bucket_name = local.infra_config_bucket
-    volume_name_tag = local.orchestration_host_volume_name
+    environment           = local.environment
+    bucket_name           = local.data_bucket
+    infra_bucket_name     = local.infra_config_bucket
+    rabbitmqctl_password  = local.rabbitmq_secret.password
+    rabbitmqctl_username  = local.rabbitmq_secret.username
+    volume_name_tag       = local.orchestration_host_volume_name
   }
 }
 
