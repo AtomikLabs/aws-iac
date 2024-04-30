@@ -151,8 +151,26 @@ resource "aws_security_group" "orchestration_security_group" {
 
   # RabbitMQ
   ingress {
+    from_port         = 1883
+    to_port           = 1883
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true   
+  }
+
+  # RabbitMQ
+  ingress {
     from_port         = 4369
     to_port           = 4369
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true   
+  }
+
+  # RabbitMQ
+  ingress {
+    from_port         = 5551
+    to_port           = 5552
     protocol          = "tcp"
     security_groups   = local.rabbitmq_source_security_group_ids
     self              = true   
@@ -173,6 +191,15 @@ resource "aws_security_group" "orchestration_security_group" {
     security_groups = local.orchestration_source_security_group_ids
   }
 
+  # RabbitMQ
+  ingress {
+    from_port         = 5671
+    to_port           = 5672
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true   
+  }
+
   # Airflow
   ingress {
     from_port   = 8080
@@ -190,6 +217,15 @@ resource "aws_security_group" "orchestration_security_group" {
 
   # RabbitMQ
   ingress {
+    from_port         = 8883
+    to_port           = 8883
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true   
+  }
+
+  # RabbitMQ
+  ingress {
     from_port         = 9100
     to_port           = 9100
     protocol          = "tcp"
@@ -199,11 +235,29 @@ resource "aws_security_group" "orchestration_security_group" {
   
   # RabbitMQ
   ingress {
-    from_port         = 15672
+    from_port         = 15671
     to_port           = 15672
     protocol          = "tcp"
     security_groups   = local.rabbitmq_source_security_group_ids
     self              = true
+  }
+
+  # RabbitMQ
+  ingress {
+    from_port         = 15674
+    to_port           = 15675
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true   
+  }
+
+  # RabbitMQ
+  ingress {
+    from_port         = 15691
+    to_port           = 15692
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true   
   }
 
   # RabbitMQ
@@ -213,6 +267,24 @@ resource "aws_security_group" "orchestration_security_group" {
     protocol          = "tcp"
     security_groups   = local.rabbitmq_source_security_group_ids
     self              = true
+  }
+
+  # RabbitMQ
+  ingress {
+    from_port         = 35672
+    to_port           = 35682
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true   
+  }
+
+  # RabbitMQ
+  ingress {
+    from_port         = 61613
+    to_port           = 61614
+    protocol          = "tcp"
+    security_groups   = local.rabbitmq_source_security_group_ids
+    self              = true   
   }
 
   egress {
