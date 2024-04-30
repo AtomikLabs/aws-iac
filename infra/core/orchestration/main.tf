@@ -24,7 +24,6 @@ locals {
   orchestration_source_security_group_ids       = var.orchestration_source_security_group_ids
   private_subnets                               = var.private_subnets
   rabbitmq_secret                               = jsondecode(data.aws_secretsmanager_secret_version.rabbitmqctl_credentials.secret_string)
-  rabbitmq_source_security_group_ids            = var.rabbitmq_source_security_group_ids
   region                                        = var.region
   ssm_policy_for_instances_arn                  = var.ssm_policy_for_instances_arn
   tags                                          = var.tags
@@ -160,7 +159,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 1883
     to_port           = 1883
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true   
   }
 
@@ -169,7 +168,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 4369
     to_port           = 4369
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true   
   }
 
@@ -178,7 +177,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 5551
     to_port           = 5552
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true   
   }
 
@@ -202,7 +201,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 5671
     to_port           = 5672
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true   
   }
 
@@ -226,7 +225,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 8883
     to_port           = 8883
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true   
   }
 
@@ -235,7 +234,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 9100
     to_port           = 9100
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true
   }
   
@@ -244,7 +243,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 15671
     to_port           = 15672
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true
   }
 
@@ -253,7 +252,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 15674
     to_port           = 15675
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true   
   }
 
@@ -262,7 +261,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 15691
     to_port           = 15692
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true   
   }
 
@@ -271,7 +270,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 25672
     to_port           = 25672
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true
   }
 
@@ -280,7 +279,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 35672
     to_port           = 35682
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true   
   }
 
@@ -289,7 +288,7 @@ resource "aws_security_group" "orchestration_security_group" {
     from_port         = 61613
     to_port           = 61614
     protocol          = "tcp"
-    security_groups   = local.rabbitmq_source_security_group_ids
+    cidr_blocks       = [for subnet in local.local.private_subnets : subnet.cidr_block]
     self              = true   
   }
 

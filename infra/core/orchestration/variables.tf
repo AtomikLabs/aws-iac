@@ -95,11 +95,6 @@ variable "private_subnets" {
   type        = list(string)
 }
 
-variable "rabbitmq_source_security_group_ids" {
-  description = "RabbitMQ source security group IDs"
-  type        = list(string)
-}
-
 variable "region" {
   description = "AWS region"
   type        = string
