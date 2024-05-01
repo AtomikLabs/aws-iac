@@ -143,6 +143,7 @@ module "data_management" {
 module "orchestration" {
   source = "./orchestration"
 
+  account_id                                      = local.account_id
   app_name                                        = local.app_name
   arxiv_api_max_retries                           = local.arxiv_api_max_retries
   arxiv_base_url                                  = local.arxiv_base_url
