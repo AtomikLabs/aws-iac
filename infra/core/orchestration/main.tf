@@ -31,7 +31,6 @@ data "template_file" "init_script" {
   vars = {
     environment = local.environment
     bucket_name = local.data_bucket
-    host_ip = aws_instance.orchestration_host.private_ip
     infra_bucket_name = local.infra_config_bucket
     volume_name_tag = local.orchestration_host_volume_name
   }
