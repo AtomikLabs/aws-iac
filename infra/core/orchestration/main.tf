@@ -176,7 +176,7 @@ resource "aws_security_group" "orchestration_security_group" {
     security_groups = local.orchestration_source_security_group_ids
     self            = true
   }
-  
+
   egress {
     from_port   = 0
     to_port     = 0
