@@ -73,7 +73,7 @@ echo "Volume setup script completed." >> /home/ec2-user/init.log
 
 echo "Starting the kafka setup script..." >> /home/ec2-user/init.log
 
-mkdir -p /data/kafka/kafka_logs
+mkdir -p /data/kafka/logs
 mkdir -p /data/kafka/kafka-ui
 chown -R 1000:1000 /data/kafka
 chmod -R 755 /data/kafka
