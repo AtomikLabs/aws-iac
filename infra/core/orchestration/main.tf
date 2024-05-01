@@ -151,6 +151,15 @@ resource "aws_security_group" "orchestration_security_group" {
     self            = true
   }
 
+  # Kafka-UI
+  ingress {
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [local.bastion_host_security_group_id]
+    self            = true
+  }
+
   # Airflow UI
   ingress {
     from_port       = 8080
