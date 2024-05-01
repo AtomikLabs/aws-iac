@@ -49,13 +49,14 @@ x-airflow-common: &airflow-common
     # AIRFLOW_CONFIG: "/opt/airflow/config/airflow.cfg"
     # ATOMIKLABS - Custom configuration
     AIRFLOW_DAGS_ENV_PATH: "/opt/airflow/dags/.env"
-    PYTHONPATH: "/opt/airflow/dags:${PYTHONPATH}"
+    AIRFLOW_UID: "50000"
+    PYTHONPATH: "/opt/airflow/dags"
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-  user: "${AIRFLOW_UID:-50000}:0"
+  user: "50000:0"
   depends_on: &airflow-common-depends-on
     redis:
       condition: service_healthy
@@ -68,14 +69,20 @@ services:
     hostname: broker
     container_name: broker
     ports:
+      - "8081:8081"
+      - "8082:8082"
+      - "8083:8083"
+      - "8088:8088"
       - "9092:9092"
+      - "9093:9093"
+      - "29093:29093"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT_HOST://localhost:9092,PLAINTEXT://broker:19092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT_HOST://host.docker.internal:9092,PLAINTEXT://broker:19092,CONTROLLER://broker:29093"
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@broker:29093"
-      KAFKA_LISTENERS: "CONTROLLER://:29093,PLAINTEXT_HOST://:9092,PLAINTEXT://:19092"
+      KAFKA_LISTENERS: "CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT://0.0.0.0:19092"
       KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       CLUSTER_ID: "4L6g3nShT-eMCtK--X86sw"
@@ -84,14 +91,22 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_LOG_DIRS: "/kafka/logs"
+    user: "1000:0"
     volumes:
       - kafka_logs:/kafka/logs
-    healthcheck:
-      test: ["CMD", "nc -z localhost 9092 || exit 1"]
-      interval: 10s
-      retries: 5
-      start_period: 5s
     restart: always
+    networks:
+      - kafka_net
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8000:8000"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+    volumes:
+      - kui:/etc/kafkaui/dynamic_config.yaml
 
   postgres:
     image: postgres:13
@@ -201,7 +216,7 @@ services:
     command:
       - -c
       - |
-        if [[ -z "${AIRFLOW_UID}" ]]; then
+        if [[ -z "$${AIRFLOW_UID}" ]]; then
           echo
           echo -e "\033[1;33mWARNING!!!: AIRFLOW_UID not set!\e[0m"
           echo "If you are on Linux, you SHOULD follow the instructions below to set "
@@ -244,7 +259,7 @@ services:
           echo
         fi
         mkdir -p /sources/logs /sources/dags /sources/plugins
-        chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
+        chown -R "$${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
         exec /entrypoint airflow version
     # yamllint enable rule:line-length
     environment:
@@ -292,4 +307,9 @@ services:
 
 volumes:
   kafka_logs:
+  kui:
   postgres-db-volume:
+
+networks:
+  kafka_net:
+    driver: bridge
