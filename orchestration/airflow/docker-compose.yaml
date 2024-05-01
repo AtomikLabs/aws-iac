@@ -93,6 +93,9 @@ services:
       KAFKA_LOG_DIRS: "/kafka/logs"
     healthcheck:
       test: ["CMD", "nc -z localhost 9092 || exit 1"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
     user: "1000:0"
     volumes:
       - kafka_logs:/kafka/logs
