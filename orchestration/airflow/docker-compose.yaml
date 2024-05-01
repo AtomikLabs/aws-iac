@@ -79,7 +79,7 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT_HOST://host.docker.internal:9092,PLAINTEXT://broker:19092,CONTROLLER://broker:29093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT_HOST://host.docker.internal:9092,PLAINTEXT://broker:19092"
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@broker:29093"
       KAFKA_LISTENERS: "CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT://0.0.0.0:19092"
@@ -91,6 +91,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_LOG_DIRS: "/kafka/logs"
+    healthcheck:
+      test: ["CMD", "nc -z localhost 9092 || exit 1"]
     user: "1000:0"
     volumes:
       - kafka_logs:/kafka/logs
@@ -103,10 +105,6 @@ services:
     image: provectuslabs/kafka-ui:latest
     ports:
       - "8000:8000"
-    environment:
-      DYNAMIC_CONFIG_ENABLED: "true"
-    volumes:
-      - kui:/etc/kafkaui/dynamic_config.yaml
 
   postgres:
     image: postgres:13
@@ -307,7 +305,6 @@ services:
 
 volumes:
   kafka_logs:
-  kui:
   postgres-db-volume:
 
 networks:
