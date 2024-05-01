@@ -5,6 +5,7 @@ locals {
   arxiv_base_url                                = var.arxiv_base_url
   arxiv_sets                                    = var.arxiv_sets
   aws_vpc_id                                    = var.aws_vpc_id
+  bastion_host_security_group_id                = var.bastion_host_security_group_id
   data_bucket                                   = var.data_bucket
   data_bucket_arn                               = var.data_bucket_arn
   default_ami_id                                = var.default_ami_id
@@ -135,47 +136,47 @@ resource "aws_security_group" "orchestration_security_group" {
   vpc_id      = local.aws_vpc_id
 
   ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [local.home_ip]
-  }
-
-  ingress {
     from_port       = 22
     to_port         = 22
     protocol        = "tcp"
-    security_groups = local.orchestration_source_security_group_ids
+    security_groups = [local.bastion_host_security_group_id]
   }
 
-  ingress {
-    from_port   = 5555
-    to_port     = 5555
-    protocol    = "tcp"
-    cidr_blocks = [local.home_ip]
-  }
-
+  # Flower
   ingress {
     from_port       = 5555
     to_port         = 5555
     protocol        = "tcp"
-    security_groups = local.orchestration_source_security_group_ids
+    security_groups = [local.bastion_host_security_group_id]
+    self            = true
   }
 
+  # Kafka-UI
   ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = [local.home_ip]
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [local.bastion_host_security_group_id]
+    self            = true
   }
 
+  # Airflow UI
   ingress {
     from_port       = 8080
     to_port         = 8080
     protocol        = "tcp"
-    security_groups = local.orchestration_source_security_group_ids
+    security_groups = [local.bastion_host_security_group_id]
   }
-  
+
+  # Kafka Clients
+  ingress {
+    from_port       = 9092
+    to_port         = 9092
+    protocol        = "tcp"
+    security_groups = local.orchestration_source_security_group_ids
+    self            = true
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

@@ -3,7 +3,7 @@ import uuid
 from abc import ABC, abstractmethod
 
 import structlog
-from dags.shared.utils.utils import get_storage_key_datetime, validate_strings
+from shared.utils.utils import get_storage_key_datetime, validate_strings
 from neo4j import Driver
 
 structlog.configure(

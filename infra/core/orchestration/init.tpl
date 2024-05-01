@@ -69,6 +69,19 @@ else
     mount -av >> /home/ec2-user/init.log 2>&1
 fi
 
+echo "Volume setup script completed." >> /home/ec2-user/init.log
+
+echo "Starting the kafka setup script..." >> /home/ec2-user/init.log
+
+mkdir -p /data/kafka/logs
+mkdir -p /data/kafka/kafka-ui
+chown -R 1000:1000 /data/kafka
+chmod -R 755 /data/kafka
+
+echo "Kafka setup script completed." >> /home/ec2-user/init.log
+
+echo "Starting the airflow setup script..." >> /home/ec2-user/init.log
+
 mkdir -p /data/airflow/dags /data/airflow/logs /data/airflow/plugins /data/airflow/config
 chown -R 50000:50000 /data/airflow
 chmod -R 755 /data/airflow
@@ -108,6 +121,10 @@ mkdir -p $DOCKER_CONFIG
 curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x $DOCKER_CONFIG/docker-compose
 
-echo "Building and starting airflow" >> /home/ec2-user/init.log
+echo "Airflow setup script completed." >> /home/ec2-user/init.log
+
+
+echo "Building and starting Docker" >> /home/ec2-user/init.log
 docker compose -f /data/airflow/docker-compose.yaml up airflow-init
 docker compose -f /data/airflow/docker-compose.yaml --profile flower up -d
+
