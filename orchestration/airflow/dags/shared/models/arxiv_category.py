@@ -2,9 +2,9 @@ import logging
 import uuid
 
 import structlog
-from dags.shared.models.base_model import BaseModel
-from dags.shared.utils.constants import FAILED_TO_CREATE_ARXIV_CATEGORY
-from dags.shared.utils.utils import get_storage_key_datetime, validate_strings
+from shared.models.base_model import BaseModel
+from shared.utils.constants import FAILED_TO_CREATE_ARXIV_CATEGORY
+from shared.utils.utils import get_storage_key_datetime, validate_strings
 from neo4j import Driver
 
 structlog.configure(

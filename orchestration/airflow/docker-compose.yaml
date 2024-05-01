@@ -65,7 +65,7 @@ x-airflow-common: &airflow-common
 
 services:
   broker:
-    image: bitnami/kafka:latest
+    image: apache/kafka:latest
     hostname: broker
     container_name: broker
     ports:
@@ -77,21 +77,17 @@ services:
       - "9093:9093"
       - "29093:29093"
     environment:
-      - KAFKA_CFG_NODE_ID=0
-      - KAFKA_CFG_PROCESS_ROLES=controller,broker
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-    healthcheck:
-      test: ["CMD", "nc -z localhost 9092 || exit 1"]
-      interval: 10s
-      retries: 5
-      start_period: 5s
-    user: "1000:0"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LOG_DIRS: "/kafka/logs"
     volumes:
-      - kafka_data:/bitnami/kafka
-    restart: always
+      - /data/kafka/logs:/kafka/logs
     networks:
       - kafka_net
 
@@ -100,6 +96,10 @@ services:
     image: provectuslabs/kafka-ui:latest
     ports:
       - "8000:8000"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: "kafkacluster"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "broker:9092,localhost:9092,broker:29092,localhost:29092"
 
   postgres:
     image: postgres:13
@@ -299,7 +299,6 @@ services:
         condition: service_completed_successfully
 
 volumes:
-  kafka_data:
   postgres-db-volume:
 
 networks:
