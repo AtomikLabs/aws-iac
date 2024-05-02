@@ -83,7 +83,7 @@ jobs:
 
       - name: Upload Kafka files to s3
         run: |
-          aws s3 cp orchestration/kafka/create_topics.py s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka/create_topics.py
+          aws s3 sync orchestration/kafka s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka --exclude "*.pyc" --exclude "__pycache__/*"
 
   core_infra:
     runs-on: ubuntu-latest
