@@ -71,12 +71,34 @@ fi
 
 echo "Volume setup script completed." >> /home/ec2-user/init.log
 
+echo "Starting Python setup script..." >> /home/ec2-user/init.log
+
+yum install -y pip3
+
+echo "Python setup script completed." >> /home/ec2-user/init.log
+
 echo "Starting the kafka setup script..." >> /home/ec2-user/init.log
 
 mkdir -p /data/kafka/logs
 mkdir -p /data/kafka/kafka-ui
+mkdir -p /data/kafka
 chown -R 1000:1000 /data/kafka
 chmod -R 755 /data/kafka
+
+cat << 'EOF' > /data/kafka/sync_s3.sh
+#!/bin/bash
+sudo aws s3 sync s3://${infra_bucket_name}/orchestration/${environment}/kafka /data/kafka
+EOF
+
+cd /data/kafka
+chmod +x /data/kafka/sync_s3.sh
+/data/kafka/sync_s3.sh
+yum install -y pip3
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r /data/kafka/requirements.txt
+python3 /data/kafka/create_topics.py
+deactivate
 
 echo "Kafka setup script completed." >> /home/ec2-user/init.log
 
@@ -122,7 +144,6 @@ curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-comp
 chmod +x $DOCKER_CONFIG/docker-compose
 
 echo "Airflow setup script completed." >> /home/ec2-user/init.log
-
 
 echo "Building and starting Docker" >> /home/ec2-user/init.log
 docker compose -f /data/airflow/docker-compose.yaml up airflow-init

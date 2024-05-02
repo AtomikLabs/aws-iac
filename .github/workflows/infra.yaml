@@ -81,6 +81,10 @@ jobs:
           aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/docker-compose.yaml
           aws s3 cp orchestration/airflow/requirements.txt s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/requirements.txt
 
+      - name: Upload Kafka files to s3
+        run: |
+          aws s3 cp orchestration/kafka/create_topics.py s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka/create_topics.py
+
   core_infra:
     runs-on: ubuntu-latest
     needs: upload_airflow_files
@@ -316,7 +320,7 @@ jobs:
 
       # single quotes for arxiv_sets to prevent shell expansion of list values
       - name: Create and Upload DAGS Environment File
-        id: create_env_file
+        id: create_airflow_env_file
         run: |
           echo "Creating DAGS environment file..."
           echo "AIRFLOW_DAGS_ENV_PATH=${{ steps.vars.outputs.airflow_dags_env_path }}" >> .env
@@ -340,6 +344,17 @@ jobs:
           echo "Copying file to s3..."
           aws s3 cp .env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
 
+      - name: Create and Upload Kafka Scripts Environment File
+        id: create_kafka_env_file
+        run: |
+          echo "Creating Kafka scripts environment file..."
+          echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> kafka.env
+          echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> kafka.env
+          echo "ORCHESTRATION_HOST_PRIVATE_IP=${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}" >> kafka.env
+          cat kafka.env
+          echo "Copying file to s3..."
+          aws s3 cp kafka.env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka/.env
+
       - name: Send SSM Command to Sync, Rebuild and Restart Airflow
         if: contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt')
         run: |
@@ -359,5 +374,16 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
             --parameters '{"commands":["sudo /data/airflow/sync_s3.sh", "sudo docker compose -f /data/airflow/docker-compose.yaml down", "sudo docker compose -f /data/airflow/docker-compose.yaml up -d"]}' \
+            --region ${{ steps.vars.outputs.aws_region }} \
+            --output text
+
+      - name: Send SSM Command to Sync Kafka Topics
+        if: contains(github.event.head_commit.modified, 'orchestration/kafka/create_topics.py')
+        run: |
+          echo "SYNCING KAFKA TOPICS..."
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
+            --parameters '{"commands":["sudo /data/kafka/sync_s3.sh", "sudo /data/kafka/create_topics.py"]}' \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
