@@ -376,13 +376,13 @@ jobs:
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
 
-      - name: Send SSM Command to Sync Kafka Topics
-        if: contains(github.event.head_commit.modified, 'orchestration/kafka/create_topics.py')
+      - name: Send SSM Command to Sync and Restart Airflow
+        if: ${{ !contains(github.event.head_commit.modified, 'orchestration/airflow/requirements.txt') }}
         run: |
           echo "RESTARTING AIRFLOW..."
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
-            --parameters "{\"commands\":[\"sudo /data/airflow/sync_s3.sh\", \"sudo docker compose -f /data/airflow/docker-compose.yaml down\", \"sudo sed -i 's/REPLACE_THIS_IP/${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}/g' /data/airflow/docker-compose.yaml\", \"sudo docker compose -f /data/airflow/docker-compose.yaml up -d\"]}" \
+            --parameters "{\"commands\":[\"sudo /data/airflow/sync_s3.sh\", \"sudo docker compose -f /data/airflow/docker-compose.yaml down\", \"sudo sed -i \\\"s/REPLACE_THIS_IP/${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}/g\\\" /data/airflow/docker-compose.yaml\", \"sudo docker compose -f /data/airflow/docker-compose.yaml up -d\"]}" \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
