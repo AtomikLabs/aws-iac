@@ -1,3 +1,13 @@
+terraform {
+  required_providers {
+    kafka = {
+      source  = "Mongey/kafka"
+      version = "0.7.1"
+    }
+  }
+}
+
+
 provider "kafka" {
     bootstrap_servers = ["${aws_instance.orchestration_host.private_ip}:9092"]
 }
