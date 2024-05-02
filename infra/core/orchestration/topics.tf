@@ -7,7 +7,7 @@ provider "kafka" {
   # **********************************************************
 
 resource "kafka_topic" "data-arxiv_summaries-ingestion-complete" {
-    name              = "data-arxiv_summaries-ingestion-complete"
-    replication_factor = 1
-    partitions        = 1
+    name                = "data-arxiv_summaries-ingestion-complete"
+    replication_factor  = 1
+    partitions          = 1
 }

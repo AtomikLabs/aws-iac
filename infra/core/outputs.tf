@@ -31,6 +31,11 @@ output "orchestration_instance_id" {
   value       = module.orchestration.airflow_instance_id
 }
 
+output "orchestration_host_private_ip" {
+  description = "Private IP of the orchestration host"
+  value       = module.orchestration.orchestration_host_private_ip
+}
+
 # **********************************************************
 # * NETWORKING                                             *
 # **********************************************************
@@ -44,4 +49,25 @@ output "aws_private_subnet_ids" {
 
 output "aws_public_subnet_ids" {
   value = module.networking.aws_public_subnet_ids
+}
+
+# **********************************************************
+# * SCHEMAS                                                *
+# **********************************************************
+output "aws_glue_registry_name" {
+  description = "Name of the Glue registry"
+  value       = module.orchestration.aws_glue_registry_name
+}
+
+output "arxiv_research-ingestion-event-schema" {
+  description = "Schema for arxiv research ingestion event"
+  value       = module.orchestration.arxiv_research_ingestion_event_schema
+}
+
+# **********************************************************
+# * TOPICS                                                 *
+# **********************************************************
+output "data-arxiv_summaries-ingestion-complete" {
+  description = "Kafka topic for data-arxiv_summaries-ingestion-complete"
+  value       = module.orchestration.kafka_topic_data_arxiv_summaries_ingestion_complete
 }

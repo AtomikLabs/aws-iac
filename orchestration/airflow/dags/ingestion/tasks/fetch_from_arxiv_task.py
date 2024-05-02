@@ -1,11 +1,16 @@
 import ast
 import json
+import io
 import os
 from logging.config import dictConfig
 
+import avro
+import boto3
 import defusedxml.ElementTree as ET
+import kafka
 import requests
 import structlog
+from avro.io import BinaryEncoder, DatumWriter, validate
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from requests.adapters import HTTPAdapter
@@ -19,11 +24,15 @@ from shared.utils.constants import (
     AIRFLOW_RUN_ID,
     ARXIV_API_MAX_RETRIES,
     ARXIV_BASE_URL,
+    ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA,
     ARXIV_SETS,
+    AWS_GLUE_REGISTRY_NAME,
     AWS_REGION,
     AWS_SECRETS_NEO4J_CREDENTIALS,
     AWS_SECRETS_NEO4J_PASSWORD,
     AWS_SECRETS_NEO4J_USERNAME,
+    COMPLETED,
+    DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC,
     DATA_BUCKET,
     DATA_INGESTION_KEY_PREFIX,
     ENVIRONMENT_NAME,
@@ -38,8 +47,10 @@ from shared.utils.constants import (
     NEO4J_URI,
     NEO4J_USERNAME,
     OBTAINS_FROM,
+    ORCHESTRATION_HOST_PRIVATE_IP,
     PROVIDES,
     RAW_DATA_KEYS,
+    SCHEMA_DEFINITION,
     XML,
 )
 from shared.utils.utils import get_aws_secrets, get_storage_key
@@ -79,10 +90,11 @@ def run(**context: dict):
         config = get_config(context)
         data = raw_data(config)
         results = store_data(config, data)
-        store_metadata(config, data, results)
+        data_nodes = store_metadata(config, data, results)
         logger.info(f"Completed {TASK_NAME} task", task_name=TASK_NAME, keys=", ".join(data.keys()))
         key_list = [x.get("key") for x in data.values()]
         context.get("ti").xcom_push(key=RAW_DATA_KEYS, value=key_list)
+        publish_to_kafka(config, data, data_nodes)
     except Exception as e:
         logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
         raise e
@@ -100,13 +112,17 @@ def get_config(context: dict) -> dict:
         config = {
             ARXIV_API_MAX_RETRIES: int(os.getenv(ARXIV_API_MAX_RETRIES)),
             ARXIV_BASE_URL: os.getenv(ARXIV_BASE_URL).strip(),
+            ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA: os.getenv(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA),
             ARXIV_SETS: ast.literal_eval(os.getenv(ARXIV_SETS)),
+            AWS_GLUE_REGISTRY_NAME: os.getenv(AWS_GLUE_REGISTRY_NAME),
             AWS_REGION: os.getenv(AWS_REGION),
+            DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC: os.getenv(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC),
             DATA_BUCKET: os.getenv(DATA_BUCKET),
             DATA_INGESTION_KEY_PREFIX: os.getenv(DATA_INGESTION_KEY_PREFIX),
+            ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME).strip(),
             FETCH_FROM_ARXIV_TASK_VERSION: os.getenv(FETCH_FROM_ARXIV_TASK_VERSION),
             INGESTION_EARLIEST_DATE: context.get("ti").xcom_pull(key=INGESTION_EARLIEST_DATE),
-            ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME).strip(),
+            ORCHESTRATION_HOST_PRIVATE_IP: os.getenv(ORCHESTRATION_HOST_PRIVATE_IP),
         }
         neo4j_retries = (
             int(os.getenv(NEO4J_CONNECTION_RETRIES))
@@ -131,14 +147,18 @@ def get_config(context: dict) -> dict:
         if (
             not config.get(ARXIV_API_MAX_RETRIES)
             or not config.get(ARXIV_BASE_URL)
+            or not config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA)
             or not config.get(ARXIV_SETS)
+            or not config.get(AWS_GLUE_REGISTRY_NAME)
             or not config.get(AWS_REGION)
+            or not config.get(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC)
             or not config.get(DATA_BUCKET)
             or not config.get(DATA_INGESTION_KEY_PREFIX)
             or not config.get(ENVIRONMENT_NAME)
             or not config.get(NEO4J_PASSWORD)
             or not config.get(NEO4J_USERNAME)
             or not config.get(NEO4J_URI)
+            or not config.get(ORCHESTRATION_HOST_PRIVATE_IP)
         ):
             logger.error(
                 "Config values not found",
@@ -176,7 +196,7 @@ def raw_data(config: dict) -> dict:
         data = fetch_data(
             config.get(ARXIV_BASE_URL), config.get(INGESTION_EARLIEST_DATE), set, config.get(ARXIV_API_MAX_RETRIES)
         )
-        fetched_xml_by_set[set] = {"key": storage_key, "data": data}
+        fetched_xml_by_set[set] = {"key": storage_key, "data": data, "set": set}
     return fetched_xml_by_set
 
 
@@ -294,7 +314,7 @@ def store_data(config: dict, raw_data: dict) -> dict:
     return {"sets_stored": sets_stored, "sets_failed": sets_failed}
 
 
-def store_metadata(config: dict, raw_data: dict, results: dict):
+def store_metadata(config: dict, raw_data: dict, results: dict) -> dict:
     """
     Stores the metadata.
 
@@ -302,6 +322,9 @@ def store_metadata(config: dict, raw_data: dict, results: dict):
         config (dict): The config.
         raw_data (dict): The raw data.
         results (dict): The results.
+    
+    Returns:
+        data_nodes (dict): The data nodes created in the database.
     """
     if not config or not raw_data or not results:
         logger.error("Config, raw data, and results are required", method=store_metadata.__name__)
@@ -314,6 +337,7 @@ def store_metadata(config: dict, raw_data: dict, results: dict):
             driver, "Fetch arXiv Daily Summaries", TASK_NAME, config.get(FETCH_FROM_ARXIV_TASK_VERSION)
         )
         fetch_data_operation.create()
+        data_nodes = {}
         for set, data in raw_data.items():
             try:
                 data_source = get_data_source(config, driver)
@@ -361,6 +385,7 @@ def store_metadata(config: dict, raw_data: dict, results: dict):
                     fetch_data_operation.LABEL,
                     fetch_data_operation.uuid,
                 )
+                data_nodes.update({set: data_node})
             except Exception as e:
                 logger.error(
                     "Failed to store metadata",
@@ -371,6 +396,7 @@ def store_metadata(config: dict, raw_data: dict, results: dict):
                 )
                 raise e
         logger.info("Stored metadata", method=store_metadata.__name__, task_name=TASK_NAME)
+        return data_nodes
 
 
 def get_data_source(config: dict, driver: GraphDatabase) -> DataSource:
@@ -394,3 +420,58 @@ def get_data_source(config: dict, driver: GraphDatabase) -> DataSource:
         data_source = DataSource(driver, config.get(ARXIV_BASE_URL), "arXiv", "Preprint server")
         data_source.create()
     return data_source
+
+
+def publish_to_kafka(config: dict, data_nodes: list):
+    glue_client = boto3.client("glue", region_name=config.get(AWS_REGION))
+    schema_response = glue_client.get_schema_version(
+        SchemaId={
+            "RegistryName": config.get(AWS_GLUE_REGISTRY_NAME),
+            "SchemaName": config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA),
+        },
+        SchemaVersionNumber={
+            "LatestVersion": True
+        }
+    )
+    schema = avro.schema.parse(schema_response.get(SCHEMA_DEFINITION))
+    writer = DatumWriter(schema)
+    bytes_writer = io.BytesIO()
+    encoder = BinaryEncoder(bytes_writer)
+    for set, data_node in data_nodes.items():
+        try:
+            data = {
+                "status": COMPLETED,
+                "s3_key": data_node.url,
+                "from_date": config.get(INGESTION_EARLIEST_DATE),
+                "arxiv_set": set,
+                "raw_data_uuid": data_node.uuid,
+            }
+            if not validate(schema, data):
+                raise ValueError("Data does not match the schema")
+            writer.write(data, encoder)
+            raw_bytes = bytes_writer.getvalue()
+
+            producer = kafka.KafkaProducer(
+                bootstrap_servers=["${os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092"],
+            )
+            producer.send(
+                config.get(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC),
+                raw_bytes,
+            )
+            producer.flush()
+            producer.close()
+            bytes_writer.seek(0)
+            bytes_writer.truncate()
+        except Exception as e:
+            logger.error(
+                "Failed to validate data against schema",
+                error=str(e),
+                method=publish_to_kafka.__name__,
+                data=data,
+                task_name=TASK_NAME,
+            )
+            raise e
+        
+    
+    writer = DatumWriter(schema)
+    raw_

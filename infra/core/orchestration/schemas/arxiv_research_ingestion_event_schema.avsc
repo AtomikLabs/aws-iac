@@ -24,10 +24,6 @@
       "type": "string"
     },
     {
-      "name": "to_date",
-      "type": "string"
-    },
-    {
       "raw_data_uuid": "string",
       "type": "string"
     }
