@@ -23,11 +23,6 @@ output "aws_glue_registry_name" {
   value       = aws_glue_registry.glue_registry.registry_name
 }
 
-output "data_arxiv_summaries_ingestion_complete" {
-  description = "Kafka topic for data-arxiv_summaries-ingestion-complete"
-  value       = kafka_topic.data_arxiv_summaries_ingestion_complete.name
-}
-
 output "orchestration_host_private_ip" {
   description = "Private IP of the orchestration host"
   value       = aws_instance.orchestration_host.private_ip
