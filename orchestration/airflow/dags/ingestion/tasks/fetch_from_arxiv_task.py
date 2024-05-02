@@ -1,6 +1,6 @@
 import ast
-import json
 import io
+import json
 import os
 from logging.config import dictConfig
 
@@ -322,7 +322,7 @@ def store_metadata(config: dict, raw_data: dict, results: dict) -> dict:
         config (dict): The config.
         raw_data (dict): The raw data.
         results (dict): The results.
-    
+
     Returns:
         data_nodes (dict): The data nodes created in the database.
     """
@@ -429,9 +429,7 @@ def publish_to_kafka(config: dict, data_nodes: list):
             "RegistryName": config.get(AWS_GLUE_REGISTRY_NAME),
             "SchemaName": config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA),
         },
-        SchemaVersionNumber={
-            "LatestVersion": True
-        }
+        SchemaVersionNumber={"LatestVersion": True},
     )
     schema = avro.schema.parse(schema_response.get(SCHEMA_DEFINITION))
     writer = DatumWriter(schema)
@@ -471,7 +469,3 @@ def publish_to_kafka(config: dict, data_nodes: list):
                 task_name=TASK_NAME,
             )
             raise e
-        
-    
-    writer = DatumWriter(schema)
-    raw_

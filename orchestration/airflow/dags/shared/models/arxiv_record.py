@@ -3,10 +3,10 @@ import uuid
 from datetime import datetime
 
 import structlog
+from neo4j import Driver
 from shared.models.base_model import BaseModel
 from shared.utils.constants import ARXIV_RESEARCH_DATE_FORMAT, FAILED_TO_CREATE_ARXIV_RECORD
 from shared.utils.utils import get_storage_key_datetime, validate_strings
-from neo4j import Driver
 
 structlog.configure(
     [
