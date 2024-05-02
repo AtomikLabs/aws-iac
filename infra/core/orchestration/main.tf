@@ -26,6 +26,10 @@ locals {
   tags                                          = var.tags
 }
 
+# **********************************************************
+# * ORCHESTRATION HOST                                     *
+# **********************************************************
+
 data "template_file" "init_script" {
   template = file("${path.module}/init.tpl")
 
@@ -334,4 +338,48 @@ resource "aws_iam_role_policy_attachment" "orchestration_role_secrets_policy" {
 resource "aws_iam_role_policy_attachment" "orchestration_role_glue_policy" {
   role       = aws_iam_role.orchestration_instance_role.name
   policy_arn = aws_iam_policy.orchestration_glue_policy.arn
+}
+
+# **********************************************************
+# * SCHEMAS AND REGISTRY                                   *
+# **********************************************************
+
+resource "aws_glue_registry" "glue-registry" {
+    registry_name = "${local.environment}-glue-registry"
+}
+
+resource "aws_glue_schema" "arxiv_research_ingestion_event_schema" {
+    schema_name = "${local.environment}-arxiv_research-ingestion-event-schema"
+    compatibility = "BACKWARD"
+    data_format = "AVRO"
+    registry_arn = aws_glue_registry.glue-registry.arn
+    schema_definition = file("${path.module}/schemas/arxiv_research_ingestion_event_schema.avsc")
+}
+
+
+# **********************************************************
+# * KAFKA                                                  *
+# **********************************************************
+terraform {
+  required_providers {
+    kafka = {
+      source  = "Mongey/kafka"
+      version = "0.7.1"
+    }
+  }
+}
+
+
+provider "kafka" {
+    bootstrap_servers = ["${aws_instance.orchestration_host.private_ip}:9092"]
+}
+
+  # **********************************************************
+  # * DATA INGESTION                                         *
+  # **********************************************************
+
+resource "kafka_topic" "data-arxiv_summaries-ingestion-complete" {
+    name                = "data-arxiv_summaries-ingestion-complete"
+    replication_factor  = 1
+    partitions          = 1
 }
