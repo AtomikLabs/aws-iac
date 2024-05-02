@@ -69,5 +69,5 @@ output "arxiv_research-ingestion-event-schema" {
 # **********************************************************
 output "data-arxiv_summaries-ingestion-complete" {
   description = "Kafka topic for data-arxiv_summaries-ingestion-complete"
-  value       = module.orchestration.kafka_topic_data_arxiv_summaries_ingestion_complete
+  value       = module.orchestration.data-arxiv_summaries-ingestion-complete
 }
