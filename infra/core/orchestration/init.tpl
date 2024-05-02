@@ -88,6 +88,8 @@ chmod -R 755 /data/kafka
 cat << 'EOF' > /data/kafka/sync_s3.sh
 #!/bin/bash
 sudo aws s3 sync s3://${infra_bucket_name}/orchestration/${environment}/kafka /data/kafka
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/${environment}/kafka/requirements.txt /data/kafka/requirements.txt
+sudo aws s3 cp s3://${infra_bucket_name}/orchestration/${environment}/kafka/.env /data/kafka/.env
 EOF
 
 cd /data/kafka

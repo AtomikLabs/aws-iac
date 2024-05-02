@@ -350,6 +350,7 @@ jobs:
           echo "Creating Kafka scripts environment file..."
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> kafka.env
           echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> kafka.env
+          '
           echo "ORCHESTRATION_HOST_PRIVATE_IP=${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}" >> kafka.env
           cat kafka.env
           echo "Copying file to s3..."
@@ -362,7 +363,7 @@ jobs:
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
-            --parameters '{"commands":["sudo /data/airflow/sync_s3.sh", "sudo docker compose -f /data/airflow/docker-compose.yaml down", "sudo docker compose -f /data/airflow/docker-compose.yaml build", "sudo docker compose -f /data/airflow/docker-compose.yaml up -d"]}' \
+            --parameters '{"commands":["sudo /data/airflow/sync_s3.sh", "sudo docker compose -f /data/airflow/docker-compose.yaml down", "sudo sed -i \\"s/REPLACE_THIS_IP/${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}/g\\" docker-compose.yaml", "sudo docker compose -f /data/airflow/docker-compose.yaml up -d --build"]}' \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
 
@@ -373,7 +374,7 @@ jobs:
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
-            --parameters '{"commands":["sudo /data/airflow/sync_s3.sh", "sudo docker compose -f /data/airflow/docker-compose.yaml down", "sudo docker compose -f /data/airflow/docker-compose.yaml up -d"]}' \
+            --parameters '{"commands":["sudo /data/airflow/sync_s3.sh", "sudo docker compose -f /data/airflow/docker-compose.yaml down", "sudo sed -i \\"s/REPLACE_THIS_IP/${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}/g\\" docker-compose.yaml", "sudo docker compose -f /data/airflow/docker-compose.yaml up -d"]}' \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
 
@@ -384,6 +385,6 @@ jobs:
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
-            --parameters '{"commands":["sudo /data/kafka/sync_s3.sh", "sudo /data/kafka/create_topics.py"]}' \
+            --parameters '{"commands":["sudo /data/kafka/sync_s3.sh", "cd /data/kafka && source .venv/bin/activate && python create_topics.py && deactivate"]}' \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
