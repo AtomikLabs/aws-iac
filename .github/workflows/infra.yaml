@@ -350,9 +350,7 @@ jobs:
           echo "Creating Kafka scripts environment file..."
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> kafka.env
           echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> kafka.env
-          '
           echo "ORCHESTRATION_HOST_PRIVATE_IP=${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}" >> kafka.env
-          cat kafka.env
           echo "Copying file to s3..."
           aws s3 cp kafka.env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka/.env
 
@@ -385,6 +383,6 @@ jobs:
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
-            --parameters '{"commands":["sudo /data/kafka/sync_s3.sh", "cd /data/kafka && source .venv/bin/activate && python create_topics.py && deactivate"]}' \
+            --parameters '{"commands":["sudo /data/kafka/sync_s3.sh", "sudo cd /data/kafka && source .venv/bin/activate && sudo python create_topics.py && deactivate"]}' \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
