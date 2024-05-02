@@ -22,7 +22,6 @@ def create_topics():
             print(f"Topic {topic.name} already exists.")
         except KafkaError as e:
             print(f"Error creating topic {topic.name}: {str(e)}")
-
     admin_client.close()
 
 
