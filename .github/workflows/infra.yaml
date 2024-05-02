@@ -308,7 +308,7 @@ jobs:
           echo "Extracting instance ID..."
           echo "arxiv_research_ingestion_event_schema=$(jq -r '.arxiv_research_ingestion_event_schema.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
           echo "aws_glue_registry_name=$(jq -r '.aws_glue_registry_name.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
-          echo "data-arxiv_summaries-ingestion-complete=$(jq -r '.data-arxiv_summaries-ingestion-complete.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
+          echo "data_arxiv_summaries_ingestion_complete=$(jq -r '.data_arxiv_summaries_ingestion_complete.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
           echo "data_bucket=$(jq -r '.data_bucket.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
           echo "instance_id=$(jq -r '.orchestration_instance_id.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
           echo "neo4j_instance_private_ip=$(jq -r '.neo4j_instance_private_ip.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
@@ -327,7 +327,7 @@ jobs:
           echo 'ARXIV_SETS=${{ steps.vars.outputs.arxiv_sets }}' >> .env
           echo "AWS_GLUE_REGISTRY_NAME=${{ steps.terraform_vars.outputs.aws_glue_registry_name }}" >> .env
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> .env
-          echo "DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC=${{ steps.terraform_vars.outputs.data-arxiv_summaries-ingestion-complete }}" >> .env
+          echo "DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC=${{ steps.terraform_vars.outputs.data_arxiv_summaries_ingestion_complete }}" >> .env
           echo "DATA_BUCKET=${{ steps.terraform_vars.outputs.data_bucket }}" >> .env
           echo "DATA_INGESTION_KEY_PREFIX=${{ steps.vars.outputs.data_ingestion_key_prefix }}" >> .env
           echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> .env

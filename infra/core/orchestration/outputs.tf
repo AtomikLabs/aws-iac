@@ -10,20 +10,20 @@ output "arxiv_research_ingestion_event_schema" {
 
 output "aws_glue_registry_arn" {
   description = "ARN of the Glue registry"
-  value       = aws_glue_registry.glue-registry.arn
+  value       = aws_glue_registry.glue_registry.arn
 }
 
 output "aws_glue_registry_id" {
   description = "ID of the Glue registry"
-  value       = aws_glue_registry.glue-registry.id
+  value       = aws_glue_registry.glue_registry.id
 }
 
 output "aws_glue_registry_name" {
   description = "Name of the Glue registry"
-  value       = aws_glue_registry.glue-registry.registry_name
+  value       = aws_glue_registry.glue_registry.registry_name
 }
 
-output "data-arxiv_summaries-ingestion-complete" {
+output "data_arxiv_summaries_ingestion_complete" {
   description = "Kafka topic for data-arxiv_summaries-ingestion-complete"
   value       = kafka_topic.data_arxiv_summaries_ingestion_complete.name
 }

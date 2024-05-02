@@ -344,7 +344,7 @@ resource "aws_iam_role_policy_attachment" "orchestration_role_glue_policy" {
 # * SCHEMAS AND REGISTRY                                   *
 # **********************************************************
 
-resource "aws_glue_registry" "glue-registry" {
+resource "aws_glue_registry" "glue_registry" {
     registry_name = "${local.environment}-glue-registry"
 }
 
@@ -352,7 +352,7 @@ resource "aws_glue_schema" "arxiv_research_ingestion_event_schema" {
     schema_name = "${local.environment}-arxiv_research-ingestion-event-schema"
     compatibility = "BACKWARD"
     data_format = "AVRO"
-    registry_arn = aws_glue_registry.glue-registry.arn
+    registry_arn = aws_glue_registry.glue_registry.arn
     schema_definition = file("${path.module}/schemas/arxiv_research_ingestion_event_schema.avsc")
 }
 
@@ -374,11 +374,7 @@ provider "kafka" {
     bootstrap_servers = ["${aws_instance.orchestration_host.private_ip}:9092"]
 }
 
-  # **********************************************************
-  # * DATA INGESTION                                         *
-  # **********************************************************
-
-resource "kafka_topic" "data-arxiv_summaries-ingestion-complete" {
+resource "kafka_topic" "data_arxiv_summaries_ingestion_complete" {
     name                = "data-arxiv_summaries-ingestion-complete"
     replication_factor  = 1
     partitions          = 1
