@@ -24,7 +24,7 @@
       "type": "string"
     },
     {
-      "raw_data_uuid": "string",
+      "name": "raw_data_uuid",
       "type": "string"
     }
   ]
