@@ -355,27 +355,3 @@ resource "aws_glue_schema" "arxiv_research_ingestion_event_schema" {
     registry_arn = aws_glue_registry.glue_registry.arn
     schema_definition = file("${path.module}/schemas/arxiv_research_ingestion_event_schema.avsc")
 }
-
-
-# **********************************************************
-# * KAFKA                                                  *
-# **********************************************************
-terraform {
-  required_providers {
-    kafka = {
-      source  = "Mongey/kafka"
-      version = "0.7.1"
-    }
-  }
-}
-
-
-provider "kafka" {
-    bootstrap_servers = ["${aws_instance.orchestration_host.private_ip}:9092"]
-}
-
-resource "kafka_topic" "data_arxiv_summaries_ingestion_complete" {
-    name                = "data-arxiv_summaries-ingestion-complete"
-    replication_factor  = 1
-    partitions          = 1
-}

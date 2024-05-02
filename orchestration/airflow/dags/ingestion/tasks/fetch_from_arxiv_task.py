@@ -94,7 +94,7 @@ def run(**context: dict):
         logger.info(f"Completed {TASK_NAME} task", task_name=TASK_NAME, keys=", ".join(data.keys()))
         key_list = [x.get("key") for x in data.values()]
         context.get("ti").xcom_push(key=RAW_DATA_KEYS, value=key_list)
-        publish_to_kafka(config, data, data_nodes)
+        publish_to_kafka(config, data_nodes)
     except Exception as e:
         logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
         raise e
