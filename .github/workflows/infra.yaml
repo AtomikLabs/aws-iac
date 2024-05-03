@@ -204,15 +204,6 @@ jobs:
       - name: Load Environment Variables
         uses: ./.github/actions/load-env-variables
 
-      - name: Extract variables
-        id: vars
-        run: |
-          echo "app_name=$(grep '^app_name' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-
       - name: Set Region
         run: |
           echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
@@ -228,9 +219,45 @@ jobs:
           DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
           DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
 
+      - name: Extract variables
+        id: vars
+        run: |
+          echo "airflow_dags_env_path=$(grep '^airflow_dags_env_path' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "app_name=$(grep '^app_name' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "arxiv_api_max_retries=$(grep '^arxiv_api_max_retries' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "arxiv_base_url=$(grep '^arxiv_base_url' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'=' '{print $2}' | xargs)" >> $GITHUB_OUTPUT
+          echo "arxiv_ingestion_day_span=$(grep '^arxiv_ingestion_day_span' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "arxiv_sets=$(awk -F'=' '/^arxiv_sets/ {gsub(/ /, "", $2); print $2}' infra/core/${{ env.ENV_NAME }}.tfvars)" >> $GITHUB_OUTPUT
+          echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "data_ingestion_key_prefix=$(grep '^data_ingestion_key_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "fetch_from_arxiv_task_version=$(grep '^fetch_from_arxiv_task_version' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "most_recent_research_records_version=$(grep '^most_recent_research_records_version' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "neo4j_connection_retries=$(grep '^neo4j_connection_retries' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Download Terraform Outputs Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform_outputs
+          path: outputs
+
+      - name: Extract Variables from Terraform Outputs
+        id: terraform_vars
+        run: |
+          echo "Extracting instance IP..."
+          echo "orchestration_host_private_ip=$(jq -r '.orchestration_host_private_ip.value' outputs/terraform_outputs.json)" >> $GITHUB_OUTPUT
+
       - name: Copy Airflow files to s3
         run: |
           aws s3 cp orchestration/airflow s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow --recursive --exclude "*.pyc" --exclude "__pycache__" --exclude "orchestration/airflow/dags/tests"
+
+      - name: Update Kafka docker-compose.yaml with instance ip
+        id: update_kafka_docker_compose
+        run: |
+          echo "Updating Kafka docker-compose with instance ip..."
+          sed -i "s/REPLACE_THIS_IP/${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}/g" orchestration/kafka/host_config/docker-compose.yaml
 
       - name: Copy Kafka files to s3
         run: |
