@@ -204,21 +204,6 @@ jobs:
       - name: Load Environment Variables
         uses: ./.github/actions/load-env-variables
 
-      - name: Set Region
-        run: |
-          echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
-
-      - name: Set AWS Credentials
-        uses: ./.github/actions/set-aws-credentials
-        with:
-          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
-          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
-          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
-          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
-          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
-          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
-          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
-
       - name: Extract variables
         id: vars
         run: |
@@ -236,6 +221,21 @@ jobs:
           echo "most_recent_research_records_version=$(grep '^most_recent_research_records_version' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "neo4j_connection_retries=$(grep '^neo4j_connection_retries' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Set Region
+        run: |
+          echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
+
+      - name: Set AWS Credentials
+        uses: ./.github/actions/set-aws-credentials
+        with:
+          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
+          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
 
       - name: Download Terraform Outputs Artifact
         uses: actions/download-artifact@v4
