@@ -94,6 +94,7 @@ EOF
 
 cd /data/kafka
 chmod +x /data/kafka/sync_s3.sh
+cat .env >> /home/ec2-user/envcheck.log
 /data/kafka/sync_s3.sh
 yum install -y pip3
 python3 -m venv .venv
@@ -150,4 +151,3 @@ echo "Airflow setup script completed." >> /home/ec2-user/init.log
 echo "Building and starting Docker" >> /home/ec2-user/init.log
 docker compose -f /data/airflow/docker-compose.yaml up airflow-init
 docker compose -f /data/airflow/docker-compose.yaml --profile flower up -d
-
