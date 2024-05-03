@@ -21,73 +21,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  upload_airflow_files:
+  create_infra:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10"]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install jq
-        run: sudo apt-get install jq
-
-      - name: Install node and npm
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install NPM Dependencies
-        run: |
-          npm install
-
-      - name: Load Environment Variables
-        uses: ./.github/actions/load-env-variables
-
-      - name: Extract variables
-        id: vars
-        run: |
-          echo "app_name=$(grep '^app_name' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
-
-      - name: Set Region
-        run: |
-          echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
-
-      - name: Set AWS Credentials
-        uses: ./.github/actions/set-aws-credentials
-        with:
-          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
-          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
-          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
-          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
-          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
-          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
-          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
-
-      - name: copy DAGs to s3
-        run: |
-          aws s3 sync orchestration/airflow/dags s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags --exclude "*.pyc" --exclude "__pycache__/*" --exclude "orchestration/airflow/dags/tests"
-          aws s3 sync orchestration/airflow/plugins s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/plugins --exclude "*.pyc" --exclude "__pycache__/*" --exclude "orchestration/airflow/dags/tests"
-          aws s3 sync orchestration/airflow/config s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/config --exclude "*.pyc" --exclude "__pycache__/*" --exclude "orchestration/airflow/dags/tests"
-
-      - name: Upload Airflow docker files to s3
-        run: |
-          aws s3 cp orchestration/airflow/Dockerfile s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/Dockerfile
-          aws s3 cp orchestration/airflow/docker-compose.yaml s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/docker-compose.yaml
-          aws s3 cp orchestration/airflow/requirements.txt s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/requirements.txt
-
-      - name: Upload Kafka files to s3
-        run: |
-          aws s3 sync orchestration/kafka s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka --exclude "*.pyc" --exclude "__pycache__/*"
-
-  core_infra:
-    runs-on: ubuntu-latest
-    needs: upload_airflow_files
     strategy:
       matrix:
         python-version: ["3.10"]
@@ -244,8 +179,65 @@ jobs:
           name: terraform_outputs
           path: ./infra/core/terraform_outputs.json
 
-  sync_airflow_instance:
-    needs: core_infra
+  upload_infra_files:
+    runs-on: ubuntu-latest
+    needs: create_infra
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Install node and npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install NPM Dependencies
+        run: |
+          npm install
+
+      - name: Load Environment Variables
+        uses: ./.github/actions/load-env-variables
+
+      - name: Extract variables
+        id: vars
+        run: |
+          echo "app_name=$(grep '^app_name' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "aws_region=$(grep '^aws_region' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "backend_dynamodb_table=$(grep '^backend_dynamodb_table' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "infra_config_bucket=$(grep '^infra_config_bucket =' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Set Region
+        run: |
+          echo "AWS_REGION=${{steps.vars.outputs.aws_region}}" >> $GITHUB_ENV
+
+      - name: Set AWS Credentials
+        uses: ./.github/actions/set-aws-credentials
+        with:
+          ENVIRONMENT_NAME: ${{ env.ENV_NAME }}
+          PROD_AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          PROD_AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          STAGE_AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_AWS_ACCESS_KEY_ID }}
+          STAGE_AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_AWS_SECRET_ACCESS_KEY }}
+          DEV_AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          DEV_AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+
+      - name: Copy Airflow files to s3
+        run: |
+          aws s3 cp orchestration/airflow s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow --recursive --exclude "*.pyc" --exclude "__pycache__" --exclude "orchestration/airflow/dags/tests"
+
+      - name: Copy Kafka files to s3
+        run: |
+          aws s3 cp orchestration/kafka s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka --recursive --exclude "*.pyc" --exclude "__pycache__"
+
+  deploy:
+    needs: upload_infra_files
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -354,12 +346,30 @@ jobs:
           echo "Copying file to s3..."
           aws s3 cp kafka.env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka/.env
 
-      - name: Send SSM Command to Sync and Restart Airflow
+      - name: Check for Kafka Config File Changes
+        id: check_kafka_config_changes
         run: |
-          echo "RESTARTING AIRFLOW..."
+          echo "Checking for changes in Kafka config files..."
+          echo "kafka_rebuild=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -q 'orchestration/kafka/host_config/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+      - name: Rebuild Kafka Docker if Required
+        if: steps.check_kafka_config_changes.outputs.kafka_rebuild == 'true'
+        run: |
+          echo "Rebuilding Kafka Docker image..."
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceids,Values=${{ steps.terraform_vars.outputs.instance_id }}" \
-            --parameters "{\"commands\":[\"sudo /data/airflow/sync_s3.sh\", \"sudo /data/kafka/sync_s3.sh\", \"sudo docker compose -f /data/airflow/docker-compose.yaml down\", \"sudo sed -i \\\"s/REPLACE_THIS_IP/${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}/g\\\" /data/airflow/docker-compose.yaml\", \"sudo docker compose -f /data/airflow/docker-compose.yaml up -d --build\"]}" \
+            --instance-ids ${{ steps.terraform_vars.outputs.instance_id }} \
+            --parameters "{\"commands\":[\"sudo chmod +x /data/kafka/host_config/*.sh\",\"sudo /data/kafka/host_config/sync_s3.sh\",\"sudo /data/kafka/host_config/rebuild.sh\",\"sudo /data/kafka/host_config/update_topics.sh\"]}" \
+            --region ${{ steps.vars.outputs.aws_region }} \
+            --output text
+
+      - name: Sync Kafka Topics if Rebuild not Required
+        if: steps.check_kafka_config_changes.outputs.kafka_rebuild == 'false'
+        run: |
+          echo "Syncing Kafka topics..."
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --instance-ids ${{ steps.terraform_vars.outputs.instance_id }} \
+            --parameters "{\"commands\":[\"sudo chmod +x /data/kafka/host_config/*.sh\",\"sudo /data/kafka/host_config/sync_s3.sh\",\"sudo /data/kafka/host_config/update_topics.sh\"]}" \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text

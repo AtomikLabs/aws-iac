@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Starting the volume setup script..." >> /home/ec2-user/init.log
+echo "Starting the volume setup..." >> /home/ec2-user/init.log
 
 TIMEOUT=300  # 5 minutes
 INTERVAL=10  # 10 seconds
@@ -69,64 +69,32 @@ else
     mount -av >> /home/ec2-user/init.log 2>&1
 fi
 
-echo "Volume setup script completed." >> /home/ec2-user/init.log
+echo "Volume setup completed." >> /home/ec2-user/init.log
 
-echo "Starting Python setup script..." >> /home/ec2-user/init.log
+echo "Starting Python setup..." >> /home/ec2-user/init.log
 
 yum install -y pip3
 
-echo "Python setup script completed." >> /home/ec2-user/init.log
+echo "Python setup completed." >> /home/ec2-user/init.log
 
-echo "Starting the kafka setup script..." >> /home/ec2-user/init.log
+echo "Starting environment setup..." >> /home/ec2-user/init.log
 
-mkdir -p /data/kafka/logs
-mkdir -p /data/kafka/kafka-ui
-mkdir -p /data/kafka
-chown -R 1000:1000 /data/kafka
-chmod -R 755 /data/kafka
+echo "ATOMIKLABS_INFRA_BUCKET_NAME=${infra_bucket_name}" >> /etc/environment
+echo "ATOMIKLABS_ENV=${environment}" >> /etc/environment
+source /etc/environment
+cat /etc/environment >> /home/ec2-user/init.log
 
-cat << 'EOF' > /data/kafka/sync_s3.sh
-#!/bin/bash
-sudo aws s3 cp s3://${infra_bucket_name}/orchestration/${environment}/kafka /data/kafka --recursive
-EOF
+echo "Environment setup completed." >> /home/ec2-user/init.log
 
-cd /data/kafka
-chmod +x /data/kafka/sync_s3.sh
-cat .env >> /home/ec2-user/envcheck.log
-/data/kafka/sync_s3.sh
-yum install -y pip3
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r /data/kafka/requirements.txt
-python3 /data/kafka/create_topics.py
-deactivate
-
-echo "Kafka setup script completed." >> /home/ec2-user/init.log
-
-echo "Starting the airflow setup script..." >> /home/ec2-user/init.log
-
-mkdir -p /data/airflow/dags /data/airflow/logs /data/airflow/plugins /data/airflow/config
-chown -R 50000:50000 /data/airflow
-chmod -R 755 /data/airflow
-cd /data/airflow
-
-echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
-
-cat << 'EOF' > /data/airflow/sync_s3.sh
-#!/bin/bash
-sudo aws s3 cp s3://${infra_bucket_name}/orchestration/${environment}/airflow /data/airflow --recursive
-EOF
-
-chmod +x /data/airflow/sync_s3.sh
-/data/airflow/sync_s3.sh
+echo "Starting Docker setup..." >> /home/ec2-user/init.log
 
 mkdir /etc/docker
-echo "Configuring docker" >> /home/ec2-user/init.log
+echo "Configuring Docker" >> /home/ec2-user/init.log
 echo '{
   "data-root": "/data/docker"
 }' > /etc/docker/daemon.json
 
-echo "Installing docker" >> /home/ec2-user/init.log
+echo "Installing Docker" >> /home/ec2-user/init.log
 yum update -y
 yum install docker -y
 systemctl start docker
@@ -139,8 +107,49 @@ mkdir -p $DOCKER_CONFIG
 curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x $DOCKER_CONFIG/docker-compose
 
-echo "Airflow setup script completed." >> /home/ec2-user/init.log
+echo "Docker setup completed." >> /home/ec2-user/init.log
 
-echo "Building and starting Docker" >> /home/ec2-user/init.log
-docker compose -f /data/airflow/docker-compose.yaml up airflow-init
-docker compose -f /data/airflow/docker-compose.yaml --profile flower up -d
+echo "Starting the Airflow setup..." >> /home/ec2-user/init.log
+
+mkdir -p /data/airflow/dags /data/airflow/logs /data/airflow/plugins /data/airflow/config
+chown -R 50000:50000 /data/airflow
+chmod -R 755 /data/airflow
+cd /data/airflow
+
+echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
+
+aws s3 cp s3://${infra_bucket_name}/orchestration/${environment}/airflow /data/airflow --recursive
+
+echo "Building and starting Airflow" >> /home/ec2-user/init.log
+docker compose -f /data/airflow/config/docker-compose.yaml up
+docker compose -f /data/airflow/config/docker-compose.yaml --profile flower up -d
+
+echo "Airflow setup completed." >> /home/ec2-user/init.log
+
+echo "Starting Kafka setup..." >> /home/ec2-user/init.log
+
+mkdir -p /data/kafka/logs
+mkdir -p /data/kafka/kafka-ui
+mkdir -p /data/kafka/topics
+mkdir -p /data/kafka/host_config
+chown -R 1000:1000 /data/kafka
+chmod -R 755 /data/kafka
+
+aws s3 cp s3://$ATOMIKLABS_INFRA_BUCKET_NAME/orchestration/$ATOMIKLABS_ENV/kafka /data/kafka --recursive
+
+echo "Building and starting Kafka" >> /home/ec2-user/init.log
+cd /data/kafka/host_config
+docker compose -f docker-compose.yaml up -d --build
+docker compose -f docker-compose.yaml run --rm --no-deps --entrypoint '/bin/sh' broker -c 'start=$(date +%s); while : ; do /opt/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_IP:9092 --list > /dev/null 2>&1; [ $? -eq 0 ] && break; now=$(date +%s); [ $((now - start)) -ge 900 ] && break; sleep 5; done'
+
+cd /data/kafka/topics
+yum install -y pip3
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 create_topics.py
+deactivate
+
+echo "Kafka setup completed." >> /home/ec2-user/init.log
+
+touch /data/.docker_op_complete

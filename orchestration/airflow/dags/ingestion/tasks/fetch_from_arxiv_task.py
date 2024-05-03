@@ -450,7 +450,7 @@ def publish_to_kafka(config: dict, data_nodes: list):
             raw_bytes = bytes_writer.getvalue()
 
             producer = kafka.KafkaProducer(
-                bootstrap_servers=["${os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092"],
+                bootstrap_servers=[f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092"],
             )
             producer.send(
                 config.get(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC),
