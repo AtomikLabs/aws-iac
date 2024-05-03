@@ -336,6 +336,36 @@ jobs:
           echo "Copying file to s3..."
           aws s3 cp .env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
 
+      - name: Check for Airflow Config Changes
+        id: check_airflow_config_changes
+        run: |
+          echo "Checking for changes in Airflow config files..."
+          echo "airflow_rebuild=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -q 'orchestration/airflow/host_config/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+      - name: Rebuild Airflow Docker if Required
+        id: rebuild_airflow
+        if: steps.check_airflow_config_changes.outputs.airflow_rebuild == 'true'
+        run: |
+          echo "Rebuilding Airflow Docker image..."
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --instance-ids ${{ steps.terraform_vars.outputs.instance_id }} \
+            --parameters "{\"commands\":[\"sudo chmod +x /data/airflow/host_config/*.sh\",\"sudo /data/airflow/host_config/sync_s3.sh\",\"sudo /data/airflow/host_config/rebuild.sh\"]}" \
+            --region ${{ steps.vars.outputs.aws_region }} \
+            --output text
+
+      - name: Sync Airflow DAGs if Rebuild not Required
+        id: sync_airflow_dags
+        if: steps.check_airflow_config_changes.outputs.airflow_rebuild == 'false'
+        run: |
+          echo "Syncing Airflow DAGs..."
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --instance-ids ${{ steps.terraform_vars.outputs.instance_id }} \
+            --parameters "{\"commands\":[\"sudo chmod +x /data/airflow/host_config/*.sh\",\"sudo /data/airflow/host_config/sync_s3.sh\"]}" \
+            --region ${{ steps.vars.outputs.aws_region }} \
+            --output text
+
       - name: Create and Upload Kafka Scripts Environment File
         id: create_kafka_env_file
         run: |

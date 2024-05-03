@@ -121,8 +121,7 @@ echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
 aws s3 cp s3://${infra_bucket_name}/orchestration/${environment}/airflow /data/airflow --recursive
 
 echo "Building and starting Airflow" >> /home/ec2-user/init.log
-docker compose -f /data/airflow/config/docker-compose.yaml up
-docker compose -f /data/airflow/config/docker-compose.yaml --profile flower up -d
+docker compose -f /data/airflow/config/docker-compose.yaml up -d --build
 
 echo "Airflow setup completed." >> /home/ec2-user/init.log
 
