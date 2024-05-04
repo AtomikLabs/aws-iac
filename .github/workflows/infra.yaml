@@ -444,7 +444,7 @@ jobs:
           echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> kafka.env
           echo "ORCHESTRATION_HOST_PRIVATE_IP=${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}" >> kafka.env
           echo "Copying file to s3..."
-          aws s3 cp kafka.env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka/.env
+          aws s3 cp kafka.env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/kafka/topics/.env
 
       - name: Setup Kafka
         if: steps.check_changes.outputs.orchestration_host_rebuild == 'true'
