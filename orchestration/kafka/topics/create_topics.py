@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from kafka.admin import KafkaAdminClient, NewTopic
 from kafka.errors import TopicAlreadyExistsError, KafkaError
 
-load_dotenv("/data/kafka/.env")
+load_dotenv("/data/kafka/topics/.env")
 
 
 def create_topics():
