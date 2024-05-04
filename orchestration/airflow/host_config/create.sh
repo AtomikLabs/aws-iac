@@ -13,6 +13,6 @@ echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
 
 echo "Building and starting Airflow"
 cd /data/airflow
-docker compose -f docker-compose.yaml up -d --build
+docker compose -f /data/airflow/docker-compose.yaml up -d --build
 
 echo "Airflow setup completed." 
