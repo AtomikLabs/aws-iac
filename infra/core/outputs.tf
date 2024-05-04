@@ -59,7 +59,7 @@ output "aws_glue_registry_name" {
   value       = module.orchestration.aws_glue_registry_name
 }
 
-output "arxiv_research-ingestion-event-schema" {
+output "arxiv_research_ingestion_event_schema" {
   description = "Schema for arxiv research ingestion event"
   value       = module.orchestration.arxiv_research_ingestion_event_schema
 }

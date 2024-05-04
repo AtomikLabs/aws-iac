@@ -349,7 +349,7 @@ resource "aws_glue_registry" "glue_registry" {
 }
 
 resource "aws_glue_schema" "arxiv_research_ingestion_event_schema" {
-    schema_name = "${local.environment}-arxiv_research-ingestion-event-schema"
+    schema_name = "${local.environment}_arxiv_research_ingestion_event_schema"
     compatibility = "NONE"
     data_format = "AVRO"
     registry_arn = aws_glue_registry.glue_registry.arn

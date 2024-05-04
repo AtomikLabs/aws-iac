@@ -352,7 +352,6 @@ jobs:
           echo 'ARXIV_SETS=${{ steps.vars.outputs.arxiv_sets }}' >> .env
           echo "AWS_GLUE_REGISTRY_NAME=${{ steps.terraform_vars.outputs.aws_glue_registry_name }}" >> .env
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> .env
-          echo "DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC=${{ steps.terraform_vars.outputs.data_arxiv_summaries_ingestion_complete }}" >> .env
           echo "DATA_BUCKET=${{ steps.terraform_vars.outputs.data_bucket }}" >> .env
           echo "DATA_INGESTION_KEY_PREFIX=${{ steps.vars.outputs.data_ingestion_key_prefix }}" >> .env
           echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> .env

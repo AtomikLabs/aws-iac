@@ -26,6 +26,7 @@ from shared.utils.constants import (
     ARXIV_API_MAX_RETRIES,
     ARXIV_BASE_URL,
     ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA,
+    ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV,
     ARXIV_SETS,
     AWS_GLUE_REGISTRY_NAME,
     AWS_REGION,
@@ -113,7 +114,7 @@ def get_config(context: dict) -> dict:
         config = {
             ARXIV_API_MAX_RETRIES: int(os.getenv(ARXIV_API_MAX_RETRIES)),
             ARXIV_BASE_URL: os.getenv(ARXIV_BASE_URL).strip(),
-            ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA: os.getenv(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA),
+            ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV: os.getenv(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV),
             ARXIV_SETS: ast.literal_eval(os.getenv(ARXIV_SETS)),
             AWS_GLUE_REGISTRY_NAME: os.getenv(AWS_GLUE_REGISTRY_NAME),
             AWS_REGION: os.getenv(AWS_REGION),
@@ -148,11 +149,10 @@ def get_config(context: dict) -> dict:
         if (
             not config.get(ARXIV_API_MAX_RETRIES)
             or not config.get(ARXIV_BASE_URL)
-            or not config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA)
+            or not config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV)
             or not config.get(ARXIV_SETS)
             or not config.get(AWS_GLUE_REGISTRY_NAME)
             or not config.get(AWS_REGION)
-            or not config.get(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC)
             or not config.get(DATA_BUCKET)
             or not config.get(DATA_INGESTION_KEY_PREFIX)
             or not config.get(ENVIRONMENT_NAME)
@@ -454,7 +454,7 @@ async def publish_to_kafka(config: dict, data_nodes: list):
             await producer.start()
             try:
                 await producer.send_and_wait(
-                    config.get(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC),
+                    DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC,
                     raw_bytes,
                 )
             finally:
