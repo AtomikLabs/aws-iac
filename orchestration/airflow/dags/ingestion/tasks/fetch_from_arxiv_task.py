@@ -25,7 +25,6 @@ from shared.utils.constants import (
     AIRFLOW_RUN_ID,
     ARXIV_API_MAX_RETRIES,
     ARXIV_BASE_URL,
-    ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA,
     ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV,
     ARXIV_SETS,
     AWS_GLUE_REGISTRY_NAME,
@@ -428,7 +427,7 @@ async def publish_to_kafka(config: dict, data_nodes: list):
     schema_response = glue_client.get_schema_version(
         SchemaId={
             "RegistryName": config.get(AWS_GLUE_REGISTRY_NAME),
-            "SchemaName": config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA),
+            "SchemaName": config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV),
         },
         SchemaVersionNumber={"LatestVersion": True},
     )
