@@ -367,6 +367,7 @@ jobs:
         id: check_orchestration_host_changes
         run: |
           echo "Checking for changes in orchestration host files..."
+          git fetch origin ${{ github.base_ref }}
           if git diff --name-only origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }} | grep -q 'infra/core/orchestration/'; then
             echo "orchestration_host_rebuild=true" >> $GITHUB_OUTPUT
           else
@@ -377,6 +378,7 @@ jobs:
         id: check_airflow_config_changes
         run: |
           echo "Checking for changes in Airflow config files..."
+          git fetch origin ${{ github.base_ref }}
           if git diff --name-only origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }} | grep -q 'orchestration/airflow/host_config/'; then
             echo "airflow_rebuild=true" >> $GITHUB_OUTPUT
           else
@@ -433,6 +435,7 @@ jobs:
         id: check_kafka_config_changes
         run: |
           echo "Checking for changes in Kafka config files..."
+          git fetch origin ${{ github.base_ref }}
           if git diff --name-only origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }} | grep -q 'orchestration/kafka/host_config/'; then
             echo "kafka_rebuild=true" >> $GITHUB_OUTPUT
           else
@@ -440,13 +443,13 @@ jobs:
           fi
 
       - name: Setup Kafka
-        if: steps.check_kafka_config_changes.outputs.kafka_rebuild == 'true' && steps.check_orchestration_host_changes.outputs.orchestration_host_rebuild == 'false'
+        if: steps.check_orchestration_host_changes.outputs.orchestration_host_rebuild == 'true'
         run: |
           echo "Setting up Kafka..."
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --instance-ids ${{ steps.terraform_vars.outputs.instance_id }} \
-            --parameters "{\"commands\":[\"sudo chmod +x /data/kafka/host_config/*.sh\",\"sudo /data/kafka/host_config/sync_s3.sh\",\"sudo /data/kafka/host_config/create.sh\"]}" \
+            --parameters "{\"commands\":[\"sudo chmod +x /data/kafka/host_config/*.sh\",\"sudo /data/kafka/host_config/sync_s3.sh\",\"sudo /data/kafka/host_config/create.sh\",\"sudo /data/kafka/host_config/update_topics.sh\"]}" \
             --region ${{ steps.vars.outputs.aws_region }} \
             --output text
 
