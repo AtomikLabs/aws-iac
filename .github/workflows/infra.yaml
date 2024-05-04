@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install jq
         run: sudo apt-get install jq
@@ -362,6 +364,12 @@ jobs:
           cat .env
           echo "Copying file to s3..."
           aws s3 cp .env s3://${{ steps.vars.outputs.infra_config_bucket }}/orchestration/${{ env.ENV_NAME }}/airflow/dags/.env
+
+      - name: Fetch specific commits for PR
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin +${{ github.event.pull_request.base.sha }}
+          git fetch origin +${{ github.event.pull_request.head.sha }}
 
       - name: Check for Changes
         id: check_changes
