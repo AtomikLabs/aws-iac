@@ -378,7 +378,7 @@ jobs:
             CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
           else
             git fetch --depth=2  # Ensure at least two commits are fetched
-            CHANGED_FILES=$(git diff --name-only HEAD^..HEAD)
+            CHANGED_FILES=$(git diff --name-only HEAD^1..HEAD)
           fi
 
           if echo "$CHANGED_FILES" | grep -qi 'infra/core/orchestration/'; then
