@@ -35,7 +35,7 @@ with DAG(
     SERVICE_NAME,
     catchup=False,
     default_args=DEFAULT_LOGGING_ARGS,
-    schedule_interval="0 4 * * *",
+    schedule_interval="0 11 * * *",
     start_date=start_date,
     tags=["ingestion"],
 ) as dag:
