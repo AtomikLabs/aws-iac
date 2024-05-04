@@ -367,13 +367,13 @@ jobs:
         id: check_orchestration_host_changes
         run: |
           echo "Checking for changes in orchestration host files..."
-          echo "orchestration_host_rebuild=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -q 'infra/core/orchestration/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "orchestration_host_rebuild=$(git diff --name-only origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }} | grep -q 'infra/core/orchestration/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
       - name: Check for Airflow Config Changes
         id: check_airflow_config_changes
         run: |
           echo "Checking for changes in Airflow config files..."
-          echo "airflow_rebuild=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -q 'orchestration/airflow/host_config/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "airflow_rebuild=$(git diff --name-only origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }} | grep -q 'orchestration/airflow/host_config/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
       - name: Setup Airflow
         id: setup_airflow
@@ -425,7 +425,7 @@ jobs:
         id: check_kafka_config_changes
         run: |
           echo "Checking for changes in Kafka config files..."
-          echo "kafka_rebuild=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -q 'orchestration/kafka/host_config/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "kafka_rebuild=$(git diff --name-only origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }} | grep -q 'orchestration/kafka/host_config/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
       - name: Setup Kafka
         if: steps.check_kafka_config_changes.outputs.kafka_rebuild == 'true' && steps.check_orchestration_host_changes.outputs.orchestration_host_rebuild == 'false'
