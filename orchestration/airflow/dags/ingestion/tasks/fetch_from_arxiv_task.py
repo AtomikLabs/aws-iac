@@ -1,10 +1,10 @@
 import ast
+import asyncio
 import io
 import json
 import os
 from logging.config import dictConfig
 
-import asyncio
 import avro
 import boto3
 import defusedxml.ElementTree as ET

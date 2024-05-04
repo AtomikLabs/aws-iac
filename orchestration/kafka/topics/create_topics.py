@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from kafka.admin import KafkaAdminClient, NewTopic
-from kafka.errors import TopicAlreadyExistsError, KafkaError
+from kafka.errors import KafkaError, TopicAlreadyExistsError
 
 load_dotenv("/data/kafka/topics/.env")
 

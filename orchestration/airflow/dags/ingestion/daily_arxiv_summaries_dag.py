@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from logging.config import dictConfig
 
 import ingestion.tasks.fetch_from_arxiv_task as ffat
@@ -6,7 +5,7 @@ import ingestion.tasks.most_recent_research_task as mrrt
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.utils.dates import days_ago, cron_datetime
+from airflow.utils.dates import cron_datetime, days_ago
 from pendulum import timezone
 from shared.utils.constants import DEFAULT_LOGGING_ARGS, LOGGING_CONFIG
 
