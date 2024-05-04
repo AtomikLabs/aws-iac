@@ -111,45 +111,4 @@ chmod +x $DOCKER_CONFIG/docker-compose
 
 echo "Docker setup completed." 
 
-echo "Starting the Airflow setup..." 
-
-sudo mkdir -p /data/airflow/dags /data/airflow/logs /data/airflow/plugins /data/airflow/config
-sudo chown -R 50000:50000 /data/airflow
-sudo chmod -R 755 /data/airflow
-
-echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_GID=0" > /data/.env
-
-aws s3 cp s3://$ATOMIKLABS_INFRA_BUCKET_NAME/orchestration/$ATOMIKLABS_ENV/airflow /data/airflow --recursive
-
-echo "Building and starting Airflow" 
-docker compose -f /data/airflow/host_config/docker-compose.yaml up -d --build
-
-echo "Airflow setup completed." 
-
-echo "Starting Kafka setup..." 
-
-mkdir -p /data/kafka/logs
-mkdir -p /data/kafka/kafka-ui
-mkdir -p /data/kafka/topics
-mkdir -p /data/kafka/host_config
-chown -R 1000:1000 /data/kafka
-chmod -R 755 /data/kafka
-
-aws s3 cp s3://$ATOMIKLABS_INFRA_BUCKET_NAME/orchestration/$ATOMIKLABS_ENV/kafka /data/kafka --recursive
-
-echo "Building and starting Kafka" 
-cd /data/kafka/host_config
-docker compose -f docker-compose.yaml up -d --build
-docker compose -f docker-compose.yaml run --rm --no-deps --entrypoint '/bin/sh' broker -c 'start=$(date +%s); while : ; do /opt/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_IP:9092 --list > /dev/null 2>&1; [ $? -eq 0 ] && break; now=$(date +%s); [ $((now - start)) -ge 900 ] && break; sleep 5; done'
-
-cd /data/kafka/topics
-yum install -y pip
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python3 create_topics.py
-deactivate
-
-echo "Kafka setup completed." 
-
-touch /data/.docker_op_complete
+aws s3 cp s3://$ATOMIKLABS_INFRA_BUCKET_NAME/orchestration/$ATOMIKLABS_ENV /data --recursive
