@@ -4,12 +4,13 @@ import json
 import os
 from logging.config import dictConfig
 
+import asyncio
 import avro
 import boto3
 import defusedxml.ElementTree as ET
-import kafka
 import requests
 import structlog
+from aiokafka import AIOKafkaProducer
 from avro.io import BinaryEncoder, DatumWriter, validate
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
@@ -94,7 +95,7 @@ def run(**context: dict):
         logger.info(f"Completed {TASK_NAME} task", task_name=TASK_NAME, keys=", ".join(data.keys()))
         key_list = [x.get("key") for x in data.values()]
         context.get("ti").xcom_push(key=RAW_DATA_KEYS, value=key_list)
-        publish_to_kafka(config, data_nodes)
+        asyncio.run(publish_to_kafka(config, data_nodes))
     except Exception as e:
         logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
         raise e
@@ -422,7 +423,7 @@ def get_data_source(config: dict, driver: GraphDatabase) -> DataSource:
     return data_source
 
 
-def publish_to_kafka(config: dict, data_nodes: list):
+async def publish_to_kafka(config: dict, data_nodes: list):
     glue_client = boto3.client("glue", region_name=config.get(AWS_REGION))
     schema_response = glue_client.get_schema_version(
         SchemaId={
@@ -449,17 +450,15 @@ def publish_to_kafka(config: dict, data_nodes: list):
             writer.write(data, encoder)
             raw_bytes = bytes_writer.getvalue()
 
-            producer = kafka.KafkaProducer(
-                bootstrap_servers=[f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092"],
-            )
-            producer.send(
-                config.get(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC),
-                raw_bytes,
-            )
-            producer.flush()
-            producer.close()
-            bytes_writer.seek(0)
-            bytes_writer.truncate()
+            producer = AIOKafkaProducer(bootstrap_servers=f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092")
+            await producer.start()
+            try:
+                await producer.send_and_wait(
+                    config.get(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC),
+                    raw_bytes,
+                )
+            finally:
+                await producer.stop()
         except Exception as e:
             logger.error(
                 "Failed to validate data against schema",
