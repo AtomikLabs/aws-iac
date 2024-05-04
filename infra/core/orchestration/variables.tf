@@ -1,3 +1,8 @@
+variable "account_id" {
+  description = "Account ID"
+  type        = string
+}
+
 variable "app_name" {
   description = "Base name of the application"
   type        = string

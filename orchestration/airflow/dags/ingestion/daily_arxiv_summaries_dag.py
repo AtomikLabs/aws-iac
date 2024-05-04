@@ -5,6 +5,7 @@ import ingestion.tasks.most_recent_research_task as mrrt
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.utils.dates import days_ago
 from shared.utils.constants import DEFAULT_LOGGING_ARGS, LOGGING_CONFIG
 
 dictConfig(LOGGING_CONFIG)
@@ -28,11 +29,14 @@ logger = structlog.get_logger()
 
 SERVICE_NAME = "daily_arxiv_summaries_dag"
 
+start_date = days_ago(1)
+
 with DAG(
     SERVICE_NAME,
     catchup=False,
     default_args=DEFAULT_LOGGING_ARGS,
-    schedule_interval=None,
+    schedule_interval="0 4 * * *",
+    start_date=start_date,
     tags=["ingestion"],
 ) as dag:
 

@@ -55,7 +55,7 @@ class S3Manager:
             raise ValueError("key must be a non-empty string")
         self.logger.info("Deleting content from S3", key=key, bucket_name=self.bucket_name)
         try:
-            s3 = boto3.resource("s3")
+            s3 = boto3.resource("s3", region_name="us-east-1")
             s3.Object(self.bucket_name, key).delete()
             self.logger.info("Deleted content from S3", key=key, bucket_name=self.bucket_name)
         except Exception as e:

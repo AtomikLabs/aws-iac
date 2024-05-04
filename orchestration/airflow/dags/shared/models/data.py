@@ -2,10 +2,10 @@ import logging
 import uuid
 
 import structlog
+from neo4j import Driver
 from shared.models.base_model import BaseModel
 from shared.utils.constants import FAILED_TO_CREATE_DATA
 from shared.utils.utils import get_storage_key_datetime, validate_strings
-from neo4j import Driver
 
 structlog.configure(
     [
