@@ -373,50 +373,50 @@ jobs:
       - name: Check for Changes
         id: check_changes
         run: |
-        echo "Determining context and checking for changes..."
+          echo "Determining context and checking for changes..."
 
-        if ! git rev-parse --git-dir > /dev/null 2>&1; then
-            echo "Error: Current directory is not a valid Git repository."
-            exit 1
-        fi
-        
-        if [[ $(git rev-list --count HEAD) -eq 0 ]]; then
-            echo "Error: No commits found in the repository."
-            exit 1
-        fi
-        
-        if [[ "push" == "pull_request" ]]; then
-            CHANGED_FILES=$(git diff --name-only ..)
-        else
-            git fetch --depth=2 # Ensure at least two commits are fetched
-            CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
-        fi
-        
-        if echo "$CHANGED_FILES" | grep -qi 'infra/core/orchestration/'; then
-            echo "orchestration_host_rebuild=true" >> $GITHUB_OUTPUT
-        else
-            echo "orchestration_host_rebuild=false" >> $GITHUB_OUTPUT
-        fi
-        
-        AIRFLOW_REBUILD=false
-        for file in $CHANGED_FILES; do
-            if [[ $file =~ ^orchestration/airflow/(requirements.txt|Dockerfile|docker-compose.yaml|host_config/|plugins/) ]]; then
-                AIRFLOW_REBUILD=true
-                break
-            fi
-        done
-        
-        if [[ $AIRFLOW_REBUILD == true ]]; then
-            echo "airflow_rebuild=true" >> $GITHUB_OUTPUT
-        else
-            echo "airflow_rebuild=false" >> $GITHUB_OUTPUT
-        fi
-        
-        if echo "$CHANGED_FILES" | grep -qi 'orchestration/kafka/host_config/'; then
-            echo "kafka_rebuild=true" >> $GITHUB_OUTPUT
-        else
-            echo "kafka_rebuild=false" >> $GITHUB_OUTPUT
-        fi
+          if ! git rev-parse --git-dir > /dev/null 2>&1; then
+              echo "Error: Current directory is not a valid Git repository."
+              exit 1
+          fi
+
+          if [[ $(git rev-list --count HEAD) -eq 0 ]]; then
+              echo "Error: No commits found in the repository."
+              exit 1
+          fi
+
+          if [[ "push" == "pull_request" ]]; then
+              CHANGED_FILES=$(git diff --name-only ..)
+          else
+              git fetch --depth=2 # Ensure at least two commits are fetched
+              CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
+          fi
+
+          if echo "$CHANGED_FILES" | grep -qi 'infra/core/orchestration/'; then
+              echo "orchestration_host_rebuild=true" >> $GITHUB_OUTPUT
+          else
+              echo "orchestration_host_rebuild=false" >> $GITHUB_OUTPUT
+          fi
+
+          AIRFLOW_REBUILD=false
+          for file in $CHANGED_FILES; do
+              if [[ $file =~ ^orchestration/airflow/(requirements.txt|Dockerfile|docker-compose.yaml|host_config/|plugins/) ]]; then
+                  AIRFLOW_REBUILD=true
+                  break
+              fi
+          done
+
+          if [[ $AIRFLOW_REBUILD == true ]]; then
+              echo "airflow_rebuild=true" >> $GITHUB_OUTPUT
+          else
+              echo "airflow_rebuild=false" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$CHANGED_FILES" | grep -qi 'orchestration/kafka/host_config/'; then
+              echo "kafka_rebuild=true" >> $GITHUB_OUTPUT
+          else
+              echo "kafka_rebuild=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Setup Airflow
         id: setup_airflow
