@@ -37,7 +37,7 @@ with DAG(
     default_args=DEFAULT_LOGGING_ARGS,
     schedule_interval="0 11 * * *",
     start_date=start_date,
-    tags=["ingestion"],
+    tags=["ingestion", "arxiv"],
 ) as dag:
 
     most_recent_research_task = PythonOperator(
