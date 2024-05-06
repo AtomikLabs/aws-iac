@@ -8,7 +8,7 @@ import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
-from orchestration.airflow.dags.shared.sensors.kafka_topic_sensor import KafkaTopicSensor
+from shared.sensors.kafka_topic_sensor import KafkaTopicSensor
 from shared.utils.constants import DEFAULT_LOGGING_ARGS, LOGGING_CONFIG
 
 dictConfig(LOGGING_CONFIG)
