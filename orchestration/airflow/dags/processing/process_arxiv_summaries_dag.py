@@ -8,6 +8,7 @@ import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
+from orchestration.airflow.dags.shared.sensors.kafka_topic_sensor import KafkaTopicSensor
 from shared.utils.constants import DEFAULT_LOGGING_ARGS, LOGGING_CONFIG
 
 dictConfig(LOGGING_CONFIG)
@@ -37,10 +38,19 @@ with DAG(
     SERVICE_NAME,
     catchup=False,
     default_args=DEFAULT_LOGGING_ARGS,
-    schedule_interval=None,
+    schedule_interval="@hourly",
     start_date=start_date,
     tags=["process", "arxiv"],
 ) as dag:
+
+    kafka_listener_task = KafkaTopicSensor(
+        task_id="kafka_listener",
+        topic="arxiv_summaries",
+        bootstrap_servers="broker:9092",
+        poke_internval=60,
+        timeout=600,
+        dag=dag,
+    )
 
     create_intermediate_json_task = PythonOperator(
         task_id="create_intermediate_json",
@@ -70,4 +80,5 @@ with DAG(
         provide_context=True,
     )
 
-    create_intermediate_json_task >> save_summaries_to_datalake_task >> save_full_text_to_datalake_task >> generate_neo4j_graph_task
+    kafka_listener_task >> create_intermediate_json_task
+    # create_intermediate_json_task >> save_summaries_to_datalake_task >> save_full_text_to_datalake_task >> generate_neo4j_graph_task
