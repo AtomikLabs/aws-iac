@@ -1,7 +1,7 @@
 import asyncio
-import structlog
 from logging.config import dictConfig
 
+import structlog
 from aiokafka import AIOKafkaConsumer
 from airflow.sensors.base import BaseSensorOperator
 from airflow.utils.decorators import apply_defaults
@@ -42,9 +42,7 @@ class KafkaTopicSensor(BaseSensorOperator):
 
     async def async_poke(self, context):
         consumer = AIOKafkaConsumer(
-            self.topic,
-            bootstrap_servers=self.bootstrap_servers,
-            consumer_timeout_ms=self.consumer_timeout_ms
+            self.topic, bootstrap_servers=self.bootstrap_servers, consumer_timeout_ms=self.consumer_timeout_ms
         )
         await consumer.start()
         try:

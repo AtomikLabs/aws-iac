@@ -1,9 +1,9 @@
 from logging.config import dictConfig
 
 import processing.tasks.create_intermediate_json_task as cijt
-import processing.tasks.save_summaries_to_datalake_task as ssdl
-import processing.tasks.save_full_text_to_datalake_task as sfdt
 import processing.tasks.generate_neo4j_graph_task as gngt
+import processing.tasks.save_full_text_to_datalake_task as sfdt
+import processing.tasks.save_summaries_to_datalake_task as ssdl
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -47,7 +47,7 @@ with DAG(
         task_id="kafka_listener",
         topic="arxiv_summaries",
         bootstrap_servers="broker:9092",
-        poke_internval=60,
+        poke_interval=60,
         timeout=600,
         dag=dag,
     )
