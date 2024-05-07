@@ -81,4 +81,6 @@ with DAG(
     )
 
     kafka_listener_task >> create_intermediate_json_task
-    # create_intermediate_json_task >> save_summaries_to_datalake_task >> save_full_text_to_datalake_task >> generate_neo4j_graph_task
+    create_intermediate_json_task >> generate_neo4j_graph_task
+    generate_neo4j_graph_task >> save_summaries_to_datalake_task
+    generate_neo4j_graph_task >> save_full_text_to_datalake_task
