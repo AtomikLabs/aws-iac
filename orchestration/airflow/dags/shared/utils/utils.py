@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 from logging.config import dictConfig
 
@@ -6,10 +7,20 @@ import boto3
 import pytz
 import structlog
 from shared.utils.constants import (
+    AWS_REGION,
     AWS_SECRETS_MANAGER,
+    AWS_SECRETS_NEO4J_CREDENTIALS,
+    AWS_SECRETS_NEO4J_PASSWORD,
+    AWS_SECRETS_NEO4J_USERNAME,
     AWS_SECRETS_STRING,
     DEFAULT_TIMEZONE,
+    ENVIRONMENT_NAME,
     LOGGING_CONFIG,
+    NEO4J_CONNECTION_RETRIES,
+    NEO4J_CONNECTION_RETRIES_DEFAULT,
+    NEO4J_PASSWORD,
+    NEO4J_URI,
+    NEO4J_USERNAME,
     S3_KEY_DATE_FORMAT,
 )
 
@@ -70,6 +81,40 @@ def get_aws_secrets(secret_name: str, region: str, env: str = "") -> dict:
     if not secrets_dict:
         raise ValueError(f"{secret_name} not found in secrets manager")
     return secrets_dict
+
+
+def set_neo4j_env_vars(config: dict) -> dict:
+    """
+    Get the Neo4j environment variables.
+
+    Args:
+        config: A config dict to populate.
+
+    Returns:
+        config dict with Neo4j environment variables populated.
+
+    """
+    neo4j_retries = (
+        int(os.getenv(NEO4J_CONNECTION_RETRIES))
+        if os.getenv(NEO4J_CONNECTION_RETRIES)
+        else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
+    )
+    config.update(
+        [
+            (NEO4J_CONNECTION_RETRIES, neo4j_retries),
+        ]
+    )
+    neo4j_secrets_dict = get_aws_secrets(
+        AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
+    )
+    config.update(
+        [
+            (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
+            (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
+            (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
+        ]
+    )
+    return config
 
 
 def get_storage_key(key_prefix: str, key: str, format: str) -> str:

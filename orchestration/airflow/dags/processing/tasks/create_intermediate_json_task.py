@@ -3,6 +3,7 @@ import os
 import uuid
 from logging.config import dictConfig
 
+import boto3
 import defusedxml.ElementTree as ET
 import structlog
 from neo4j import GraphDatabase
@@ -27,7 +28,7 @@ from shared.utils.constants import (
     SERVICE_NAME,
     SERVICE_VERSION,
 )
-from shared.utils.utils import get_storage_key_date
+from shared.utils.utils import get_storage_key_date, set_neo4j_env_vars
 
 dictConfig(LOGGING_CONFIG)
 
@@ -51,6 +52,11 @@ logger = structlog.get_logger()
 
 def run(**context: dict):
     try:
+        # use boto3 to get dev/neo4j-credentials from secrets manager
+        client = boto3.client("secretsmanager", region_name="us-east-1")
+        secret = client.get_secret_value(SecretId="dev/neo4j-credentials")
+        secret_dict = json.loads(secret["SecretString"])
+        os.environ[NEO4J_PASSWORD] = secret_dict["password"]
         config = get_config()
         key_list = context.get("ti").xcom_pull(task_ids="fetch_from_arxiv_task", key=RAW_DATA_KEYS)
         s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
@@ -179,12 +185,10 @@ def get_config() -> dict:
             DATA_BUCKET: os.environ[DATA_BUCKET],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
             ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
-            NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
-            NEO4J_URI: os.environ[NEO4J_URI],
-            NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
             SERVICE_NAME: os.environ[SERVICE_NAME],
             SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
+        config = set_neo4j_env_vars(config)
         logger.debug("Config", method=get_config.__name__, config=config)
     except KeyError as e:
         logger.error("Missing environment variable", method=get_config.__name__, error=str(e))

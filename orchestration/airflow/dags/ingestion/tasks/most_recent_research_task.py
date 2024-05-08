@@ -12,20 +12,16 @@ from shared.utils.constants import (
     ARXIV_INGESTION_DAY_SPAN,
     ARXIV_RESEARCH_DATE_FORMAT,
     AWS_REGION,
-    AWS_SECRETS_NEO4J_CREDENTIALS,
-    AWS_SECRETS_NEO4J_PASSWORD,
-    AWS_SECRETS_NEO4J_USERNAME,
     ENVIRONMENT_NAME,
     INGESTION_EARLIEST_DATE,
     LOGGING_CONFIG,
     NEO4J_CONNECTION_RETRIES,
-    NEO4J_CONNECTION_RETRIES_DEFAULT,
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
     RESEARCH_RECORD_DATE,
 )
-from shared.utils.utils import get_aws_secrets, get_storage_key_datetime
+from shared.utils.utils import get_storage_key_datetime, set_neo4j_env_vars
 
 dictConfig(LOGGING_CONFIG)
 
@@ -81,31 +77,7 @@ def get_config() -> dict:
             AWS_REGION: os.getenv(AWS_REGION),
             ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME).replace("'", ""),
         }
-        neo4j_retries = (
-            int(os.getenv(NEO4J_CONNECTION_RETRIES))
-            if os.getenv(NEO4J_CONNECTION_RETRIES)
-            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
-        )
-        neo4j_retries = (
-            int(os.getenv(NEO4J_CONNECTION_RETRIES))
-            if os.getenv(NEO4J_CONNECTION_RETRIES)
-            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
-        )
-        config.update(
-            [
-                (NEO4J_CONNECTION_RETRIES, neo4j_retries),
-            ]
-        )
-        neo4j_secrets_dict = get_aws_secrets(
-            AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
-        )
-        config.update(
-            [
-                (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
-                (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
-                (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
-            ]
-        )
+        config = set_neo4j_env_vars(config)
         if (
             not config.get(ARXIV_INGESTION_DAY_SPAN)
             or not config.get(AWS_REGION)
