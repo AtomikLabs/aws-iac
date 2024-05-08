@@ -1,6 +1,6 @@
-from confluent_kafka import Consumer, KafkaError, KafkaException
 from airflow.sensors.base import BaseSensorOperator
 from airflow.utils.decorators import apply_defaults
+from confluent_kafka import Consumer, KafkaError, KafkaException
 
 
 class KafkaTopicSensor(BaseSensorOperator):
@@ -14,12 +14,14 @@ class KafkaTopicSensor(BaseSensorOperator):
 
     def poke(self, context):
         if not self.consumer:
-            self.consumer = Consumer({
-                "bootstrap.servers": self.bootstrap_servers,
-                "group.id": "airflow_kafka_sensor",
-                "auto.offset.reset": "earliest",
-                "enable.auto.commit": True,
-            })
+            self.consumer = Consumer(
+                {
+                    "bootstrap.servers": self.bootstrap_servers,
+                    "group.id": "airflow_kafka_sensor",
+                    "auto.offset.reset": "earliest",
+                    "enable.auto.commit": True,
+                }
+            )
             self.consumer.subscribe([self.topic])
 
         msg = self.consumer.poll(timeout=1.0)

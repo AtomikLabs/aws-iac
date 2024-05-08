@@ -1,10 +1,14 @@
 import json
 import os
-import urllib.parse
 import uuid
+from logging.config import dictConfig
 
 import defusedxml.ElementTree as ET
 import structlog
+from neo4j import GraphDatabase
+from shared.database.s3_manager import S3Manager
+from shared.models.data import Data
+from shared.models.data_operation import DataOperation
 from shared.utils.constants import (
     APP_NAME,
     CREATED_BY,
@@ -14,6 +18,7 @@ from shared.utils.constants import (
     ENVIRONMENT_NAME,
     ETL_KEY_PREFIX,
     INTERNAL_SERVER_ERROR,
+    LOGGING_CONFIG,
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
@@ -23,12 +28,7 @@ from shared.utils.constants import (
     SERVICE_NAME,
     SERVICE_VERSION,
 )
-from logging.config import dictConfig
-from shared.models.data import Data
-from shared.models.data_operation import DataOperation
-from neo4j import GraphDatabase
-from shared.database.s3_manager import S3Manager
-from shared.utils.constants import LOGGING_CONFIG
+from shared.utils.utils import get_storage_key_date
 
 dictConfig(LOGGING_CONFIG)
 
@@ -139,7 +139,7 @@ def run(**context: dict):
         )
     except Exception as e:
         logger.error(e)
-        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e), "event": event}
+        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e)}
 
 
 def log_initial_info(event: dict) -> None:
@@ -262,7 +262,7 @@ def get_output_key(config) -> str:
     Returns:
         str: The output key.
     """
-    key_date = utils.get_storage_key_date()
+    key_date = get_storage_key_date()
     return f"{config[ETL_KEY_PREFIX]}/{str(uuid.uuid4())}-parsed_arxiv_summaries-{key_date}.json"
 
 
@@ -278,4 +278,3 @@ def chunker(seq: list, size: int) -> list:
         list: The chunked list.
     """
     return (seq[pos : pos + size] for pos in range(0, len(seq), size))
-

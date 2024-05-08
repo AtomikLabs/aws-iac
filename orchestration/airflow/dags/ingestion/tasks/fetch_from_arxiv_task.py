@@ -431,7 +431,7 @@ def publish_to_kafka(config: dict, data_nodes: list):
     )
     schema = avro.schema.parse(schema_response.get(SCHEMA_DEFINITION))
 
-    producer = Producer({'bootstrap.servers': f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092"})
+    producer = Producer({"bootstrap.servers": f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092"})
 
     for set, data_node in data_nodes.items():
         try:

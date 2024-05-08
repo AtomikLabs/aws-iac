@@ -14,7 +14,8 @@ from shared.sensors.kafka_topic_sensor import KafkaTopicSensor
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
     DEFAULT_LOGGING_ARGS,
-    LOGGING_CONFIG
+    LOGGING_CONFIG,
+    ORCHESTRATION_HOST_PRIVATE_IP,
 )
 
 dictConfig(LOGGING_CONFIG)
@@ -52,7 +53,7 @@ with DAG(
     kafka_listener_task = KafkaTopicSensor(
         task_id="kafka_listener",
         topic="data_arxiv_summaries_ingestion_complete",
-        bootstrap_servers=f"{os.getenv("ORCHESTRATION_HOST_PRIVATE_IP")}:9092",
+        bootstrap_servers=f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092",
         poke_interval=60,
         timeout=600,
         dag=dag,
