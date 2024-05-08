@@ -1,3 +1,4 @@
+import os
 from logging.config import dictConfig
 
 import processing.tasks.create_intermediate_json_task as cijt
@@ -8,8 +9,13 @@ import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
+from dotenv import load_dotenv
 from shared.sensors.kafka_topic_sensor import KafkaTopicSensor
-from shared.utils.constants import DEFAULT_LOGGING_ARGS, LOGGING_CONFIG
+from shared.utils.constants import (
+    AIRFLOW_DAGS_ENV_PATH,
+    DEFAULT_LOGGING_ARGS,
+    LOGGING_CONFIG
+)
 
 dictConfig(LOGGING_CONFIG)
 
@@ -29,10 +35,10 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-
+start_date = days_ago(1)
+load_dotenv(dotenv_path=os.getenv(AIRFLOW_DAGS_ENV_PATH))
 SERVICE_NAME = "process_arxiv_summaries_dag"
 
-start_date = days_ago(1)
 
 with DAG(
     SERVICE_NAME,
@@ -45,8 +51,8 @@ with DAG(
 
     kafka_listener_task = KafkaTopicSensor(
         task_id="kafka_listener",
-        topic="arxiv_summaries",
-        bootstrap_servers="broker:9092",
+        topic="data_arxiv_summaries_ingestion_complete",
+        bootstrap_servers=f"{os.getenv("ORCHESTRATION_HOST_PRIVATE_IP")}:9092",
         poke_interval=60,
         timeout=600,
         dag=dag,
