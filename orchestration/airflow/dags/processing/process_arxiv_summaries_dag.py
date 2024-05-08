@@ -13,7 +13,10 @@ from dotenv import load_dotenv
 from shared.sensors.kafka_topic_sensor import KafkaTopicSensor
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
+    ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV,
+    DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC,
     DEFAULT_LOGGING_ARGS,
+    FETCH_FROM_ARXIV_TASK,
     LOGGING_CONFIG,
     ORCHESTRATION_HOST_PRIVATE_IP,
 )
@@ -52,7 +55,9 @@ with DAG(
 
     kafka_listener_task = KafkaTopicSensor(
         task_id="kafka_listener",
-        topic="data_arxiv_summaries_ingestion_complete",
+        topic=DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC,
+        schema=os.getenv(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV),
+        task_ids=[FETCH_FROM_ARXIV_TASK],
         bootstrap_servers=f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092",
         poke_interval=60,
         timeout=600,

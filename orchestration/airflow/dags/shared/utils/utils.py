@@ -6,7 +6,9 @@ from logging.config import dictConfig
 import boto3
 import pytz
 import structlog
+from avro.schema import parse, Schema
 from shared.utils.constants import (
+    AWS_GLUE_REGISTRY_NAME,
     AWS_REGION,
     AWS_SECRETS_MANAGER,
     AWS_SECRETS_NEO4J_CREDENTIALS,
@@ -22,6 +24,7 @@ from shared.utils.constants import (
     NEO4J_URI,
     NEO4J_USERNAME,
     S3_KEY_DATE_FORMAT,
+    SCHEMA_DEFINITION,
 )
 
 dictConfig(LOGGING_CONFIG)
@@ -81,6 +84,18 @@ def get_aws_secrets(secret_name: str, region: str, env: str = "") -> dict:
     if not secrets_dict:
         raise ValueError(f"{secret_name} not found in secrets manager")
     return secrets_dict
+
+
+def get_schema(schema_name: str) -> Schema:
+    glue_client = boto3.client("glue", region_name=os.getenv(AWS_REGION))
+    schema_response = glue_client.get_schema_version(
+        SchemaId={
+            "RegistryName": os.getenv(AWS_GLUE_REGISTRY_NAME),
+            "SchemaName": os.getenv(schema_name),
+        },
+        SchemaVersionNumber={"LatestVersion": True},
+    )
+    return parse(schema_response.get(SCHEMA_DEFINITION))
 
 
 def set_neo4j_env_vars(config: dict) -> dict:

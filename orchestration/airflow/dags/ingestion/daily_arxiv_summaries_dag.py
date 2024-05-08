@@ -6,7 +6,12 @@ import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
-from shared.utils.constants import DEFAULT_LOGGING_ARGS, LOGGING_CONFIG
+from shared.utils.constants import (
+    DEFAULT_LOGGING_ARGS,
+    FETCH_FROM_ARXIV_TASK,
+    LOGGING_CONFIG,
+    MOST_RECENT_RESEARCH_TASK,
+)
 
 dictConfig(LOGGING_CONFIG)
 
@@ -41,14 +46,14 @@ with DAG(
 ) as dag:
 
     most_recent_research_task = PythonOperator(
-        task_id="most_recent_research",
+        task_id=MOST_RECENT_RESEARCH_TASK,
         python_callable=mrrt.run,
         dag=dag,
         provide_context=True,
     )
 
     fetch_from_arxiv_task = PythonOperator(
-        task_id="fetch_from_arxiv",
+        task_id=FETCH_FROM_ARXIV_TASK,
         python_callable=ffat.run,
         dag=dag,
         provide_context=True,

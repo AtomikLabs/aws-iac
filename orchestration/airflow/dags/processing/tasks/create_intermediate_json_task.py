@@ -3,7 +3,6 @@ import os
 import uuid
 from logging.config import dictConfig
 
-import boto3
 import defusedxml.ElementTree as ET
 import structlog
 from neo4j import GraphDatabase
@@ -25,6 +24,7 @@ from shared.utils.constants import (
     PARSED_BY,
     PARSES,
     RAW_DATA_KEYS,
+    SCHEMA,
     SERVICE_NAME,
     SERVICE_VERSION,
 )
@@ -52,16 +52,11 @@ logger = structlog.get_logger()
 
 def run(**context: dict):
     try:
-        # use boto3 to get dev/neo4j-credentials from secrets manager
-        client = boto3.client("secretsmanager", region_name="us-east-1")
-        secret = client.get_secret_value(SecretId="dev/neo4j-credentials")
-        secret_dict = json.loads(secret["SecretString"])
-        os.environ[NEO4J_PASSWORD] = secret_dict["password"]
         config = get_config()
-        key_list = context.get("ti").xcom_pull(task_ids="fetch_from_arxiv_task", key=RAW_DATA_KEYS)
+        schema = context.get("ti").xcom_pull(task_ids="fetch_from_arxiv_task", key=SCHEMA)
+        print(schema)
         s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
-        for key in key_list:
-            create_json_data(config, s3_manager, key)
+        create_json_data(config, s3_manager, schema.get("s3_key"))
     except Exception as e:
         logger.error(e)
         return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e)}
