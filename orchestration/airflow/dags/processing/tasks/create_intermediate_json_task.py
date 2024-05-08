@@ -52,12 +52,18 @@ logger = structlog.get_logger()
 def run(**context: dict):
     try:
         config = get_config()
-        bucket_name = "dev-atomiklabs-data-bucket"
         key_list = context.get("ti").xcom_pull(task_ids="fetch_from_arxiv_task", key=RAW_DATA_KEYS)
+        s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
         for key in key_list:
-            print(key)
-        key = key_list[0]
-        s3_manager = S3Manager(bucket_name, logger)
+            create_json_data(config, s3_manager, key)
+    except Exception as e:
+        logger.error(e)
+        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e)}
+    return {"statusCode": 200, "body": "Success"}
+
+
+def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> dict:
+    try:
         xml_data = json.loads(s3_manager.load(key))
         extracted_data = {"records": []}
         success = True
