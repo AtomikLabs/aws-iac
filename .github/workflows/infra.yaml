@@ -393,7 +393,7 @@ jobs:
           fi
 
           if echo "$CHANGED_FILES" | grep -qi 'infra/core/orchestration/'; then
-              echo "orchestration_host_rebuild=true" >> $GITHUB_OUTPUT
+              echo "orchestration_host_rebuild=false" >> $GITHUB_OUTPUT
           else
               echo "orchestration_host_rebuild=false" >> $GITHUB_OUTPUT
           fi
