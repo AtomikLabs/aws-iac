@@ -46,7 +46,6 @@ from shared.utils.constants import (
     ORCHESTRATION_HOST_PRIVATE_IP,
     PROVIDES,
     RAW_DATA_KEYS,
-    SCHEMA,
     XML,
 )
 from shared.utils.utils import get_aws_secrets, get_storage_key, get_schema

@@ -5,10 +5,7 @@ from airflow.utils.decorators import apply_defaults
 from avro.io import validate
 from confluent_kafka import Consumer, KafkaError, KafkaException
 from dotenv import load_dotenv
-from shared.utils.constants import (
-    AIRFLOW_DAGS_ENV_PATH,
-    SCHEMA,
-)
+from shared.utils.constants import AIRFLOW_DAGS_ENV_PATH, SCHEMA
 from shared.utils.utils import get_schema
 
 load_dotenv(dotenv_path=AIRFLOW_DAGS_ENV_PATH)

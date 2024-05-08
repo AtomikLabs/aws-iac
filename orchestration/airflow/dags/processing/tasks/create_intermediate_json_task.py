@@ -23,7 +23,6 @@ from shared.utils.constants import (
     NEO4J_USERNAME,
     PARSED_BY,
     PARSES,
-    RAW_DATA_KEYS,
     SCHEMA,
     SERVICE_NAME,
     SERVICE_VERSION,

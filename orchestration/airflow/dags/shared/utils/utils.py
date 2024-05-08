@@ -6,7 +6,7 @@ from logging.config import dictConfig
 import boto3
 import pytz
 import structlog
-from avro.schema import parse, Schema
+from avro.schema import Schema, parse
 from shared.utils.constants import (
     AWS_GLUE_REGISTRY_NAME,
     AWS_REGION,
