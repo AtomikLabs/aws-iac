@@ -1,6 +1,5 @@
 import ast
 import asyncio
-import io
 import json
 import os
 from logging.config import dictConfig
@@ -10,8 +9,8 @@ import boto3
 import defusedxml.ElementTree as ET
 import requests
 import structlog
-from aiokafka import AIOKafkaProducer
-from avro.io import BinaryEncoder, DatumWriter, validate
+from avro.io import validate
+from confluent_kafka import Producer
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from requests.adapters import HTTPAdapter
@@ -422,7 +421,7 @@ def get_data_source(config: dict, driver: GraphDatabase) -> DataSource:
     return data_source
 
 
-async def publish_to_kafka(config: dict, data_nodes: list):
+def publish_to_kafka(config: dict, data_nodes: list):
     glue_client = boto3.client("glue", region_name=config.get(AWS_REGION))
     schema_response = glue_client.get_schema_version(
         SchemaId={
@@ -432,9 +431,9 @@ async def publish_to_kafka(config: dict, data_nodes: list):
         SchemaVersionNumber={"LatestVersion": True},
     )
     schema = avro.schema.parse(schema_response.get(SCHEMA_DEFINITION))
-    writer = DatumWriter(schema)
-    bytes_writer = io.BytesIO()
-    encoder = BinaryEncoder(bytes_writer)
+
+    producer = Producer({'bootstrap.servers': f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092"})
+
     for set, data_node in data_nodes.items():
         try:
             data = {
@@ -446,18 +445,8 @@ async def publish_to_kafka(config: dict, data_nodes: list):
             }
             if not validate(schema, data):
                 raise ValueError("Data does not match the schema")
-            writer.write(data, encoder)
-            raw_bytes = bytes_writer.getvalue()
 
-            producer = AIOKafkaProducer(bootstrap_servers=f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092")
-            await producer.start()
-            try:
-                await producer.send_and_wait(
-                    DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC,
-                    raw_bytes,
-                )
-            finally:
-                await producer.stop()
+            producer.produce(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC, json.dumps(data))
         except Exception as e:
             logger.error(
                 "Failed to validate data against schema",
@@ -467,3 +456,5 @@ async def publish_to_kafka(config: dict, data_nodes: list):
                 task_name=TASK_NAME,
             )
             raise e
+
+    producer.flush()

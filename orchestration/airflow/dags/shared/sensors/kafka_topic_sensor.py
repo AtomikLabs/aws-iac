@@ -4,7 +4,6 @@ from airflow.utils.decorators import apply_defaults
 
 
 class KafkaTopicSensor(BaseSensorOperator):
-    template_fields = ('topic',)
 
     @apply_defaults
     def __init__(self, topic, bootstrap_servers, *args, **kwargs):
@@ -16,9 +15,10 @@ class KafkaTopicSensor(BaseSensorOperator):
     def poke(self, context):
         if not self.consumer:
             self.consumer = Consumer({
-                'bootstrap.servers': self.bootstrap_servers,
-                'group.id': 'airflow_kafka_sensor',
-                'auto.offset.reset': 'earliest'
+                "bootstrap.servers": self.bootstrap_servers,
+                "group.id": "airflow_kafka_sensor",
+                "auto.offset.reset": "earliest",
+                "enable.auto.commit": True,
             })
             self.consumer.subscribe([self.topic])
 
@@ -27,10 +27,8 @@ class KafkaTopicSensor(BaseSensorOperator):
             return False
         if msg.error():
             if msg.error().code() == KafkaError._PARTITION_EOF:
-                # This error is not necessarily an exception but an informational message that end of partition is reached.
                 return False
             else:
-                # Handle other errors as exceptions
                 raise KafkaException(msg.error())
         else:
             return True
