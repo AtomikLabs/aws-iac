@@ -385,15 +385,19 @@ jobs:
               exit 1
           fi
 
-          if [[ "push" == "pull_request" ]]; then
-              CHANGED_FILES=$(git diff --name-only ..)
+          # For pull_request events, compare the base and head branches
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              git fetch origin ${{ github.event.pull_request.base.ref }}:${{ github.event.pull_request.base.ref }}
+              git fetch origin ${{ github.event.pull_request.head.ref }}:${{ github.event.pull_request.head.ref }}
+              CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
           else
+              # For other types of events that might require comparison with the previous commit
               git fetch --depth=2 # Ensure at least two commits are fetched
               CHANGED_FILES=$(git show --name-only HEAD --pretty="")
           fi
 
           if echo "$CHANGED_FILES" | grep -qi 'infra/core/orchestration/'; then
-              echo "orchestration_host_rebuild=false" >> $GITHUB_OUTPUT
+              echo "orchestration_host_rebuild=true" >> $GITHUB_OUTPUT
           else
               echo "orchestration_host_rebuild=false" >> $GITHUB_OUTPUT
           fi
