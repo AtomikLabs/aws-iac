@@ -10,7 +10,6 @@ from shared.database.s3_manager import S3Manager
 from shared.models.data import Data
 from shared.models.data_operation import DataOperation
 from shared.utils.constants import (
-    APP_NAME,
     CREATED_BY,
     CREATES,
     CS_CATEGORIES_INVERTED,
@@ -171,7 +170,6 @@ def get_config() -> dict:
     """
     try:
         config = {
-            APP_NAME: os.environ[APP_NAME],
             DATA_BUCKET: os.environ[DATA_BUCKET],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
             ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
