@@ -3,6 +3,8 @@ import json
 import os
 from logging.config import dictConfig
 
+import avro
+import boto3
 import defusedxml.ElementTree as ET
 import requests
 import structlog
@@ -23,6 +25,7 @@ from shared.utils.constants import (
     ARXIV_BASE_URL,
     ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV,
     ARXIV_SETS,
+    AWS_GLUE_REGISTRY_NAME,
     AWS_REGION,
     AWS_SECRETS_NEO4J_CREDENTIALS,
     AWS_SECRETS_NEO4J_PASSWORD,
@@ -46,9 +49,10 @@ from shared.utils.constants import (
     ORCHESTRATION_HOST_PRIVATE_IP,
     PROVIDES,
     RAW_DATA_KEYS,
+    SCHEMA_DEFINITION,
     XML,
 )
-from shared.utils.utils import get_aws_secrets, get_storage_key, get_schema
+from shared.utils.utils import get_aws_secrets, get_storage_key
 from urllib3.util.retry import Retry
 
 dictConfig(LOGGING_CONFIG)
@@ -109,6 +113,7 @@ def get_config(context: dict) -> dict:
             ARXIV_BASE_URL: os.getenv(ARXIV_BASE_URL).strip(),
             ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV: os.getenv(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV),
             ARXIV_SETS: ast.literal_eval(os.getenv(ARXIV_SETS)),
+            AWS_GLUE_REGISTRY_NAME: os.getenv(AWS_GLUE_REGISTRY_NAME),
             AWS_REGION: os.getenv(AWS_REGION),
             DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC: os.getenv(DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC),
             DATA_BUCKET: os.getenv(DATA_BUCKET),
@@ -143,6 +148,7 @@ def get_config(context: dict) -> dict:
             or not config.get(ARXIV_BASE_URL)
             or not config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV)
             or not config.get(ARXIV_SETS)
+            or not config.get(AWS_GLUE_REGISTRY_NAME)
             or not config.get(AWS_REGION)
             or not config.get(DATA_BUCKET)
             or not config.get(DATA_INGESTION_KEY_PREFIX)
@@ -415,10 +421,18 @@ def get_data_source(config: dict, driver: GraphDatabase) -> DataSource:
 
 
 def publish_to_kafka(config: dict, data_nodes: list):
-    logger.info(data_nodes)
-    schema = get_schema(config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV))
-    logger.info(schema)
+    glue_client = boto3.client("glue", region_name=config.get(AWS_REGION))
+    schema_response = glue_client.get_schema_version(
+        SchemaId={
+            "RegistryName": config.get(AWS_GLUE_REGISTRY_NAME),
+            "SchemaName": config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV),
+        },
+        SchemaVersionNumber={"LatestVersion": True},
+    )
+    schema = avro.schema.parse(schema_response.get(SCHEMA_DEFINITION))
+
     producer = Producer({"bootstrap.servers": f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092"})
+
     for set, data_node in data_nodes.items():
         try:
             data = {
