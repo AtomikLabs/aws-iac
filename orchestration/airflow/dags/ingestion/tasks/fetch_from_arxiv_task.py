@@ -415,7 +415,9 @@ def get_data_source(config: dict, driver: GraphDatabase) -> DataSource:
 
 
 def publish_to_kafka(config: dict, data_nodes: list):
+    logger.info(data_nodes)
     schema = get_schema(config.get(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV))
+    logger.info(schema)
     producer = Producer({"bootstrap.servers": f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092"})
     for set, data_node in data_nodes.items():
         try:
