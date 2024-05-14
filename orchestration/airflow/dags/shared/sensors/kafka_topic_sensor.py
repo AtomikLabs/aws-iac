@@ -14,12 +14,15 @@ load_dotenv(dotenv_path=AIRFLOW_DAGS_ENV_PATH)
 class KafkaTopicSensor(BaseSensorOperator):
 
     @apply_defaults
-    def __init__(self, topic, schema, task_ids, bootstrap_servers, *args, **kwargs):
+    def __init__(self, topic, schema, task_ids, bootstrap_servers, logger, poke_interval, timeout, *args, **kwargs):
         super(KafkaTopicSensor, self).__init__(*args, **kwargs)
         self.topic = topic
         self.schema = schema
         self.task_ids = task_ids
         self.bootstrap_servers = bootstrap_servers
+        self.logger = logger
+        self.poke_interval = poke_interval
+        self.timeout = timeout
         self.consumer = None
 
     def poke(self, context):
