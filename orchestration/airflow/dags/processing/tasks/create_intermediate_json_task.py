@@ -5,11 +5,14 @@ from logging.config import dictConfig
 
 import defusedxml.ElementTree as ET
 import structlog
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from shared.database.s3_manager import S3Manager
 from shared.models.data import Data
 from shared.models.data_operation import DataOperation
 from shared.utils.constants import (
+    AIRFLOW_DAGS_ENV_PATH,
+    AWS_REGION,
     CREATED_BY,
     CREATES,
     CS_CATEGORIES_INVERTED,
@@ -17,6 +20,7 @@ from shared.utils.constants import (
     ENVIRONMENT_NAME,
     ETL_KEY_PREFIX,
     INTERNAL_SERVER_ERROR,
+    KAFKA_LISTENER,
     LOGGING_CONFIG,
     NEO4J_PASSWORD,
     NEO4J_URI,
@@ -24,8 +28,6 @@ from shared.utils.constants import (
     PARSED_BY,
     PARSES,
     SCHEMA,
-    SERVICE_NAME,
-    SERVICE_VERSION,
 )
 from shared.utils.utils import get_storage_key_date, set_neo4j_env_vars
 
@@ -47,13 +49,14 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
+load_dotenv(dotenv_path=AIRFLOW_DAGS_ENV_PATH)
 
 
 def run(**context: dict):
     try:
         config = get_config()
-        schema = context.get("ti").xcom_pull(task_ids="fetch_from_arxiv_task", key=SCHEMA)
-        print(schema)
+        schema = context("ti").xcom_pull(task_ids=KAFKA_LISTENER, key=SCHEMA)
+        logger.debug("Schema", method=run.__name__, schema=schema)
         s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
         create_json_data(config, s3_manager, schema.get("s3_key"))
     except Exception as e:
@@ -176,11 +179,10 @@ def get_config() -> dict:
     """
     try:
         config = {
+            AWS_REGION: os.environ[AWS_REGION],
             DATA_BUCKET: os.environ[DATA_BUCKET],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
             ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
-            SERVICE_NAME: os.environ[SERVICE_NAME],
-            SERVICE_VERSION: os.environ[SERVICE_VERSION],
         }
         config = set_neo4j_env_vars(config)
         logger.debug("Config", method=get_config.__name__, config=config)

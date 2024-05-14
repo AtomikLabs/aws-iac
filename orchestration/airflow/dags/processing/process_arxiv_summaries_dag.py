@@ -59,8 +59,9 @@ with DAG(
         schema=os.getenv(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV),
         task_ids=[FETCH_FROM_ARXIV_TASK],
         bootstrap_servers=f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092",
+        logger=logger,
         poke_interval=60,
-        timeout=600,
+        timeout=6000,
         dag=dag,
     )
 

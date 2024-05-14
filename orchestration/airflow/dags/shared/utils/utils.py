@@ -91,7 +91,7 @@ def get_schema(schema_name: str) -> Schema:
     schema_response = glue_client.get_schema_version(
         SchemaId={
             "RegistryName": os.getenv(AWS_GLUE_REGISTRY_NAME),
-            "SchemaName": os.getenv(schema_name),
+            "SchemaName": schema_name,
         },
         SchemaVersionNumber={"LatestVersion": True},
     )
