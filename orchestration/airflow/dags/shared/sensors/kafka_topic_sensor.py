@@ -52,6 +52,7 @@ class KafkaTopicSensor(BaseSensorOperator):
             if not validate(schema, data):
                 return False
             context["ti"].xcom_push(key=SCHEMA, value=data)
+            self.consumer.commit()
             return True
 
     def cleanup(self, context):

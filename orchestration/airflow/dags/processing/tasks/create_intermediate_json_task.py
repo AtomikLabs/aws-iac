@@ -55,8 +55,9 @@ load_dotenv(dotenv_path=AIRFLOW_DAGS_ENV_PATH)
 def run(**context: dict):
     try:
         config = get_config()
-        schema = context("ti").xcom_pull(task_ids=KAFKA_LISTENER, key=SCHEMA)
-        logger.debug("Schema", method=run.__name__, schema=schema)
+        logger.info("Config pulled", method=run.__name__)
+        schema = context["ti"].xcom_pull(task_ids=KAFKA_LISTENER, key=SCHEMA)
+        logger.info("Schema", method=run.__name__, schema=schema)
         s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
         create_json_data(config, s3_manager, schema.get("s3_key"))
     except Exception as e:
@@ -185,12 +186,14 @@ def get_config() -> dict:
             ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
         }
         config = set_neo4j_env_vars(config)
-        logger.debug("Config", method=get_config.__name__, config=config)
+        logger.info("Config", method=get_config.__name__, config_file=config)
+        return config
     except KeyError as e:
         logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
         raise e
-    logger.debug("Config", method=get_config.__name__, config=config)
-    return config
+    except Exception as e:
+        logger.error("Error getting config", method=get_config.__name__, error=str(e))
+        raise e
 
 
 def parse_xml_data(xml_data: str) -> list:

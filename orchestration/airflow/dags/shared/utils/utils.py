@@ -75,15 +75,19 @@ def get_aws_secrets(secret_name: str, region: str, env: str = "") -> dict:
     Raises:
         ValueError: If the AWS secrets are not found in the AWS Secrets Manager.
     """
-    logger.info("Getting secrets from AWS Secrets Manager", secret_name=secret_name, region=region, env=env)
-    secrets_client = boto3.client(AWS_SECRETS_MANAGER, region_name=region)
-    secrets_name = env + "/" + secret_name if env else secret_name
-    secrets_response = secrets_client.get_secret_value(SecretId=secrets_name)
-    secrets_string = secrets_response[AWS_SECRETS_STRING]
-    secrets_dict = json.loads(secrets_string)
-    if not secrets_dict:
-        raise ValueError(f"{secret_name} not found in secrets manager")
-    return secrets_dict
+    try:
+        logger.info("Getting secrets from AWS Secrets Manager", secret_name=secret_name, region=region, env=env)
+        secrets_client = boto3.client(AWS_SECRETS_MANAGER, region_name=region)
+        secrets_name = env + "/" + secret_name if env else secret_name
+        secrets_response = secrets_client.get_secret_value(SecretId=secrets_name)
+        secrets_string = secrets_response[AWS_SECRETS_STRING]
+        secrets_dict = json.loads(secrets_string)
+        if not secrets_dict:
+            raise ValueError(f"{secret_name} not found in secrets manager")
+        return secrets_dict
+    except Exception as e:
+        logger.error(e)
+        return {"statusCode": 500, "body": str(e)}
 
 
 def get_schema(schema_name: str) -> Schema:
@@ -109,6 +113,7 @@ def set_neo4j_env_vars(config: dict) -> dict:
         config dict with Neo4j environment variables populated.
 
     """
+    logger.info("Config files", method=set_neo4j_env_vars.__name__, config_files=config)
     neo4j_retries = (
         int(os.getenv(NEO4J_CONNECTION_RETRIES))
         if os.getenv(NEO4J_CONNECTION_RETRIES)
@@ -129,6 +134,7 @@ def set_neo4j_env_vars(config: dict) -> dict:
             (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
         ]
     )
+    logger.info("Neo4j vars set", method=set_neo4j_env_vars.__name__, config_files=config)
     return config
 
 
@@ -180,4 +186,3 @@ def validate_strings(*args):
     for arg in args:
         if not isinstance(arg, str) or not arg.strip():
             return False
-    return True
