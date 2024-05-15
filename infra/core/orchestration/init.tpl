@@ -114,6 +114,8 @@ echo "Docker setup completed."
 aws s3 cp s3://$ATOMIKLABS_INFRA_BUCKET_NAME/orchestration/$ATOMIKLABS_ENV /data --recursive
 chmod +x /data/airflow/host_config/*.sh
 chmod +x /data/kafka/host_config/*.sh
+chmod 777 -R /data/airflow
+chmod 777 -R /data/kafka
 
 touch /data/.docker_volume_initialized
 

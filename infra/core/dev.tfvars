@@ -38,7 +38,7 @@ records_prefix = "processed_data/research_records"
 
 airflow_dags_env_path = "/opt/airflow/dags/.env"
 orchestration_ami_id = "ami-0f403e3180720dd7e"
-orchestration_instance_type = "t3a.medium"
+orchestration_instance_type = "t3a.large"
 orchestration_key_pair_name = "atomiklabs-orchestration-keypair"
 orchestration_resource_prefix = "orchestration"
 orchestration_username = "ec2-user"
