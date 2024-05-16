@@ -90,7 +90,7 @@ locals {
   arxiv_sets                = var.arxiv_sets
   basic_execution_role_arn  = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   lambda_vpc_access_role    = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-  neo4j_uri                 = "neo4j://${module.data_management.neo4j_instance_private_ip}:7687"
+  neo4j_uri                 = "neo4j://${module.orchestration.orchestration_host_private_ip}:7687"
 }
 
 module "networking" {
@@ -119,24 +119,13 @@ module "data_management" {
   source = "./data_management"
 
   app_name                                        = local.app_name
-  availability_zones                              = data.aws_availability_zones.available.names
   aws_vpc_id                                      = module.networking.main_vpc_id
   data_ingestion_metadata_key_prefix              = local.data_ingestion_metadata_key_prefix
-  default_ami_id                                  = local.default_ami_id
   environment                                     = local.environment
   home_ip                                         = local.home_ip
   infra_config_bucket_arn                         = local.infra_config_bucket_arn
-  neo4j_ami_id                                    = local.neo4j_ami_id
-  neo4j_instance_type                             = local.neo4j_instance_type
-  neo4j_key_pair_name                             = local.neo4j_key_pair_name
-  neo4j_resource_prefix                           = local.neo4j_resource_prefix
-  neo4j_source_security_group_ids                 = [
-                                                      module.security.bastion_host_security_group_id,
-                                                      module.orchestration.orchestration_security_group_id,
-                                                    ]
   private_subnets                                 = module.networking.aws_private_subnet_ids
   region                                          = local.aws_region
-  ssm_policy_for_instances_arn                    = local.ssm_policy_for_instances_arn
   tags                                            = local.tags
 }
 
@@ -158,6 +147,8 @@ module "orchestration" {
   home_ip                                         = local.home_ip
   infra_config_bucket                             = local.infra_config_bucket
   infra_config_bucket_arn                         = local.infra_config_bucket_arn
+  neo4j_password                                  = local.neo4j_password
+  neo4j_username                                  = local.neo4j_username
   orchestration_ami_id                            = local.orchestration_ami_id
   orchestration_instance_type                     = local.orchestration_instance_type
   orchestration_key_pair_name                     = local.orchestration_key_pair_name

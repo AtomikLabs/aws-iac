@@ -19,7 +19,7 @@ output "data_bucket_arn" {
 
 output "neo4j_instance_private_ip" {
   description = "Private IP of Neo4j instance"
-  value       = module.data_management.neo4j_instance_private_ip
+  value       = module.orchestration.orchestration_host_private_ip
 }
 
 # **********************************************************

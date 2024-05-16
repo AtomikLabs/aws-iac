@@ -14,6 +14,8 @@ locals {
   home_ip                                       = var.home_ip
   infra_config_bucket                           = var.infra_config_bucket
   infra_config_bucket_arn                       = var.infra_config_bucket_arn
+  neo4j_username                                = var.neo4j_username
+  neo4j_password                                = var.neo4j_password
   orchestration_ami_id                          = var.orchestration_ami_id
   orchestration_host_volume_name                = "${var.environment}-${var.orchestration_resource_prefix}-data-volume"
   orchestration_instance_type                   = var.orchestration_instance_type
@@ -37,6 +39,8 @@ data "template_file" "init_script" {
     environment = local.environment
     bucket_name = local.data_bucket
     infra_bucket_name = local.infra_config_bucket
+    neo4j_username = local.neo4j_username
+    neo4j_password = local.neo4j_password
     volume_name_tag = local.orchestration_host_volume_name
   }
 }
@@ -59,6 +63,10 @@ resource "aws_instance" "orchestration_host" {
 
   depends_on = [ aws_ebs_volume.orchestration_host_volume, null_resource.init_trigger ]
 
+   lifecycle {
+    create_before_destroy = true
+  }
+
   tags = {
     Name = "${local.environment}-orchestration-host"
   }
@@ -67,7 +75,7 @@ resource "aws_instance" "orchestration_host" {
 
 resource "aws_ebs_volume" "orchestration_host_volume" {
   availability_zone = local.availability_zone_available_names[0]
-  size              = 20
+  size              = 15
 
   tags = {
     Name = local.orchestration_host_volume_name
@@ -154,6 +162,30 @@ resource "aws_security_group" "orchestration_security_group" {
     protocol        = "tcp"
     security_groups = [local.bastion_host_security_group_id]
     self            = true
+  }
+
+  ingress {
+    from_port = 7473
+    to_port = 7473
+    protocol = "tcp"
+    security_groups = [local.bastion_host_security_group_id]
+    self = true
+  }
+
+  ingress {
+    from_port = 7474
+    to_port = 7474
+    protocol = "tcp"
+    security_groups = [local.bastion_host_security_group_id]
+    self = true
+  }
+
+  ingress {
+    from_port = 7687
+    to_port = 7687
+    protocol = "tcp"
+    security_groups = [local.bastion_host_security_group_id]
+    self = true
   }
 
   # Kafka-UI

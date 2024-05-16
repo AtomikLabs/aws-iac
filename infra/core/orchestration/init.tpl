@@ -111,9 +111,43 @@ chmod +x $DOCKER_CONFIG/docker-compose
 
 echo "Docker setup completed." 
 
+echo "Setting up neo4j"
+
+mkdir -p /data/neo4j/data
+mkdir -p /data/neo4j/logs
+mkdir -p /data/neo4j/plugins
+pushd /data/neo4j/plugins
+wget https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/4.1.0.11/apoc-4.1.0.11-all.jar
+popd
+
+chown :docker /data/neo4j/data
+chown :docker /data/neo4j/logs
+chown :docker /data/neo4j/plugins
+chmod g+rwx /data/neo4j/data
+chmod g+rwx /data/neo4j/logs
+chmod g+rwx /data/neo4j/plugins
+
+docker run --restart=always \
+--memory=6g \
+--cpus=2 \
+-p 7474:7474 -p 7687:7687 \
+-v /data/neo4j/data:/data \
+-v /data/neo4j/logs:/logs \
+-v /data/neo4j/plugins:/plugins \
+-e NEO4J_AUTH=${neo4j_username}/${neo4j_password} \
+-e NEO4J_dbms_security_procedures_unrestricted=apoc.\\\* \
+--name neo4j \
+neo4j:4.1
+
+echo "Setting up airflow and kafka"
+
 aws s3 cp s3://$ATOMIKLABS_INFRA_BUCKET_NAME/orchestration/$ATOMIKLABS_ENV /data --recursive
 chmod +x /data/airflow/host_config/*.sh
 chmod +x /data/kafka/host_config/*.sh
+chmod 777 -R /data/airflow
+chmod 777 -R /data/kafka
+dos2unix -f /data/airflow/host_config/*.sh
+dos2unix -f /data/kafka/host_config/*.sh
 
 touch /data/.docker_volume_initialized
 
