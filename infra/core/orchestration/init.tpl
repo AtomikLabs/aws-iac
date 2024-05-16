@@ -142,6 +142,8 @@ neo4j:4.1
 
 echo "Setting up airflow and kafka"
 
+yum install -y dos2unix
+
 aws s3 cp s3://$ATOMIKLABS_INFRA_BUCKET_NAME/orchestration/$ATOMIKLABS_ENV /data --recursive
 chmod +x /data/airflow/host_config/*.sh
 chmod +x /data/kafka/host_config/*.sh
@@ -149,6 +151,9 @@ chmod 777 -R /data/airflow
 chmod 777 -R /data/kafka
 dos2unix -f /data/airflow/host_config/*.sh
 dos2unix -f /data/kafka/host_config/*.sh
+
+sudo -u ec2-user bash -c "source /etc/environment && /data/airflow/host_config/create.sh"
+sudo -u ec2-user bash -c "source /etc/environment && /data/kafka/host_config/create.sh"
 
 touch /data/.docker_volume_initialized
 
