@@ -4,11 +4,6 @@ variable "app_name" {
   default     = "atomiklabs"
 }
 
-variable "availability_zones" {
-  description = "Availability zones"
-  type        = list(string)
-}
-
 variable "aws_vpc_id" {
   description = "VPC ID"
   type        = string
@@ -17,11 +12,6 @@ variable "aws_vpc_id" {
 variable "data_ingestion_metadata_key_prefix" {
     description = "Prefix for the data ingestion metadata"
     type        = string
-}
-
-variable "default_ami_id" {
-  description = "Default AMI ID"
-  type        = string
 }
 
 variable "environment" {
@@ -40,32 +30,6 @@ variable "infra_config_bucket_arn" {
   type        = string
 }
 
-
-variable "neo4j_ami_id" {
-  description = "Neo4j AMI ID"
-  type        = string
-}
-
-variable "neo4j_instance_type" {
-  description = "Neo4j instance type"
-  type        = string
-}
-
-variable "neo4j_key_pair_name" {
-  description = "Neo4j key pair name"
-  type        = string
-}
-
-variable "neo4j_resource_prefix" {
-  description = "Neo4j resource prefix"
-  type        = string
-}
-
-variable "neo4j_source_security_group_ids" {
-  description = "Neo4j source security group IDs"
-  type        = list(string)
-}
-
 variable "private_subnets" {
   description = "Private subnets"
   type        = list(string)
@@ -73,11 +37,6 @@ variable "private_subnets" {
 
 variable "region" {
   description = "AWS region"
-  type        = string
-}
-
-variable "ssm_policy_for_instances_arn" {
-  description = "SSM policy for instances ARN"
   type        = string
 }
 

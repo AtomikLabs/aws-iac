@@ -75,6 +75,16 @@ variable "infra_config_bucket_arn" {
   type        = string
 }
 
+variable "neo4j_username" {
+  description = "Neo4j username"
+  type        = string
+}
+
+variable "neo4j_password" {
+  description = "Neo4j password"
+  type        = string
+}
+
 variable "orchestration_ami_id" {
   description = "orchestration AMI ID"
   type        = string
