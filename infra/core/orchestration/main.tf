@@ -161,7 +161,13 @@ resource "aws_security_group" "orchestration_security_group" {
     to_port         = 5555
     protocol        = "tcp"
     security_groups = [local.bastion_host_security_group_id]
-    self            = true
+  }
+
+  ingress {
+    from_port = 5555
+    to_port = 5555
+    protocol = "tcp"
+    self = true
   }
 
   ingress {
@@ -169,6 +175,12 @@ resource "aws_security_group" "orchestration_security_group" {
     to_port = 7473
     protocol = "tcp"
     security_groups = [local.bastion_host_security_group_id]
+  }
+
+  ingress {
+    from_port = 7473
+    to_port = 7473
+    protocol = "tcp"
     self = true
   }
 
@@ -177,6 +189,12 @@ resource "aws_security_group" "orchestration_security_group" {
     to_port = 7474
     protocol = "tcp"
     security_groups = [local.bastion_host_security_group_id]
+  }
+
+  ingress {
+    from_port = 7474
+    to_port = 7474
+    protocol = "tcp"
     self = true
   }
 
@@ -185,6 +203,12 @@ resource "aws_security_group" "orchestration_security_group" {
     to_port = 7687
     protocol = "tcp"
     security_groups = [local.bastion_host_security_group_id]
+  }
+
+  ingress {
+    from_port = 7687
+    to_port = 7687
+    protocol = "tcp"
     self = true
   }
 
@@ -194,7 +218,6 @@ resource "aws_security_group" "orchestration_security_group" {
     to_port         = 8000
     protocol        = "tcp"
     security_groups = [local.bastion_host_security_group_id]
-    self            = true
   }
 
   # Airflow UI
@@ -211,8 +234,15 @@ resource "aws_security_group" "orchestration_security_group" {
     to_port         = 9092
     protocol        = "tcp"
     security_groups = local.orchestration_source_security_group_ids
+  }
+
+  ingress {
+    from_port       = 9092
+    to_port         = 9092
+    protocol        = "tcp"
     self            = true
   }
+
 
   egress {
     from_port   = 0

@@ -24,8 +24,30 @@ class KafkaTopicSensor(BaseSensorOperator):
         self.poke_interval = poke_interval
         self.timeout = timeout
         self.consumer = None
+        self.logger.info(
+            "KafkaTopicSensor",
+            method=KafkaTopicSensor.__name__,
+            topic=self.topic,
+            schema=self.schema,
+            task_ids=self.task_ids,
+            bootstrap_servers=self.bootstrap_servers,
+            logger=self.logger,
+            poke_interval=self.poke_interval,
+            timeout=self.timeout,
+        )
 
     def poke(self, context):
+        self.logger.info(
+            "Poking",
+            method=KafkaTopicSensor.__name__,
+            topic=self.topic,
+            schema=self.schema,
+            task_ids=self.task_ids,
+            bootstrap_servers=self.bootstrap_servers,
+            logger=self.logger,
+            poke_interval=self.poke_interval,
+            timeout=self.timeout,
+        )
         if not self.consumer:
             self.consumer = Consumer(
                 {
