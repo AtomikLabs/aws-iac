@@ -354,6 +354,7 @@ jobs:
           echo "AWS_REGION=${{ steps.vars.outputs.aws_region }}" >> .env
           echo "DATA_BUCKET=${{ steps.terraform_vars.outputs.data_bucket }}" >> .env
           echo "DATA_INGESTION_KEY_PREFIX=${{ steps.vars.outputs.data_ingestion_key_prefix }}" >> .env
+          echo "ETL_KEY_PREFIX=${{ steps.vars.outputs.etl_key_prefix }}" >> .env
           echo "ENVIRONMENT_NAME=${{ env.ENV_NAME }}" >> .env
           echo "FETCH_FROM_ARXIV_TASK_VERSION=${{ steps.vars.outputs.fetch_from_arxiv_task_version }}" >> .env
           echo "MOST_RECENT_RESEARCH_RECORDS_VERSION=${{ steps.vars.outputs.most_recent_research_records_version }}" >> .env
