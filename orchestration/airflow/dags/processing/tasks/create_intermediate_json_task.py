@@ -59,7 +59,8 @@ def run(**context: dict):
         schema = context["ti"].xcom_pull(task_ids=KAFKA_LISTENER, key=SCHEMA)
         logger.info("Schema", method=run.__name__, schema=schema)
         s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
-        create_json_data(config, s3_manager, schema.get("s3_key"))
+        result = create_json_data(config, s3_manager, schema.get("s3_key"))
+        logger.info("Result", method=run.__name__, result=result)
     except Exception as e:
         logger.error(e)
         return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e)}
