@@ -1,16 +1,30 @@
 import json
+import os
 from datetime import datetime
 from logging.config import dictConfig
 
 import boto3
 import pytz
 import structlog
+from avro.schema import Schema, parse
 from shared.utils.constants import (
+    AWS_GLUE_REGISTRY_NAME,
+    AWS_REGION,
     AWS_SECRETS_MANAGER,
+    AWS_SECRETS_NEO4J_CREDENTIALS,
+    AWS_SECRETS_NEO4J_PASSWORD,
+    AWS_SECRETS_NEO4J_USERNAME,
     AWS_SECRETS_STRING,
     DEFAULT_TIMEZONE,
+    ENVIRONMENT_NAME,
     LOGGING_CONFIG,
+    NEO4J_CONNECTION_RETRIES,
+    NEO4J_CONNECTION_RETRIES_DEFAULT,
+    NEO4J_PASSWORD,
+    NEO4J_URI,
+    NEO4J_USERNAME,
     S3_KEY_DATE_FORMAT,
+    SCHEMA_DEFINITION,
 )
 
 dictConfig(LOGGING_CONFIG)
@@ -44,6 +58,18 @@ def calculate_mb(size: int) -> float:
         float: Size in MB to two decimal places.
     """
     return round(size / (1024 * 1024), 2)
+
+
+def get_schema(schema_name: str) -> Schema:
+    glue_client = boto3.client("glue", region_name=os.getenv(AWS_REGION))
+    schema_response = glue_client.get_schema_version(
+        SchemaId={
+            "RegistryName": os.getenv(AWS_GLUE_REGISTRY_NAME),
+            "SchemaName": schema_name,
+        },
+        SchemaVersionNumber={"LatestVersion": True},
+    )
+    return parse(schema_response.get(SCHEMA_DEFINITION))
 
 
 def get_aws_secrets(secret_name: str, region: str, env: str = "") -> dict:
@@ -114,6 +140,42 @@ def get_storage_key_datetime() -> datetime:
         ValueError: If date_str is not a string.
     """
     return datetime.now().astimezone(pytz.timezone(DEFAULT_TIMEZONE))
+
+
+def set_neo4j_env_vars(config: dict) -> dict:
+    """
+    Get the Neo4j environment variables.
+
+    Args:
+        config: A config dict to populate.
+
+    Returns:
+        config dict with Neo4j environment variables populated.
+
+    """
+    logger.info("Config files", method=set_neo4j_env_vars.__name__, config_files=config)
+    neo4j_retries = (
+        int(os.getenv(NEO4J_CONNECTION_RETRIES))
+        if os.getenv(NEO4J_CONNECTION_RETRIES)
+        else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
+    )
+    config.update(
+        [
+            (NEO4J_CONNECTION_RETRIES, neo4j_retries),
+        ]
+    )
+    neo4j_secrets_dict = get_aws_secrets(
+        AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
+    )
+    config.update(
+        [
+            (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
+            (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
+            (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
+        ]
+    )
+    logger.info("Neo4j vars set", method=set_neo4j_env_vars.__name__, config_files=config)
+    return config
 
 
 def validate_strings(*args):
