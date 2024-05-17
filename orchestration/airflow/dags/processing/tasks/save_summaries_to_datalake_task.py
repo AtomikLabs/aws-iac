@@ -8,13 +8,13 @@ from shared.database.s3_manager import S3Manager
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
     AWS_REGION,
+    CREATE_INTERMEDIATE_JSON_TASK,
     DATA_BUCKET,
     ENVIRONMENT_NAME,
-    KAFKA_LISTENER,
+    INTERMEDIATE_JSON_KEY,
     LOGGING_CONFIG,
     RECORDS_PREFIX,
     SAVE_SUMMARIES_TO_DATALAKE_TASK_VERSION,
-    SCHEMA,
     SERVICE_NAME,
     SERVICE_VERSION,
 )
@@ -53,12 +53,12 @@ def run(**context: dict):
     try:
         logger.info("Running save_summaries_to_datalake_task")
         config = get_config(context)
-        schema = context["ti"].xcom_pull(task_ids=KAFKA_LISTENER, key=SCHEMA)
-        logger.info("Schema", method=run.__name__, schema=schema)
+        key = context["ti"].xcom_pull(task_ids=CREATE_INTERMEDIATE_JSON_TASK, key=INTERMEDIATE_JSON_KEY)
+        logger.info("Schema", method=run.__name__, key=key)
         s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
-        json_data = json.loads(s3_manager.load(schema.get("s3_key")))
+        json_data = json.loads(s3_manager.load(key))
         if not json_data:
-            logger.error("No records found", method=run.__name__, records_key=schema.get("s3_key"))
+            logger.error("No records found", method=run.__name__, records_key=key)
             return {"statusCode": 400, "body": "No records found"}
         logger.info(
             "Storing parsed arXiv summary records)} records",

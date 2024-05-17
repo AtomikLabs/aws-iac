@@ -13,12 +13,15 @@ from shared.models.data_operation import DataOperation
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
     AWS_REGION,
+    CREATE_INTERMEDIATE_JSON_TASK,
+    CREATE_INTERMEDIATE_JSON_TASK_VERSION,
     CREATED_BY,
     CREATES,
     CS_CATEGORIES_INVERTED,
     DATA_BUCKET,
     ENVIRONMENT_NAME,
     ETL_KEY_PREFIX,
+    INTERMEDIATE_JSON_KEY,
     INTERNAL_SERVER_ERROR,
     KAFKA_LISTENER,
     LOGGING_CONFIG,
@@ -59,19 +62,19 @@ def run(**context: dict):
         schema = context["ti"].xcom_pull(task_ids=KAFKA_LISTENER, key=SCHEMA)
         logger.info("Schema", method=run.__name__, schema=schema)
         s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
-        result = create_json_data(config, s3_manager, schema.get("s3_key"))
-        logger.info("Result", method=run.__name__, result=result)
+        key = create_json_data(config, s3_manager, schema.get("s3_key"))
+        logger.info("Result", method=run.__name__, key=key)
+        context["ti"].xcom_push(key=INTERMEDIATE_JSON_KEY, value=key)
     except Exception as e:
         logger.error(e)
         return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e)}
     return {"statusCode": 200, "body": "Success"}
 
 
-def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> dict:
+def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> str:
     try:
         xml_data = json.loads(s3_manager.load(key))
         extracted_data = {"records": []}
-        success = True
         for xml in xml_data:
             extracted_records = parse_xml_data(xml)
             extracted_data["records"].extend(extracted_records)
@@ -88,7 +91,12 @@ def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> dict:
             except Exception as e:
                 logger.error("Failed to find raw data source", method=run.__name__, error=str(e))
                 raise e
-            data_operation = DataOperation(driver, "Parse arXiv research summaries", "parse_arxiv_summaries", "1.0.0")
+            data_operation = DataOperation(
+                driver,
+                "Create Intermediate JSON Task",
+                CREATE_INTERMEDIATE_JSON_TASK,
+                config.get(CREATE_INTERMEDIATE_JSON_TASK_VERSION),
+            )
             data_operation.create()
             if not data_operation:
                 message = "Failed to create DataOperation"
@@ -135,6 +143,8 @@ def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> dict:
                     data_operation.uuid,
                     True,
                 )
+                logger.info("Finished parsing arXiv daily summaries", method=run.__name__)
+                return output_key
             except Exception as e:
                 logger.error(
                     "Failed to create parsed data",
@@ -142,14 +152,10 @@ def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> dict:
                     key=output_key if output_key else "",
                     error=str(e),
                 )
-                success = False
-        logger.info("Finished parsing arXiv daily summaries", method=run.__name__)
-        return (
-            {"statusCode": 200, "body": "Success"} if success else {"statusCode": 500, "body": "Failed to parse data"}
-        )
+                raise e
     except Exception as e:
         logger.error(e)
-        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e)}
+        raise e
 
 
 def log_initial_info(event: dict) -> None:
@@ -182,6 +188,7 @@ def get_config() -> dict:
     try:
         config = {
             AWS_REGION: os.environ[AWS_REGION],
+            CREATE_INTERMEDIATE_JSON_TASK_VERSION: os.environ[CREATE_INTERMEDIATE_JSON_TASK_VERSION],
             DATA_BUCKET: os.environ[DATA_BUCKET],
             ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
             ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],

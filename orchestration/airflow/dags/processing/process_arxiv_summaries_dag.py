@@ -14,11 +14,13 @@ from shared.sensors.kafka_topic_sensor import KafkaTopicSensor
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
     ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV,
+    CREATE_INTERMEDIATE_JSON_TASK,
     DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC,
     DEFAULT_LOGGING_ARGS,
     FETCH_FROM_ARXIV_TASK,
     LOGGING_CONFIG,
     ORCHESTRATION_HOST_PRIVATE_IP,
+    SAVE_SUMMARIES_TO_DATALAKE_TASK,
 )
 
 dictConfig(LOGGING_CONFIG)
@@ -66,14 +68,14 @@ with DAG(
     )
 
     create_intermediate_json_task = PythonOperator(
-        task_id="create_intermediate_json",
+        task_id=CREATE_INTERMEDIATE_JSON_TASK,
         python_callable=cijt.run,
         dag=dag,
         provide_context=True,
     )
 
     save_summaries_to_datalake_task = PythonOperator(
-        task_id="save_summaries_to_datalake",
+        task_id=SAVE_SUMMARIES_TO_DATALAKE_TASK,
         python_callable=ssdl.run,
         dag=dag,
         provide_context=True,
