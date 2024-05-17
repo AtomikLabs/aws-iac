@@ -13,8 +13,6 @@ from shared.models.data_operation import DataOperation
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
     AWS_REGION,
-    CREATE_INTERMEDIATE_JSON_TASK,
-    CREATE_INTERMEDIATE_JSON_TASK_VERSION,
     CREATED_BY,
     CREATES,
     CS_CATEGORIES_INVERTED,
@@ -28,6 +26,8 @@ from shared.utils.constants import (
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
+    PARSE_SUMMARIES_TASK,
+    PARSE_SUMMARIES_TASK_VERSION,
     PARSED_BY,
     PARSES,
     SCHEMA,
@@ -71,6 +71,32 @@ def run(**context: dict):
     return {"statusCode": 200, "body": "Success"}
 
 
+def get_config() -> dict:
+    """
+    Gets the config from the environment variables.
+
+    Returns:
+        dict: The config.
+    """
+    try:
+        config = {
+            AWS_REGION: os.environ[AWS_REGION],
+            PARSE_SUMMARIES_TASK_VERSION: os.environ[PARSE_SUMMARIES_TASK_VERSION],
+            DATA_BUCKET: os.environ[DATA_BUCKET],
+            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
+            ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
+        }
+        config = set_neo4j_env_vars(config)
+        logger.info("Config", method=get_config.__name__, config_file=config)
+        return config
+    except KeyError as e:
+        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
+        raise e
+    except Exception as e:
+        logger.error("Error getting config", method=get_config.__name__, error=str(e))
+        raise e
+
+
 def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> str:
     try:
         xml_data = json.loads(s3_manager.load(key))
@@ -94,8 +120,8 @@ def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> str:
             data_operation = DataOperation(
                 driver,
                 "Create Intermediate JSON Task",
-                CREATE_INTERMEDIATE_JSON_TASK,
-                config.get(CREATE_INTERMEDIATE_JSON_TASK_VERSION),
+                PARSE_SUMMARIES_TASK,
+                config.get(PARSE_SUMMARIES_TASK_VERSION),
             )
             data_operation.create()
             if not data_operation:
@@ -155,52 +181,6 @@ def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> str:
                 raise e
     except Exception as e:
         logger.error(e)
-        raise e
-
-
-def log_initial_info(event: dict) -> None:
-    """
-    Logs initial info.
-
-    Args:
-        event (dict): Event.
-    """
-    try:
-        logger.debug(
-            "Log variables",
-            method=log_initial_info.__name__,
-            log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
-            log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
-        )
-        logger.debug("Running on", method=log_initial_info.__name__, platform="AWS")
-    except KeyError:
-        logger.debug("Running on", method=log_initial_info.__name__, platform="CI/CD or local")
-    logger.debug("Event received", method=log_initial_info.__name__, trigger_event=event)
-
-
-def get_config() -> dict:
-    """
-    Gets the config from the environment variables.
-
-    Returns:
-        dict: The config.
-    """
-    try:
-        config = {
-            AWS_REGION: os.environ[AWS_REGION],
-            CREATE_INTERMEDIATE_JSON_TASK_VERSION: os.environ[CREATE_INTERMEDIATE_JSON_TASK_VERSION],
-            DATA_BUCKET: os.environ[DATA_BUCKET],
-            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
-            ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
-        }
-        config = set_neo4j_env_vars(config)
-        logger.info("Config", method=get_config.__name__, config_file=config)
-        return config
-    except KeyError as e:
-        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
-        raise e
-    except Exception as e:
-        logger.error("Error getting config", method=get_config.__name__, error=str(e))
         raise e
 
 

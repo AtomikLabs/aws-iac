@@ -60,8 +60,10 @@ arxiv_api_max_retries = 5
 arxiv_base_url = "http://export.arxiv.org/oai2"
 arxiv_ingestion_day_span = 5
 arxiv_sets = ["cs"]
-create_intermediate_json_task_version = "0.1.0"
 default_lambda_runtime = "python3.10"
+
 fetch_from_arxiv_task_version = "0.1.0"
 most_recent_research_records_version = "0.0.2"
+parse_summaries_task_version = "0.1.0"
+persist_summaries_task_version = "0.0.1"
 save_summaries_to_datalake_task_version = "0.0.1"

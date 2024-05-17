@@ -8,11 +8,11 @@ from shared.database.s3_manager import S3Manager
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
     AWS_REGION,
-    CREATE_INTERMEDIATE_JSON_TASK,
     DATA_BUCKET,
     ENVIRONMENT_NAME,
     INTERMEDIATE_JSON_KEY,
     LOGGING_CONFIG,
+    PARSE_SUMMARIES_TASK,
     RECORDS_PREFIX,
     SAVE_SUMMARIES_TO_DATALAKE_TASK_VERSION,
     SERVICE_NAME,
@@ -53,7 +53,7 @@ def run(**context: dict):
     try:
         logger.info("Running save_summaries_to_datalake_task")
         config = get_config(context)
-        key = context["ti"].xcom_pull(task_ids=CREATE_INTERMEDIATE_JSON_TASK, key=INTERMEDIATE_JSON_KEY)
+        key = context["ti"].xcom_pull(task_ids=PARSE_SUMMARIES_TASK, key=INTERMEDIATE_JSON_KEY)
         logger.info("Schema", method=run.__name__, key=key)
         s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
         json_data = json.loads(s3_manager.load(key))
@@ -63,9 +63,9 @@ def run(**context: dict):
         logger.info(
             "Storing parsed arXiv summary records)} records",
             method=run.__name__,
-            num_records=len(json_data["records"]),
+            num_records=len(json_data),
         )
-        for record in json_data["records"]:
+        for record in json_data:
             s3_manager.upload_to_s3(
                 f"{config.get(RECORDS_PREFIX)}/{record.get(IDENTIFIER)}/{ABSTRACT}.json", record.get(ABSTRACT)
             )
@@ -102,6 +102,7 @@ def get_config(context: dict) -> dict:
             or not config.get(SERVICE_VERSION)
         ):
             raise ValueError("Missing config values")
+        return config
     except Exception as e:
         logger.error("Error getting config", method=get_config.__name__, task_name=TASK_NAME, error=e)
         raise e

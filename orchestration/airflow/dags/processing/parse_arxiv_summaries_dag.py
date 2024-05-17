@@ -1,10 +1,8 @@
 import os
 from logging.config import dictConfig
 
-import processing.tasks.create_intermediate_json_task as cijt
-import processing.tasks.generate_neo4j_graph_task as gngt
-import processing.tasks.save_full_text_to_datalake_task as sfdt
-import processing.tasks.save_summaries_to_datalake_task as ssdl
+import processing.tasks.parse_summaries_task as pst
+import processing.tasks.persist_summaries_task as psat
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -14,13 +12,15 @@ from shared.sensors.kafka_topic_sensor import KafkaTopicSensor
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
     ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV,
-    CREATE_INTERMEDIATE_JSON_TASK,
     DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC,
     DEFAULT_LOGGING_ARGS,
     FETCH_FROM_ARXIV_TASK,
+    KAFKA_LISTENER,
     LOGGING_CONFIG,
     ORCHESTRATION_HOST_PRIVATE_IP,
-    SAVE_SUMMARIES_TO_DATALAKE_TASK,
+    PARSE_ARXIV_SUMMARIES_DAG,
+    PARSE_SUMMARIES_TASK,
+    PERSIST_SUMMARIES_TASK,
 )
 
 dictConfig(LOGGING_CONFIG)
@@ -43,7 +43,7 @@ structlog.configure(
 logger = structlog.get_logger()
 start_date = days_ago(1)
 load_dotenv(dotenv_path=os.getenv(AIRFLOW_DAGS_ENV_PATH))
-SERVICE_NAME = "process_arxiv_summaries_dag"
+SERVICE_NAME = PARSE_ARXIV_SUMMARIES_DAG
 
 
 with DAG(
@@ -56,46 +56,30 @@ with DAG(
 ) as dag:
 
     kafka_listener_task = KafkaTopicSensor(
-        task_id="kafka_listener",
+        task_id=KAFKA_LISTENER,
         topic=DATA_ARXIV_SUMMARIES_INGESTION_COMPLETE_TOPIC,
         schema=os.getenv(ARXIV_RESEARCH_INGESTION_EVENT_SCHEMA_ENV),
         task_ids=[FETCH_FROM_ARXIV_TASK],
         bootstrap_servers=f"{os.getenv(ORCHESTRATION_HOST_PRIVATE_IP)}:9092",
         logger=logger,
         poke_interval=60,
-        timeout=6000,
+        timeout=360,
         dag=dag,
     )
 
-    create_intermediate_json_task = PythonOperator(
-        task_id=CREATE_INTERMEDIATE_JSON_TASK,
-        python_callable=cijt.run,
-        dag=dag,
-        provide_context=True,
-    )
-
-    save_summaries_to_datalake_task = PythonOperator(
-        task_id=SAVE_SUMMARIES_TO_DATALAKE_TASK,
-        python_callable=ssdl.run,
+    parse_summaries_task = PythonOperator(
+        task_id=PARSE_SUMMARIES_TASK,
+        python_callable=pst.run,
         dag=dag,
         provide_context=True,
     )
 
-    save_full_text_to_datalake_task = PythonOperator(
-        task_id="save_full_text_to_datalake",
-        python_callable=sfdt.run,
+    persist_summaries_task = PythonOperator(
+        task_id=PERSIST_SUMMARIES_TASK,
+        python_callable=psat.run,
         dag=dag,
         provide_context=True,
     )
 
-    generate_neo4j_graph_task = PythonOperator(
-        task_id="generate_neo4j_nodes",
-        python_callable=gngt.run,
-        dag=dag,
-        provide_context=True,
-    )
-
-    kafka_listener_task >> create_intermediate_json_task
-    create_intermediate_json_task >> generate_neo4j_graph_task
-    generate_neo4j_graph_task >> save_summaries_to_datalake_task
-    generate_neo4j_graph_task >> save_full_text_to_datalake_task
+    kafka_listener_task >> parse_summaries_task
+    parse_summaries_task >> persist_summaries_task
