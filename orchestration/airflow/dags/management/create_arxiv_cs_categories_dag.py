@@ -85,7 +85,7 @@ def create_categories():
         session.run("CREATE INDEX author_names IF NOT EXISTS FOR (n:Author) ON (n.first_name, n.last_name);")
 
 
-def get_config(context: dict) -> dict:
+def get_config() -> dict:
     """
     Gets the config from the environment variables.
 
