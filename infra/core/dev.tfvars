@@ -3,7 +3,7 @@
 # **********************************************************
 
 app_name = "atomiklabs"
-app_version = "0.3.2-alpha"
+app_version = "0.3.4-alpha"
 availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
 aws_region = "us-east-1"
 backend_dynamodb_table = "terraform-state-locks"
@@ -61,5 +61,9 @@ arxiv_base_url = "http://export.arxiv.org/oai2"
 arxiv_ingestion_day_span = 5
 arxiv_sets = ["cs"]
 default_lambda_runtime = "python3.10"
+
 fetch_from_arxiv_task_version = "0.1.0"
 most_recent_research_records_version = "0.0.2"
+parse_summaries_task_version = "0.1.0"
+persist_summaries_task_version = "0.0.1"
+save_summaries_to_datalake_task_version = "0.0.1"

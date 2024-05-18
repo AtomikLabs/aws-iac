@@ -1,39 +1,48 @@
 import json
-import logging
 import os
-import urllib.parse
 import uuid
+from logging.config import dictConfig
 
 import defusedxml.ElementTree as ET
 import structlog
-import utils
-from constants import (
-    APP_NAME,
+from dotenv import load_dotenv
+from neo4j import GraphDatabase
+from shared.database.s3_manager import S3Manager
+from shared.models.data import Data
+from shared.models.data_operation import DataOperation
+from shared.utils.constants import (
+    AIRFLOW_DAGS_ENV_PATH,
+    AWS_REGION,
     CREATED_BY,
     CREATES,
     CS_CATEGORIES_INVERTED,
     DATA_BUCKET,
     ENVIRONMENT_NAME,
     ETL_KEY_PREFIX,
+    INTERMEDIATE_JSON_KEY,
     INTERNAL_SERVER_ERROR,
+    KAFKA_LISTENER,
+    LOGGING_CONFIG,
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
+    PARSE_SUMMARIES_TASK,
+    PARSE_SUMMARIES_TASK_VERSION,
     PARSED_BY,
     PARSES,
-    SERVICE_NAME,
-    SERVICE_VERSION,
+    SCHEMA,
 )
-from models.data import Data
-from models.data_operation import DataOperation
-from neo4j import GraphDatabase
-from storage_manager import StorageManager
+from shared.utils.utils import get_storage_key_date, set_neo4j_env_vars
+
+dictConfig(LOGGING_CONFIG)
 
 structlog.configure(
-    [
+    processors=[
         structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.dict_tracebacks,
         structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
@@ -43,29 +52,55 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-logger.setLevel(logging.INFO)
+load_dotenv(dotenv_path=AIRFLOW_DAGS_ENV_PATH)
 
 
-def lambda_handler(event, context):
+def run(**context: dict):
+    try:
+        config = get_config()
+        logger.info("Config pulled", method=run.__name__)
+        schema = context["ti"].xcom_pull(task_ids=KAFKA_LISTENER, key=SCHEMA)
+        logger.info("Schema", method=run.__name__, schema=schema)
+        s3_manager = S3Manager(os.getenv(DATA_BUCKET), logger)
+        key = create_json_data(config, s3_manager, schema.get("s3_key"))
+        logger.info("Result", method=run.__name__, key=key)
+        context["ti"].xcom_push(key=INTERMEDIATE_JSON_KEY, value=key)
+    except Exception as e:
+        logger.error(e)
+        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e)}
+    return {"statusCode": 200, "body": "Success"}
+
+
+def get_config() -> dict:
     """
-    The main entry point for the Lambda function.
-
-    Args:
-        event: The event passed to the Lambda function.
-        context: The context passed to the Lambda function.
+    Gets the config from the environment variables.
 
     Returns:
-        The response to be returned to the client.
+        dict: The config.
     """
     try:
-        log_initial_info(event)
-        config = get_config()
-        bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
-        key = urllib.parse.unquote_plus(event["Records"][0]["s3"]["object"]["key"], encoding="utf-8")
-        storage_manager = StorageManager(bucket_name, logger)
-        xml_data = json.loads(storage_manager.load(key))
+        config = {
+            AWS_REGION: os.environ[AWS_REGION],
+            PARSE_SUMMARIES_TASK_VERSION: os.environ[PARSE_SUMMARIES_TASK_VERSION],
+            DATA_BUCKET: os.environ[DATA_BUCKET],
+            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
+            ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
+        }
+        config = set_neo4j_env_vars(config)
+        logger.info("Config", method=get_config.__name__, config_file=config)
+        return config
+    except KeyError as e:
+        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
+        raise e
+    except Exception as e:
+        logger.error("Error getting config", method=get_config.__name__, error=str(e))
+        raise e
+
+
+def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> str:
+    try:
+        xml_data = json.loads(s3_manager.load(key))
         extracted_data = {"records": []}
-        success = True
         for xml in xml_data:
             extracted_records = parse_xml_data(xml)
             extracted_data["records"].extend(extracted_records)
@@ -77,27 +112,32 @@ def lambda_handler(event, context):
                 raw_data = Data.find(driver, key)
                 if not raw_data:
                     message = f"Failed to find raw data with key: {key}"
-                    logger.error(message, method=lambda_handler.__name__)
+                    logger.error(message, method=run.__name__)
                     raise RuntimeError(message)
             except Exception as e:
-                logger.error("Failed to find raw data source", method=lambda_handler.__name__, error=str(e))
+                logger.error("Failed to find raw data source", method=run.__name__, error=str(e))
                 raise e
-            data_operation = DataOperation(driver, "Parse arXiv research summaries", "parse_arxiv_summaries", "1.0.0")
+            data_operation = DataOperation(
+                driver,
+                "Create Intermediate JSON Task",
+                PARSE_SUMMARIES_TASK,
+                config.get(PARSE_SUMMARIES_TASK_VERSION),
+            )
             data_operation.create()
             if not data_operation:
                 message = "Failed to create DataOperation"
-                logger.error(message, method=lambda_handler.__name__)
+                logger.error(message, method=run.__name__)
                 raise RuntimeError(message)
             parsed_data = None
             try:
                 content_str = json.dumps(extracted_data["records"])
                 output_key = get_output_key(config)
-                storage_manager.upload_to_s3(output_key, content_str)
+                s3_manager.upload_to_s3(output_key, content_str)
                 parsed_data = Data(driver, output_key, "json", "parsed arXiv summaries", len(content_str))
                 parsed_data.create()
                 if not parsed_data:
                     message = f"Failed to create parsed data with key: {output_key}"
-                    logger.error(message, method=lambda_handler.__name__)
+                    logger.error(message, method=run.__name__)
                     raise RuntimeError(message)
                 data_operation.relate(
                     driver, PARSES, data_operation.LABEL, data_operation.uuid, raw_data.LABEL, raw_data.uuid, True
@@ -129,68 +169,19 @@ def lambda_handler(event, context):
                     data_operation.uuid,
                     True,
                 )
+                logger.info("Finished parsing arXiv daily summaries", method=run.__name__)
+                return output_key
             except Exception as e:
                 logger.error(
                     "Failed to create parsed data",
-                    method=lambda_handler.__name__,
+                    method=run.__name__,
                     key=output_key if output_key else "",
                     error=str(e),
                 )
-                success = False
-        logger.info("Finished parsing arXiv daily summaries", method=lambda_handler.__name__)
-        return (
-            {"statusCode": 200, "body": "Success"} if success else {"statusCode": 500, "body": "Failed to parse data"}
-        )
+                raise e
     except Exception as e:
         logger.error(e)
-        return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e), "event": event}
-
-
-def log_initial_info(event: dict) -> None:
-    """
-    Logs initial info.
-
-    Args:
-        event (dict): Event.
-    """
-    try:
-        logger.debug(
-            "Log variables",
-            method=log_initial_info.__name__,
-            log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
-            log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
-        )
-        logger.debug("Running on", method=log_initial_info.__name__, platform="AWS")
-    except KeyError:
-        logger.debug("Running on", method=log_initial_info.__name__, platform="CI/CD or local")
-    logger.debug("Event received", method=log_initial_info.__name__, trigger_event=event)
-
-
-def get_config() -> dict:
-    """
-    Gets the config from the environment variables.
-
-    Returns:
-        dict: The config.
-    """
-    try:
-        config = {
-            APP_NAME: os.environ[APP_NAME],
-            DATA_BUCKET: os.environ[DATA_BUCKET],
-            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
-            ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
-            NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
-            NEO4J_URI: os.environ[NEO4J_URI],
-            NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
-            SERVICE_NAME: os.environ[SERVICE_NAME],
-            SERVICE_VERSION: os.environ[SERVICE_VERSION],
-        }
-        logger.debug("Config", method=get_config.__name__, config=config)
-    except KeyError as e:
-        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
         raise e
-    logger.debug("Config", method=get_config.__name__, config=config)
-    return config
 
 
 def parse_xml_data(xml_data: str) -> list:
@@ -266,19 +257,5 @@ def get_output_key(config) -> str:
     Returns:
         str: The output key.
     """
-    key_date = utils.get_storage_key_date()
+    key_date = get_storage_key_date()
     return f"{config[ETL_KEY_PREFIX]}/{str(uuid.uuid4())}-parsed_arxiv_summaries-{key_date}.json"
-
-
-def chunker(seq: list, size: int) -> list:
-    """
-    Chunks a list into smaller lists.
-
-    Args:
-        seq (list): The list to chunk.
-        size (int): The size of each chunk.
-
-    Returns:
-        list: The chunked list.
-    """
-    return (seq[pos : pos + size] for pos in range(0, len(seq), size))

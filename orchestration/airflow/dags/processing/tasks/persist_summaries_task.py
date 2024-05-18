@@ -1,24 +1,47 @@
 import json
-import logging
 import os
-import urllib.parse
 import uuid
+from logging.config import dictConfig
 from typing import Dict, List, Tuple
 
 import structlog
-from constants import (
+from dotenv import load_dotenv
+from neo4j import Driver, GraphDatabase
+from shared.database.s3_manager import S3Manager
+from shared.models.abstract import Abstract
+from shared.models.arxiv_category import ArxivCategory
+from shared.models.arxiv_record import ArxivRecord
+from shared.models.author import Author
+from shared.models.base_model import BaseModel
+from shared.models.data import Data
+from shared.models.data_operation import DataOperation
+from shared.utils.constants import (
+    AIRFLOW_DAGS_ENV_PATH,
     AUTHORED_BY,
     AUTHORS,
+    AWS_REGION,
+    AWS_SECRETS_NEO4J_CREDENTIALS,
+    AWS_SECRETS_NEO4J_PASSWORD,
+    AWS_SECRETS_NEO4J_USERNAME,
     CATEGORIZED_BY,
     CATEGORIZES,
     CREATED_BY,
     CREATES,
     DATA_BUCKET,
+    ENVIRONMENT_NAME,
+    INTERMEDIATE_JSON_KEY,
     LOADED_BY,
     LOADS,
+    LOGGING_CONFIG,
+    NEO4J_CONNECTION_RETRIES,
+    NEO4J_CONNECTION_RETRIES_DEFAULT,
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
+    ORCHESTRATION_HOST_PRIVATE_IP,
+    PARSE_SUMMARIES_TASK,
+    PERSIST_SUMMARIES_TASK,
+    PERSIST_SUMMARIES_TASK_VERSION,
     PRIMARILY_CATEGORIZED_BY,
     RECORDS_PREFIX,
     SERVICE_NAME,
@@ -26,21 +49,17 @@ from constants import (
     SUMMARIZED_BY,
     SUMMARIZES,
 )
-from models.abstract import Abstract
-from models.arxiv_category import ArxivCategory
-from models.arxiv_record import ArxivRecord
-from models.author import Author
-from models.base_model import BaseModel
-from models.data import Data
-from models.data_operation import DataOperation
-from neo4j import Driver, GraphDatabase
-from storage_manager import StorageManager
+from shared.utils.utils import get_aws_secrets
+
+dictConfig(LOGGING_CONFIG)
 
 structlog.configure(
-    [
+    processors=[
         structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.dict_tracebacks,
         structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
@@ -50,7 +69,7 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-logger.setLevel(logging.INFO)
+load_dotenv(dotenv_path=AIRFLOW_DAGS_ENV_PATH)
 
 ABSTRACT = "abstract"
 ABSTRACT_URL = "abstract_url"
@@ -59,63 +78,30 @@ IDENTIFIER = "identifier"
 PRIMARY_CATEGORY = "primary_category"
 TITLE = "title"
 
-CHUNK_SIZE = 300
 
-
-def lambda_handler(event, context):
-    """
-    The main entry point for the Lambda function.
-
-    Args:
-        event: The event passed to the Lambda function.
-        context: The context passed to the Lambda function.
-
-    Returns:
-        The response to be returned to the client.
-    """
+def run(**context: dict):
     try:
-        log_initial_info(event)
-        bucket_name = event["bucket"]
-        key = urllib.parse.unquote_plus(event["key"], encoding="utf-8")
-        config = get_config()
-        storage_manager = StorageManager(bucket_name, logger)
-        json_data = json.loads(storage_manager.load(key))
+        logger.info("Running persist_summaries_task")
+        config = get_config(context)
+        s3_manager = S3Manager(config.get(DATA_BUCKET), logger)
+        key = context["ti"].xcom_pull(task_ids=PARSE_SUMMARIES_TASK, key=INTERMEDIATE_JSON_KEY)
+        json_data = json.loads(s3_manager.load(key))
         if not json_data:
-            logger.error("No records found", method=lambda_handler.__name__, records_key=key, bucket_name=bucket_name)
+            logger.error("No records found", method=run.__name__, records_key=key, bucket_name=config.get(DATA_BUCKET))
             return {"statusCode": 400, "body": "No records found"}
         logger.info(
             "Storing parsed arXiv summary records)} records",
-            method=lambda_handler.__name__,
-            num_records=len(json_data["records"]),
+            method=run.__name__,
+            num_records=len(json_data),
         )
-        store_records(json_data["records"], bucket_name, key, config, storage_manager)
+        store_records(json_data, config.get(DATA_BUCKET), key, config, s3_manager)
         return {"statusCode": 200, "body": "Success"}
     except Exception as e:
-        logger.error("An error occurred", method=lambda_handler.__name__, error=str(e))
-        return {"statusCode": 500, "body": "Internal server error", "error": str(e), "event": event}
+        logger.error("An error occurred", method=run.__name__, error=str(e))
+        return {"statusCode": 500, "body": "Internal server error", "error": str(e)}
 
 
-def log_initial_info(event: dict) -> None:
-    """
-    Logs initial info.
-
-    Args:
-        event (dict): Event.
-    """
-    try:
-        logger.debug(
-            "Log variables",
-            method=log_initial_info.__name__,
-            log_group=os.environ["AWS_LAMBDA_LOG_GROUP_NAME"],
-            log_stream=os.environ["AWS_LAMBDA_LOG_STREAM_NAME"],
-        )
-        logger.debug("Running on", method=log_initial_info.__name__, platform="AWS")
-    except KeyError:
-        logger.debug("Running on", method=log_initial_info.__name__, platform="CI/CD or local")
-    logger.debug("Event received", method=log_initial_info.__name__, trigger_event=event)
-
-
-def get_config() -> dict:
+def get_config(context: dict) -> dict:
     """
     Gets the config from the environment variables.
 
@@ -124,25 +110,67 @@ def get_config() -> dict:
     """
     try:
         config = {
+            AWS_REGION: os.environ[AWS_REGION],
             DATA_BUCKET: os.environ[DATA_BUCKET],
-            NEO4J_PASSWORD: os.environ[NEO4J_PASSWORD],
-            NEO4J_URI: os.environ[NEO4J_URI],
-            NEO4J_USERNAME: os.environ[NEO4J_USERNAME],
+            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
+            ORCHESTRATION_HOST_PRIVATE_IP: os.getenv(ORCHESTRATION_HOST_PRIVATE_IP),
             RECORDS_PREFIX: os.environ[RECORDS_PREFIX],
-            SERVICE_NAME: os.environ[SERVICE_NAME],
-            SERVICE_VERSION: os.environ[SERVICE_VERSION],
+            SERVICE_NAME: PERSIST_SUMMARIES_TASK,
+            SERVICE_VERSION: os.environ[PERSIST_SUMMARIES_TASK_VERSION],
         }
-        logger.debug("Config", method=get_config.__name__, config=config)
-    except KeyError as e:
-        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
+        neo4j_retries = (
+            int(os.getenv(NEO4J_CONNECTION_RETRIES))
+            if os.getenv(NEO4J_CONNECTION_RETRIES)
+            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
+        )
+        config.update(
+            [
+                (NEO4J_CONNECTION_RETRIES, neo4j_retries),
+            ]
+        )
+        neo4j_secrets_dict = get_aws_secrets(
+            AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
+        )
+        config.update(
+            [
+                (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
+                (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
+                (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
+            ]
+        )
+        if (
+            not config.get(AWS_REGION)
+            or not config.get(DATA_BUCKET)
+            or not config.get(ENVIRONMENT_NAME)
+            or not config.get(NEO4J_PASSWORD)
+            or not config.get(NEO4J_USERNAME)
+            or not config.get(NEO4J_URI)
+            or not config.get(ORCHESTRATION_HOST_PRIVATE_IP)
+            or not config.get(RECORDS_PREFIX)
+            or not config.get(SERVICE_NAME)
+            or not config.get(SERVICE_VERSION)
+        ):
+            logger.error(
+                "Config values not found",
+                config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
+                method=get_config.__name__,
+                task_name=PERSIST_SUMMARIES_TASK,
+            )
+            raise ValueError("Config values not found")
+        logger.info(
+            "Config values",
+            config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
+            method=get_config.__name__,
+            neo4j_pass_found=bool(config.get(NEO4J_PASSWORD)),
+            task_name=PERSIST_SUMMARIES_TASK,
+        )
+        return config
+    except Exception as e:
+        logger.error("Failed to get config", error=str(e), method=get_config.__name__, task_name=PERSIST_SUMMARIES_TASK)
         raise e
-    logger.debug("Config", method=get_config.__name__, config=config)
-    return config
 
 
-def store_records(
-    records: List[Dict], bucket_name: str, key: str, config: dict, storage_manager: StorageManager
-) -> Dict:
+def store_records(records: List[Dict], bucket_name: str, key: str, config: dict, storage_manager: S3Manager) -> Dict:
     """
     Stores arxiv research summary records in the neo4j database.
 
@@ -178,6 +206,7 @@ def store_records(
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
+            driver.verify_connectivity()
             parsed_data = parsed_data_node(driver, key)
             loads_dop = loads_dop_node(
                 driver,
@@ -189,61 +218,62 @@ def store_records(
 
             categories = {c.code: c for c in ArxivCategory.find_all(driver)}
             possible_new_records = filter_new_records(driver, records)
-            num_chunks = len(possible_new_records) // CHUNK_SIZE
-            processed_chunks = 0
-            for chunk in chunker(possible_new_records, CHUNK_SIZE):
-                arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
-                    chunk,
-                    loads_dop.uuid,
-                    bucket_name,
-                    config.get(RECORDS_PREFIX),
-                    categories,
-                    storage_manager,
-                )
-                retries = 0
-                ar_presigned_url = storage_manager.upload_to_s3(
-                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_arxiv_records.csv",
-                    "".join(arxiv_records),
-                    True,
-                )
-                filenames.append(ar_presigned_url)
-                au_presigned_url = storage_manager.upload_to_s3(
-                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv", "".join(authors), True
-                )
-                filenames.append(au_presigned_url)
-                ab_presigned_url = storage_manager.upload_to_s3(
-                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv", "".join(abstracts), True
-                )
-                filenames.append(ab_presigned_url)
-                rel_presigned_url = storage_manager.upload_to_s3(
-                    f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_relationships.csv",
-                    "".join(relationships),
-                    True,
-                )
-                filenames.append(rel_presigned_url)
-                while retries < 3:
-                    try:
-                        commit_records(driver, ar_presigned_url, au_presigned_url, ab_presigned_url, rel_presigned_url)
-                        processed_chunks += 1
-                        break
-                    except Exception as e:
+            arxiv_records, authors, abstracts, relationships, malformed_records = generate_csv_data(
+                possible_new_records,
+                loads_dop.uuid,
+                bucket_name,
+                config.get(RECORDS_PREFIX),
+                categories,
+                storage_manager,
+            )
+            retries = 0
+            ar_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_arxiv_records.csv",
+                "".join(arxiv_records),
+                True,
+            )
+            filenames.append(ar_presigned_url)
+            au_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_authors.csv", "".join(authors), True
+            )
+            filenames.append(au_presigned_url)
+            ab_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_abstracts.csv", "".join(abstracts), True
+            )
+            filenames.append(ab_presigned_url)
+            rel_presigned_url = storage_manager.upload_to_s3(
+                f"{config.get(RECORDS_PREFIX)}/temp/{str(uuid.uuid4())}_relationships.csv",
+                "".join(relationships),
+                True,
+            )
+            filenames.append(rel_presigned_url)
+            while retries < 3:
+                try:
+                    commit_records(driver, ar_presigned_url, au_presigned_url, ab_presigned_url, rel_presigned_url)
+                    break
+                except Exception as e:
+                    logger.error(
+                        "An error occurred while committing arXiv records.",
+                        method=store_records.__name__,
+                        error=str(e),
+                        retries=retries,
+                    )
+                    retries += 1
+                    if retries == 3:
                         logger.error(
-                            "An error occurred while committing arXiv records.",
+                            "Failed to commit arXiv records after 3 retries.",
                             method=store_records.__name__,
                             error=str(e),
                             retries=retries,
                         )
-                        retries += 1
-                        if retries == 3:
-                            logger.error(
-                                "Failed to commit arXiv records after 3 retries.",
-                                method=store_records.__name__,
-                                error=str(e),
-                                retries=retries,
-                                total_chunks=num_chunks,
-                                processed_chunks=processed_chunks,
-                            )
-
+            for record in possible_new_records:
+                try:
+                    storage_manager.upload_to_s3(
+                        f"{config.get(RECORDS_PREFIX)}/{record.get(IDENTIFIER)}/{ABSTRACT}.json", record.get(ABSTRACT)
+                    )
+                except Exception as e:
+                    logger.error("Failed to upload abstract to S3", error=str(e), method=store_records.__name__)
+                    malformed_records.append(record)
     except Exception as e:
         logger.error(
             "An error occurred while committing arXiv records.",
@@ -269,21 +299,21 @@ def commit_records(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
                 CREATE (a:ArxivRecord {{identifier: row.arxiv_id}})
-                ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """
             )
             tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
-                ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                SET a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """
             )
             tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
                 CREATE (a:Abstract {{abstract_url: row.url}})
-                ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
+                SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: 'America/Vancouver'}}), a.last_modified = datetime({{timezone: 'America/Vancouver'}})
                 """
             )
             tx.run(
@@ -414,7 +444,7 @@ def generate_csv_data(
     bucket: str,
     records_prefix: str,
     categories: dict,
-    storage_manager: StorageManager,
+    storage_manager: S3Manager,
 ) -> Tuple[List[str], List[str], List[str], List[str]]:
     """
     Generates the CSV data for the arXiv records.
@@ -544,17 +574,3 @@ def abstract_factory(record: dict, bucket: str, records_prefix: str) -> list:
 
 def relationship_factory(label: str, start_label: str, start_uuid: str, end_label: str, end_uuid: str) -> str:
     return f"{label}|{start_label}|{start_uuid}|{end_label}|{end_uuid}|{str(uuid.uuid4())}\n"
-
-
-def chunker(seq: list, size: int) -> list:
-    """
-    Chunks a list into smaller lists.
-
-    Args:
-        seq (list): The list to chunk.
-        size (int): The size of each chunk.
-
-    Returns:
-        list: The chunked list.
-    """
-    return (seq[pos : pos + size] for pos in range(0, len(seq), size))
