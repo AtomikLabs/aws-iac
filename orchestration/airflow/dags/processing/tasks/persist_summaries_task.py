@@ -294,29 +294,30 @@ def commit_records(
     with driver.session() as session:
         tx = session.begin_transaction()
         try:
-
-            tx.run(
+            result = tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
                 CREATE (a:ArxivRecord {{identifier: row.arxiv_id}})
                 ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: "America/Vancouver"}}), a.last_modified = datetime({{timezone: "America/Vancouver"}})
-                """
+                """.strip()
             )
-            tx.run(
+            logger.info("Created arXiv records", result=result)
+            result = tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
                 ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: "America/Vancouver"}}), a.last_modified = datetime({{timezone: "America/Vancouver"}})
-                """
+                """.strip()
             )
-            tx.run(
+            logger.info("Created author records", result=result)
+            result = tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
                 CREATE (a:Abstract {{abstract_url: row.url}})
                 ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: "America/Vancouver"}}), a.last_modified = datetime({{timezone: "America/Vancouver"}})
-                """
+                """.strip()
             )
-            tx.run(
+            result = tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{rel_presigned_url}' AS row FIELDTERMINATOR '|'
                 MATCH (start), (end)
@@ -334,9 +335,10 @@ def commit_records(
                 ], 'RETURN NULL', {{start: start, end: end, uuid: row.uuid}})
                 YIELD value
                 RETURN count(*)
-                """,
+                """.strip(),
                 database_="neo4j",
             )
+            logger.info("Created relationships", result=result)
             tx.commit()
         except Exception as e:
             tx.rollback()
