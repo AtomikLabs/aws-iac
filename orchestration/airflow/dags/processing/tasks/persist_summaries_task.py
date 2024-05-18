@@ -200,9 +200,9 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict,
             bucket_name=bucket_name,
         )
         raise ValueError("Bucket name must be present and be a string.")
-    filenames = []
     malformed_records = []
     try:
+        filenames = []
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
@@ -299,21 +299,21 @@ def commit_records(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ar_presigned_url}' AS row FIELDTERMINATOR '|'
                 CREATE (a:ArxivRecord {{identifier: row.arxiv_id}})
-                ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime('America/Vancouver'), a.last_modified = datetime('America/Vancouver')
+                ON CREATE SET a.title = row.title, a.date = date(row.date), a.uuid = row.uuid, a.created = datetime({{timezone: "America/Vancouver"}}), a.last_modified = datetime({{timezone: "America/Vancouver"}})
                 """
             )
             tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{au_presigned_url}' AS row FIELDTERMINATOR '|'
                 MERGE (a:Author {{last_name: row.last_name, first_name: row.first_name}})
-                ON CREATE SET a.uuid = row.uuid, a.created = datetime('America/Vancouver'), a.last_modified = datetime('America/Vancouver')
+                ON CREATE SET a.uuid = row.uuid, a.created = datetime({{timezone: "America/Vancouver"}}), a.last_modified = datetime({{timezone: "America/Vancouver"}})
                 """
             )
             tx.run(
                 f"""
                 LOAD CSV WITH HEADERS FROM '{ab_presigned_url}' AS row FIELDTERMINATOR '|'
                 CREATE (a:Abstract {{abstract_url: row.url}})
-                ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime('America/Vancouver'), a.last_modified = datetime('America/Vancouver')
+                ON CREATE SET a.bucket = row.bucket, a.key = row.key, a.uuid = row.uuid, a.created = datetime({{timezone: "America/Vancouver"}}), a.last_modified = datetime({{timezone: "America/Vancouver"}})
                 """
             )
             tx.run(
@@ -322,15 +322,15 @@ def commit_records(
                 MATCH (start), (end)
                 WHERE start.uuid = row.start_uuid AND end.uuid = row.end_uuid
                 CALL apoc.do.case([
-                    row.label = 'CREATES', 'CREATE (start)-[r:CREATES]->(end) SET r.uuid = $uuid, r.created = datetime('America/Vancouver'), r.last_modified = datetime('America/Vancouver')',
-                    row.label = 'CREATED_BY', 'CREATE (start)-[r:CREATED_BY]->(end) SET r.uuid = $uuid, r.created = datetime('America/Vancouver'), r.last_modified = datetime('America/Vancouver')',
-                    row.label = 'AUTHORS', 'CREATE (start)-[r:AUTHORS]->(end) SET r.uuid = $uuid, r.created = datetime('America/Vancouver'), r.last_modified = datetime('America/Vancouver')',
-                    row.label = 'AUTHORED_BY', 'CREATE (start)-[r:AUTHORED_BY]->(end) SET r.uuid = $uuid, r.created = datetime('America/Vancouver'), r.last_modified = datetime('America/Vancouver')',
-                    row.label = 'SUMMARIZES', 'CREATE (start)-[r:SUMMARIZES]->(end) SET r.uuid = $uuid, r.created = datetime('America/Vancouver'), r.last_modified = datetime('America/Vancouver')',
-                    row.label = 'SUMMARIZED_BY', 'CREATE (start)-[r:SUMMARIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime('America/Vancouver'), r.last_modified = datetime('America/Vancouver')',
-                    row.label = 'PRIMARILY_CATEGORIZED_BY', 'CREATE (start)-[r:PRIMARILY_CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime('America/Vancouver'), r.last_modified = datetime('America/Vancouver')',
-                    row.label = 'CATEGORIZES', 'CREATE (start)-[r:CATEGORIZES]->(end) SET r.uuid = $uuid, r.created = datetime('America/Vancouver'), r.last_modified = datetime('America/Vancouver')',
-                    row.label = 'CATEGORIZED_BY', 'CREATE (start)-[r:CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime('America/Vancouver'), r.last_modified = datetime('America/Vancouver')'
+                    row.label = 'CREATES', 'CREATE (start)-[r:CREATES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'CREATED_BY', 'CREATE (start)-[r:CREATED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'AUTHORS', 'CREATE (start)-[r:AUTHORS]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'AUTHORED_BY', 'CREATE (start)-[r:AUTHORED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'SUMMARIZES', 'CREATE (start)-[r:SUMMARIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'SUMMARIZED_BY', 'CREATE (start)-[r:SUMMARIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'PRIMARILY_CATEGORIZED_BY', 'CREATE (start)-[r:PRIMARILY_CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'CATEGORIZES', 'CREATE (start)-[r:CATEGORIZES]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})',
+                    row.label = 'CATEGORIZED_BY', 'CREATE (start)-[r:CATEGORIZED_BY]->(end) SET r.uuid = $uuid, r.created = datetime({{timezone: "America/Vancouver"}}), r.last_modified = datetime({{timezone: "America/Vancouver"}})'
                 ], 'RETURN NULL', {{start: start, end: end, uuid: row.uuid}})
                 YIELD value
                 RETURN count(*)
