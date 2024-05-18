@@ -92,9 +92,9 @@ def run(**context: dict):
         logger.info(
             "Storing parsed arXiv summary records)} records",
             method=run.__name__,
-            num_records=len(json_data["records"]),
+            num_records=len(json_data),
         )
-        store_records(json_data["records"], config.get(DATA_BUCKET), key, config, s3_manager)
+        store_records(json_data, config.get(DATA_BUCKET), key, config, s3_manager)
         return {"statusCode": 200, "body": "Success"}
     except Exception as e:
         logger.error("An error occurred", method=run.__name__, error=str(e))
@@ -206,6 +206,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict,
         with GraphDatabase.driver(
             config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
         ) as driver:
+            driver.verify_connectivity()
             parsed_data = parsed_data_node(driver, key)
             loads_dop = loads_dop_node(
                 driver,

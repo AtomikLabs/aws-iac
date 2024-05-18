@@ -47,6 +47,7 @@ CS_CATEGORIES_INVERTED = {
     "Computer Science - Software Engineering": "SE",
     "Computer Science - Social and Information Networks": "SI",
     "Computer Science - Systems and Control": "SY",
+    "NULL": "NULL",
 }
 
 # AWS

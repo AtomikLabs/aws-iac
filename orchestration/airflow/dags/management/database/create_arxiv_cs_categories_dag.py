@@ -1,20 +1,43 @@
-import argparse
-import json
-import logging
-from datetime import datetime
+import os
+from logging.config import dictConfig
 
-import boto3
-import pytz
 import structlog
-from models.arxiv_category import ArxivCategory
-from models.arxiv_set import ArxivSet
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from airflow.utils.dates import days_ago
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
+from shared.models.arxiv_category import ArxivCategory
+from shared.models.arxiv_set import ArxivSet
+from shared.utils.constants import (
+    AIRFLOW_DAGS_ENV_PATH,
+    AWS_GLUE_REGISTRY_NAME,
+    AWS_REGION,
+    AWS_SECRETS_NEO4J_CREDENTIALS,
+    AWS_SECRETS_NEO4J_PASSWORD,
+    AWS_SECRETS_NEO4J_USERNAME,
+    CS_CATEGORIES_INVERTED,
+    DEFAULT_LOGGING_ARGS,
+    ENVIRONMENT_NAME,
+    LOGGING_CONFIG,
+    NEO4J_CONNECTION_RETRIES,
+    NEO4J_CONNECTION_RETRIES_DEFAULT,
+    NEO4J_PASSWORD,
+    NEO4J_URI,
+    NEO4J_USERNAME,
+    ORCHESTRATION_HOST_PRIVATE_IP,
+)
+from shared.utils.utils import get_aws_secrets
+
+dictConfig(LOGGING_CONFIG)
 
 structlog.configure(
-    [
+    processors=[
         structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.dict_tracebacks,
         structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
@@ -24,94 +47,20 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-logger.setLevel(logging.INFO)
+start_date = days_ago(1)
+load_dotenv(dotenv_path=os.getenv(AIRFLOW_DAGS_ENV_PATH))
 
-CS_CATEGORIES_INVERTED = {
-    "Computer Science - Artificial Intelligence": "AI",
-    "Computer Science - Hardware Architecture": "AR",
-    "Computer Science - Computational Complexity": "CC",
-    "Computer Science - Computational Engineering, Finance, and Science": "CE",
-    "Computer Science - Computational Geometry": "CG",
-    "Computer Science - Computation and Language": "CL",
-    "Computer Science - Cryptography and Security": "CR",
-    "Computer Science - Computer Vision and Pattern Recognition": "CV",
-    "Computer Science - Computers and Society": "CY",
-    "Computer Science - Databases": "DB",
-    "Computer Science - Distributed, Parallel, and Cluster Computing": "DC",
-    "Computer Science - Digital Libraries": "DL",
-    "Computer Science - Discrete Mathematics": "DM",
-    "Computer Science - Data Structures and Algorithms": "DS",
-    "Computer Science - Emerging Technologies": "ET",
-    "Computer Science - Formal Languages and Automata Theory": "FL",
-    "Computer Science - General Literature": "GL",
-    "Computer Science - Graphics": "GR",
-    "Computer Science - Computer Science and Game Theory": "GT",
-    "Computer Science - Human-Computer Interaction": "HC",
-    "Computer Science - Information Retrieval": "IR",
-    "Computer Science - Information Theory": "IT",
-    "Computer Science - Machine Learning": "LG",
-    "Computer Science - Logic in Computer Science": "LO",
-    "Computer Science - Multiagent Systems": "MA",
-    "Computer Science - Multimedia": "MM",
-    "Computer Science - Mathematical Software": "MS",
-    "Computer Science - Numerical Analysis": "NA",
-    "Computer Science - Neural and Evolutionary Computing": "NE",
-    "Computer Science - Networking and Internet Architecture": "NI",
-    "Computer Science - Other Computer Science": "OH",
-    "Computer Science - Operating Systems": "OS",
-    "Computer Science - Performance": "PF",
-    "Computer Science - Programming Languages": "PL",
-    "Computer Science - Robotics": "RO",
-    "Computer Science - Symbolic Computation": "SC",
-    "Computer Science - Sound": "SD",
-    "Computer Science - Software Engineering": "SE",
-    "Computer Science - Social and Information Networks": "SI",
-    "Computer Science - Systems and Control": "SY",
-    "NULL": "NULL",
-}
-
-DEFAULT_TIMEZONE = "US/Pacific"
-S3_KEY_DATE_FORMAT = "%Y-%m-%dT%H-%M-%S"
-DEFAULT_NEO4J_DB = "neo4j"
-# get args from cli: -e <environment> -n <neo4j_uri>, env MUST be dev, prod, stage, or test
-parser = argparse.ArgumentParser()
-parser.add_argument("-e", "--env", help="Environment", required=True)
-parser.add_argument("-n", "--neo4j_uri", help="Neo4j URI", required=True)
-args = parser.parse_args()
-
-env = args.env
-if env not in ["dev", "prod", "stage", "test"]:
-    raise ValueError("Invalid environment: must be dev, prod, stage, or test")
-
-neo4j_uri = args.neo4j_uri
+SERVICE_NAME = "create_arxiv_cs_categories"
+TASK_NAME = "create_categories"
 
 
-def get_storage_key_datetime(date: str = "") -> datetime:
-    """
-    Get the date in the format used for S3 keys.
-
-    Args:
-        date: The date to format.
-
-    Returns:
-        The date in the format used for S3 keys.
-    """
-    if not date:
-        return datetime.now().astimezone(pytz.timezone(DEFAULT_TIMEZONE))
-    return datetime.strptime(date, S3_KEY_DATE_FORMAT).astimezone(pytz.timezone(DEFAULT_TIMEZONE))
-
-
-secret = boto3.client("secretsmanager").get_secret_value(SecretId=f"{env}/neo4j-credentials")
-neo4j_creds = json.loads(secret["SecretString"])
-print(neo4j_creds)
-
-with GraphDatabase.driver(neo4j_uri, auth=(neo4j_creds["neo4j_username"], neo4j_creds["neo4j_password"])) as driver:
-    with driver.session() as session:
+def create_categories():
+    config = get_config()
+    neo4j_driver = GraphDatabase.driver(
+        config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
+    )
+    with neo4j_driver as driver:
         driver.verify_connectivity()
-        logger.info("Connected to Neo4j")
-
-        category_nodes = []
-        now = get_storage_key_datetime().strftime(S3_KEY_DATE_FORMAT)
         arxiv_set = ArxivSet(driver, "CS", "Computer Science")
         arxiv_set.create()
         for name, code in CS_CATEGORIES_INVERTED.items():
@@ -134,3 +83,81 @@ with GraphDatabase.driver(neo4j_uri, auth=(neo4j_creds["neo4j_username"], neo4j_
         session.run("CREATE INDEX abstract_uuid IF NOT EXISTS FOR (n:Abstract) ON (n.uuid);")
         session.run("CREATE INDEX author_uuid IF NOT EXISTS FOR (n:Author) ON (n.uuid);")
         session.run("CREATE INDEX author_names IF NOT EXISTS FOR (n:Author) ON (n.first_name, n.last_name);")
+
+
+def get_config(context: dict) -> dict:
+    """
+    Gets the config from the environment variables.
+
+    Returns:
+        dict: The config.
+    """
+    try:
+        logger.info("Getting config", method=get_config.__name__)
+        config = {
+            AWS_GLUE_REGISTRY_NAME: os.getenv(AWS_GLUE_REGISTRY_NAME),
+            AWS_REGION: os.getenv(AWS_REGION),
+            ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME).strip(),
+            ORCHESTRATION_HOST_PRIVATE_IP: os.getenv(ORCHESTRATION_HOST_PRIVATE_IP),
+        }
+        neo4j_retries = (
+            int(os.getenv(NEO4J_CONNECTION_RETRIES))
+            if os.getenv(NEO4J_CONNECTION_RETRIES)
+            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
+        )
+        config.update(
+            [
+                (NEO4J_CONNECTION_RETRIES, neo4j_retries),
+            ]
+        )
+        neo4j_secrets_dict = get_aws_secrets(
+            AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
+        )
+        config.update(
+            [
+                (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
+                (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
+                (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
+            ]
+        )
+        if (
+            not config.get(AWS_REGION)
+            or not config.get(ENVIRONMENT_NAME)
+            or not config.get(NEO4J_PASSWORD)
+            or not config.get(NEO4J_USERNAME)
+            or not config.get(NEO4J_URI)
+            or not config.get(ORCHESTRATION_HOST_PRIVATE_IP)
+        ):
+            logger.error(
+                "Config values not found",
+                config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
+                method=get_config.__name__,
+                task_name=TASK_NAME,
+            )
+            raise ValueError("Config values not found")
+        logger.info(
+            "Config values",
+            config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
+            method=get_config.__name__,
+            neo4j_pass_found=bool(config.get(NEO4J_PASSWORD)),
+            task_name=TASK_NAME,
+        )
+        return config
+    except Exception as e:
+        logger.error("Failed to get config", error=str(e), method=get_config.__name__, task_name=TASK_NAME)
+        raise e
+
+
+with DAG(
+    SERVICE_NAME,
+    catchup=False,
+    default_args=DEFAULT_LOGGING_ARGS,
+    schedule_interval="@hourly",
+    start_date=start_date,
+    tags=["management", "neo4j", "arxiv"],
+) as dag:
+
+    create_arxiv_cs_categories = PythonOperator(
+        task_id="create_arxiv_cs_categories",
+        python_callable=create_categories,
+    )

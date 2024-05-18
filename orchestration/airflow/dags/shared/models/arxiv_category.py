@@ -115,14 +115,10 @@ class ArxivCategory(BaseModel):
                 arxiv_category.uuid = data.get("uuid", "")
                 arxiv_category.created = data.get("created", None)
                 arxiv_category.last_modified = data.get("last_modified", None)
-                if (
-                    not validate_strings(
-                        arxiv_category.code,
-                        arxiv_category.name,
-                        arxiv_category.uuid,
-                    )
-                    or arxiv_category.created is None
-                    or arxiv_category.last_modified is None
+                if not validate_strings(
+                    arxiv_category.code,
+                    arxiv_category.name,
+                    arxiv_category.uuid,
                 ):
                     raise ValueError("Failed to load ArxivCategory")
                 return arxiv_category
@@ -148,14 +144,10 @@ class ArxivCategory(BaseModel):
                     arxiv_category.uuid = data.get("uuid", "")
                     arxiv_category.created = data.get("created", None)
                     arxiv_category.last_modified = data.get("last_modified", None)
-                    if (
-                        not validate_strings(
-                            arxiv_category.code,
-                            arxiv_category.name,
-                            arxiv_category.uuid,
-                        )
-                        or arxiv_category.created is None
-                        or arxiv_category.last_modified is None
+                    if not validate_strings(
+                        arxiv_category.code,
+                        arxiv_category.name,
+                        arxiv_category.uuid,
                     ):
                         raise ValueError("Failed to load ArxivCategory")
                     arxiv_categories.append(arxiv_category)
