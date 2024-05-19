@@ -1,5 +1,4 @@
 import json
-import os
 import uuid
 from logging.config import dictConfig
 from typing import Dict, List, Tuple
@@ -20,9 +19,6 @@ from shared.utils.constants import (
     AUTHORED_BY,
     AUTHORS,
     AWS_REGION,
-    AWS_SECRETS_NEO4J_CREDENTIALS,
-    AWS_SECRETS_NEO4J_PASSWORD,
-    AWS_SECRETS_NEO4J_USERNAME,
     CATEGORIZED_BY,
     CATEGORIZES,
     CREATED_BY,
@@ -33,8 +29,6 @@ from shared.utils.constants import (
     LOADED_BY,
     LOADS,
     LOGGING_CONFIG,
-    NEO4J_CONNECTION_RETRIES,
-    NEO4J_CONNECTION_RETRIES_DEFAULT,
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
@@ -44,12 +38,10 @@ from shared.utils.constants import (
     PERSIST_SUMMARIES_TASK_VERSION,
     PRIMARILY_CATEGORIZED_BY,
     RECORDS_PREFIX,
-    SERVICE_NAME,
-    SERVICE_VERSION,
     SUMMARIZED_BY,
     SUMMARIZES,
 )
-from shared.utils.utils import get_aws_secrets
+from shared.utils.utils import get_config
 
 dictConfig(LOGGING_CONFIG)
 
@@ -82,7 +74,15 @@ TITLE = "title"
 def run(**context: dict):
     try:
         logger.info("Running persist_summaries_task")
-        config = get_config(context)
+        env_vars = [
+            AWS_REGION,
+            DATA_BUCKET,
+            ENVIRONMENT_NAME,
+            ORCHESTRATION_HOST_PRIVATE_IP,
+            PERSIST_SUMMARIES_TASK_VERSION,
+            RECORDS_PREFIX,
+        ]
+        config = get_config(context, env_vars, neo4j=True)
         s3_manager = S3Manager(config.get(DATA_BUCKET), logger)
         key = context["ti"].xcom_pull(task_ids=PARSE_SUMMARIES_TASK, key=INTERMEDIATE_JSON_KEY)
         json_data = json.loads(s3_manager.load(key))
@@ -99,75 +99,6 @@ def run(**context: dict):
     except Exception as e:
         logger.error("An error occurred", method=run.__name__, error=str(e))
         return {"statusCode": 500, "body": "Internal server error", "error": str(e)}
-
-
-def get_config(context: dict) -> dict:
-    """
-    Gets the config from the environment variables.
-
-    Returns:
-        dict: The config.
-    """
-    try:
-        config = {
-            AWS_REGION: os.environ[AWS_REGION],
-            DATA_BUCKET: os.environ[DATA_BUCKET],
-            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
-            ORCHESTRATION_HOST_PRIVATE_IP: os.getenv(ORCHESTRATION_HOST_PRIVATE_IP),
-            RECORDS_PREFIX: os.environ[RECORDS_PREFIX],
-            SERVICE_NAME: PERSIST_SUMMARIES_TASK,
-            SERVICE_VERSION: os.environ[PERSIST_SUMMARIES_TASK_VERSION],
-        }
-        neo4j_retries = (
-            int(os.getenv(NEO4J_CONNECTION_RETRIES))
-            if os.getenv(NEO4J_CONNECTION_RETRIES)
-            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
-        )
-        config.update(
-            [
-                (NEO4J_CONNECTION_RETRIES, neo4j_retries),
-            ]
-        )
-        neo4j_secrets_dict = get_aws_secrets(
-            AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
-        )
-        config.update(
-            [
-                (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
-                (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
-                (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
-            ]
-        )
-        if (
-            not config.get(AWS_REGION)
-            or not config.get(DATA_BUCKET)
-            or not config.get(ENVIRONMENT_NAME)
-            or not config.get(NEO4J_PASSWORD)
-            or not config.get(NEO4J_USERNAME)
-            or not config.get(NEO4J_URI)
-            or not config.get(ORCHESTRATION_HOST_PRIVATE_IP)
-            or not config.get(RECORDS_PREFIX)
-            or not config.get(SERVICE_NAME)
-            or not config.get(SERVICE_VERSION)
-        ):
-            logger.error(
-                "Config values not found",
-                config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
-                method=get_config.__name__,
-                task_name=PERSIST_SUMMARIES_TASK,
-            )
-            raise ValueError("Config values not found")
-        logger.info(
-            "Config values",
-            config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
-            method=get_config.__name__,
-            neo4j_pass_found=bool(config.get(NEO4J_PASSWORD)),
-            task_name=PERSIST_SUMMARIES_TASK,
-        )
-        return config
-    except Exception as e:
-        logger.error("Failed to get config", error=str(e), method=get_config.__name__, task_name=PERSIST_SUMMARIES_TASK)
-        raise e
 
 
 def store_records(records: List[Dict], bucket_name: str, key: str, config: dict, storage_manager: S3Manager) -> Dict:
@@ -211,8 +142,8 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict,
             loads_dop = loads_dop_node(
                 driver,
                 "Load parsed arXiv records",
-                config.get(SERVICE_NAME),
-                config.get(SERVICE_VERSION),
+                PERSIST_SUMMARIES_TASK,
+                config.get(PERSIST_SUMMARIES_TASK_VERSION),
                 parsed_data,
             )
 

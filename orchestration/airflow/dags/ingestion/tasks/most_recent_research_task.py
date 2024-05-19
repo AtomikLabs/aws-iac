@@ -12,20 +12,16 @@ from shared.utils.constants import (
     ARXIV_INGESTION_DAY_SPAN,
     ARXIV_RESEARCH_DATE_FORMAT,
     AWS_REGION,
-    AWS_SECRETS_NEO4J_CREDENTIALS,
-    AWS_SECRETS_NEO4J_PASSWORD,
-    AWS_SECRETS_NEO4J_USERNAME,
     ENVIRONMENT_NAME,
     INGESTION_EARLIEST_DATE,
     LOGGING_CONFIG,
     NEO4J_CONNECTION_RETRIES,
-    NEO4J_CONNECTION_RETRIES_DEFAULT,
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USERNAME,
     RESEARCH_RECORD_DATE,
 )
-from shared.utils.utils import get_aws_secrets, get_storage_key_datetime
+from shared.utils.utils import get_config, get_storage_key_datetime
 
 dictConfig(LOGGING_CONFIG)
 
@@ -58,79 +54,17 @@ def run(**context: dict):
             date=context.get(AIRFLOW_DATA_INTERVAL_START),
             run_id=context.get(AIRFLOW_RUN_ID),
         )
-        config = get_config()
+        env_vars = [
+            ARXIV_INGESTION_DAY_SPAN,
+            AWS_REGION,
+            ENVIRONMENT_NAME,
+        ]
+        config = get_config(context=context, env_vars=env_vars, neo4j=True)
         earliest_date = get_earliest_date(config)
         logger.info(f"Earliest date: {earliest_date}", method=run.__name__, task_name=TASK_NAME)
         context.get("ti").xcom_push(key=INGESTION_EARLIEST_DATE, value=earliest_date)
     except Exception as e:
         logger.error(f"Failed to run {TASK_NAME} task", error=str(e), method=run.__name__, task_name=TASK_NAME)
-        raise e
-
-
-def get_config() -> dict:
-    """
-    Gets the config from the environment variables.
-
-    Returns:
-        dict: The config.
-    """
-    try:
-        logger.info("Getting config", method=get_config.__name__, task_name=TASK_NAME)
-        config = {
-            ARXIV_INGESTION_DAY_SPAN: int(os.getenv(ARXIV_INGESTION_DAY_SPAN)),
-            AWS_REGION: os.getenv(AWS_REGION),
-            ENVIRONMENT_NAME: os.getenv(ENVIRONMENT_NAME).replace("'", ""),
-        }
-        neo4j_retries = (
-            int(os.getenv(NEO4J_CONNECTION_RETRIES))
-            if os.getenv(NEO4J_CONNECTION_RETRIES)
-            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
-        )
-        neo4j_retries = (
-            int(os.getenv(NEO4J_CONNECTION_RETRIES))
-            if os.getenv(NEO4J_CONNECTION_RETRIES)
-            else int(os.getenv(NEO4J_CONNECTION_RETRIES_DEFAULT))
-        )
-        config.update(
-            [
-                (NEO4J_CONNECTION_RETRIES, neo4j_retries),
-            ]
-        )
-        neo4j_secrets_dict = get_aws_secrets(
-            AWS_SECRETS_NEO4J_CREDENTIALS, config.get(AWS_REGION), config.get(ENVIRONMENT_NAME)
-        )
-        config.update(
-            [
-                (NEO4J_PASSWORD, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_PASSWORD, "")),
-                (NEO4J_USERNAME, neo4j_secrets_dict.get(AWS_SECRETS_NEO4J_USERNAME, "")),
-                (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
-            ]
-        )
-        if (
-            not config.get(ARXIV_INGESTION_DAY_SPAN)
-            or not config.get(AWS_REGION)
-            or not config.get(ENVIRONMENT_NAME)
-            or not config.get(NEO4J_PASSWORD)
-            or not config.get(NEO4J_USERNAME)
-            or not config.get(NEO4J_URI)
-        ):
-            logger.error(
-                "Config values not found",
-                config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
-                method=get_config.__name__,
-                task_name=TASK_NAME,
-            )
-            raise ValueError("Config values not found")
-        logger.info(
-            "Config values",
-            config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
-            method=get_config.__name__,
-            neo4j_pass_found=bool(config.get(NEO4J_PASSWORD)),
-            task_name=TASK_NAME,
-        )
-        return config
-    except Exception as e:
-        logger.error("Failed to get config", error=str(e), method=get_config.__name__, task_name=TASK_NAME)
         raise e
 
 
