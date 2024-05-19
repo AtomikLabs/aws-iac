@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 from logging.config import dictConfig
@@ -119,7 +120,7 @@ def raw_data(config: dict) -> dict:
         dict: The raw data.
     """
     fetched_xml_by_set = {}
-    for set in config.get(ARXIV_SETS):
+    for set in ast.literal_eval(os.getenv(ARXIV_SETS)):
         storage_key = get_storage_key(config.get(DATA_INGESTION_KEY_PREFIX), set, XML)
         data = fetch_data(
             config.get(ARXIV_BASE_URL), config.get(INGESTION_EARLIEST_DATE), set, int(config.get(ARXIV_API_MAX_RETRIES))
