@@ -59,10 +59,10 @@ def run(**context: dict):
     try:
         env_vars = [
             AWS_REGION,
-            PARSE_SUMMARIES_TASK_VERSION,
             DATA_BUCKET,
             ENVIRONMENT_NAME,
             ETL_KEY_PREFIX,
+            PARSE_SUMMARIES_TASK_VERSION,
         ]
         config = get_config(context=context, env_vars=env_vars, neo4j=True)
         logger.info("Config pulled", method=run.__name__)

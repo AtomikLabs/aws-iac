@@ -34,10 +34,10 @@ from shared.utils.constants import (
     NEO4J_USERNAME,
     ORCHESTRATION_HOST_PRIVATE_IP,
     PARSE_SUMMARIES_TASK,
+    PERSIST_SUMMARIES_TASK,
+    PERSIST_SUMMARIES_TASK_VERSION,
     PRIMARILY_CATEGORIZED_BY,
     RECORDS_PREFIX,
-    SERVICE_NAME,
-    SERVICE_VERSION,
     SUMMARIZED_BY,
     SUMMARIZES,
 )
@@ -79,9 +79,8 @@ def run(**context: dict):
             DATA_BUCKET,
             ENVIRONMENT_NAME,
             ORCHESTRATION_HOST_PRIVATE_IP,
+            PERSIST_SUMMARIES_TASK_VERSION,
             RECORDS_PREFIX,
-            SERVICE_NAME,
-            SERVICE_VERSION,
         ]
         config = get_config(context, env_vars, neo4j=True)
         s3_manager = S3Manager(config.get(DATA_BUCKET), logger)
@@ -143,8 +142,8 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict,
             loads_dop = loads_dop_node(
                 driver,
                 "Load parsed arXiv records",
-                config.get(SERVICE_NAME),
-                config.get(SERVICE_VERSION),
+                PERSIST_SUMMARIES_TASK,
+                config.get(PERSIST_SUMMARIES_TASK_VERSION),
                 parsed_data,
             )
 
