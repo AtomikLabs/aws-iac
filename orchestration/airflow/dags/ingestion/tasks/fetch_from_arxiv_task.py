@@ -92,10 +92,10 @@ def run(**context: dict):
             DATA_INGESTION_KEY_PREFIX,
             ENVIRONMENT_NAME,
             FETCH_FROM_ARXIV_TASK_VERSION,
-            INGESTION_EARLIEST_DATE,
             ORCHESTRATION_HOST_PRIVATE_IP,
         ]
         config = get_config(context=context, env_vars=env_vars, neo4j=True)
+        config.update({INGESTION_EARLIEST_DATE: context.get("ti").xcom_pull(key=INGESTION_EARLIEST_DATE)})
         data = raw_data(config)
         results = store_data(config, data)
         data_nodes = store_metadata(config, data, results)
