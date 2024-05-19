@@ -95,7 +95,7 @@ def run(**context: dict):
             INGESTION_EARLIEST_DATE,
             ORCHESTRATION_HOST_PRIVATE_IP,
         ]
-        config = get_config(context=context, env_vars=env_vars, neo4j=True)
+        config = get_config(context=context, env_vars=env_vars, logger=logger, neo4j=True)
         data = raw_data(config)
         results = store_data(config, data)
         data_nodes = store_metadata(config, data, results)

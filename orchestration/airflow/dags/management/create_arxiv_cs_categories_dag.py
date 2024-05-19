@@ -56,7 +56,7 @@ def create_categories():
         ENVIRONMENT_NAME,
         ORCHESTRATION_HOST_PRIVATE_IP,
     ]
-    config = get_config(context=None, env_vars=env_vars, neo4j=True)
+    config = get_config(context=None, env_vars=env_vars, logger=logger, neo4j=True)
     neo4j_driver = GraphDatabase.driver(
         config.get(NEO4J_URI), auth=(config.get(NEO4J_USERNAME), config.get(NEO4J_PASSWORD))
     )

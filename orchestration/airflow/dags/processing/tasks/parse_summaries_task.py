@@ -64,7 +64,7 @@ def run(**context: dict):
             ENVIRONMENT_NAME,
             ETL_KEY_PREFIX,
         ]
-        config = get_config(context=context, env_vars=env_vars, neo4j=True)
+        config = get_config(context=context, env_vars=env_vars, logger=logger, neo4j=True)
         logger.info("Config pulled", method=run.__name__)
         schema = context["ti"].xcom_pull(task_ids=KAFKA_LISTENER, key=SCHEMA)
         logger.info("Schema", method=run.__name__, schema=schema)
