@@ -59,7 +59,7 @@ def run(**context: dict):
             AWS_REGION,
             ENVIRONMENT_NAME,
         ]
-        config = get_config(context=context, env_vars=env_vars, logger=logger, neo4j=True)
+        config = get_config(context=context, env_vars=env_vars, neo4j=True)
         earliest_date = get_earliest_date(config)
         logger.info(f"Earliest date: {earliest_date}", method=run.__name__, task_name=TASK_NAME)
         context.get("ti").xcom_push(key=INGESTION_EARLIEST_DATE, value=earliest_date)

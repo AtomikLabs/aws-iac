@@ -83,7 +83,7 @@ def run(**context: dict):
             SERVICE_NAME,
             SERVICE_VERSION,
         ]
-        config = get_config(context, env_vars, logger=logger, neo4j=True)
+        config = get_config(context, env_vars, neo4j=True)
         s3_manager = S3Manager(config.get(DATA_BUCKET), logger)
         key = context["ti"].xcom_pull(task_ids=PARSE_SUMMARIES_TASK, key=INTERMEDIATE_JSON_KEY)
         json_data = json.loads(s3_manager.load(key))

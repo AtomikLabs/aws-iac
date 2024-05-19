@@ -60,9 +60,9 @@ def calculate_mb(size: int) -> float:
     return round(size / (1024 * 1024), 2)
 
 
-def get_config(context: dict, env_vars: list, logger, neo4j: bool = False) -> dict:
+def get_config(context: dict, env_vars: list, neo4j: bool = False) -> dict:
     try:
-        logger.info("Config", method=get_config.__name__, context=context, env_vars=env_vars)
+        logger.info("Config", method=get_config.__name__, airflow_context=context, env_vars=env_vars)
         config = {}
         for env_var in env_vars:
             config.update({env_var: os.getenv(env_var)})
