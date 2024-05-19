@@ -122,7 +122,7 @@ def raw_data(config: dict) -> dict:
     for set in config.get(ARXIV_SETS):
         storage_key = get_storage_key(config.get(DATA_INGESTION_KEY_PREFIX), set, XML)
         data = fetch_data(
-            config.get(ARXIV_BASE_URL), config.get(INGESTION_EARLIEST_DATE), set, config.get(ARXIV_API_MAX_RETRIES)
+            config.get(ARXIV_BASE_URL), config.get(INGESTION_EARLIEST_DATE), set, int(config.get(ARXIV_API_MAX_RETRIES))
         )
         fetched_xml_by_set[set] = {"key": storage_key, "data": data, "set": set}
     return fetched_xml_by_set
