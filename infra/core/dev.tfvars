@@ -62,8 +62,10 @@ arxiv_ingestion_day_span = 5
 arxiv_sets = ["cs"]
 default_lambda_runtime = "python3.10"
 
+create_pod_task_version = "0.0.1"
 fetch_from_arxiv_task_version = "0.1.0"
 most_recent_research_records_version = "0.0.2"
+next_pod_date_task_version = "0.0.1"
 parse_summaries_task_version = "0.1.0"
 persist_summaries_task_version = "0.0.1"
 save_summaries_to_datalake_task_version = "0.0.1"
