@@ -62,20 +62,12 @@ def calculate_mb(size: int) -> float:
 
 def get_config(context: dict, env_vars: list, neo4j: bool = False) -> dict:
     try:
-        logger.info("Config", method=get_config.__name__, airflow_context=context, env_vars=env_vars)
+        logger.info("Config", method=get_config.__name__, env_vars=env_vars)
         config = {}
         for env_var in env_vars:
             config.update({env_var: os.getenv(env_var)})
         if neo4j:
             config = set_neo4j_env_vars(config)
-        for env_var in env_vars:
-            if not config.get(env_var):
-                logger.error(
-                    "Config values not found",
-                    config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
-                    method=get_config.__name__,
-                )
-                raise ValueError("Config values not found")
         logger.info(
             "Config values",
             config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
