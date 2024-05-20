@@ -4,6 +4,7 @@ from typing import Dict, List
 
 import structlog
 from dotenv import load_dotenv
+from neo4j import GraphDatabase
 from shared.utils.constants import AIRFLOW_DAGS_ENV_PATH, LOGGING_CONFIG
 from shared.utils.utils import get_config
 
@@ -37,7 +38,7 @@ def run(
         logger.info("Creating pod", set=arxiv_set, category=category)
         env_vars = []
         config = get_config(context, env_vars, True)
-        next_date = last_pod_date(config) + timedelta(days=1)
+        next_date = last_pod_date(config, arxiv_set, category) + timedelta(days=1)
         date_list = [next_date + timedelta(days=i) for i in range((datetime.now() - next_date).days)]
         for pod_date in date_list:
             logger.info("Creating pod", set=arxiv_set, category=category, date=pod_date)
@@ -52,18 +53,29 @@ def run(
         return {"statusCode": 500, "body": "Error creating pod"}
 
 
-def last_pod_date(config: dict) -> datetime:
+def last_pod_date(config: dict, arxiv_set: str, category: str) -> datetime:
     logger.info("Getting last pod date")
-    pass
+    try:
+        driver = GraphDatabase.driver(config["NEO4J_URI"], auth=(config["NEO4J_USERNAME"], config["NEO4J_PASSWORD"]))
+        with driver.session() as session:
+            result = session.run(
+                "MATCH (a:ArxivSet {code: {arxiv_set}}) - (c:ArxivCategory {code: {category}}) - (p:PodCast) RETURN p.date ORDER BY p.date DESC LIMIT 1",
+                {"arxiv_set": arxiv_set, "category": category},
+            )
+            return result.single()["p.date"]
+    except Exception as e:
+        logger.error("Error getting last pod date", error=e)
+        raise e
 
 
-def get_summaries(config: dict, arxiv_set: str, category: str, date: datetime) -> List[Dict[str, str]]:
-    logger.info("Getting summaries", set=arxiv_set, category=category, date=date)
+def get_summaries(config: dict, arxiv_set: str, category: str, episode_date: datetime) -> List[Dict[str, str]]:
+    logger.info("Getting summaries", set=arxiv_set, category=category, date=episode_date)
     pass
 
 
 def get_pod_summaries(summaries: List[Dict[str, str]]) -> List[Dict[str, str]]:
     logger.info("Getting pod summaries", summaries=summaries)
+    # for every ArxivRecord in summaries,
     pass
 
 
