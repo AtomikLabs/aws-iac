@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timezone
 from logging.config import dictConfig
 from typing import Dict, List
 
@@ -40,7 +39,7 @@ from shared.utils.constants import (
     SUMMARIZED_BY,
     SUMMARIZES,
 )
-from shared.utils.utils import get_config
+from shared.utils.utils import get_config, get_storage_key_datetime
 
 dictConfig(LOGGING_CONFIG)
 
@@ -150,7 +149,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict,
             )
             categories = {c.code: c for c in ArxivCategory.find_all(driver)}
             possible_new_records = filter_new_records(driver, records)
-            now = datetime.now(timezone("America/Vancouver"))
+            now = get_storage_key_datetime()
             props = {
                 "created": now,
                 "last_modified": now,
