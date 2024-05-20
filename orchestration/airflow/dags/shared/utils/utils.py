@@ -60,6 +60,26 @@ def calculate_mb(size: int) -> float:
     return round(size / (1024 * 1024), 2)
 
 
+def get_config(context: dict, env_vars: list, neo4j: bool = False) -> dict:
+    try:
+        logger.info("Config", method=get_config.__name__, env_vars=env_vars)
+        config = {}
+        for env_var in env_vars:
+            config.update({env_var: os.getenv(env_var)})
+        if neo4j:
+            config = set_neo4j_env_vars(config)
+        logger.info(
+            "Config values",
+            config={k: v for k, v in config.items() if k != NEO4J_PASSWORD},
+            method=get_config.__name__,
+            neo4j_pass_found=bool(config.get(NEO4J_PASSWORD)),
+        )
+        return config
+    except Exception as e:
+        logger.error("Failed to get config", error=str(e), method=get_config.__name__)
+        raise e
+
+
 def get_schema(schema_name: str) -> Schema:
     glue_client = boto3.client("glue", region_name=os.getenv(AWS_REGION))
     schema_response = glue_client.get_schema_version(
@@ -174,6 +194,8 @@ def set_neo4j_env_vars(config: dict) -> dict:
             (NEO4J_URI, os.getenv(NEO4J_URI).replace("'", "")),
         ]
     )
+    if not config.get(NEO4J_PASSWORD) or not config.get(NEO4J_USERNAME) or not config.get(NEO4J_URI):
+        raise ValueError("Neo4j environment variables not found")
     logger.info("Neo4j vars set", method=set_neo4j_env_vars.__name__, config_files=config)
     return config
 

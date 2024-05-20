@@ -32,7 +32,7 @@ from shared.utils.constants import (
     PARSES,
     SCHEMA,
 )
-from shared.utils.utils import get_storage_key_date, set_neo4j_env_vars
+from shared.utils.utils import get_config, get_storage_key_date
 
 dictConfig(LOGGING_CONFIG)
 
@@ -57,7 +57,14 @@ load_dotenv(dotenv_path=AIRFLOW_DAGS_ENV_PATH)
 
 def run(**context: dict):
     try:
-        config = get_config()
+        env_vars = [
+            AWS_REGION,
+            DATA_BUCKET,
+            ENVIRONMENT_NAME,
+            ETL_KEY_PREFIX,
+            PARSE_SUMMARIES_TASK_VERSION,
+        ]
+        config = get_config(context=context, env_vars=env_vars, neo4j=True)
         logger.info("Config pulled", method=run.__name__)
         schema = context["ti"].xcom_pull(task_ids=KAFKA_LISTENER, key=SCHEMA)
         logger.info("Schema", method=run.__name__, schema=schema)
@@ -69,32 +76,6 @@ def run(**context: dict):
         logger.error(e)
         return {"statusCode": 500, "body": INTERNAL_SERVER_ERROR, "error": str(e)}
     return {"statusCode": 200, "body": "Success"}
-
-
-def get_config() -> dict:
-    """
-    Gets the config from the environment variables.
-
-    Returns:
-        dict: The config.
-    """
-    try:
-        config = {
-            AWS_REGION: os.environ[AWS_REGION],
-            PARSE_SUMMARIES_TASK_VERSION: os.environ[PARSE_SUMMARIES_TASK_VERSION],
-            DATA_BUCKET: os.environ[DATA_BUCKET],
-            ENVIRONMENT_NAME: os.environ[ENVIRONMENT_NAME],
-            ETL_KEY_PREFIX: os.environ[ETL_KEY_PREFIX],
-        }
-        config = set_neo4j_env_vars(config)
-        logger.info("Config", method=get_config.__name__, config_file=config)
-        return config
-    except KeyError as e:
-        logger.error("Missing environment variable", method=get_config.__name__, error=str(e))
-        raise e
-    except Exception as e:
-        logger.error("Error getting config", method=get_config.__name__, error=str(e))
-        raise e
 
 
 def create_json_data(config: dict, s3_manager: S3Manager, key: str) -> str:
