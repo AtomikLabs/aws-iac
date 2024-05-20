@@ -40,6 +40,7 @@ def run(
         config = get_config(context, env_vars, True)
         next_date = last_pod_date(config, arxiv_set, category) + timedelta(days=1)
         date_list = [next_date + timedelta(days=i) for i in range((datetime.now() - next_date).days)]
+        logger.info("Date list", date_list=date_list)
         for pod_date in date_list:
             logger.info("Creating pod", set=arxiv_set, category=category, date=pod_date)
             summaries = get_summaries(config, arxiv_set, category, pod_date)
