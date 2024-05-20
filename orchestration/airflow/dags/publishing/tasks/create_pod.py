@@ -5,7 +5,14 @@ from typing import Dict, List
 import structlog
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
-from shared.utils.constants import AIRFLOW_DAGS_ENV_PATH, LOGGING_CONFIG
+from shared.utils.constants import (
+    AIRFLOW_DAGS_ENV_PATH,
+    AWS_REGION,
+    CATEGORIZED_BY,
+    CATEGORIZES,
+    ENVIRONMENT_NAME,
+    LOGGING_CONFIG,
+)
 from shared.utils.utils import get_config
 
 dictConfig(LOGGING_CONFIG)
@@ -36,7 +43,7 @@ def run(
 ):
     try:
         logger.info("Creating pod", set=arxiv_set, category=category)
-        env_vars = []
+        env_vars = [AWS_REGION, ENVIRONMENT_NAME]
         config = get_config(context, env_vars, True)
         next_date = last_pod_date(config, arxiv_set, category) + timedelta(days=1)
         date_list = [next_date + timedelta(days=i) for i in range((datetime.now() - next_date).days)]
@@ -59,10 +66,12 @@ def last_pod_date(config: dict, arxiv_set: str, category: str) -> datetime:
     try:
         driver = GraphDatabase.driver(config["NEO4J_URI"], auth=(config["NEO4J_USERNAME"], config["NEO4J_PASSWORD"]))
         with driver.session() as session:
-            result = session.run(
-                "MATCH (a:ArxivSet {code: {arxiv_set}}) - (c:ArxivCategory {code: {category}}) - (p:PodCast) RETURN p.date ORDER BY p.date DESC LIMIT 1",
-                {"arxiv_set": arxiv_set, "category": category},
+            query = (
+                f"MATCH (a:ArxivSet {{code: $arxiv_set}})-[:{CATEGORIZED_BY}]->(c:ArxivCategory {{code: $category}})"
+                f"-[:{CATEGORIZES}]->(p:PodCast) "
+                "RETURN p.date ORDER BY p.date DESC LIMIT 1"
             )
+            result = session.run(query, {"arxiv_set": arxiv_set, "category": category})
             return result.single()["p.date"]
     except Exception as e:
         logger.error("Error getting last pod date", error=e)
