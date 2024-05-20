@@ -72,7 +72,7 @@ def last_pod_date(config: dict, arxiv_set: str, category: str) -> datetime:
                 "RETURN p.date ORDER BY p.date DESC LIMIT 1"
             )
             result = session.run(query, {"arxiv_set": arxiv_set, "category": category})
-            return result.single()["p.date"]
+            return result.data()[0]["p.date"]
     except Exception as e:
         logger.error("Error getting last pod date", error=e)
         raise e
