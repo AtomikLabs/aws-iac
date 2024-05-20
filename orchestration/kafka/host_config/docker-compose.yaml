@@ -25,6 +25,7 @@ services:
       - /data/kafka/logs:/kafka/logs
     networks:
       - kafka_net
+    restart: always
 
   kafka-ui:
     container_name: kafka-ui
@@ -37,6 +38,7 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "broker:9092"
     networks:
       - kafka_net
+    restart: always
 
 networks:
   kafka_net:
