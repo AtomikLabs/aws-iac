@@ -45,22 +45,22 @@ with DAG(
     start_date=start_date,
     tags=["process", "arxiv"],
 ) as dag:
-    create_pod_lg = PythonOperator(
-        task_id=CREATE_POD_TASK,
-        op_kwargs={"arxiv_set": "CS", "category": "LG"},
+    create_pod_cl = PythonOperator(
+        task_id=CREATE_POD_TASK.join("_cl"),
+        op_kwargs={"arxiv_set": "CS", "category": "CL"},
         python_callable=cpt.run,
     )
 
     create_pod_cv = PythonOperator(
-        task_id=CREATE_POD_TASK,
+        task_id=CREATE_POD_TASK.join("_cv"),
         op_kwargs={"arxiv_set": "CS", "category": "CV"},
         python_callable=cpt.run,
     )
 
     create_pod_ro = PythonOperator(
-        task_id=CREATE_POD_TASK,
+        task_id=CREATE_POD_TASK.join("_ro"),
         op_kwargs={"arxiv_set": "CS", "category": "RO"},
         python_callable=cpt.run,
     )
 
-[create_pod_lg, create_pod_cv, create_pod_ro]
+[create_pod_cl, create_pod_cv, create_pod_ro]
