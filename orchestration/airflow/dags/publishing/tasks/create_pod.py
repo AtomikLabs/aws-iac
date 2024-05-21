@@ -12,6 +12,7 @@ from shared.utils.constants import (
     CATEGORIZED_BY,
     CATEGORIZES,
     DATA_BUCKET,
+    DEFAULT_TIMEZONE,
     ENVIRONMENT_NAME,
     LOGGING_CONFIG,
     RECORDS_PREFIX,
@@ -49,34 +50,30 @@ def run(
         logger.info("Creating pod", set=arxiv_set, category=category)
         env_vars = [AWS_REGION, DATA_BUCKET, ENVIRONMENT_NAME, RECORDS_PREFIX]
         config = get_config(context, env_vars, True)
-        next_date = last_pod_date(config, arxiv_set, category)
-        if not next_date:
-            logger.info("Podcasts up to date", set=arxiv_set, category=category, method=last_pod_date.__name__)
-            return {"statusCode": 200, "body": "Podcasts up to date"}
-        next_date = next_date + timedelta(days=1)
-        date_list = [next_date + timedelta(days=i) for i in range((datetime.now() - next_date).days)]
-        if not date_list:
-            logger.info("No dates require podcasts", set=arxiv_set, category=category, date_list=date_list)
-            return {"statusCode": 200, "body": "No dates require podcasts", "date_list": date_list}
+        date_list = next_pod_dates(config, arxiv_set, category)
         logger.info("Date list", date_list=date_list)
         for pod_date in date_list:
-            logger.info("Creating pod", set=arxiv_set, category=category, date=pod_date)
-            summaries = get_summaries(config, arxiv_set, category, pod_date)
-            if not summaries:
-                logger.info("No summaries for date", set=arxiv_set, category=category, date=pod_date)
+            try:
+                logger.info("Creating pod", set=arxiv_set, category=category, date=pod_date)
+                summaries = get_summaries(config, arxiv_set, category, pod_date)
+                if not summaries:
+                    logger.info("No summaries for date", set=arxiv_set, category=category, date=pod_date)
+                    continue
+                pod_summaries = get_pod_summaries(context, config, summaries)
+                pod_scripts = write_pod_scripts(pod_summaries, arxiv_set, category, pod_date)
+                generate_pods(config, pod_scripts)
+                logger.info("Pod created", set=arxiv_set, category=category, date=pod_date)
+            except Exception as e:
+                logger.error("Error creating pod", set=arxiv_set, category=category, date=pod_date, error=e)
                 continue
-            pod_summaries = get_pod_summaries(context, config, summaries)
-            pod_scripts = write_pod_scripts(pod_summaries, arxiv_set, category, pod_date)
-            generate_pods(config, pod_scripts)
-            logger.info("Pod created", set=arxiv_set, category=category, date=pod_date)
         return {"statusCode": 200, "body": "Pod created", "date_list": date_list}
     except Exception as e:
         logger.error("Error creating pod", set=arxiv_set, category=category, error=e)
         return {"statusCode": 500, "body": "Error creating pod"}
 
 
-def last_pod_date(config: dict, arxiv_set: str, category: str) -> datetime:
-    logger.info("Getting last pod date")
+def next_pod_dates(config: dict, arxiv_set: str, category: str) -> List[datetime]:
+    logger.info("Getting next pod dates")
     try:
         driver = GraphDatabase.driver(config["NEO4J_URI"], auth=(config["NEO4J_USERNAME"], config["NEO4J_PASSWORD"]))
         with driver.session() as session:
@@ -88,9 +85,14 @@ def last_pod_date(config: dict, arxiv_set: str, category: str) -> datetime:
             )
             result = session.run(query, {"arxiv_set": arxiv_set, "category": category})
             data = result.data()
+            start_date = None
+            end_date = datetime.now(DEFAULT_TIMEZONE)
             if len(data) == 0:
-                return None
-            return datetime.combine(data[0]["p.date"].to_native(), datetime.min.time())
+                start_date = end_date - timedelta(days=5)
+            else:
+                start_date = datetime.combine(data[0]["p.date"].to_native(), datetime.min.time(), DEFAULT_TIMEZONE)
+            date_list = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
+            return date_list
     except Exception as e:
         logger.error("Error getting last pod date", error=e)
         raise e
@@ -127,13 +129,14 @@ def get_pod_summaries(context: dict, config: dict, summaries: List[Dict]) -> Lis
     retrieval_errors = []
     for result in summaries:
         try:
-            record = result["record"]
+            record = result["result"]["record"]
             key = f"{config[RECORDS_PREFIX]}/{record['identifier']}/abstract.json"
+            logger.debug("result and key check", key=key, record=record)
             data = s3_manager.load(key).trim()
         except Exception as e:
-            logger.error("Error getting pod summary", error=e, key=key)
+            logger.error("Error getting pod summary", error=e)
             summaries.remove(result)
-            retrieval_errors.append(result)
+            retrieval_errors.append(result.get("identifier", "Identifier not found"))
             continue
         logger.info("Found pod summary", data=data)
         result["abstract"]["text"] = data
