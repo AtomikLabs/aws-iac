@@ -131,7 +131,7 @@ def get_pod_summaries(context: dict, config: dict, summaries: List[Dict]) -> Lis
             key = f"{config[RECORDS_PREFIX]}/{record['identifier']}/abstract.json"
             data = s3_manager.load(key).trim()
         except Exception as e:
-            logger.error("Error getting pod summary", error=e, record=record, key=key)
+            logger.error("Error getting pod summary", error=e, key=key)
             summaries.remove(result)
             retrieval_errors.append(result)
             continue
