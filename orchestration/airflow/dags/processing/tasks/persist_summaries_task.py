@@ -221,7 +221,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict,
                     abstract_key = f"{config.get(RECORDS_PREFIX)}/{record.get(IDENTIFIER)}/{ABSTRACT}.json"
                     abstract = Abstract(
                         driver=driver,
-                        abstract_url=record.get(ABSTRACT_URL),
+                        url=record.get(ABSTRACT_URL),
                         bucket=config.get(DATA_BUCKET),
                         key=abstract_key,
                     )
