@@ -56,7 +56,7 @@ def run(
     **context: dict,
 ):
     try:
-        env_vars = [AWS_REGION, DATA_BUCKET, ENVIRONMENT_NAME, RECORDS_PREFIX]
+        env_vars = [AWS_REGION, DATA_BUCKET, ENVIRONMENT_NAME, PODS_PREFIX, RECORDS_PREFIX]
         config = get_config(context, env_vars, True)
         date_list = next_pod_dates(config, arxiv_set, category)
         for pod_date in date_list:
@@ -139,23 +139,31 @@ def get_pod_summaries(context: dict, config: dict, summaries: List[Dict]) -> Lis
     retrieval_errors = []
     for result in summaries:
         try:
+            logger.info("Processing result", result_keys=list(result.keys()), result=result)
+            if "result" not in result:
+                raise KeyError("Missing 'result' key in summary")
+            if "record" not in result["result"]:
+                raise KeyError("Missing 'record' key in result")
+
             record = result["result"]["record"]
-            key = f"{config[RECORDS_PREFIX]}/{record['identifier']}/abstract.json"
+            key = f"{config[RECORDS_PREFIX]}/{record['arxiv_id']}/abstract.json"
             logger.info("result and key check", key=key, record=record)
             raw_data = s3_manager.load(key)
             data = raw_data.decode("utf-8")
             result["result"]["abstract"]["text"] = data.strip()
             logger.info("Result", result=result)
+        except KeyError as e:
+            logger.error("KeyError encountered", error=str(e), result=result)
+            retrieval_errors.append(result)
+            continue
         except Exception as e:
-            logger.error("Error getting pod summary", error=e, method=get_pod_summaries.__name__)
-            summaries.remove(result)
+            logger.error("Error getting pod summary", error=str(e), method=get_pod_summaries.__name__)
             retrieval_errors.append(result)
             continue
     logger.info(
         "Found pod summaries", summaries=summaries, num_summaries=len(summaries), method=get_pod_summaries.__name__
     )
     logger.info(RETRIEVAL_ERRORS, retrieval_errors=retrieval_errors, method=get_pod_summaries.__name__)
-    context["ti"].xcom_push(key=RETRIEVAL_ERRORS, value=retrieval_errors)
     return summaries
 
 
@@ -208,7 +216,7 @@ def write_pod_script(
 
         key = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_script.txt".lower()
         s3_manager = S3Manager(config[DATA_BUCKET], logger)
-        s3_manager.upload_to_s3(key, script_content.encode("utf-8"))
+        s3_manager.upload_to_s3(key, script_content)
         return key, script_content
     except Exception as e:
         logger.error("Error getting pod script", error=e, method=write_pod_script.__name__)

@@ -374,6 +374,24 @@ resource "aws_iam_policy" "orchestration_glue_policy" {
   })
 }
 
+resource "aws_iam_policy" "orchestration_polly_policy" {
+  name = "${local.environment}-${local.orchestration_resource_prefix}-polly-policy"
+  description = "Allow ec2 to call Polly"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "polly:StartSpeechSynthesisTask",
+        ]
+        Effect = "Allow",
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "orchestration_role_ssm_policy_for_instances" {
   role       = aws_iam_role.orchestration_instance_role.name
   policy_arn = local.ssm_policy_for_instances_arn
@@ -402,6 +420,11 @@ resource "aws_iam_role_policy_attachment" "orchestration_role_secrets_policy" {
 resource "aws_iam_role_policy_attachment" "orchestration_role_glue_policy" {
   role       = aws_iam_role.orchestration_instance_role.name
   policy_arn = aws_iam_policy.orchestration_glue_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "orchestration_role_polly_policy" {
+  role       = aws_iam_role.orchestration_instance_role.name
+  policy_arn = aws_iam_policy.orchestration_polly_policy.arn
 }
 
 # **********************************************************
