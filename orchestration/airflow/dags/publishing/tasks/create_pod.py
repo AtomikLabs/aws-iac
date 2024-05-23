@@ -68,9 +68,9 @@ def run(
                     continue
                 logger.info("Summaries", summaries=summaries)
                 pod_summaries = get_pod_summaries(context, config, summaries)
-                _, pod_scripts = write_pod_script(config, pod_summaries, arxiv_set, category, pod_date)
-                create_audio(config, arxiv_set, category, pod_date, pod_scripts)
-                logger.info("Pod created", set=arxiv_set, category=category, date=pod_date)
+                script_key, pod_scripts = write_pod_script(config, pod_summaries, arxiv_set, category, pod_date)
+                filename = create_audio(config, arxiv_set, category, pod_date, pod_scripts)
+                logger.info("Pod created", set=arxiv_set, category=category, date=pod_date, file=filename)
             except Exception as e:
                 logger.error("Error creating pod", set=arxiv_set, category=category, date=pod_date, error=e)
                 continue
@@ -228,7 +228,7 @@ def get_long_date(episode_date: datetime):
     return long_date
 
 
-def create_audio(config: dict, arxiv_set: str, category: str, episode_date: datetime, script_text: str) -> None:
+def create_audio(config: dict, arxiv_set: str, category: str, episode_date: datetime, script_text: str) -> str:
     logger.info("Generating podcast audio", method=create_audio.__name__)
     filename = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_podcast".lower()
     try:
@@ -241,9 +241,11 @@ def create_audio(config: dict, arxiv_set: str, category: str, episode_date: date
             TextType="text",
             VoiceId="Matthew",
         )
+        return filename
     except Exception as e:
         logger.error(f"Failed to create Polly audio for {filename}")
         logger.error(e)
+    return None
 
 
 def latex_to_human_readable(latex_str):

@@ -48,7 +48,7 @@ class Author(BaseModel):
     def create(self, last_name: str = "", first_name: str = ""):
         if not validate_strings(self.first_name, self.last_name) and not validate_strings(first_name, last_name):
             message = "Invalid first_name, storage last_name,"
-            self.logger.error(message, method=self.create.__name__)
+            self.logger.error(message, first_name=first_name, last_name=last_name, method=self.create.__name__)
             raise ValueError(message)
         try:
             self.first_name = first_name if validate_strings(first_name) else self.first_name
