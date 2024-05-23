@@ -308,6 +308,7 @@ jobs:
           echo "neo4j_connection_retries=$(grep '^neo4j_connection_retries' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "parse_summaries_task_version=$(grep '^parse_summaries_task_version' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "persist_summaries_task_version=$(grep '^persist_summaries_task_version' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
+          echo "pods_prefix=$(grep '^pods_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "records_prefix=$(grep '^records_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "save_summaries_to_datalake_task_version=$(grep '^save_summaries_to_datalake_task_version' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
           echo "terraform_outputs_prefix=$(grep '^terraform_outputs_prefix' infra/core/${{ env.ENV_NAME }}.tfvars | awk -F'[= "]+' '{print $2}')" >> $GITHUB_OUTPUT
@@ -371,6 +372,7 @@ jobs:
           echo "ORCHESTRATION_HOST_PRIVATE_IP=${{ steps.terraform_vars.outputs.orchestration_host_private_ip }}" >> .env
           echo "PARSE_SUMMARIES_TASK_VERSION=${{ steps.vars.outputs.parse_summaries_task_version }}" >> .env
           echo "PERSIST_SUMMARIES_TASK_VERSION=${{ steps.vars.outputs.persist_summaries_task_version }}" >> .env
+          echo "PODS_PREFIX=${{ steps.vars.outputs.pods_prefix }}" >> .env
           echo "RECORDS_PREFIX=${{ steps.vars.outputs.records_prefix }}" >> .env
           echo "SAVE_SUMMARIES_TO_DATALAKE_TASK_VERSION=${{ steps.vars.outputs.save_summaries_to_datalake_task_version }}" >> .env
           cat .env

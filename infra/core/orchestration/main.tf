@@ -22,6 +22,7 @@ locals {
   orchestration_key_pair_name                   = var.orchestration_key_pair_name
   orchestration_resource_prefix                 = var.orchestration_resource_prefix
   orchestration_source_security_group_ids       = var.orchestration_source_security_group_ids
+  pods_prefix                                    = var.pods_prefix
   private_subnets                               = var.private_subnets
   region                                        = var.region
   ssm_policy_for_instances_arn                  = var.ssm_policy_for_instances_arn
@@ -293,6 +294,7 @@ resource "aws_iam_policy" "orchestration_ec2_s3_access" {
         Resource = [
           "${local.data_bucket_arn}/*",
           "${local.infra_config_bucket_arn}/${local.orchestration_resource_prefix}/*",
+          "${local.infra_config_bucket_arn}/${local.pods_prefix}/*",
         ]
       },
       {

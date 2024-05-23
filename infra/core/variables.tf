@@ -199,3 +199,10 @@ variable "arxiv_sets" {
   description = "Arxiv sets"
   type        = list(string)
 }
+
+variable "pods_prefix" {
+  description = "Prefix for the pods"
+  type        = string
+}
+
+

@@ -50,6 +50,49 @@ CS_CATEGORIES_INVERTED = {
     "NULL": "NULL",
 }
 
+CS_CATEGORIES = {
+    "AI": "AI",
+    "AR": "Hardware Architecture",
+    "CC": "Computational Complexity",
+    "CE": "Computational Engineering, Finance, and Science",
+    "CG": "Computational Geometry",
+    "CL": "NLP",
+    "CR": "Cryptography and Security",
+    "CY": "Computers and Society",
+    "CV": "Computer Vision",
+    "DB": "Databases",
+    "DC": "Distributed, Parallel, and Cluster Computing",
+    "DL": "Digital Libraries",
+    "DM": "Discrete Mathematics",
+    "DS": "Data Structures and Algorithms",
+    "ET": "Emerging Technologies",
+    "FL": "Formal Languages and Automata Theory",
+    "GL": "General Literature",
+    "GR": "Graphics",
+    "GT": "Computer Science and Game Theory",
+    "HC": "Human-Computer Interaction",
+    "IR": "Information Retrieval",
+    "IT": "Information Theory",
+    "LG": "Machine Learning",
+    "LO": "Logic in Computer Science",
+    "MA": "Multiagent Systems",
+    "MM": "Multimedia",
+    "MS": "Mathematical Software",
+    "NA": "Numerical Analysis",
+    "NE": "Neural and Evolutionary Computing",
+    "NI": "Networking and Internet Architecture",
+    "OH": "Other Computer Science",
+    "OS": "Operating Systems",
+    "PF": "Performance",
+    "PL": "Programming Languages",
+    "SY": "Systems and Control",
+    "RO": "Robotics",
+    "SC": "Symbolic Computation",
+    "SD": "Sound",
+    "SE": "Software Engineering",
+    "SI": "Social and Information Networks",
+}
+
 # AWS
 AWS_REGION = "AWS_REGION"
 AWS_SECRETS_MANAGER = "secretsmanager"
@@ -180,6 +223,7 @@ PARSE_SUMMARIES_TASK = "parse_summaries"
 PARSE_SUMMARIES_TASK_VERSION = "PARSE_SUMMARIES_TASK_VERSION"
 PERSIST_SUMMARIES_TASK = "persist_summaries"
 PERSIST_SUMMARIES_TASK_VERSION = "PERSIST_SUMMARIES_TASK_VERSION"
+PODS_PREFIX = "PODS_PREFIX"
 RAW_DATA_KEYS = "RAW_DATA_KEYS"
 RECORDS_PREFIX = "RECORDS_PREFIX"
 RETRIEVAL_ERRORS = "RETRIEVAL_ERRORS"

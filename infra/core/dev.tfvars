@@ -61,6 +61,7 @@ arxiv_base_url = "http://export.arxiv.org/oai2"
 arxiv_ingestion_day_span = 5
 arxiv_sets = ["cs"]
 default_lambda_runtime = "python3.10"
+pods_prefix = "pods"
 
 create_pod_task_version = "0.0.1"
 fetch_from_arxiv_task_version = "0.1.0"

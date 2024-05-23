@@ -1,7 +1,10 @@
+import re
 from datetime import datetime, timedelta
+from html import unescape
 from logging.config import dictConfig
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
+import boto3
 import structlog
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
@@ -9,13 +12,16 @@ from pytz import timezone
 from shared.database.s3_manager import S3Manager
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
+    ARXIV_RESEARCH_DATE_FORMAT,
     AWS_REGION,
     CATEGORIZED_BY,
     CATEGORIZES,
+    CS_CATEGORIES,
     DATA_BUCKET,
     DEFAULT_TIMEZONE,
     ENVIRONMENT_NAME,
     LOGGING_CONFIG,
+    PODS_PREFIX,
     RECORDS_PREFIX,
     RETRIEVAL_ERRORS,
 )
@@ -41,6 +47,8 @@ structlog.configure(
 logger = structlog.get_logger()
 load_dotenv(dotenv_path=AIRFLOW_DAGS_ENV_PATH)
 
+SET_MAP = {"CS": CS_CATEGORIES}
+
 
 def run(
     arxiv_set: str,
@@ -60,8 +68,8 @@ def run(
                     continue
                 logger.info("Summaries", summaries=summaries)
                 pod_summaries = get_pod_summaries(context, config, summaries)
-                pod_scripts = write_pod_scripts(pod_summaries, arxiv_set, category, pod_date)
-                generate_pods(config, pod_scripts)
+                _, pod_scripts = write_pod_script(config, pod_summaries, arxiv_set, category, pod_date)
+                create_audio(config, arxiv_set, category, pod_date, pod_scripts)
                 logger.info("Pod created", set=arxiv_set, category=category, date=pod_date)
             except Exception as e:
                 logger.error("Error creating pod", set=arxiv_set, category=category, date=pod_date, error=e)
@@ -151,22 +159,128 @@ def get_pod_summaries(context: dict, config: dict, summaries: List[Dict]) -> Lis
     return summaries
 
 
-def write_pod_scripts(pod_summaries: List[Dict], arxiv_set: str, category: str, episode_date: datetime) -> List[Dict]:
+def write_pod_script(
+    config: dict, pod_summaries: List[Dict], arxiv_set: str, category: str, episode_date: datetime
+) -> Tuple[str, str]:
     logger.info(
-        "Getting pod scripts",
-        pod_summaries=pod_summaries,
+        "Writing pod script",
+        pod_summaries=pod_summaries[0],
         set=arxiv_set,
         category=category,
         date=episode_date,
-        method=write_pod_scripts.__name__,
+        method=write_pod_script.__name__,
     )
-    summary = pod_summaries[0]["result"]
-    title = summary["record"]["title"]
-    abstract_text = summary["abstract"]["text"]
-    authors = summary["authors"]
-    logger.info("test extraction", title=title, abstract_text=abstract_text, authors=authors)
+    try:
+        long_date = get_long_date(episode_date)
+        categories_dict = SET_MAP[arxiv_set]
+        show_name = categories_dict[category]
+        intro = (
+            f"Hi, and welcome to Tech crafting AI {show_name}. I am your virtual host, Sage. "
+            f"Tech crafting AI {show_name} brings you daily summaries of new research released on archive. "
+            "The podcast is produced by Brad Edwards. Thank you to archive "
+            f"for use of its open access interoperability. Here is what was submitted on {long_date}\n\n"
+        )
+
+        script_content = intro
+        num_records = 0
+        for research in pod_summaries:
+            try:
+                r = research["result"]
+                cleaned_title = re.sub(r"\n\s*", " ", r["record"]["title"])
+                script_content += cleaned_title + "\n"
+
+                authors = [f"{author['first_name']} {author['last_name']}" for author in r["authors"]]
+                script_content += "by " + ", ".join(authors) + "\n\n"
+
+                paragraphs = r["abstract"]["text"].split("\n\n")
+                for p in paragraphs:
+                    cleaned_paragraph = re.sub(r"\n\s*", " ", p)
+                    no_latex_paragraph = latex_to_human_readable(cleaned_paragraph)
+                    script_content += no_latex_paragraph + "\n\n"
+
+                num_records += 1
+            except Exception as e:
+                logger.error("Error writing pod script", error=e, method=write_pod_script.__name__, record=r)
+                continue
+
+        outro = "That's all for today, thank you for listening. If you found the podcast helpful, please leave a comment, like, or share it with a friend. See you tomorrow!"
+        script_content += outro
+
+        key = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_script.txt".lower()
+        s3_manager = S3Manager(config[DATA_BUCKET], logger)
+        s3_manager.upload_to_s3(key, script_content.encode("utf-8"))
+        return key, script_content
+    except Exception as e:
+        logger.error("Error getting pod script", error=e, method=write_pod_script.__name__)
+        raise e
 
 
-def generate_pods(config: dict, pod_scripts: List[Dict]) -> None:
-    logger.info("Generating pods", pod_scripts=pod_scripts, method=generate_pods.__name__)
-    pass
+def get_long_date(episode_date: datetime):
+    long_date = episode_date.strftime("%B %d, %Y")
+    return long_date
+
+
+def create_audio(config: dict, arxiv_set: str, category: str, episode_date: datetime, script_text: str) -> None:
+    logger.info("Generating podcast audio", method=create_audio.__name__)
+    filename = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_podcast".lower()
+    try:
+        polly_client = boto3.client("polly")
+        polly_client.start_speech_synthesis_task(
+            OutputFormat="mp3",
+            OutputS3BucketName=config[DATA_BUCKET],
+            OutputS3KeyPrefix=filename,
+            Text=script_text,
+            TextType="text",
+            VoiceId="Matthew",
+        )
+    except Exception as e:
+        logger.error(f"Failed to create Polly audio for {filename}")
+        logger.error(e)
+
+
+def latex_to_human_readable(latex_str):
+    # Remove $...$ delimiters
+    latex_str = re.sub(r"\$(.*?)\$", r"\1", latex_str)
+
+    simple_latex_to_text = {
+        "\\ll": "<<",
+        "\\alpha": "alpha",
+        "\\epsilon": "epsilon",
+        "\\widetilde": "widetilde",
+        "\\in": "in",
+        "\\leq": "<=",
+        "\\geq": ">=",
+        "\\pm": "±",
+        "\\times": "x",
+        "\\sim": "~",
+        "\\approx": "≈",
+        "\\neq": "≠",
+        "\\cdot": "·",
+        "\\ldots": "...",
+        "\\cdots": "...",
+        "\\vdots": "...",
+        "\\ddots": "...",
+        "\\forall": "for all",
+        "\\exists": "exists",
+        "\\nabla": "nabla",
+        "\\partial": "partial",
+        "\\{": "{",
+        "\\}": "}",
+        "\\:": " ",  # Small space
+        "\\,": " ",  # Thin space
+        "\\;": " ",  # Thick space
+        "\\!": "",  # Negative space
+        "_": "_",  # Subscript
+    }
+
+    for latex, text in simple_latex_to_text.items():
+        latex_str = latex_str.replace(latex, text)
+
+    single_arg_pattern = re.compile(r"\\(\w+){(.*?)}")
+    latex_str = single_arg_pattern.sub(r"\2", latex_str)
+
+    latex_str = latex_str.replace("``", '"').replace("''", '"')
+
+    latex_str = latex_str.replace("--", "–")
+
+    return unescape(latex_str)
