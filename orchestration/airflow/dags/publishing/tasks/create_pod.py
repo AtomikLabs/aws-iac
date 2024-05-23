@@ -5,6 +5,7 @@ from typing import Dict, List
 import structlog
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
+from pytz import timezone
 from shared.database.s3_manager import S3Manager
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
@@ -47,18 +48,17 @@ def run(
     **context: dict,
 ):
     try:
-        logger.info("Creating pod", set=arxiv_set, category=category)
         env_vars = [AWS_REGION, DATA_BUCKET, ENVIRONMENT_NAME, RECORDS_PREFIX]
         config = get_config(context, env_vars, True)
         date_list = next_pod_dates(config, arxiv_set, category)
-        logger.info("Date list", date_list=date_list)
         for pod_date in date_list:
             try:
                 logger.info("Creating pod", set=arxiv_set, category=category, date=pod_date)
                 summaries = get_summaries(config, arxiv_set, category, pod_date)
-                if not summaries:
+                if not summaries or len(summaries) == 0:
                     logger.info("No summaries for date", set=arxiv_set, category=category, date=pod_date)
                     continue
+                logger.info("Summaries", summaries=summaries)
                 pod_summaries = get_pod_summaries(context, config, summaries)
                 pod_scripts = write_pod_scripts(pod_summaries, arxiv_set, category, pod_date)
                 generate_pods(config, pod_scripts)
@@ -86,11 +86,12 @@ def next_pod_dates(config: dict, arxiv_set: str, category: str) -> List[datetime
             result = session.run(query, {"arxiv_set": arxiv_set, "category": category})
             data = result.data()
             start_date = None
-            end_date = datetime.now(DEFAULT_TIMEZONE)
+            tzinfo = timezone(DEFAULT_TIMEZONE)
+            end_date = datetime.now(tzinfo)
             if len(data) == 0:
                 start_date = end_date - timedelta(days=5)
             else:
-                start_date = datetime.combine(data[0]["p.date"].to_native(), datetime.min.time(), DEFAULT_TIMEZONE)
+                start_date = datetime.combine(data[0]["p.date"].to_native(), datetime.min.time(), tzinfo)
             date_list = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
             return date_list
     except Exception as e:
@@ -107,8 +108,9 @@ def get_summaries(config: dict, arxiv_set: str, category: str, episode_date: dat
                 f"MATCH (s:ArxivSet {{code: $arxiv_set}}) "
                 f"-[:{CATEGORIZED_BY}]->(c:ArxivCategory {{code: $category}}) "
                 f"-[:{CATEGORIZES}]->(a:ArxivRecord)--(b:Abstract) "
+                "MATCH (a)-[:AUTHORED_BY]->(author:Author)"
                 "WHERE a.date = $date "
-                "RETURN {record: a, abstract: b} AS result"
+                "RETURN {record: a, abstract: b, authors: collect(author)} AS result"
             )
             result = session.run(query, {"arxiv_set": arxiv_set, "category": category, "date": episode_date.date()})
             data = result.data()
@@ -117,7 +119,7 @@ def get_summaries(config: dict, arxiv_set: str, category: str, episode_date: dat
             )
             return data
     except Exception as e:
-        logger.error("Error getting summaries", error=e)
+        logger.error("Error getting summaries", error=e, method=get_summaries.__name__)
         raise e
 
 
@@ -131,15 +133,16 @@ def get_pod_summaries(context: dict, config: dict, summaries: List[Dict]) -> Lis
         try:
             record = result["result"]["record"]
             key = f"{config[RECORDS_PREFIX]}/{record['identifier']}/abstract.json"
-            logger.debug("result and key check", key=key, record=record)
-            data = s3_manager.load(key).trim()
+            logger.info("result and key check", key=key, record=record)
+            raw_data = s3_manager.load(key)
+            data = raw_data.decode("utf-8")
+            result["result"]["abstract"]["text"] = data.strip()
+            logger.info("Result", result=result)
         except Exception as e:
-            logger.error("Error getting pod summary", error=e)
+            logger.error("Error getting pod summary", error=e, method=get_pod_summaries.__name__)
             summaries.remove(result)
-            retrieval_errors.append(result.get("identifier", "Identifier not found"))
+            retrieval_errors.append(result)
             continue
-        logger.info("Found pod summary", data=data)
-        result["abstract"]["text"] = data
     logger.info(
         "Found pod summaries", summaries=summaries, num_summaries=len(summaries), method=get_pod_summaries.__name__
     )
@@ -157,7 +160,11 @@ def write_pod_scripts(pod_summaries: List[Dict], arxiv_set: str, category: str, 
         date=episode_date,
         method=write_pod_scripts.__name__,
     )
-    pass
+    summary = pod_summaries[0]["result"]
+    title = summary["record"]["title"]
+    abstract_text = summary["abstract"]["text"]
+    authors = summary["authors"]
+    logger.info("test extraction", title=title, abstract_text=abstract_text, authors=authors)
 
 
 def generate_pods(config: dict, pod_scripts: List[Dict]) -> None:
