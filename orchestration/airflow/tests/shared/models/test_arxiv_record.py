@@ -77,7 +77,7 @@ class TestArxivRecord:
         assert arxiv_record.driver == driver
         assert arxiv_record.arxiv_id == _arxiv_id
         assert arxiv_record.title == _title
-        assert arxiv_record.date == _datetime
+        assert arxiv_record.date == _datetime.date()
         assert arxiv_record.uuid is None
         assert arxiv_record.created is None
         assert arxiv_record.last_modified is None
