@@ -3,7 +3,7 @@
 # **********************************************************
 
 app_name = "atomiklabs"
-app_version = "0.3.4-alpha"
+app_version = "0.3.5-alpha"
 availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
 aws_region = "us-east-1"
 backend_dynamodb_table = "terraform-state-locks"
@@ -63,10 +63,9 @@ arxiv_sets = ["cs"]
 default_lambda_runtime = "python3.10"
 pods_prefix = "pods"
 
-create_pod_task_version = "0.0.1"
+create_pod_task_version = "0.1.0"
 fetch_from_arxiv_task_version = "0.1.0"
 most_recent_research_records_version = "0.0.2"
-next_pod_date_task_version = "0.0.1"
 parse_summaries_task_version = "0.1.0"
 persist_summaries_task_version = "0.1.0"
 save_summaries_to_datalake_task_version = "0.0.1"
