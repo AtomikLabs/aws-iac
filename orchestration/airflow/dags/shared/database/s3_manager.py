@@ -53,11 +53,11 @@ class S3Manager:
         if not key or not isinstance(key, str):
             self.logger.error("Invalid key", key=key)
             raise ValueError("key must be a non-empty string")
-        self.logger.info("Deleting content from S3", key=key, bucket_name=self.bucket_name)
+        self.logger.debug("Deleting content from S3", key=key, bucket_name=self.bucket_name)
         try:
             s3 = boto3.resource("s3", region_name="us-east-1")
             s3.Object(self.bucket_name, key).delete()
-            self.logger.info("Deleted content from S3", key=key, bucket_name=self.bucket_name)
+            self.logger.debug("Deleted content from S3", key=key, bucket_name=self.bucket_name)
         except Exception as e:
             self.logger.error(
                 "Failed to delete content from S3",
@@ -79,7 +79,7 @@ class S3Manager:
             The content stored in the S3 bucket with the given deserialized
             from JSON.
         """
-        logger.info("Loading XML from S3 bucket", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
+        logger.debug("Loading XML from S3 bucket", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
         if not self.bucket_name:
             logger.error("Must provide a bucket name", method=self.load.__name__, bucket_name=self.bucket_name, key=key)
             raise ValueError("Must provide a bucket name")

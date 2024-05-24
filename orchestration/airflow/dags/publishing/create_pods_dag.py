@@ -63,4 +63,4 @@ with DAG(
         python_callable=cpt.run,
     )
 
-[create_pod_cl, create_pod_cv, create_pod_ro]
+create_pod_cl >> create_pod_cv >> create_pod_ro

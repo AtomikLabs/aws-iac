@@ -22,6 +22,7 @@ from shared.utils.constants import (
     ENVIRONMENT_NAME,
     LOGGING_CONFIG,
     PODS_PREFIX,
+    PRIMARILY_CATEGORIZED_BY,
     RECORDS_PREFIX,
     RETRIEVAL_ERRORS,
 )
@@ -66,11 +67,11 @@ def run(
                 if not summaries or len(summaries) == 0:
                     logger.info("No summaries for date", set=arxiv_set, category=category, date=pod_date)
                     continue
-                logger.info("Summaries", summaries=summaries)
                 pod_summaries = get_pod_summaries(context, config, summaries)
-                script_key, pod_scripts = write_pod_script(config, pod_summaries, arxiv_set, category, pod_date)
-                filename = create_audio(config, arxiv_set, category, pod_date, pod_scripts)
-                logger.info("Pod created", set=arxiv_set, category=category, date=pod_date, file=filename)
+                scripts = write_pod_script(config, pod_summaries, arxiv_set, category, pod_date)
+                logger.info("Scripts", scripts=[s[0] for s in scripts])
+                # filename = create_audio(config, arxiv_set, category, pod_date, pod_scripts)
+                # logger.info("Pod created", set=arxiv_set, category=category, date=pod_date, file=filename)
             except Exception as e:
                 logger.error("Error creating pod", set=arxiv_set, category=category, date=pod_date, error=e)
                 continue
@@ -81,7 +82,7 @@ def run(
 
 
 def next_pod_dates(config: dict, arxiv_set: str, category: str) -> List[datetime]:
-    logger.info("Getting next pod dates")
+    logger.debug("Getting next pod dates")
     try:
         driver = GraphDatabase.driver(config["NEO4J_URI"], auth=(config["NEO4J_USERNAME"], config["NEO4J_PASSWORD"]))
         with driver.session() as session:
@@ -108,14 +109,16 @@ def next_pod_dates(config: dict, arxiv_set: str, category: str) -> List[datetime
 
 
 def get_summaries(config: dict, arxiv_set: str, category: str, episode_date: datetime) -> List[Dict]:
-    logger.info("Getting summaries", set=arxiv_set, category=category, date=episode_date, method=get_summaries.__name__)
+    logger.debug(
+        "Getting summaries", set=arxiv_set, category=category, date=episode_date, method=get_summaries.__name__
+    )
     try:
         driver = GraphDatabase.driver(config["NEO4J_URI"], auth=(config["NEO4J_USERNAME"], config["NEO4J_PASSWORD"]))
         with driver.session() as session:
             query = (
                 f"MATCH (s:ArxivSet {{code: $arxiv_set}}) "
                 f"-[:{CATEGORIZED_BY}]->(c:ArxivCategory {{code: $category}}) "
-                f"-[:{CATEGORIZES}]->(a:ArxivRecord)--(b:Abstract) "
+                f"<-[:{PRIMARILY_CATEGORIZED_BY}]-(a:ArxivRecord)--(b:Abstract) "
                 "MATCH (a)-[:AUTHORED_BY]->(author:Author)"
                 "WHERE a.date = $date "
                 "RETURN {record: a, abstract: b, authors: collect(author)} AS result"
@@ -132,26 +135,20 @@ def get_summaries(config: dict, arxiv_set: str, category: str, episode_date: dat
 
 
 def get_pod_summaries(context: dict, config: dict, summaries: List[Dict]) -> List[Dict]:
-    logger.info(
-        "Getting pod summaries", summaries=summaries, num_summaries=len(summaries), method=get_pod_summaries.__name__
-    )
+    logger.info("Getting pod summaries", num_summaries=len(summaries), method=get_pod_summaries.__name__)
     s3_manager = S3Manager(config[DATA_BUCKET], logger)
     retrieval_errors = []
     for result in summaries:
         try:
-            logger.info("Processing result", result_keys=list(result.keys()), result=result)
             if "result" not in result:
                 raise KeyError("Missing 'result' key in summary")
             if "record" not in result["result"]:
                 raise KeyError("Missing 'record' key in result")
-
             record = result["result"]["record"]
             key = f"{config[RECORDS_PREFIX]}/{record['arxiv_id']}/abstract.json"
-            logger.info("result and key check", key=key, record=record)
             raw_data = s3_manager.load(key)
             data = raw_data.decode("utf-8")
             result["result"]["abstract"]["text"] = data.strip()
-            logger.info("Result", result=result)
         except KeyError as e:
             logger.error("KeyError encountered", error=str(e), result=result)
             retrieval_errors.append(result)
@@ -160,19 +157,15 @@ def get_pod_summaries(context: dict, config: dict, summaries: List[Dict]) -> Lis
             logger.error("Error getting pod summary", error=str(e), method=get_pod_summaries.__name__)
             retrieval_errors.append(result)
             continue
-    logger.info(
-        "Found pod summaries", summaries=summaries, num_summaries=len(summaries), method=get_pod_summaries.__name__
-    )
     logger.info(RETRIEVAL_ERRORS, retrieval_errors=retrieval_errors, method=get_pod_summaries.__name__)
     return summaries
 
 
 def write_pod_script(
     config: dict, pod_summaries: List[Dict], arxiv_set: str, category: str, episode_date: datetime
-) -> Tuple[str, str]:
-    logger.info(
+) -> List[Tuple[str, str]]:
+    logger.debug(
         "Writing pod script",
-        pod_summaries=pod_summaries[0],
         set=arxiv_set,
         category=category,
         date=episode_date,
@@ -182,42 +175,60 @@ def write_pod_script(
         long_date = get_long_date(episode_date)
         categories_dict = SET_MAP[arxiv_set]
         show_name = categories_dict[category]
-        intro = (
+        intro_template = (
             f"Hi, and welcome to Tech crafting AI {show_name}. I am your virtual host, Sage. "
             f"Tech crafting AI {show_name} brings you daily summaries of new research released on archive. "
             "The podcast is produced by Brad Edwards. Thank you to archive "
-            f"for use of its open access interoperability. Here is what was submitted on {long_date}\n\n"
+            f"for use of its open access interoperability. "
         )
-
-        script_content = intro
-        num_records = 0
-        for research in pod_summaries:
-            try:
-                r = research["result"]
-                cleaned_title = re.sub(r"\n\s*", " ", r["record"]["title"])
-                script_content += cleaned_title + "\n"
-
-                authors = [f"{author['first_name']} {author['last_name']}" for author in r["authors"]]
-                script_content += "by " + ", ".join(authors) + "\n\n"
-
-                paragraphs = r["abstract"]["text"].split("\n\n")
-                for p in paragraphs:
-                    cleaned_paragraph = re.sub(r"\n\s*", " ", p)
-                    no_latex_paragraph = latex_to_human_readable(cleaned_paragraph)
-                    script_content += no_latex_paragraph + "\n\n"
-
-                num_records += 1
-            except Exception as e:
-                logger.error("Error writing pod script", error=e, method=write_pod_script.__name__, record=r)
-                continue
-
         outro = "That's all for today, thank you for listening. If you found the podcast helpful, please leave a comment, like, or share it with a friend. See you tomorrow!"
-        script_content += outro
 
-        key = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_script.txt".lower()
-        s3_manager = S3Manager(config[DATA_BUCKET], logger)
-        s3_manager.upload_to_s3(key, script_content)
-        return key, script_content
+        scripts = []
+        num_summaries = len(pod_summaries)
+        if num_summaries > 50:
+            num_parts = (num_summaries + 19) // 20
+            summaries_per_part = (num_summaries + num_parts - 1) // num_parts
+        else:
+            num_parts = 1
+            summaries_per_part = num_summaries
+
+        for part in range(num_parts):
+            start_index = part * summaries_per_part
+            end_index = min(start_index + summaries_per_part, num_summaries)
+            part_summaries = pod_summaries[start_index:end_index]
+
+            if num_parts > 1:
+                intro = intro_template + f"Here is Part {part + 1} of what was submitted on {long_date}\n\n"
+            else:
+                intro = intro_template + f"Here is what was submitted on {long_date}\n\n"
+
+            script_content = intro
+            for research in part_summaries:
+                try:
+                    r = research["result"]
+                    cleaned_title = re.sub(r"\n\s*", " ", r["record"]["title"])
+                    script_content += cleaned_title + "\n"
+
+                    authors = [f"{author['first_name']} {author['last_name']}" for author in r["authors"]]
+                    script_content += "by " + ", ".join(authors) + "\n\n"
+
+                    paragraphs = r["abstract"]["text"].split("\n\n")
+                    for p in paragraphs:
+                        cleaned_paragraph = re.sub(r"\n\s*", " ", p)
+                        no_latex_paragraph = latex_to_human_readable(cleaned_paragraph)
+                        script_content += no_latex_paragraph + "\n\n"
+                except Exception as e:
+                    logger.error("Error writing pod script", error=e, method=write_pod_script.__name__, record=r)
+                    continue
+
+            script_content += outro
+            part_suffix = f"_part_{part + 1}" if num_parts > 1 else ""
+            key = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_script{part_suffix}.txt".lower()
+            s3_manager = S3Manager(config[DATA_BUCKET], logger)
+            s3_manager.upload_to_s3(key, script_content)
+            scripts.append((key, script_content))
+
+        return scripts
     except Exception as e:
         logger.error("Error getting pod script", error=e, method=write_pod_script.__name__)
         raise e
@@ -229,7 +240,7 @@ def get_long_date(episode_date: datetime):
 
 
 def create_audio(config: dict, arxiv_set: str, category: str, episode_date: datetime, script_text: str) -> str:
-    logger.info("Generating podcast audio", method=create_audio.__name__)
+    logger.debug("Generating podcast audio", method=create_audio.__name__)
     filename = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_podcast".lower()
     try:
         polly_client = boto3.client("polly")
