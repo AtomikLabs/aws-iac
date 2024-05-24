@@ -211,7 +211,7 @@ class Podcast(BaseModel):
             raise e
 
     @classmethod
-    def findall(cls, driver: Driver):
+    def find_all(cls, driver: Driver):
         try:
             records, _, _ = driver.execute_query(
                 "MATCH (p:Podcast) RETURN p",
