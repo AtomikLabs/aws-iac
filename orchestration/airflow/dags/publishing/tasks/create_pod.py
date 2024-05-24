@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 from neo4j import GraphDatabase
 from pytz import timezone
 from shared.database.s3_manager import S3Manager
+from shared.models.arxiv_category import ArxivCategory
+from shared.models.arxiv_record import ArxivRecord
+from shared.models.podcast import Podcast
 from shared.utils.constants import (
     AIRFLOW_DAGS_ENV_PATH,
     ARXIV_RESEARCH_DATE_FORMAT,
@@ -23,6 +26,8 @@ from shared.utils.constants import (
     LOGGING_CONFIG,
     PODS_PREFIX,
     PRIMARILY_CATEGORIZED_BY,
+    PUBLISHED_IN,
+    PUBLISHES,
     RECORDS_PREFIX,
     RETRIEVAL_ERRORS,
 )
@@ -69,9 +74,9 @@ def run(
                     continue
                 pod_summaries = get_pod_summaries(context, config, summaries)
                 scripts = write_pod_script(config, pod_summaries, arxiv_set, category, pod_date)
-                for key, script in scripts:
-                    create_audio(config, arxiv_set, category, pod_date, script, key)
-                # logger.info("Pod created", set=arxiv_set, category=category, date=pod_date, file=filename)
+                for key, script, part_record_ids in scripts:
+                    audio_key = create_audio(config, arxiv_set, category, pod_date, script, key)
+                    create_pod_node(config, arxiv_set, category, pod_date, key, audio_key, part_record_ids)
             except Exception as e:
                 logger.error("Error creating pod", set=arxiv_set, category=category, date=pod_date, error=e)
                 continue
@@ -313,3 +318,105 @@ def latex_to_human_readable(latex_str):
     latex_str = latex_str.replace("--", "–")
 
     return unescape(latex_str)
+
+
+def create_pod_node(
+    config: dict,
+    arxiv_set: str,
+    category: str,
+    pod_date: datetime,
+    script_key: str,
+    audio_key: str,
+    part_record_ids: List[str],
+):
+    logger.debug("Creating pod node", method=create_pod_node.__name__)
+    episode = 1
+    season = 1
+    part = 0
+    match = re.search(r"part_(\d+)", script_key, re.IGNORECASE)
+    if match:
+        part = int(match.group(1))
+    part_text = f"Part {part} - " if part > 0 else ""
+    title = f"Episode {episode} - {part_text}{get_long_date(pod_date)}"
+    try:
+        with GraphDatabase.driver(
+            config["NEO4J_URI"], auth=(config["NEO4J_USERNAME"], config["NEO4J_PASSWORD"])
+        ) as driver:
+            query = (
+                f"MATCH (s:ArxivSet {{code: $arxiv_set}}) "
+                f"-[:{CATEGORIZED_BY}]->(c:ArxivCategory {{code: $category}}) "
+                f"-[:{CATEGORIZES}]->(p:Podcast) "
+                "RETURN {episode: p.episode, season: p.season} AS result ORDER BY p.episode_date DESC LIMIT 1"
+            )
+            with driver.session() as session:
+                result = session.run(query, {"arxiv_set": arxiv_set, "category": category})
+                data = result.data()
+                if len(data) > 0:
+                    episode = data[0]["result"]["episode"] + 1
+                    season = data[0]["result"]["season"]
+
+            pod = Podcast(
+                driver=driver,
+                title=title,
+                season=season,
+                episode=episode,
+                part=part,
+                episode_date=pod_date.date(),
+                script_key=script_key,
+                audio_key=audio_key,
+            )
+            pod.create()
+
+            category_node = ArxivCategory.find(driver, category)
+            if not category_node:
+                logger.error("Category node not found", category=category, pod=pod, method=create_pod_node.__name__)
+                raise ValueError(f"Category node not found: {category}")
+            pod.relate(
+                driver=driver,
+                label=CATEGORIZED_BY,
+                start_label=Podcast.label,
+                start_uuid=pod.uuid,
+                end_label=ArxivCategory.label,
+                end_uuid=category_node.uuid,
+            )
+            category_node.relate(
+                driver=driver,
+                label=CATEGORIZES,
+                start_label=ArxivCategory.label,
+                start_uuid=category_node.uuid,
+                end_label=Podcast.label,
+                end_uuid=pod.uuid,
+            )
+
+            for record_id in part_record_ids:
+                try:
+                    record_node = ArxivRecord.find(driver, record_id)
+                    if not record_node:
+                        logger.error(
+                            "Record node not found", record_id=record_id, pod=pod, method=create_pod_node.__name__
+                        )
+                        continue
+                    pod.relate(
+                        driver=driver,
+                        label=PUBLISHES,
+                        start_label=Podcast.label,
+                        start_uuid=pod.uuid,
+                        end_label=ArxivRecord.label,
+                        end_uuid=record_node.uuid,
+                    )
+                    record_node.relate(
+                        driver=driver,
+                        label=PUBLISHED_IN,
+                        start_label=ArxivRecord.label,
+                        start_uuid=record_node.uuid,
+                        end_label=Podcast.label,
+                        end_uuid=pod.uuid,
+                    )
+                except Exception as e:
+                    logger.error(
+                        "Error creating pod node", error=e, record_id=record_id, method=create_pod_node.__name__
+                    )
+                    continue
+    except Exception as e:
+        logger.error("Error creating pod node", error=e, method=create_pod_node.__name__)
+        raise e
