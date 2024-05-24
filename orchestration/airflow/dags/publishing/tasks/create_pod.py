@@ -374,17 +374,17 @@ def create_pod_node(
             pod.relate(
                 driver=driver,
                 label=CATEGORIZED_BY,
-                start_label=Podcast.label,
+                start_label=Podcast.LABEL,
                 start_uuid=pod.uuid,
-                end_label=ArxivCategory.label,
+                end_label=ArxivCategory.LABEL,
                 end_uuid=category_node.uuid,
             )
             category_node.relate(
                 driver=driver,
                 label=CATEGORIZES,
-                start_label=ArxivCategory.label,
+                start_label=ArxivCategory.LABEL,
                 start_uuid=category_node.uuid,
-                end_label=Podcast.label,
+                end_label=Podcast.LABEL,
                 end_uuid=pod.uuid,
             )
 
@@ -399,17 +399,17 @@ def create_pod_node(
                     pod.relate(
                         driver=driver,
                         label=PUBLISHES,
-                        start_label=Podcast.label,
+                        start_label=Podcast.LABEL,
                         start_uuid=pod.uuid,
-                        end_label=ArxivRecord.label,
+                        end_label=ArxivRecord.LABEL,
                         end_uuid=record_node.uuid,
                     )
                     record_node.relate(
                         driver=driver,
                         label=PUBLISHED_IN,
-                        start_label=ArxivRecord.label,
+                        start_label=ArxivRecord.LABEL,
                         start_uuid=record_node.uuid,
-                        end_label=Podcast.label,
+                        end_label=Podcast.LABEL,
                         end_uuid=pod.uuid,
                     )
                 except Exception as e:

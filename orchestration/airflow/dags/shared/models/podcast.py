@@ -162,7 +162,8 @@ class Podcast(BaseModel):
                     episode_date: $episode_date,
                     script_key: $script_key,
                     audio_key: $audio_key,
-                    created_at: $created_at
+                    created: $created,
+                    last_modified: $last_modified
                 })
             """
             parameters = {
@@ -177,7 +178,7 @@ class Podcast(BaseModel):
                 "created": now,
                 "last_modified": now,
             }
-            self.execute_query(query, parameters)
+            self.driver.execute_query(query, parameters)
         except Exception as e:
             self.logger.error(f"Failed to create podcast: {e}", method=self.create.__name__)
             raise e
@@ -236,6 +237,35 @@ class Podcast(BaseModel):
             return podcasts
         except Exception as e:
             logger.error("Error finding all podcasts", method=cls.findall.__name__, error=str(e))
+            raise e
+
+    @classmethod
+    def load(self) -> bool:
+        try:
+            if not self.title or not self.season or not self.episode or not self.part or not self.episode_date:
+                raise ValueError("title, season, episode, part, and episode_date are required for loading")
+            records, _, _ = self.driver.execute_query(
+                "MATCH (p:Podcast {title: $title, season: $season, episode: $episode, part: $part, episode_date: $episode_date}) RETURN p",
+                title=self.title,
+                season=self.season,
+                episode=self.episode,
+                part=self.part,
+                episode_date=self.episode_date,
+                database_=self.db,
+            )
+            if records:
+                data = records[0].data().get("p", {})
+                self.uuid = data.get("uuid", "")
+                self.created = data.get("created", "")
+                self.last_modified = data.get("last_modified", "")
+                self.script_key = data.get("script_key", "")
+                self.audio_key = data.get("audio_key", "")
+
+                if not self.script_key or not self.audio_key:
+                    raise ValueError("Failed to properly load podcast")
+            return True if records else False
+        except Exception as e:
+            logger.error("Error loading podcast", pod=self, method=self.load.__name__, error=str(e))
             raise e
 
     def relate(
