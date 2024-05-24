@@ -95,7 +95,7 @@ def next_pod_dates(config: dict, arxiv_set: str, category: str) -> List[datetime
                 f"MATCH (s:ArxivSet {{code: $arxiv_set}}) "
                 f"-[:{CATEGORIZED_BY}]->(c:ArxivCategory {{code: $category}}) "
                 f"-[:{CATEGORIZES}]->(p:Podcast) "
-                "RETURN p.date ORDER BY p.date DESC LIMIT 1"
+                "RETURN p.episode_date ORDER BY p.episode_date DESC LIMIT 1"
             )
             result = session.run(query, {"arxiv_set": arxiv_set, "category": category})
             data = result.data()
@@ -105,7 +105,7 @@ def next_pod_dates(config: dict, arxiv_set: str, category: str) -> List[datetime
             if len(data) == 0:
                 start_date = end_date - timedelta(days=5)
             else:
-                start_date = datetime.combine(data[0]["p.date"].to_native(), datetime.min.time(), tzinfo)
+                start_date = datetime.combine(data[0]["p.episode_date"].to_native(), datetime.min.time(), tzinfo)
             date_list = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
             return date_list
     except Exception as e:
@@ -126,7 +126,7 @@ def get_summaries(config: dict, arxiv_set: str, category: str, episode_date: dat
                 f"<-[:{PRIMARILY_CATEGORIZED_BY}]-(a:ArxivRecord)--(b:Abstract) "
                 "MATCH (a)-[:AUTHORED_BY]->(author:Author)"
                 "WHERE a.date = $date "
-                "RETURN {record: a, abstract: b, authors: collect(author)} AS result"
+                "RETURN {record: a, abstract: b, authors: collect({first_name: author.first_name, last_name: author.last_name})} AS result"
             )
             result = session.run(query, {"arxiv_set": arxiv_set, "category": category, "date": episode_date.date()})
             data = result.data()
@@ -224,7 +224,7 @@ def write_pod_script(
                         script_content += no_latex_paragraph + "\n\n"
                     part_record_ids.append(r["record"]["arxiv_id"])
                 except Exception as e:
-                    logger.error("Error writing pod script", error=e, method=write_pod_script.__name__, record=r)
+                    logger.error("Error writing pod script", error=e, method=write_pod_script.__name__)
                     continue
 
             script_content += outro
