@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import date, datetime
+from datetime import date
 
 import structlog
 from neo4j import Driver
@@ -26,10 +26,19 @@ logger.setLevel(logging.INFO)
 
 class Podcast(BaseModel):
 
-    FIELDS_CSV = "season|episode|date|uuid|created|last_modified\n"
+    FIELDS_CSV = "season|episode|episode_date|uuid|created|last_modified|script_url|audio_url\n"
     LABEL = "Podcast"
 
-    def __init__(self, driver: Driver = None, season: int = 0, episode: int = 0, part=0, date: date = None):
+    def __init__(
+        self,
+        driver: Driver = None,
+        season: int = 0,
+        episode: int = 0,
+        part=0,
+        episode_date: date = None,
+        script_url: str = "",
+        audio_url: str = "",
+    ):
         super().__init__(driver)
         if season and (not isinstance(season, int) or season < 0):
             message = "season must be a non-negative integer"
@@ -43,26 +52,46 @@ class Podcast(BaseModel):
             message = "part must be a non-negative integer"
             self.logger.error(message, method=self.__init__.__name__)
             raise ValueError(message)
-        if date and not isinstance(date, date):
-            message = "date must be a valid date object"
+        if episode_date and not isinstance(episode_date, date):
+            message = "episode_date must be a valid date object"
+            self.logger.error(message, method=self.__init__.__name__)
+            raise ValueError(message)
+        if not script_url:
+            message = "script_url is required"
+            self.logger.error(message, method=self.__init__.__name__)
+            raise ValueError(message)
+        if not audio_url:
+            message = "audio_url is required"
             self.logger.error(message, method=self.__init__.__name__)
             raise ValueError(message)
         self.season = season
         self.episode = episode
         self.part = part
-        self.date = date
+        self.episode_date = episode_date
+        self.script_url = script_url
+        self.audio_url = audio_url
         self.uuid = None
         self.created = None
         self.last_modified = None
 
-    def create(self, season: int = None, episode: int = None, part: int = None, date: date = None):
+    def create(
+        self,
+        season: int = None,
+        episode: int = None,
+        part: int = None,
+        episode_date: date = None,
+        script_url: str = None,
+        audio_url: str = None,
+    ):
         season = season if season is not None else self.season
         episode = episode if episode is not None else self.episode
         part = part if part is not None else self.part
-        date = date if date is not None else self.date
+        episode_date = episode_date if episode_date is not None else self.episode_date
+        script_url = script_url if script_url is not None else self.script_url
+        audio_url = audio_url if audio_url is not None else self.audio_url
 
-        if season is None or episode is None or date is None:
-            message = "season, episode, and date are required for creation"
+        if season is None or episode is None or episode_date is None or not script_url or not audio_url:
+            message = "season, episode, episode_date, script_url, and audio_url are required for creation"
             self.logger.error(message, method=self.create.__name__)
             raise ValueError(message)
 
@@ -78,8 +107,8 @@ class Podcast(BaseModel):
             message = "part must be a non-negative integer"
             self.logger.error(message, method=self.create.__name__)
             raise ValueError(message)
-        if not isinstance(date, date):
-            message = "date must be a valid date object"
+        if not isinstance(episode_date, date):
+            message = "episode_date must be a valid date object"
             self.logger.error(message, method=self.create.__name__)
             raise ValueError(message)
 
@@ -87,7 +116,9 @@ class Podcast(BaseModel):
             self.season = season
             self.episode = episode
             self.part = part
-            self.date = date
+            self.episode_date = episode_date
+            self.script_url = script_url
+            self.audio_url = audio_url
             self.verify_connection()
             self.logger.debug(
                 "Creating Podcast",
@@ -95,60 +126,38 @@ class Podcast(BaseModel):
                 season=self.season,
                 episode=self.episode,
                 part=self.part,
-                date=self.date,
+                episode_date=self.episode_date,
+                script_url=self.script_url,
+                audio_url=self.audio_url,
             )
             now = get_storage_key_datetime()
-            properties = {
-                "uuid": str(uuid.uuid4()),
+            self.uuid = str(uuid.uuid4())
+            query = """
+                CREATE (p:Podcast {
+                    uuid: $uuid,
+                    season: $season,
+                    episode: $episode,
+                    part: $part,
+                    episode_date: $episode_date,
+                    script_url: $script_url,
+                    audio_url: $audio_url,
+                    created_at: $created_at
+                })
+            """
+            parameters = {
+                "uuid": self.uuid,
+                "season": self.season,
+                "episode": self.episode,
+                "part": self.part,
+                "episode_date": self.episode_date,
+                "script_url": self.script_url,
+                "audio_url": self.audio_url,
                 "created": now,
                 "last_modified": now,
             }
-            records, summary, _ = self.driver.execute_query(
-                """
-                MERGE (p:Podcast {season: $season, episode: $episode, part: $part, date: $date})
-                ON CREATE SET p += $props
-                RETURN p""",
-                season=self.season,
-                episode=self.episode,
-                part=self.part,
-                date=self.date.isoformat(),
-                props=properties,
-                database_=self.db,
-            )
-            if records and summary.counters.nodes_created == 1:
-                self.logger.debug(
-                    "Podcast created",
-                    method=self.create.__name__,
-                    season=self.season,
-                    episode=self.episode,
-                    part=self.part,
-                    date=self.date,
-                )
-            elif records and summary.counters.nodes_created == 0:
-                self.logger.debug(
-                    "Podcast already exists",
-                    method=self.create.__name__,
-                    season=self.season,
-                    episode=self.episode,
-                    part=self.part,
-                    date=self.date,
-                )
-            else:
-                self.logger.error(
-                    "Failed to create podcast",
-                    method=self.create.__name__,
-                    season=self.season,
-                    episode=self.episode,
-                    part=self.part,
-                    date=self.date,
-                )
-                raise RuntimeError()
-            data = records[0].data().get("p", {})
-            self.uuid = data.get("uuid", "")
-            self.created = data.get("created", "")
-            self.last_modified = data.get("last_modified", "")
+            self.execute_query(query, parameters)
         except Exception as e:
-            self.logger.error("Error creating podcast", method=self.create.__name__, error=str(e))
+            self.logger.error(f"Failed to create podcast: {e}", method=self.create.__name__)
             raise e
 
     @classmethod
@@ -161,13 +170,18 @@ class Podcast(BaseModel):
             )
             if records:
                 data = records[0].data().get("p", {})
-                return cls(
+                podcast = cls(
                     driver=driver,
                     season=data.get("season", 0),
                     episode=data.get("episode", 0),
                     part=data.get("part", 0),
-                    date=datetime.strptime(data.get("date", ""), "%Y-%m-%d").date(),
+                    episode_date=data.get("episode_date", ""),
+                    script_url=data.get("script_url", ""),
+                    audio_url=data.get("audio_url", ""),
                 )
+                podcast.created = data.get("created", "")
+                podcast.last_modified = data.get("last_modified", "")
+                return podcast
             return None
         except Exception as e:
             logger.error("Error finding podcast", method=cls.find.__name__, error=str(e))
@@ -183,43 +197,32 @@ class Podcast(BaseModel):
             podcasts = []
             for record in records:
                 data = record.data().get("p", {})
-                podcasts.append(
-                    cls(
-                        driver=driver,
-                        season=data.get("season", 0),
-                        episode=data.get("episode", 0),
-                        part=data.get("part", 0),
-                        date=datetime.strptime(data.get("date", ""), "%Y-%m-%d").date(),
-                    )
+                podcast = cls(
+                    driver=driver,
+                    season=data.get("season", 0),
+                    episode=data.get("episode", 0),
+                    part=data.get("part", 0),
+                    episode_date=data.get("episode_date", ""),
+                    script_url=data.get("script_url", ""),
+                    audio_url=data.get("audio_url", ""),
                 )
+                podcast.created = data.get("created", "")
+                podcast.last_modified = data.get("last_modified", "")
+                podcasts.append(podcast)
             return podcasts
         except Exception as e:
             logger.error("Error finding all podcasts", method=cls.findall.__name__, error=str(e))
             raise e
 
-    def relate(self, driver: Driver, relationship: str, to_node_label: str, to_node_uuid: str, properties: dict = None):
-        try:
-            self.verify_connection()
-            query = f"""
-            MATCH (a:Podcast {{uuid: $from_uuid}}), (b:{to_node_label} {{uuid: $to_uuid}})
-            MERGE (a)-[r:{relationship}]->(b)
-            ON CREATE SET r += $props
-            RETURN r
-            """
-            self.driver.execute_query(
-                query,
-                from_uuid=self.uuid,
-                to_uuid=to_node_uuid,
-                props=properties or {},
-                database_=self.db,
-            )
-            self.logger.debug(
-                "Created relationship",
-                method=self.relate.__name__,
-                from_uuid=self.uuid,
-                to_uuid=to_node_uuid,
-                relationship=relationship,
-            )
-        except Exception as e:
-            self.logger.error("Error creating relationship", method=self.relate.__name__, error=str(e))
-            raise e
+    def relate(
+        self,
+        driver: Driver,
+        label: str,
+        start_label: str,
+        start_uuid: str,
+        end_label: str,
+        end_uuid: str,
+        unique: bool = True,
+        properties: dict = None,
+    ):
+        super()._relate(driver, label, start_label, start_uuid, end_label, end_uuid, True)

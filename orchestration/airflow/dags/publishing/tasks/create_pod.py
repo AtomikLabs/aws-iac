@@ -69,8 +69,8 @@ def run(
                     continue
                 pod_summaries = get_pod_summaries(context, config, summaries)
                 scripts = write_pod_script(config, pod_summaries, arxiv_set, category, pod_date)
-                logger.info("Scripts", scripts=[s[0] for s in scripts])
-                # filename = create_audio(config, arxiv_set, category, pod_date, pod_scripts)
+                for key, script in scripts:
+                    create_audio(config, arxiv_set, category, pod_date, script, key)
                 # logger.info("Pod created", set=arxiv_set, category=category, date=pod_date, file=filename)
             except Exception as e:
                 logger.error("Error creating pod", set=arxiv_set, category=category, date=pod_date, error=e)
@@ -163,7 +163,7 @@ def get_pod_summaries(context: dict, config: dict, summaries: List[Dict]) -> Lis
 
 def write_pod_script(
     config: dict, pod_summaries: List[Dict], arxiv_set: str, category: str, episode_date: datetime
-) -> List[Tuple[str, str]]:
+) -> List[Tuple[str, str, List[str]]]:
     logger.debug(
         "Writing pod script",
         set=arxiv_set,
@@ -201,7 +201,7 @@ def write_pod_script(
                 intro = intro_template + f"Here is Part {part + 1} of what was submitted on {long_date}\n\n"
             else:
                 intro = intro_template + f"Here is what was submitted on {long_date}\n\n"
-
+            part_record_ids = []
             script_content = intro
             for research in part_summaries:
                 try:
@@ -217,6 +217,7 @@ def write_pod_script(
                         cleaned_paragraph = re.sub(r"\n\s*", " ", p)
                         no_latex_paragraph = latex_to_human_readable(cleaned_paragraph)
                         script_content += no_latex_paragraph + "\n\n"
+                    part_record_ids.append(r["record"]["arxiv_id"])
                 except Exception as e:
                     logger.error("Error writing pod script", error=e, method=write_pod_script.__name__, record=r)
                     continue
@@ -226,7 +227,7 @@ def write_pod_script(
             key = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_script{part_suffix}.txt".lower()
             s3_manager = S3Manager(config[DATA_BUCKET], logger)
             s3_manager.upload_to_s3(key, script_content)
-            scripts.append((key, script_content))
+            scripts.append((key, script_content, part_record_ids))
 
         return scripts
     except Exception as e:
@@ -239,9 +240,16 @@ def get_long_date(episode_date: datetime):
     return long_date
 
 
-def create_audio(config: dict, arxiv_set: str, category: str, episode_date: datetime, script_text: str) -> str:
+def create_audio(
+    config: dict, arxiv_set: str, category: str, episode_date: datetime, script_text: str, key: str
+) -> str:
     logger.debug("Generating podcast audio", method=create_audio.__name__)
-    filename = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_podcast".lower()
+    part = 0
+    match = re.search(r"part_(\d+)", key, re.IGNORECASE)
+    if match:
+        part = int(match.group(1))
+    part_text = f"part_{part}_" if part > 0 else ""
+    filename = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_{part_text}podcast".lower()
     try:
         polly_client = boto3.client("polly")
         polly_client.start_speech_synthesis_task(
