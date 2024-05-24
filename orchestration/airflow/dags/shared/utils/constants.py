@@ -75,7 +75,7 @@ CS_CATEGORIES = {
     "IT": "Information Theory",
     "LG": "Machine Learning",
     "LO": "Logic in Computer Science",
-    "MA": "Multiagent Systems",
+    "MA": "Multi-agent Systems",
     "MM": "Multimedia",
     "MS": "Mathematical Software",
     "NA": "Numerical Analysis",

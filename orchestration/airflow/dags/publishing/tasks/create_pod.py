@@ -191,7 +191,7 @@ def write_pod_script(
         scripts = []
         num_summaries = len(pod_summaries)
         if num_summaries > 50:
-            num_parts = (num_summaries + 29) // 30
+            num_parts = (num_summaries + 39) // 40
             summaries_per_part = (num_summaries + num_parts - 1) // num_parts
         else:
             num_parts = 1
