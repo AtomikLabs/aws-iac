@@ -117,7 +117,7 @@ class Author(BaseModel):
             raise e
 
     @classmethod
-    def find(cls, driver: Driver, last_name: str, first_name: str = ""):
+    def find(cls, driver: Driver, last_name: str, first_name: str):
         if not driver or not isinstance(driver, Driver):
             raise ValueError("Invalid driver")
         if not validate_strings(last_name, first_name):
