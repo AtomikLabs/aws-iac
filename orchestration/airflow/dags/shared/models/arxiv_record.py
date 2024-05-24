@@ -47,7 +47,7 @@ class ArxivRecord(BaseModel):
         self.arxiv_id = arxiv_id
         self.uuid = None
         self.title = title
-        self.date = datetime.strptime(date, ARXIV_RESEARCH_DATE_FORMAT) if date.strip() else None
+        self.date = datetime.strptime(date, ARXIV_RESEARCH_DATE_FORMAT).date() if date.strip() else None
         self.created = None
         self.last_modified = None
 

@@ -91,6 +91,7 @@ locals {
   basic_execution_role_arn  = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   lambda_vpc_access_role    = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
   neo4j_uri                 = "neo4j://${module.orchestration.orchestration_host_private_ip}:7687"
+  pods_prefix                = var.pods_prefix
 }
 
 module "networking" {
@@ -156,6 +157,7 @@ module "orchestration" {
   orchestration_source_security_group_ids         = [
                                                       module.security.bastion_host_security_group_id,
                                                     ]
+  pods_prefix                                     = local.pods_prefix
   private_subnets                                 = module.networking.aws_private_subnet_ids
   region                                          = local.aws_region
   ssm_policy_for_instances_arn                    = local.ssm_policy_for_instances_arn

@@ -110,6 +110,11 @@ variable "orchestration_source_security_group_ids" {
   type        = list(string)
 }
 
+variable "pods_prefix" {
+  description = "Prefix for storing podcast objects"
+  type        = string
+}
+
 variable "private_subnets" {
   description = "Private subnets"
   type        = list(string)

@@ -90,7 +90,7 @@ with DAG(
     SERVICE_NAME,
     catchup=False,
     default_args=DEFAULT_LOGGING_ARGS,
-    schedule_interval="@hourly",
+    schedule_interval=None,
     start_date=start_date,
     tags=["management", "neo4j", "arxiv"],
 ) as dag:

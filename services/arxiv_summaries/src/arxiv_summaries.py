@@ -457,12 +457,12 @@ def create_script(categories, records, research_date, group):
             themes = create_research_themes("\n".join(full_text), category)
             print(f"Date: {research_date} Category: {category} Tokens: {len(full_text) / 6}")
         themes = "\n".join(themes)
-        create_full_show_notes([category], records, research_date, "cs", themes)
+        # create_full_show_notes([category], records, research_date, "cs", themes)
         create_pod_notes([category], research_date, themes)
-        create_post_text([category], research_date, themes)
-        create_li_seo_lines(category, research_date)
-        if CREATE_AUDIO:
-            create_polly_audio("\n".join(full_text), file_name, research_date)
+        # create_post_text([category], research_date, themes)
+        # create_li_seo_lines(category, research_date)
+        # if CREATE_AUDIO:
+        #    create_polly_audio("\n".join(full_text), file_name, research_date)
 
 
 def create_pod_notes(categories: list, research_date: str, themes: str):
