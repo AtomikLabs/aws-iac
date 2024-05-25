@@ -1,7 +1,7 @@
 import os
 from logging.config import dictConfig
 
-import publishing.tasks.create_pod as cpt
+import publishing.tasks.create_pod_task as cpt
 import structlog
 from airflow import DAG
 from airflow.operators.python import PythonOperator

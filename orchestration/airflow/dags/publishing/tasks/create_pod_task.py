@@ -148,7 +148,7 @@ def get_summaries(config: dict, arxiv_set: str, category: str, episode_date: dat
                 f"<-[:{PRIMARILY_CATEGORIZED_BY}]-(a:ArxivRecord)<-[:{SUMMARIZES}]-(b:Abstract) "
                 "MATCH (a)-[:AUTHORED_BY]->(author:Author)"
                 "WHERE a.date = $date "
-                "RETURN {record: a, abstract: b, authors: collect({first_name: author.first_name, last_name: author.last_name})} AS result"
+                "RETURN {record: a, abstract: b, authors: collect(DISTINCT {first_name: author.first_name, last_name: author.last_name})} AS result"
             )
             result = session.run(query, {"arxiv_set": arxiv_set, "category": category, "date": episode_date.date()})
             data = result.data()
