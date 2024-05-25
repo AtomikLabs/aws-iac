@@ -62,17 +62,16 @@ class Author(BaseModel):
             )
             now = get_storage_key_datetime()
             properties = {
-                "first_name": self.first_name,
                 "uuid": str(uuid.uuid4()),
-                "last_name": self.last_name,
                 "created": now,
                 "last_modified": now,
             }
             records, summary, _ = self.driver.execute_query(
                 """
-                MERGE (a:Author {last_name: $last_name})
+                MERGE (a:Author {first_name: $first_name, last_name: $last_name})
                 ON CREATE SET a += $props
                 RETURN a""",
+                first_name=self.first_name,
                 last_name=self.last_name,
                 props=properties,
                 database_=self.db,
@@ -118,7 +117,7 @@ class Author(BaseModel):
             raise e
 
     @classmethod
-    def find(cls, driver: Driver, last_name: str, first_name: str = ""):
+    def find(cls, driver: Driver, last_name: str, first_name: str):
         if not driver or not isinstance(driver, Driver):
             raise ValueError("Invalid driver")
         if not validate_strings(last_name, first_name):

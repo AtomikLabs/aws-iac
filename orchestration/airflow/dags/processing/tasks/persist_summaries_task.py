@@ -252,7 +252,7 @@ def store_records(records: List[Dict], bucket_name: str, key: str, config: dict,
                     malformed_records.append(record)
                 try:
                     for author in record.get("authors", []):
-                        author_node = Author(driver, author.get(FIRST_NAME), author.get(LAST_NAME))
+                        author_node = Author(driver, last_name=author.get(LAST_NAME), first_name=author.get(FIRST_NAME))
                         author_node.create()
                         arxiv_record.relate(
                             driver,
