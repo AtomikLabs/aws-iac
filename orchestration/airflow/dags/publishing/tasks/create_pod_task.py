@@ -90,6 +90,14 @@ def run(
                         script_text=script,
                         key=key,
                     )
+                    create_speech_marks(
+                        config=config,
+                        arxiv_set=arxiv_set,
+                        category=category,
+                        episode_date=pod_date,
+                        script_text=script,
+                        key=key,
+                    )
                     create_pod_node(
                         config=config,
                         arxiv_set=arxiv_set,
@@ -123,12 +131,18 @@ def next_pod_dates(config: dict, arxiv_set: str, category: str) -> List[datetime
             data = result.data()
             start_date = None
             tzinfo = timezone(DEFAULT_TIMEZONE)
-            end_date = datetime.now(tzinfo)
+            end_date = datetime.now(tzinfo) + timedelta(days=1)
             if len(data) == 0:
                 start_date = end_date - timedelta(days=5)
             else:
-                start_date = datetime.combine(data[0]["p.episode_date"].to_native(), datetime.min.time(), tzinfo)
-            date_list = [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)]
+                start_date = datetime.combine(
+                    data[0]["p.episode_date"].to_native(), datetime.min.time(), tzinfo
+                ) + timedelta(days=1)
+            date_list = []
+            current_date = start_date
+            while current_date < end_date:
+                date_list.append(current_date)
+                current_date += timedelta(days=1)
             return date_list
     except Exception as e:
         logger.error("Error getting last pod date", error=e)
@@ -203,12 +217,12 @@ def write_pod_script(
         categories_dict = SET_MAP[arxiv_set]
         show_name = categories_dict[category]
         intro_template = (
-            f"Hi, and welcome to Tech crafting AI {show_name}. I am your virtual host, Sage. "
+            f"<speak>Hi, and welcome to Tech crafting AI {show_name}. I am your virtual host, Sage. "
             f"Tech crafting AI {show_name} brings you daily summaries of new research released on archive. "
             "The podcast is produced by Brad Edwards. Thank you to archive "
             f"for use of its open access interoperability. "
         )
-        outro = "That's all for today, thank you for listening. If you found the podcast helpful, please leave a comment, like, or share it with a friend. See you tomorrow!"
+        outro = "That's all for today, thank you for listening. If you found the podcast helpful, please leave a comment, like, or share it with a friend. See you tomorrow!</speak>"
 
         scripts = []
         num_summaries = len(pod_summaries)
@@ -233,17 +247,19 @@ def write_pod_script(
             for research in part_summaries:
                 try:
                     r = research["result"]
-                    cleaned_title = re.sub(r"\n\s*", " ", r["record"]["title"])
+                    cleaned_title = re.sub(r"\n\s*", " ", escape_special_chars(r["record"]["title"]))
                     script_content += cleaned_title + "\n"
-
-                    authors = [f"{author['first_name']} {author['last_name']}" for author in r["authors"]]
+                    authors = [
+                        escape_special_chars(f"{author['first_name']} {author['last_name']}") for author in r["authors"]
+                    ]
                     script_content += "by " + ", ".join(authors) + "\n\n"
 
                     paragraphs = r["abstract"]["text"].split("\n\n")
                     for p in paragraphs:
                         cleaned_paragraph = re.sub(r"\n\s*", " ", p)
                         no_latex_paragraph = latex_to_human_readable(cleaned_paragraph)
-                        script_content += no_latex_paragraph + "\n\n"
+                        escaped_paragraph = escape_special_chars(no_latex_paragraph)
+                        script_content += escaped_paragraph + "\n\n"
                     part_record_ids.append(r["record"]["arxiv_id"])
                 except Exception as e:
                     logger.error("Error writing pod script", error=e, method=write_pod_script.__name__)
@@ -260,6 +276,17 @@ def write_pod_script(
     except Exception as e:
         logger.error("Error getting pod script", error=e, method=write_pod_script.__name__)
         raise e
+
+
+def escape_special_chars(text: str) -> str:
+    """Escape special characters for SSML."""
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("'", "&apos;")
+        .replace('"', "&quot;")
+    )
 
 
 def get_long_date(episode_date: datetime):
@@ -284,14 +311,42 @@ def create_audio(
             OutputS3BucketName=config[DATA_BUCKET],
             OutputS3KeyPrefix=filename,
             Text=script_text,
-            TextType="text",
+            TextType="ssml",
             VoiceId="Matthew",
         )
         return filename
     except Exception as e:
         logger.error(f"Failed to create Polly audio for {filename}")
         logger.error(e)
-    return None
+        return None
+
+
+def create_speech_marks(
+    config: dict, arxiv_set: str, category: str, episode_date: datetime, script_text: str, key: str
+) -> str:
+    logger.debug("Generating speech marks", method=create_speech_marks.__name__)
+    part = 0
+    match = re.search(r"part_(\d+)", key, re.IGNORECASE)
+    if match:
+        part = int(match.group(1))
+    part_text = f"part_{part}_" if part > 0 else ""
+    filename = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_{part_text}speech_marks".lower()
+    try:
+        polly_client = boto3.client("polly")
+        polly_client.start_speech_synthesis_task(
+            OutputFormat="json",
+            OutputS3BucketName=config[DATA_BUCKET],
+            OutputS3KeyPrefix=filename,
+            Text=script_text,
+            TextType="ssml",
+            VoiceId="Matthew",
+            SpeechMarkTypes=["sentence", "word"],
+        )
+        return filename
+    except Exception as e:
+        logger.error(f"Failed to create Polly speech marks for {filename}")
+        logger.error(e)
+        return None
 
 
 def latex_to_human_readable(latex_str):
