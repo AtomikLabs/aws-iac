@@ -95,7 +95,7 @@ def run(
                         arxiv_set=arxiv_set,
                         category=category,
                         pod_date=pod_date,
-                        key=key,
+                        script_key=key,
                         audio_key=audio_key,
                         part_record_ids=part_record_ids,
                     )
