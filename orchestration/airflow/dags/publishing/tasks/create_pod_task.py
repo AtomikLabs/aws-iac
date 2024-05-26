@@ -1,4 +1,6 @@
 import re
+import time
+from collections import defaultdict
 from datetime import datetime, timedelta
 from html import unescape
 from logging.config import dictConfig
@@ -66,10 +68,14 @@ def run(
         env_vars = [AWS_REGION, DATA_BUCKET, ENVIRONMENT_NAME, PODS_PREFIX, RECORDS_PREFIX]
         config = get_config(context, env_vars, True)
         date_list = next_pod_dates(config, arxiv_set, category)
+        marks_keys_by_date = defaultdict(list)
+        titles_by_date = defaultdict(list)
+        task_ids = []
         for pod_date in date_list:
             try:
                 logger.info("Creating pod", set=arxiv_set, category=category, date=pod_date)
                 summaries = get_summaries(config, arxiv_set, category, pod_date)
+                titles_by_date[pod_date] = [s["result"]["record"]["title"] for s in summaries]
                 if not summaries or len(summaries) == 0:
                     logger.info("No summaries for date", set=arxiv_set, category=category, date=pod_date)
                     continue
@@ -82,7 +88,7 @@ def run(
                     episode_date=pod_date,
                 )
                 for key, script, part_record_ids in scripts:
-                    audio_key = create_audio(
+                    audio_key, audio_task_id = create_audio(
                         config=config,
                         arxiv_set=arxiv_set,
                         category=category,
@@ -90,7 +96,8 @@ def run(
                         script_text=script,
                         key=key,
                     )
-                    create_speech_marks(
+                    task_ids.append(audio_task_id)
+                    marks_key, marks_task_id = create_speech_marks(
                         config=config,
                         arxiv_set=arxiv_set,
                         category=category,
@@ -98,6 +105,8 @@ def run(
                         script_text=script,
                         key=key,
                     )
+                    task_ids.append(marks_task_id)
+                    marks_keys_by_date[pod_date].append(marks_key)
                     create_pod_node(
                         config=config,
                         arxiv_set=arxiv_set,
@@ -110,6 +119,12 @@ def run(
             except Exception as e:
                 logger.error("Error creating pod", set=arxiv_set, category=category, date=pod_date, error=e)
                 continue
+        pods_created_time = poll_polly_jobs(config, task_ids)
+        if pods_created_time > 10 * 60:
+            logger.warn(
+                "Pod creation took longer than 10 minutes", duration=pods_created_time, method="create_pod_task"
+            )
+        create_pod_notes(config, marks_keys_by_date, titles_by_date)
         return {"statusCode": 200, "body": "Pod created", "date_list": date_list}
     except Exception as e:
         logger.error("Error creating pod", set=arxiv_set, category=category, error=e)
@@ -248,7 +263,7 @@ def write_pod_script(
                 try:
                     r = research["result"]
                     cleaned_title = re.sub(r"\n\s*", " ", escape_special_chars(r["record"]["title"]))
-                    script_content += cleaned_title + "\n"
+                    script_content += f"<mark name={cleaned_title}/>" + cleaned_title + "\n"
                     authors = [
                         escape_special_chars(f"{author['first_name']} {author['last_name']}") for author in r["authors"]
                     ]
@@ -271,7 +286,6 @@ def write_pod_script(
             s3_manager = S3Manager(config[DATA_BUCKET], logger)
             s3_manager.upload_to_s3(key, script_content)
             scripts.append((key, script_content, part_record_ids))
-
         return scripts
     except Exception as e:
         logger.error("Error getting pod script", error=e, method=write_pod_script.__name__)
@@ -296,7 +310,7 @@ def get_long_date(episode_date: datetime):
 
 def create_audio(
     config: dict, arxiv_set: str, category: str, episode_date: datetime, script_text: str, key: str
-) -> str:
+) -> Tuple[str, str]:
     logger.debug("Generating podcast audio", method=create_audio.__name__)
     part = 0
     match = re.search(r"part_(\d+)", key, re.IGNORECASE)
@@ -306,15 +320,19 @@ def create_audio(
     filename = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_{part_text}podcast".lower()
     try:
         polly_client = boto3.client("polly")
-        polly_client.start_speech_synthesis_task(
+        response = polly_client.start_speech_synthesis_task(
+            Engine="standard",
+            LanguageCode="en-US",
             OutputFormat="mp3",
             OutputS3BucketName=config[DATA_BUCKET],
             OutputS3KeyPrefix=filename,
+            SpeechMarkTypes=["ssml"],
             Text=script_text,
             TextType="ssml",
             VoiceId="Matthew",
         )
-        return filename
+        task_id = response["SynthesisTask"]["TaskId"]
+        return filename, task_id
     except Exception as e:
         logger.error(f"Failed to create Polly audio for {filename}")
         logger.error(e)
@@ -323,7 +341,7 @@ def create_audio(
 
 def create_speech_marks(
     config: dict, arxiv_set: str, category: str, episode_date: datetime, script_text: str, key: str
-) -> str:
+) -> Tuple[str, str]:
     logger.debug("Generating speech marks", method=create_speech_marks.__name__)
     part = 0
     match = re.search(r"part_(\d+)", key, re.IGNORECASE)
@@ -333,16 +351,19 @@ def create_speech_marks(
     filename = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_{part_text}speech_marks".lower()
     try:
         polly_client = boto3.client("polly")
-        polly_client.start_speech_synthesis_task(
+        response = polly_client.start_speech_synthesis_task(
+            Engine="standard",
+            LanguageCode="en-US",
             OutputFormat="json",
             OutputS3BucketName=config[DATA_BUCKET],
             OutputS3KeyPrefix=filename,
+            SpeechMarkTypes=["ssml"],
             Text=script_text,
             TextType="ssml",
             VoiceId="Matthew",
-            SpeechMarkTypes=["sentence", "word"],
         )
-        return filename
+        task_id = response["SynthesisTask"]["TaskId"]
+        return filename, task_id
     except Exception as e:
         logger.error(f"Failed to create Polly speech marks for {filename}")
         logger.error(e)
@@ -497,3 +518,44 @@ def create_pod_node(
     except Exception as e:
         logger.error("Error creating pod node", error=e, method=create_pod_node.__name__)
         raise e
+
+
+def poll_polly_jobs(config: dict, task_ids: List[str], timeout_minutes: int = 15) -> float:
+    polly_client = boto3.client("polly")
+    timeout_seconds = timeout_minutes * 60
+    poll_interval = 15
+    start_time = time.time()
+
+    while time.time() - start_time < timeout_seconds:
+        all_done = True
+        for task_id in task_ids:
+            response = polly_client.get_speech_synthesis_task(TaskId=task_id)
+            status = response["SynthesisTask"]["TaskStatus"]
+            if status not in ["completed", "failed"]:
+                all_done = False
+                break
+
+        if all_done:
+            duration = time.time() - start_time
+            logger.info("Polly jobs completed", duration=duration, method=poll_polly_jobs.__name__)
+            return duration
+
+        time.sleep(poll_interval)
+
+    raise TimeoutError("Polling Polly jobs timed out after 15 minutes.")
+
+
+def create_pod_notes(
+    config: dict, marks_keys_by_date: Dict[datetime, List[str]], titles_by_date: Dict[datetime, List[str]]
+):
+    logger.debug("Creating pod notes", method=create_pod_notes.__name__)
+    s3_manager = S3Manager(config[DATA_BUCKET], logger)
+    for episode_date in marks_keys_by_date.keys():
+        for marks_key in marks_keys_by_date[episode_date]:
+            logger.debug("Creating pod note", date=episode_date, marks_key=marks_key, method=create_pod_notes.__name__)
+            marks = s3_manager.load(marks_key)
+            logger.debug("Pod note", marks=marks, method=create_pod_notes.__name__)
+            times_and_titles = []
+            for title in titles_by_date[episode_date]:
+                if title in marks:
+                    times_and_titles.append(f"{title}")
