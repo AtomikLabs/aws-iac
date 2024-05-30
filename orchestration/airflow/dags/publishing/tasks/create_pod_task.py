@@ -259,11 +259,13 @@ def write_pod_script(
                 intro = intro_template + f"Here is what was submitted on {long_date}\n\n"
             part_record_ids = []
             script_content = intro
+            timepoint = 0
             for research in part_summaries:
                 try:
                     r = research["result"]
                     cleaned_title = re.sub(r"\n\s*", " ", escape_special_chars(r["record"]["title"]))
-                    script_content += f"<mark name={cleaned_title}/>" + cleaned_title + "\n"
+                    script_content += f'<mark name="{timepoint}"/>' + cleaned_title + "\n"
+                    timepoint += 1
                     authors = [
                         escape_special_chars(f"{author['first_name']} {author['last_name']}") for author in r["authors"]
                     ]

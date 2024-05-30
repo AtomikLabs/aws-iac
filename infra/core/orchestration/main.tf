@@ -383,7 +383,10 @@ resource "aws_iam_policy" "orchestration_polly_policy" {
     Statement = [
       {
         Action = [
+          "polly:GetSpeechSynthesisTask",
+          "polly:ListSpeechSynthesisTasks",
           "polly:StartSpeechSynthesisTask",
+          "polly:SynthesizeSpeech"
         ]
         Effect = "Allow",
         Resource = "*"
