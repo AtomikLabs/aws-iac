@@ -358,7 +358,7 @@ def create_speech_marks(
             OutputFormat="json",
             OutputS3BucketName=config[DATA_BUCKET],
             OutputS3KeyPrefix=filename,
-            SpeechMarkTypes=["sentence"],
+            SpeechMarkTypes=["ssml"],
             Text=script_text,
             TextType="ssml",
             VoiceId="Matthew",
