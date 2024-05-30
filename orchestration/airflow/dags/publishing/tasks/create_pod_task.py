@@ -326,7 +326,6 @@ def create_audio(
             OutputFormat="mp3",
             OutputS3BucketName=config[DATA_BUCKET],
             OutputS3KeyPrefix=filename,
-            SpeechMarkTypes=["sentence"],
             Text=script_text,
             TextType="ssml",
             VoiceId="Matthew",
