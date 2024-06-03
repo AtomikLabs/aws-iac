@@ -1,3 +1,4 @@
+import json
 import re
 import time
 from collections import defaultdict
@@ -68,9 +69,9 @@ def run(
         env_vars = [AWS_REGION, DATA_BUCKET, ENVIRONMENT_NAME, PODS_PREFIX, RECORDS_PREFIX]
         config = get_config(context, env_vars, True)
         date_list = next_pod_dates(config, arxiv_set, category)
-        marks_keys_by_date = defaultdict(list)
         titles_by_date = defaultdict(list)
         task_ids = []
+        notes_data = []
         for pod_date in date_list:
             try:
                 logger.info("Creating pod", set=arxiv_set, category=category, date=pod_date)
@@ -87,7 +88,8 @@ def run(
                     category=category,
                     episode_date=pod_date,
                 )
-                for key, script, part_record_ids in scripts:
+                part = 0 if len(scripts) == 1 else 1
+                for key, script, part_record_ids, titles in scripts:
                     audio_key, audio_task_id = create_audio(
                         config=config,
                         arxiv_set=arxiv_set,
@@ -97,7 +99,7 @@ def run(
                         key=key,
                     )
                     task_ids.append(audio_task_id)
-                    marks_key, marks_task_id = create_speech_marks(
+                    marks_uri, marks_task_id = create_speech_marks(
                         config=config,
                         arxiv_set=arxiv_set,
                         category=category,
@@ -106,7 +108,8 @@ def run(
                         key=key,
                     )
                     task_ids.append(marks_task_id)
-                    marks_keys_by_date[pod_date].append(marks_key)
+                    notes_data.append((pod_date, category, part, marks_uri, titles))
+                    part += 1
                     create_pod_node(
                         config=config,
                         arxiv_set=arxiv_set,
@@ -124,7 +127,8 @@ def run(
             logger.warn(
                 "Pod creation took longer than 10 minutes", duration=pods_created_time, method="create_pod_task"
             )
-        create_pod_notes(config, marks_keys_by_date, titles_by_date)
+        for pod_date, category, part, marks_key, titles in notes_data:
+            create_pod_notes(config, pod_date, category, part, marks_key, titles)
         return {"statusCode": 200, "body": "Pod created", "date_list": date_list}
     except Exception as e:
         logger.error("Error creating pod", set=arxiv_set, category=category, error=e)
@@ -219,7 +223,7 @@ def get_pod_summaries(context: dict, config: dict, summaries: List[Dict]) -> Lis
 
 def write_pod_script(
     config: dict, pod_summaries: List[Dict], arxiv_set: str, category: str, episode_date: datetime
-) -> List[Tuple[str, str, List[str]]]:
+) -> List[Tuple[str, str, List[str], List[str]]]:
     logger.debug(
         "Writing pod script",
         set=arxiv_set,
@@ -260,10 +264,12 @@ def write_pod_script(
             part_record_ids = []
             script_content = intro
             timepoint = 0
+            titles = []
             for research in part_summaries:
                 try:
                     r = research["result"]
                     cleaned_title = re.sub(r"\n\s*", " ", escape_special_chars(r["record"]["title"]))
+                    titles.append(cleaned_title)
                     script_content += f'<mark name="{timepoint}"/>' + cleaned_title + "\n"
                     timepoint += 1
                     authors = [
@@ -287,7 +293,7 @@ def write_pod_script(
             key = f"{config[PODS_PREFIX]}/{episode_date.strftime(ARXIV_RESEARCH_DATE_FORMAT)}/{arxiv_set}_{category}_script{part_suffix}.txt".lower()
             s3_manager = S3Manager(config[DATA_BUCKET], logger)
             s3_manager.upload_to_s3(key, script_content)
-            scripts.append((key, script_content, part_record_ids))
+            scripts.append((key, script_content, part_record_ids, titles))
         return scripts
     except Exception as e:
         logger.error("Error getting pod script", error=e, method=write_pod_script.__name__)
@@ -302,6 +308,17 @@ def escape_special_chars(text: str) -> str:
         .replace(">", "&gt;")
         .replace("'", "&apos;")
         .replace('"', "&quot;")
+    )
+
+
+def unescape_special_chars(text: str) -> str:
+    """Unescape special characters for SSML."""
+    return (
+        text.replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&apos;", "'")
+        .replace("&quot;", '"')
     )
 
 
@@ -364,7 +381,8 @@ def create_speech_marks(
             VoiceId="Matthew",
         )
         task_id = response["SynthesisTask"]["TaskId"]
-        return filename, task_id
+        output_uri = response["SynthesisTask"]["OutputUri"]
+        return output_uri, task_id
     except Exception as e:
         logger.error(f"Failed to create Polly speech marks for {filename}")
         logger.error(e)
@@ -547,16 +565,63 @@ def poll_polly_jobs(config: dict, task_ids: List[str], timeout_minutes: int = 15
 
 
 def create_pod_notes(
-    config: dict, marks_keys_by_date: Dict[datetime, List[str]], titles_by_date: Dict[datetime, List[str]]
+    config: dict, episode_date: datetime, category: str, part_number: int, marks_key_prefix: str, titles: List[str]
 ):
     logger.debug("Creating pod notes", method=create_pod_notes.__name__)
-    s3_manager = S3Manager(config[DATA_BUCKET], logger)
-    for episode_date in marks_keys_by_date.keys():
-        for marks_key in marks_keys_by_date[episode_date]:
-            logger.debug("Creating pod note", date=episode_date, marks_key=marks_key, method=create_pod_notes.__name__)
-            marks = s3_manager.load(marks_key)
-            logger.debug("Pod note", marks=marks, method=create_pod_notes.__name__)
-            times_and_titles = []
-            for title in titles_by_date[episode_date]:
-                if title in marks:
-                    times_and_titles.append(f"{title}")
+
+    s3_client = boto3.client("s3", region_name=config["AWS_REGION"])
+
+    if marks_key_prefix.startswith("https://"):
+        marks_key_prefix = marks_key_prefix.split(f"{config['DATA_BUCKET']}/")[-1]
+
+    timeout_seconds = 300
+    poll_interval = 10
+    start_time = time.time()
+    marks_key = None
+    logger.info("mkp", mkp=marks_key_prefix)
+    while time.time() - start_time < timeout_seconds:
+        try:
+            response = s3_client.list_objects_v2(Bucket=config["DATA_BUCKET"], Prefix=marks_key_prefix)
+            if "Contents" in response:
+                logger.info("contents", contents=response["Contents"])
+                for obj in response["Contents"]:
+                    if obj["Key"].startswith(marks_key_prefix) and obj["Key"].endswith(".marks"):
+                        marks_key = obj["Key"]
+                        break
+            if marks_key:
+                break
+        except Exception as e:
+            logger.error("Error accessing S3 during polling", error=str(e))
+        time.sleep(poll_interval)
+
+    if not marks_key:
+        logger.error("Failed to find marks file with prefix", prefix=marks_key_prefix)
+        raise FileNotFoundError(f"No marks file found with prefix {marks_key_prefix}")
+
+    try:
+        logger.info("marks key", mk=marks_key)
+        obj = s3_client.get_object(Bucket=config["DATA_BUCKET"], Key=marks_key)
+        marks_data = obj["Body"].read().decode("utf-8")
+        marks = [json.loads(line) for line in marks_data.splitlines()]
+    except Exception as e:
+        logger.error("Failed to retrieve marks file", key=marks_key, error=str(e))
+        raise
+
+    episode_notes = []
+    for i, mark in enumerate(marks):
+        if i >= len(titles):
+            break
+        time_ms = mark["time"]
+        minutes, seconds = divmod(time_ms // 1000, 60)
+        timestamp = f"{minutes:02}:{seconds:02}"
+        episode_note = f"{timestamp}: {unescape_special_chars(titles[i])}"
+        episode_notes.append(episode_note)
+
+    part_chunk = "" if part_number == 0 else f"_part_{part_number}"
+    notes_key = f"{config['PODS_PREFIX']}/{episode_date.strftime('%Y-%m-%d')}/{category}{part_chunk}_episode_notes.txt"
+    try:
+        s3_client.put_object(Bucket=config["DATA_BUCKET"], Key=notes_key, Body="\n".join(episode_notes))
+        logger.info("Pod notes created and uploaded", date=episode_date, s3_key=notes_key)
+    except Exception as e:
+        logger.error("Failed to upload pod notes", key=notes_key, error=str(e))
+        raise
