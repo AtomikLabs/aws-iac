@@ -3,7 +3,7 @@
 # **********************************************************
 
 app_name = "atomiklabs"
-app_version = "0.3.7-alpha"
+app_version = "0.3.8-alpha"
 availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
 aws_region = "us-east-1"
 backend_dynamodb_table = "terraform-state-locks"
