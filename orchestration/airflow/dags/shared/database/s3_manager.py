@@ -68,6 +68,17 @@ class S3Manager:
             )
             raise e
 
+    def list(self, key: str):
+        """
+        List the contents of an AWS S3 bucket with the given key.
+
+        Args:
+            key: The key to use when listing the contents of the S3 bucket.
+        """
+        client = boto3.client("s3")
+        response = client.list_objects_v2(Bucket=self.bucket_name, Prefix=key)
+        return response["Contents"] if "Contents" in response else []
+
     def load(self, key: str):
         """
         Load the content from an AWS S3 bucket with the given key.
