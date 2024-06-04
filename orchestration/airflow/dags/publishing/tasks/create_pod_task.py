@@ -568,7 +568,7 @@ def create_pod_notes(
     config: dict, episode_date: datetime, category: str, part_number: int, marks_key_prefix: str, titles: List[str]
 ):
     logger.debug("Creating pod notes", method=create_pod_notes.__name__)
-    s3_manager = S3Manager(config[DATA_BUCKET], logger)
+    s3_client = boto3.client("s3", region_name=config["AWS_REGION"])
 
     if marks_key_prefix.startswith("https://"):
         marks_key_prefix = marks_key_prefix.split(f"{config['DATA_BUCKET']}/")[-1]
@@ -580,10 +580,10 @@ def create_pod_notes(
     logger.info("mkp", mkp=marks_key_prefix)
     while time.time() - start_time < timeout_seconds:
         try:
-            contents = s3_manager.list(marks_key_prefix)
-            if contents and len(contents) > 0:
-                logger.info("contents", contents=contents)
-                for obj in contents:
+            response = s3_client.list_objects_v2(Bucket=config["DATA_BUCKET"], Prefix=marks_key_prefix)
+            if "Contents" in response:
+                logger.info("contents", contents=response["Contents"])
+                for obj in response["Contents"]:
                     if obj["Key"].startswith(marks_key_prefix) and obj["Key"].endswith(".marks"):
                         marks_key = obj["Key"]
                         break
@@ -599,7 +599,7 @@ def create_pod_notes(
 
     try:
         logger.info("marks key", mk=marks_key)
-        obj = s3_manager.load(marks_key)
+        obj = s3_client.get_object(Bucket=config["DATA_BUCKET"], Key=marks_key)
         marks_data = obj["Body"].read().decode("utf-8")
         marks = [json.loads(line) for line in marks_data.splitlines()]
     except Exception as e:
@@ -620,7 +620,7 @@ def create_pod_notes(
     part_chunk = "" if part_number == 0 else f"_part_{part_number}"
     notes_key = f"{config['PODS_PREFIX']}/{episode_date.strftime('%Y-%m-%d')}/{category}{part_chunk}_episode_notes.txt"
     try:
-        s3_manager.upload_to_s3(key=notes_key, content="\n".join(episode_notes))
+        s3_client.put_object(Bucket=config["DATA_BUCKET"], Key=notes_key, Body="\n".join(episode_notes))
         logger.info("Pod notes created and uploaded", date=episode_date, s3_key=notes_key)
     except Exception as e:
         logger.error("Failed to upload pod notes", key=notes_key, error=str(e))
