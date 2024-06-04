@@ -63,7 +63,7 @@ arxiv_sets = ["cs"]
 default_lambda_runtime = "python3.10"
 pods_prefix = "pods"
 
-create_pod_task_version = "0.1.1"
+create_pod_task_version = "0.2.0"
 fetch_from_arxiv_task_version = "0.1.0"
 most_recent_research_records_version = "0.0.2"
 parse_summaries_task_version = "0.1.0"
